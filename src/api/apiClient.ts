@@ -1,14 +1,9 @@
 import axios, { AxiosError } from 'axios';
 import { Platform } from 'react-native';
 
-const apiUrlFromEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-  .process?.env?.EXPO_PUBLIC_API_URL;
-const apiBaseFromEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-  .process?.env?.EXPO_PUBLIC_API_BASE_URL;
-
 const API_URL = 'http://138.249.7.224';
 
-const API_BASE_URL = apiBaseFromEnv || `${API_URL}/api/v1`;
+const API_BASE_URL = '/api/v1';
 
 export class ApiClientError extends Error {
   status?: number;
