@@ -6,7 +6,7 @@ const apiUrlFromEnv = (globalThis as { process?: { env?: Record<string, string |
 const apiBaseFromEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } })
   .process?.env?.EXPO_PUBLIC_API_BASE_URL;
 
-const API_URL = 'http://138.249.7.224:8080';
+const API_URL = 'http://138.249.7.224';
 
 const API_BASE_URL = apiBaseFromEnv || `${API_URL}/api/v1`;
 
