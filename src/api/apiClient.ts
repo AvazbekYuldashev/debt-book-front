@@ -34,6 +34,7 @@ function extractErrorMessage(body: unknown, fallback: string): string {
     ) as string | undefined;
     if (directMessage) return directMessage;
 
+
     const nestedObject = [obj.message, obj.error, obj.detail, obj.data].find(
       (v) => typeof v === 'object' && v !== null
     ) as Record<string, unknown> | undefined;
