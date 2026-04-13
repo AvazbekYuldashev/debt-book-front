@@ -1,9 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { Platform } from 'react-native';
-
-const API_URL = 'http://138.249.7.224';
-
-const API_BASE_URL = '/api/v1';
+import { API_BASE } from './baseUrl';
 
 export class ApiClientError extends Error {
   status?: number;
@@ -83,7 +79,7 @@ function extractErrorMessage(body: unknown, fallback: string): string {
 }
 
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE,
   timeout: 15000,
   headers: {
     Accept: 'application/json',

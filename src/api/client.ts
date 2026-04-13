@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { API_BASE } from './baseUrl';
 
 export interface ClientDTO {
   id: string;
@@ -26,13 +26,6 @@ type PaginatedResponse<T> = {
   totalPages?: number;
   last?: boolean;
 };
-
-const apiUrlFromEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-  .process?.env?.EXPO_PUBLIC_API_URL;
-
-const API_URL =
-  apiUrlFromEnv || (Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080');
-const API_BASE = `${API_URL}/api/v1`;
 
 function getErrorMessage(status: number, statusText: string, body: unknown): string {
   if (body && typeof body === 'object') {

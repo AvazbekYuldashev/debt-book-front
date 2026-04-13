@@ -1,5 +1,5 @@
-import { Platform } from 'react-native';
 import apiClient, { ApiClientError, setApiAuthToken } from './apiClient';
+import { API_BASE } from './baseUrl';
 
 type AppResponse<T> = {
   success?: boolean;
@@ -35,11 +35,7 @@ export const updateProfileDetail = async (dto: ProfileDetailUpdateDTO, token?: s
 };
 
 export const updateProfilePhoto = async (dto: ProfilePhotoUpdateDTO, token?: string): Promise<void> => {
-  const apiUrlFromEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-    .process?.env?.EXPO_PUBLIC_API_URL;
-  const API_URL =
-    apiUrlFromEnv || (Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080');
-  const res = await fetch(`${API_URL}/api/v1/profile/photo`, {
+  const res = await fetch(`${API_BASE}/profile/photo`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

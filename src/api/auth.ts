@@ -1,5 +1,5 @@
-import { Platform } from 'react-native';
 import { ProfileDTO } from '../types';
+import { API_BASE } from './baseUrl';
 
 type ApiErrorBody = {
   message?: string;
@@ -86,12 +86,6 @@ function extractErrorMessage(body: unknown, fallback: string): string {
 
   return fallback;
 }
-
-const apiUrlFromEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-  .process?.env?.EXPO_PUBLIC_API_URL;
-
-const API_URL = apiUrlFromEnv || (Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080');
-const API_BASE = `${API_URL}/api/v1`;
 
 async function request<T>(path: string, dto: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
