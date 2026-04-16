@@ -1,11 +1,18 @@
 import React, { useContext } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { ActivityIndicator, View } from 'react-native';
 import AuthStack from './AuthStack';
 import BottomTabNavigator from './BottomTabNavigator';
 import { AuthContext } from '../context/AuthContext';
 
 const RootNavigator: React.FC = () => {
-  const { profile } = useContext(AuthContext);
+  const { profile, isAuthReady } = useContext(AuthContext);
+  if (!isAuthReady) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
   return profile ? <BottomTabNavigator /> : <AuthStack />;
 };
 
