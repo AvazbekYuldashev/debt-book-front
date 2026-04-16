@@ -14,6 +14,7 @@ const ResetConfirmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleUsernameChange = (value: string) => {
     let digits = value.replace(/\D/g, '');
@@ -59,13 +60,18 @@ const ResetConfirmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         onChangeText={setConfirmCode}
         keyboardType="numeric"
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Yangi parol"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+      <View style={styles.passwordInputRow}>
+        <TextInput
+          style={[styles.input, styles.passwordInput]}
+          placeholder="Yangi parol"
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity style={styles.passwordToggle} onPress={() => setShowPassword((prev) => !prev)}>
+          <Text style={styles.passwordToggleText}>{showPassword ? 'Yashir' : "Ko'rsat"}</Text>
+        </TouchableOpacity>
+      </View>
       <TouchableOpacity style={styles.button} onPress={handleConfirm}>
         <Text style={styles.buttonText}>Yangilash</Text>
       </TouchableOpacity>
@@ -94,6 +100,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: 16,
+  },
+  passwordInputRow: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  passwordInput: {
+    marginBottom: 0,
+    paddingRight: 80,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  passwordToggleText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   phoneInputRow: {
     backgroundColor: '#fff',

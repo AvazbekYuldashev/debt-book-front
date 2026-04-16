@@ -15,6 +15,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [surname, setSurname] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleUsernameChange = (value: string) => {
@@ -89,13 +90,18 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           keyboardType="number-pad"
         />
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Parol"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+      <View style={styles.passwordInputRow}>
+        <TextInput
+          style={[styles.input, styles.passwordInput]}
+          placeholder="Parol"
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity style={styles.passwordToggle} onPress={() => setShowPassword((prev) => !prev)}>
+          <Text style={styles.passwordToggleText}>{showPassword ? 'Yashir' : "Ko'rsat"}</Text>
+        </TouchableOpacity>
+      </View>
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Ro'yxatdan o'tish</Text>
@@ -125,6 +131,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: 16,
+  },
+  passwordInputRow: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  passwordInput: {
+    marginBottom: 0,
+    paddingRight: 80,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  passwordToggleText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   button: {
     backgroundColor: colors.primary,

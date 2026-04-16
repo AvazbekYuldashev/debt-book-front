@@ -14,6 +14,7 @@ import { AuthContext } from '../context/AuthContext';
 const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { setProfile } = useContext(AuthContext);
@@ -68,13 +69,18 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           keyboardType="number-pad"
         />
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Parol"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+      <View style={styles.passwordInputRow}>
+        <TextInput
+          style={[styles.input, styles.passwordInput]}
+          placeholder="Parol"
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity style={styles.passwordToggle} onPress={() => setShowPassword((prev) => !prev)}>
+          <Text style={styles.passwordToggleText}>{showPassword ? 'Yashir' : "Ko'rsat"}</Text>
+        </TouchableOpacity>
+      </View>
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Kirish</Text>}
       </TouchableOpacity>
@@ -112,6 +118,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: 16,
+  },
+  passwordInputRow: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  passwordInput: {
+    marginBottom: 0,
+    paddingRight: 80,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  passwordToggleText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   phoneInputRow: {
     backgroundColor: '#fff',
