@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
-import { ClientDTO, createClient, deleteClient, getMyClients, updateClient } from '../api/client';
+import { ClientDTO, ClientFilterDTO, createClient, deleteClient, filterClients, getMyClients, updateClient } from '../api/client';
 import { AuthContext } from './AuthContext';
 
 export interface Contact {
@@ -19,6 +19,15 @@ interface ContactFormInput {
   phone: string;
 }
 
+interface ContactUpdateInput {
+  name: string;
+}
+
+interface ContactFilterInput {
+  name?: string;
+  phoneNumber?: string;
+}
+
 interface ContactsContextValue {
   contacts: Contact[];
   loading: boolean;
@@ -27,8 +36,9 @@ interface ContactsContextValue {
   deleting: boolean;
   error: string;
   refreshContacts: () => Promise<void>;
+  filterContacts: (input: ContactFilterInput) => Promise<Contact[]>;
   addContact: (input: ContactFormInput) => Promise<boolean>;
-  updateContact: (id: string, input: ContactFormInput) => Promise<boolean>;
+  updateContact: (id: string, input: ContactUpdateInput) => Promise<boolean>;
   deleteContact: (id: string) => Promise<boolean>;
 }
 
@@ -40,6 +50,7 @@ export const ContactsContext = createContext<ContactsContextValue>({
   deleting: false,
   error: '',
   refreshContacts: async () => {},
+  filterContacts: async () => [],
   addContact: async () => false,
   updateContact: async () => false,
   deleteContact: async () => false,
@@ -84,7 +95,7 @@ const validateContactInput = (input: ContactFormInput): string => {
   return '';
 };
 
-const validateContactUpdateInput = (input: ContactFormInput): string => {
+const validateContactUpdateInput = (input: ContactUpdateInput): string => {
   const cleanName = input.name.trim();
   if (!cleanName) return 'Ism majburiy';
   return '';
@@ -94,6 +105,15 @@ const toPhoneNumber = (phone: string): string => {
   const digits = phone.replace(/\D/g, '');
   if (digits.length === 9) return `998${digits}`;
   return digits;
+};
+
+const findDuplicateByPhone = (
+  contacts: Contact[],
+  phone: string,
+  ignoreId?: string
+): Contact | undefined => {
+  const normalizedPhone = toPhoneNumber(phone);
+  return contacts.find((contact) => contact.id !== ignoreId && toPhoneNumber(contact.phone) === normalizedPhone);
 };
 
 export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -124,6 +144,24 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [profile?.jwt]);
 
+  const filterContacts = useCallback(
+    async (input: ContactFilterInput): Promise<Contact[]> => {
+      if (!profile?.jwt) return [];
+
+      const name = input.name?.trim() || '';
+      const phoneDigits = (input.phoneNumber || '').replace(/\D/g, '');
+      if (name.length < 3 && phoneDigits.length < 3) return contacts;
+      const dto: ClientFilterDTO = {
+        name: name || undefined,
+        phoneNumber: phoneDigits.length > 0 ? phoneDigits : undefined,
+      };
+
+      const filtered = await filterClients(profile.jwt, dto, 1, 100);
+      return filtered.map(toContact);
+    },
+    [contacts, profile?.jwt]
+  );
+
   const addContact = useCallback(
     async (input: ContactFormInput): Promise<boolean> => {
       if (!profile?.jwt) {
@@ -134,6 +172,12 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
       const validationError = validateContactInput(input);
       if (validationError) {
         setError(validationError);
+        return false;
+      }
+
+      const duplicate = findDuplicateByPhone(contacts, input.phone);
+      if (duplicate) {
+        setError('Bu mijoz tizimda mavjud.');
         return false;
       }
 
@@ -153,11 +197,11 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setCreating(false);
       }
     },
-    [profile?.jwt]
+    [contacts, profile?.jwt]
   );
 
   const updateContact = useCallback(
-    async (id: string, input: ContactFormInput): Promise<boolean> => {
+    async (id: string, input: ContactUpdateInput): Promise<boolean> => {
       if (!profile?.jwt) {
         setError('Avval tizimga kiring');
         return false;
@@ -227,6 +271,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         deleting,
         error,
         refreshContacts,
+        filterContacts,
         addContact,
         updateContact,
         deleteContact: deleteContactHandler,

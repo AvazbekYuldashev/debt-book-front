@@ -150,13 +150,13 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
 
         <View style={styles.bottomActions}>
           <PrimaryButton
-            title="Qarz olish"
+            title="Oldim"
             variant="primary"
             onPress={() => openModal('TAKE')}
             style={[styles.actionBtn, styles.takeActionBtn]}
           />
           <PrimaryButton
-            title="Qarz berish"
+            title="Berdim"
             onPress={() => openModal('GIVE')}
             style={[styles.actionBtn, styles.giveActionBtn]}
           />

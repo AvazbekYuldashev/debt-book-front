@@ -18,6 +18,11 @@ export interface ClientUpdateDTO {
   name: string;
 }
 
+export interface ClientFilterDTO {
+  name?: string;
+  phoneNumber?: string;
+}
+
 type PaginatedResponse<T> = {
   content?: T[];
   items?: T[];
@@ -64,6 +69,65 @@ export async function getMyClients(jwt: string, page = 1, size = 100): Promise<C
         Authorization: `Bearer ${jwt}`,
         'Accept-Language': 'UZ',
       },
+    });
+
+    const parsed = await parseResponseBody(res);
+
+    if (!res.ok) {
+      throw new Error(getErrorMessage(res.status, res.statusText, parsed));
+    }
+
+    if (Array.isArray(parsed)) {
+      return { content: parsed as ClientDTO[], last: true, totalPages: 1, number: 0 };
+    }
+
+    if (parsed && typeof parsed === 'object') {
+      return parsed as PaginatedResponse<ClientDTO>;
+    }
+
+    return { content: [], last: true, totalPages: 1, number: 0 };
+  };
+
+  const firstPage = await fetchPage(page);
+  const all = [...(firstPage.content || firstPage.items || firstPage.data || [])];
+  const totalPages =
+    typeof firstPage.totalPages === 'number' && firstPage.totalPages > 0 ? firstPage.totalPages : 1;
+
+  if (totalPages <= 1 || firstPage.last) {
+    return all;
+  }
+
+  for (let pageNumber = page + 1; pageNumber <= totalPages; pageNumber += 1) {
+    const nextPage = await fetchPage(pageNumber);
+    const batch = nextPage.content || nextPage.items || nextPage.data || [];
+    all.push(...batch);
+    if (nextPage.last) break;
+  }
+
+  return all;
+}
+
+export async function filterClients(
+  jwt: string,
+  dto: ClientFilterDTO,
+  page = 1,
+  size = 100
+): Promise<ClientDTO[]> {
+  const fetchPage = async (pageNumber: number): Promise<PaginatedResponse<ClientDTO>> => {
+    const params = new URLSearchParams({
+      page: String(pageNumber),
+      size: String(size),
+    });
+
+    const res = await fetch(`${API_BASE}/client/filter?${params.toString()}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${jwt}`,
+        'Accept-Language': 'UZ',
+      },
+      body: JSON.stringify(dto),
     });
 
     const parsed = await parseResponseBody(res);

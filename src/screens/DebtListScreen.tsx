@@ -27,6 +27,12 @@ type Mode = 'create' | 'edit';
 const POSITIVE = '#0D9488';
 const NEGATIVE = '#EF4444';
 
+const normalizePhoneForCompare = (value: string): string => {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 9) return `998${digits}`;
+  return digits;
+};
+
 const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { profile } = useContext(AuthContext);
   const {
@@ -37,6 +43,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     deleting,
     error,
     refreshContacts,
+    filterContacts,
     addContact,
     updateContact,
     deleteContact,
@@ -47,6 +54,10 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [selectedId, setSelectedId] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [filterName, setFilterName] = useState('');
+  const [filterPhone, setFilterPhone] = useState('');
+  const [searchResults, setSearchResults] = useState<typeof contacts>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [localError, setLocalError] = useState('');
   const [totalsKey, setTotalsKey] = useState(0);
   const [totalsByContact, setTotalsByContact] = useState<
@@ -58,6 +69,13 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     () => contacts.find((contact) => contact.id === selectedId),
     [contacts, selectedId]
   );
+
+  const filteredContacts = useMemo(() => {
+    const nameQuery = filterName.trim();
+    const phoneQuery = filterPhone.replace(/\D/g, '');
+    if (nameQuery.length < 3 && phoneQuery.length < 3) return contacts;
+    return searchResults;
+  }, [contacts, filterName, filterPhone, searchResults]);
 
   const aggregateTotals = useMemo(() => {
     let totalDebt = 0;
@@ -219,6 +237,41 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
   }, [computeTotalsFromHistory, contacts, profile?.jwt, resolveCounterpartyId, totalsKey]);
 
+  useEffect(() => {
+    const nameQuery = filterName.trim();
+    const phoneQuery = filterPhone.replace(/\D/g, '');
+    if (nameQuery.length < 3 && phoneQuery.length < 3) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSearchLoading(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const result = await filterContacts({ name: nameQuery, phoneNumber: phoneQuery });
+        if (!cancelled) {
+          setSearchResults(result);
+          setLocalError('');
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setSearchResults([]);
+          setLocalError(e instanceof Error ? e.message : 'Qidiruvda xatolik yuz berdi');
+        }
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [filterContacts, filterName, filterPhone]);
+
   const openCreate = () => {
     setMode('create');
     setSelectedId('');
@@ -234,7 +287,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setMode('edit');
     setSelectedId(id);
     setName(target.fullName);
-    setPhone(target.phone.replace(/^998/, ''));
+    setPhone('');
     setLocalError('');
     setModalVisible(true);
   };
@@ -245,20 +298,46 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || (mode === 'create' && !phone.trim())) {
+    if (!name.trim()) {
       setLocalError(mode === 'create' ? 'Ism va telefonni kiriting' : 'Ismni kiriting');
       return;
     }
 
-    const payload = {
-      name: name.trim(),
-      phone: phone.replace(/\D/g, ''),
-    };
+    if (mode === 'create') {
+      if (!phone.trim()) {
+        setLocalError('Ism va telefonni kiriting');
+        return;
+      }
 
-    const ok =
-      mode === 'create'
-        ? await addContact(payload)
-        : await updateContact(selectedId, { name: payload.name, phone: '' });
+      const normalizedPhone = normalizePhoneForCompare(phone);
+      const duplicate = contacts.some(
+        (contact) => normalizePhoneForCompare(contact.phone) === normalizedPhone
+      );
+      if (duplicate) {
+        setLocalError('Bu mijoz tizimda mavjud.');
+        return;
+      }
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length !== 9 && digits.length !== 12) {
+        setLocalError("Telefon 9 yoki 12 xonali bo'lishi kerak");
+        return;
+      }
+
+      if (digits.length === 12 && !digits.startsWith('998')) {
+        setLocalError("12 xonali telefon 998 bilan boshlanishi kerak");
+        return;
+      }
+
+      const ok = await addContact({
+        name: name.trim(),
+        phone: digits,
+      });
+
+      if (ok) closeModal();
+      return;
+    }
+
+    const ok = await updateContact(selectedId, { name: name.trim() });
 
     if (ok) closeModal();
   };
@@ -282,6 +361,22 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
+        <AppTextInput
+          label="Ism bo'yicha filter"
+          value={filterName}
+          onChangeText={setFilterName}
+          placeholder="Kamida 3 ta harf kiriting"
+          containerStyle={styles.searchInput}
+        />
+        <AppTextInput
+          label="Telefon bo'yicha filter"
+          value={filterPhone}
+          onChangeText={(value) => setFilterPhone(value.replace(/\D/g, '').slice(0, 12))}
+          keyboardType="phone-pad"
+          placeholder="Kamida 3 ta raqam kiriting"
+          containerStyle={styles.searchInput}
+        />
+
         <View style={styles.summaryCard}>
           <View style={styles.summaryCol}>
             <Text style={styles.summaryLabel}>Hozirgi Qarz</Text>
@@ -301,16 +396,19 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         ) : null}
 
         <View style={styles.listCard}>
-          {loading ? (
+          {loading || searchLoading ? (
             <SkeletonCardList count={5} containerStyle={styles.listSkeleton} />
-          ) : contacts.length === 0 ? (
+          ) : filteredContacts.length === 0 ? (
             <Text style={styles.emptyText}>Clientlar topilmadi</Text>
           ) : (
-            contacts.map((item, index) => {
+            filteredContacts.map((item, index) => {
               const balance = totalsByContact[item.id]?.balance;
               const balanceColor = balance && balance > 0 ? POSITIVE : balance && balance < 0 ? NEGATIVE : colors.textSecondary;
               return (
-                <View key={item.id || `contact-${index}`} style={[styles.row, index !== contacts.length - 1 && styles.rowBorder]}>
+                <View
+                  key={item.id || `contact-${index}`}
+                  style={[styles.row, index !== filteredContacts.length - 1 && styles.rowBorder]}
+                >
                   <TouchableOpacity
                     style={styles.rowMain}
                     onPress={() => navigation.navigate(ROUTES.CONTACT_DETAIL, { id: item.id })}
@@ -413,6 +511,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
+  },
+  searchInput: {
+    marginBottom: 14,
   },
   summaryCard: {
     flexDirection: 'row',
