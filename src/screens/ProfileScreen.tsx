@@ -46,7 +46,10 @@ const ProfileScreen: React.FC = () => {
   const [status, setStatus] = useState('');
 
   const token = useMemo(() => profile?.jwt, [profile?.jwt]);
-  const photoUri = photoPreview || profile?.photo?.url || buildProfilePhotoUrl(profile?.photo?.id);
+  const photoUri =
+    normalizeBackendPhotoUrl(photoPreview) ||
+    normalizeBackendPhotoUrl(profile?.photo?.url) ||
+    buildProfilePhotoUrl(profile?.photo?.id);
   const windowSize = Dimensions.get('window');
   const modalImageSize = {
     width: windowSize.width,
@@ -55,7 +58,7 @@ const ProfileScreen: React.FC = () => {
 
   useEffect(() => {
     if (profile?.photo?.url) {
-      setPhotoPreview(profile.photo.url);
+      setPhotoPreview(normalizeBackendPhotoUrl(profile.photo.url));
       return;
     }
     if (profile?.photo?.id) {
@@ -96,7 +99,7 @@ const ProfileScreen: React.FC = () => {
             (typeof freshData.photoId === 'string' ? freshData.photoId : undefined) ||
             prev.photo?.id;
           const photoUrl =
-            (typeof nestedPhoto?.url === 'string' ? nestedPhoto.url : undefined) ||
+            normalizeBackendPhotoUrl(typeof nestedPhoto?.url === 'string' ? nestedPhoto.url : undefined) ||
             prev.photo?.url ||
             buildProfilePhotoUrl(photoId);
 
@@ -186,7 +189,8 @@ const ProfileScreen: React.FC = () => {
       if (!uploaded.id) throw new Error('Photo id topilmadi');
       await updateProfilePhoto({ photoId: uploaded.id }, token);
       // Use the returned URL for preview when available.
-      const resolvedUrl = uploaded.url || buildProfilePhotoUrl(uploaded.id) || asset.uri;
+      const resolvedUrl =
+        normalizeBackendPhotoUrl(uploaded.url) || buildProfilePhotoUrl(uploaded.id) || asset.uri;
       setPhotoPreview(resolvedUrl);
       setProfile((prev) =>
         prev ? { ...prev, photo: { id: uploaded.id, url: resolvedUrl } } : prev
@@ -205,7 +209,7 @@ const ProfileScreen: React.FC = () => {
       <Text style={styles.title}>Profil sozlamalari</Text>
       {profile ? (
         <View style={styles.avatarBlock}>
-          {photoPreview || profile?.photo?.url ? (
+          {photoUri ? (
             <TouchableOpacity
               onPress={() => {
                 if (photoUri) {
@@ -355,7 +359,7 @@ const ProfileScreen: React.FC = () => {
       >
         <View style={styles.photoModalBackdrop}>
           <Pressable style={styles.photoModalOverlay} onPress={() => setPhotoModalVisible(false)} />
-          {photoPreview || profile?.photo?.url ? (
+          {photoUri ? (
             <View style={styles.photoModalCenter} pointerEvents="box-none">
               <TouchableOpacity
                 activeOpacity={1}
@@ -545,4 +549,38 @@ function buildProfilePhotoUrl(photoId?: string): string {
   const normalized = (photoId || '').trim();
   if (!normalized) return '';
   return `${API_BASE}/attach/open/${normalized}`;
+}
+
+function normalizeBackendPhotoUrl(url?: string): string {
+  const raw = (url || '').trim();
+  if (!raw) return '';
+  const apiOrigin = getApiOrigin();
+  if (!apiOrigin) return raw;
+
+  try {
+    const parsed = new URL(raw);
+    const attachOpenMarker = '/api/v1/attach/open/';
+    if (parsed.pathname.includes(attachOpenMarker)) {
+      const fileName = parsed.pathname.split(attachOpenMarker)[1];
+      if (fileName) {
+        return `${apiOrigin}${attachOpenMarker}${fileName}${parsed.search}`;
+      }
+    }
+    const isLocalHost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    if (isLocalHost) {
+      return `${apiOrigin}${parsed.pathname}${parsed.search}`;
+    }
+    return raw;
+  } catch {
+    if (raw.startsWith('/')) return `${apiOrigin}${raw}`;
+    return raw;
+  }
+}
+
+function getApiOrigin(): string {
+  try {
+    return new URL(API_BASE).origin;
+  } catch {
+    return '';
+  }
 }
