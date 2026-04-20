@@ -63,7 +63,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <Text style={styles.phonePrefix}>+998</Text>
         <TextInput
           style={styles.phoneInput}
-          placeholder="+998 90 123 45 67"
+          placeholder="90 123 45 67"
           placeholderTextColor="#9CA3AF"
           value={username}
           onChangeText={handleUsernameChange}
