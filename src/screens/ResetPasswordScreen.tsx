@@ -40,7 +40,8 @@ const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <Text style={styles.phonePrefix}>+998</Text>
         <TextInput
           style={styles.phoneInput}
-          placeholder="902597891"
+          placeholder="+998 90 123 45 67"
+          placeholderTextColor="#9CA3AF"
           value={username}
           onChangeText={handleUsernameChange}
           keyboardType="number-pad"
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   phoneInputRow: {
-    backgroundColor: '#fff',
+    backgroundColor: '#F9FAFB',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
@@ -87,14 +88,14 @@ const styles = StyleSheet.create({
   },
   phonePrefix: {
     fontSize: 16,
-    color: colors.textPrimary,
+    color: '#9CA3AF',
     marginRight: 8,
     fontWeight: '600',
   },
   phoneInput: {
     flex: 1,
     paddingVertical: 12,
-    color: colors.textPrimary,
+    color: '#6B7280',
   },
   button: {
     backgroundColor: colors.primary,

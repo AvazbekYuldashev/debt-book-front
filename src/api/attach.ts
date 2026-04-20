@@ -32,7 +32,11 @@ export const uploadAttach = async (
     const blob = await (await fetch(file.uri)).blob();
     form.append('file', blob, file.name);
   } else {
-    form.append('file', file as unknown as Blob);
+    form.append('file', {
+      uri: file.uri,
+      name: file.name,
+      type: file.type,
+    } as any);
   }
   const response = await apiClient.post<AttachDTO>('/attach/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },

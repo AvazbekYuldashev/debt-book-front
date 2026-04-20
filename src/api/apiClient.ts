@@ -13,6 +13,8 @@ export class ApiClientError extends Error {
   }
 }
 
+let unauthorizedHandler: (() => void) | null = null;
+
 type ApiErrorBody = {
   message?: string;
   error?: string;
@@ -98,11 +100,18 @@ apiClient.interceptors.response.use(
   }>) => {
     const status = error.response?.status;
     const statusText = error.response?.statusText;
+    if (status === 401) {
+      unauthorizedHandler?.();
+    }
     const fallback = `Request failed (${status ?? 'unknown'}${statusText ? ` ${statusText}` : ''})`;
     const message = extractErrorMessage(error.response?.data as ApiErrorBody | string | undefined, fallback);
     return Promise.reject(new ApiClientError(message || fallback, status, error.response?.data));
   }
 );
+
+export const setUnauthorizedHandler = (handler: (() => void) | null) => {
+  unauthorizedHandler = handler;
+};
 
 export const setApiAuthToken = (token?: string) => {
   if (token) {

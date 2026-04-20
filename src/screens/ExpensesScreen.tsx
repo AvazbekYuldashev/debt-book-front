@@ -29,7 +29,7 @@ const DateTimePicker = Platform.OS !== 'web'
 
 const TOTAL_ACCENT = '#0D9488';
 type CategoryMode = 'create' | 'edit';
-type QuickFilterKey = 'thisMonth' | 'last30Days' | 'allTime';
+type QuickFilterKey = 'today' | 'currentWeek' | 'currentMonth' | 'customRange';
 
 const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { profile } = useContext(AuthContext);
@@ -238,27 +238,27 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setQuickFilterVisible(false);
     setFilterError('');
 
-    if (key === 'allTime') {
-      setFromDate('');
-      setEndDate('');
-      await loadCategorySums(categories, undefined, undefined);
+    if (key === 'customRange') {
+      setFilterPanelOpen(true);
+      if (Platform.OS !== 'web') {
+        setShowFromPicker(true);
+      }
       return;
     }
 
     const today = new Date();
-    let from = new Date(today);
+    const endValue = formatDateFromDate(today);
+    let fromValue = endValue;
 
-    if (key === 'thisMonth') {
-      from = new Date(today.getFullYear(), today.getMonth(), 1);
-    } else if (key === 'last30Days') {
-      from = new Date(today);
-      from.setDate(from.getDate() - 29);
+    if (key === 'currentWeek') {
+      fromValue = getCurrentWeekRange(today).fromDate;
+    } else if (key === 'currentMonth') {
+      fromValue = formatDateFromDate(new Date(today.getFullYear(), today.getMonth(), 1));
     }
 
-    const fromValue = formatDateFromDate(from);
-    const endValue = formatDateFromDate(today);
     setFromDate(fromValue);
     setEndDate(endValue);
+    setFilterPanelOpen(false);
     await loadCategorySums(categories, fromValue, endValue);
   };
 
@@ -651,14 +651,17 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <TouchableOpacity style={styles.quickFilterBackdrop} onPress={() => setQuickFilterVisible(false)} activeOpacity={1}>
           <View style={styles.quickFilterCard}>
             <Text style={styles.quickFilterTitle}>Filter tanlang</Text>
-            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('thisMonth')}>
+            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('today')}>
+              <Text style={styles.quickFilterItemText}>Bugun</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('currentWeek')}>
+              <Text style={styles.quickFilterItemText}>Joriy hafta</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('currentMonth')}>
               <Text style={styles.quickFilterItemText}>Joriy oy</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('last30Days')}>
-              <Text style={styles.quickFilterItemText}>So‘nggi 30 kun</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('allTime')}>
-              <Text style={styles.quickFilterItemText}>Barcha vaqt</Text>
+            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('customRange')}>
+              <Text style={styles.quickFilterItemText}>Sana bo'yicha</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -1039,6 +1042,17 @@ function getDefaultMonthRange(): { fromDate: string; endDate: string } {
   return {
     fromDate: formatDateFromDate(new Date(now.getFullYear(), now.getMonth(), 1)),
     endDate: formatDateFromDate(now),
+  };
+}
+
+function getCurrentWeekRange(today: Date): { fromDate: string; endDate: string } {
+  const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const day = weekStart.getDay();
+  const deltaToMonday = day === 0 ? 6 : day - 1;
+  weekStart.setDate(weekStart.getDate() - deltaToMonday);
+  return {
+    fromDate: formatDateFromDate(weekStart),
+    endDate: formatDateFromDate(today),
   };
 }
 

@@ -1,5 +1,4 @@
-import apiClient, { ApiClientError, setApiAuthToken } from './apiClient';
-import { API_BASE } from './baseUrl';
+import apiClient, { setApiAuthToken } from './apiClient';
 
 type AppResponse<T> = {
   success?: boolean;
@@ -35,21 +34,8 @@ export const updateProfileDetail = async (dto: ProfileDetailUpdateDTO, token?: s
 };
 
 export const updateProfilePhoto = async (dto: ProfilePhotoUpdateDTO, token?: string): Promise<void> => {
-  const res = await fetch(`${API_BASE}/profile/photo`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Authorization: token ? `Bearer ${token}` : '',
-      'Accept-Language': 'UZ',
-    },
-    body: JSON.stringify(dto),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new ApiClientError(text || `Request failed (${res.status} ${res.statusText})`, res.status);
-  }
+  setApiAuthToken(token);
+  await apiClient.put<AppResponse<string>>('/profile/photo', dto);
 };
 
 export const updateProfilePassword = async (dto: ProfilePasswordUpdateDTO, token?: string): Promise<void> => {

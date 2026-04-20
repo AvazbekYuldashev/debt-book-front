@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useEffect, useState, ReactNode, SetStateAction } from 'react';
 import { ProfileDTO } from '../types';
+import { setUnauthorizedHandler } from '../api/apiClient';
 
 interface AuthContextValue {
   profile: ProfileDTO | null;
@@ -54,6 +55,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return nextProfile;
     });
   }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      persistProfile(null);
+    });
+    return () => {
+      setUnauthorizedHandler(null);
+    };
+  }, [persistProfile]);
 
   return (
     <AuthContext.Provider value={{ profile, isAuthReady, setProfile: persistProfile }}>

@@ -27,6 +27,7 @@ import {
   updateProfileUsername,
 } from '../api/profile';
 import { uploadAttach, uploadAttachFile } from '../api/attach';
+import { API_BASE } from '../api/baseUrl';
 
 const ProfileScreen: React.FC = () => {
   const { profile, setProfile } = useContext(AuthContext);
@@ -45,7 +46,7 @@ const ProfileScreen: React.FC = () => {
   const [status, setStatus] = useState('');
 
   const token = useMemo(() => profile?.jwt, [profile?.jwt]);
-  const photoUri = photoPreview || profile?.photo?.url || '';
+  const photoUri = photoPreview || profile?.photo?.url || buildProfilePhotoUrl(profile?.photo?.id);
   const windowSize = Dimensions.get('window');
   const modalImageSize = {
     width: windowSize.width,
@@ -55,8 +56,12 @@ const ProfileScreen: React.FC = () => {
   useEffect(() => {
     if (profile?.photo?.url) {
       setPhotoPreview(profile.photo.url);
+      return;
     }
-  }, [profile?.photo?.url]);
+    if (profile?.photo?.id) {
+      setPhotoPreview(buildProfilePhotoUrl(profile.photo.id));
+    }
+  }, [profile?.photo?.id, profile?.photo?.url]);
 
 
 
@@ -82,7 +87,25 @@ const ProfileScreen: React.FC = () => {
       if (!token) return;
       try {
         const fresh = await getMyProfile(token);
-        setProfile((prev) => (prev ? { ...prev, ...fresh } : fresh));
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const freshData = fresh as Record<string, unknown>;
+          const nestedPhoto = (freshData.photo as Record<string, unknown> | undefined) || undefined;
+          const photoId =
+            (typeof nestedPhoto?.id === 'string' ? nestedPhoto.id : undefined) ||
+            (typeof freshData.photoId === 'string' ? freshData.photoId : undefined) ||
+            prev.photo?.id;
+          const photoUrl =
+            (typeof nestedPhoto?.url === 'string' ? nestedPhoto.url : undefined) ||
+            prev.photo?.url ||
+            buildProfilePhotoUrl(photoId);
+
+          return {
+            ...prev,
+            ...freshData,
+            photo: photoId || photoUrl ? { id: photoId, url: photoUrl } : prev.photo,
+          };
+        });
       } catch {
         // Ignore silent failures; UI will show existing profile data.
       }
@@ -157,15 +180,16 @@ const ProfileScreen: React.FC = () => {
         uploaded = await uploadAttachFile(file, token);
       } else {
         const name = asset.fileName || `photo-${Date.now()}.jpg`;
-        const type = asset.mimeType || (asset.type === 'image' ? 'image/jpeg' : 'application/octet-stream');
+        const type = asset.type === 'image' ? 'image/jpeg' : 'application/octet-stream';
         uploaded = await uploadAttach({ uri: asset.uri, name, type }, token);
       }
       if (!uploaded.id) throw new Error('Photo id topilmadi');
       await updateProfilePhoto({ photoId: uploaded.id }, token);
       // Use the returned URL for preview when available.
-      setPhotoPreview(uploaded.url || asset.uri);
+      const resolvedUrl = uploaded.url || buildProfilePhotoUrl(uploaded.id) || asset.uri;
+      setPhotoPreview(resolvedUrl);
       setProfile((prev) =>
-        prev ? { ...prev, photo: { id: uploaded.id, url: uploaded.url || asset.uri } } : prev
+        prev ? { ...prev, photo: { id: uploaded.id, url: resolvedUrl } } : prev
       );
     });
 
@@ -516,3 +540,9 @@ const styles = StyleSheet.create({
 });
 
 export default ProfileScreen;
+
+function buildProfilePhotoUrl(photoId?: string): string {
+  const normalized = (photoId || '').trim();
+  if (!normalized) return '';
+  return `${API_BASE}/attach/open/${normalized}`;
+}

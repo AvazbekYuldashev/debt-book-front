@@ -6,6 +6,7 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -36,6 +37,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
   const [expenseModalVisible, setExpenseModalVisible] = useState(false);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadExpenses = useCallback(
     async (showSpinner = true) => {
@@ -155,11 +157,31 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
     return copy;
   }, [expenses]);
 
+  const filteredExpenses = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return sortedExpenses;
+    return sortedExpenses.filter((item) => {
+      const descriptionText = (item.description || '').toLowerCase();
+      const amountText = String(item.amount ?? '').toLowerCase();
+      return descriptionText.includes(query) || amountText.includes(query);
+    });
+  }, [searchQuery, sortedExpenses]);
+
   const renderHeader = () => (
     <View>
       <View style={styles.headerRow}>
         <Text style={styles.title}>{categoryName || 'Xarajatlar'}</Text>
         <PrimaryButton title="Xarajat qo'shish" onPress={openCreateExpense} />
+      </View>
+      <View style={styles.searchRow}>
+        <Ionicons name="search-outline" size={17} color={colors.textSecondary} />
+        <TextInput
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Xarajat qidirish"
+          placeholderTextColor={colors.textSecondary}
+        />
       </View>
 
       {error ? (
@@ -173,7 +195,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
   return (
     <View style={styles.container}>
       <FlatList
-        data={sortedExpenses}
+        data={filteredExpenses}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}
         refreshControl={
@@ -269,6 +291,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 10,
+  },
+  searchRow: {
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    paddingHorizontal: 10,
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 14,
+    paddingVertical: 8,
   },
   title: {
     fontSize: 20,
