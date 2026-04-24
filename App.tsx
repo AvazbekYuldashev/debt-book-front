@@ -53,15 +53,23 @@ export default function App() {
     if (!__DEV__) return;
 
     const originalError = console.error;
+    const originalWarn = console.warn;
     console.error = (...args: unknown[]) => {
       const first = typeof args[0] === 'string' ? args[0] : '';
       if (first.includes('setNativeProps is deprecated')) return;
       if (first.includes('Download the React DevTools for a better development experience')) return;
       originalError(...args);
     };
+    console.warn = (...args: unknown[]) => {
+      const first = typeof args[0] === 'string' ? args[0] : '';
+      if (first.includes('setNativeProps is deprecated')) return;
+      if (first.includes('Download the React DevTools for a better development experience')) return;
+      originalWarn(...args);
+    };
 
     return () => {
       console.error = originalError;
+      console.warn = originalWarn;
     };
   }, []);
 

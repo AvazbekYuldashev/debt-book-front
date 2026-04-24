@@ -119,16 +119,23 @@ const findDuplicateByPhone = (
 
 export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { profile } = useContext(AuthContext);
-  const { workspace } = useContext(WorkspaceContext);
+  const { workspace, isWorkspaceReady } = useContext(WorkspaceContext);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  const isBusinessWorkspace = workspace.mode === 'business' && !!workspace.activeBusinessId;
 
   const refreshContacts = useCallback(async () => {
     if (!profile?.jwt) {
+      setContacts([]);
+      setError('');
+      return;
+    }
+    if (!isWorkspaceReady) return;
+    if (!isBusinessWorkspace) {
       setContacts([]);
       setError('');
       return;
@@ -144,11 +151,12 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setLoading(false);
     }
-  }, [profile?.jwt, workspace.activeBusinessId, workspace.mode]);
+  }, [isBusinessWorkspace, isWorkspaceReady, profile?.jwt]);
 
   const filterContacts = useCallback(
     async (input: ContactFilterInput): Promise<Contact[]> => {
       if (!profile?.jwt) return [];
+      if (!isWorkspaceReady || !isBusinessWorkspace) return [];
 
       const name = input.name?.trim() || '';
       const phoneDigits = (input.phoneNumber || '').replace(/\D/g, '');
@@ -161,13 +169,17 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
       const filtered = await filterClients(profile.jwt, dto, 1, 100);
       return filtered.map(toContact);
     },
-    [contacts, profile?.jwt]
+    [contacts, isBusinessWorkspace, isWorkspaceReady, profile?.jwt]
   );
 
   const addContact = useCallback(
     async (input: ContactFormInput): Promise<boolean> => {
       if (!profile?.jwt) {
         setError('Avval tizimga kiring');
+        return false;
+      }
+      if (!isWorkspaceReady || !isBusinessWorkspace) {
+        setError('Kontaktlar bilan ishlash uchun business workspace tanlang');
         return false;
       }
 
@@ -199,13 +211,17 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setCreating(false);
       }
     },
-    [contacts, profile?.jwt]
+    [contacts, isBusinessWorkspace, isWorkspaceReady, profile?.jwt]
   );
 
   const updateContact = useCallback(
     async (id: string, input: ContactUpdateInput): Promise<boolean> => {
       if (!profile?.jwt) {
         setError('Avval tizimga kiring');
+        return false;
+      }
+      if (!isWorkspaceReady || !isBusinessWorkspace) {
+        setError('Kontaktlar bilan ishlash uchun business workspace tanlang');
         return false;
       }
 
@@ -233,13 +249,17 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setUpdating(false);
       }
     },
-    [profile?.jwt]
+    [isBusinessWorkspace, isWorkspaceReady, profile?.jwt]
   );
 
   const deleteContactHandler = useCallback(
     async (id: string): Promise<boolean> => {
       if (!profile?.jwt) {
         setError('Avval tizimga kiring');
+        return false;
+      }
+      if (!isWorkspaceReady || !isBusinessWorkspace) {
+        setError('Kontaktlar bilan ishlash uchun business workspace tanlang');
         return false;
       }
 
@@ -256,7 +276,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setDeleting(false);
       }
     },
-    [profile?.jwt]
+    [isBusinessWorkspace, isWorkspaceReady, profile?.jwt]
   );
 
   useEffect(() => {
