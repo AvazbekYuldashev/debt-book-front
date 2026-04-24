@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -15,8 +15,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import AppTextInput from '../components/form/AppTextInput';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
+import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import colors from '../styles/colors';
 import { AuthContext } from '../context/AuthContext';
+import { WorkspaceContext } from '../context/WorkspaceContext';
 import { CategoryResponseDTO } from '../types/category';
 import { createCategory, deleteCategory, getCategories, pinCategory, updateCategory } from '../services/categoryService';
 import { getExpenseSumByCategory } from '../services/expenseService';
@@ -33,6 +35,7 @@ type QuickFilterKey = 'today' | 'currentWeek' | 'currentMonth' | 'customRange';
 
 const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { profile } = useContext(AuthContext);
+  const { workspace } = useContext(WorkspaceContext);
   const [categories, setCategories] = useState<CategoryResponseDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -106,7 +109,11 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     } finally {
       if (showSpinner) setLoading(false);
     }
-  }, [profile?.jwt, fromDate, endDate, loadCategorySums]);
+  }, [profile?.jwt, fromDate, endDate, loadCategorySums, workspace.activeBusinessId, workspace.mode]);
+
+  useEffect(() => {
+    loadCategories(true);
+  }, [loadCategories, workspace.activeBusinessId, workspace.mode]);
 
   useFocusEffect(
     useCallback(() => {
@@ -320,6 +327,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
       >
+        <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>Kunlik xarajatlar</Text>
           <TouchableOpacity style={styles.headerAction} onPress={openCreateCategory}>

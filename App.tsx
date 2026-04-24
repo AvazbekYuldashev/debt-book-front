@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ContactsProvider } from './src/context/ContactsContext';
 import { AuthProvider } from './src/context/AuthContext';
+import { WorkspaceProvider } from './src/context/WorkspaceContext';
 import { AppThemeProvider, useAppTheme } from './src/theme';
 
 const AppShell: React.FC = () => {
@@ -36,11 +37,13 @@ const AppShell: React.FC = () => {
 
   return (
     <AuthProvider>
-      <ContactsProvider>
-        <NavigationContainer theme={navigationTheme}>
-          <RootNavigator />
-        </NavigationContainer>
-      </ContactsProvider>
+      <WorkspaceProvider>
+        <ContactsProvider>
+          <NavigationContainer theme={navigationTheme}>
+            <RootNavigator />
+          </NavigationContainer>
+        </ContactsProvider>
+      </WorkspaceProvider>
     </AuthProvider>
   );
 };

@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { API_BASE } from './baseUrl';
+import { BUSINESS_HEADER_KEY, getBusinessIdFromWorkspaceStorage } from './workspaceHeaders';
 
 export class ApiClientError extends Error {
   status?: number;
@@ -14,6 +15,9 @@ export class ApiClientError extends Error {
 }
 
 let unauthorizedHandler: (() => void) | null = null;
+let businessAccessDeniedHandler: (() => void) | null = null;
+
+export const BUSINESS_ACCESS_DENIED_MESSAGE = 'Profile does not have access to the requested business';
 
 type ApiErrorBody = {
   message?: string;
@@ -81,6 +85,12 @@ function extractErrorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
+export function notifyBusinessAccessDeniedIfNeeded(message: string) {
+  if (message.includes(BUSINESS_ACCESS_DENIED_MESSAGE)) {
+    businessAccessDeniedHandler?.();
+  }
+}
+
 export const apiClient = axios.create({
   baseURL: API_BASE,
   timeout: 15000,
@@ -89,6 +99,17 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
     'Accept-Language': 'UZ',
   },
+});
+
+apiClient.interceptors.request.use((config) => {
+  const businessId = getBusinessIdFromWorkspaceStorage();
+  if (businessId) {
+    config.headers = config.headers || {};
+    config.headers[BUSINESS_HEADER_KEY] = businessId;
+  } else if (config.headers && BUSINESS_HEADER_KEY in config.headers) {
+    delete config.headers[BUSINESS_HEADER_KEY];
+  }
+  return config;
 });
 
 apiClient.interceptors.response.use(
@@ -105,12 +126,17 @@ apiClient.interceptors.response.use(
     }
     const fallback = `Request failed (${status ?? 'unknown'}${statusText ? ` ${statusText}` : ''})`;
     const message = extractErrorMessage(error.response?.data as ApiErrorBody | string | undefined, fallback);
+    notifyBusinessAccessDeniedIfNeeded(message);
     return Promise.reject(new ApiClientError(message || fallback, status, error.response?.data));
   }
 );
 
 export const setUnauthorizedHandler = (handler: (() => void) | null) => {
   unauthorizedHandler = handler;
+};
+
+export const setBusinessAccessDeniedHandler = (handler: (() => void) | null) => {
+  businessAccessDeniedHandler = handler;
 };
 
 export const setApiAuthToken = (token?: string) => {

@@ -16,6 +16,7 @@ import colors from '../styles/colors';
 import { AuthContext } from '../context/AuthContext';
 import Card from '../components/Card';
 import AppTextInput from '../components/form/AppTextInput';
+import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import * as ImagePicker from 'expo-image-picker';
 import {
   confirmProfileUsername,
@@ -28,8 +29,9 @@ import {
 } from '../api/profile';
 import { uploadAttach, uploadAttachFile } from '../api/attach';
 import { API_BASE } from '../api/baseUrl';
+import { ROUTES } from '../navigation/routes';
 
-const ProfileScreen: React.FC = () => {
+const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { profile, setProfile } = useContext(AuthContext);
   const [name, setName] = useState(profile?.name ?? '');
   const [surname, setSurname] = useState(profile?.surname ?? '');
@@ -206,6 +208,7 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <WorkspaceSwitcher />
       <Text style={styles.title}>Profil sozlamalari</Text>
       {profile ? (
         <View style={styles.avatarBlock}>
@@ -340,6 +343,15 @@ const ProfileScreen: React.FC = () => {
           </Card>
 
           {status ? <Text style={styles.statusText}>{status}</Text> : null}
+
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => navigation.navigate(ROUTES.MY_BUSINESSES)}
+            >
+              <Text style={styles.secondaryBtnText}>My businesses</Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.actionsRow}>
             <TouchableOpacity style={styles.secondaryBtn} onPress={handleLogout}>

@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -18,12 +18,14 @@ import PrimaryButton from '../components/ui/PrimaryButton';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import colors from '../styles/colors';
 import { AuthContext } from '../context/AuthContext';
+import { WorkspaceContext } from '../context/WorkspaceContext';
 import { ExpenseResponseDTO } from '../types/expense';
 import { createExpense, deleteExpense, getExpensesByCategory } from '../services/expenseService';
 import { formatMoney } from '../utils/money';
 
 const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
   const { profile } = useContext(AuthContext);
+  const { workspace } = useContext(WorkspaceContext);
   const categoryId = String(route.params?.id ?? '');
   const categoryName = String(route.params?.name ?? '');
   const fromDate = String(route.params?.fromDate ?? '');
@@ -68,8 +70,12 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
         if (showSpinner) setLoading(false);
       }
     },
-    [categoryId, profile?.jwt, fromDate, endDate]
+    [categoryId, profile?.jwt, fromDate, endDate, workspace.activeBusinessId, workspace.mode]
   );
+
+  useEffect(() => {
+    loadExpenses(true);
+  }, [loadExpenses, workspace.activeBusinessId, workspace.mode]);
 
   useFocusEffect(
     useCallback(() => {

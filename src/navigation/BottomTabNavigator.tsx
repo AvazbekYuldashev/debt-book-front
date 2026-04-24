@@ -2,14 +2,12 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import DebtsStack from './DebtsStack';
 import ExpensesStack from './ExpensesStack';
-import ProfileScreen from '../screens/ProfileScreen';
+import ProfileStack from './ProfileStack';
 import { Feather } from '@expo/vector-icons';
 import { ROUTES } from './routes';
-import { withFadeInScreen } from './withFadeInScreen';
 import colors from '../styles/colors';
 
 const Tab = createBottomTabNavigator();
-const ProfileScreenWithFade = withFadeInScreen(ProfileScreen);
 
 const BottomTabNavigator: React.FC = () => {
   return (
@@ -44,7 +42,7 @@ const BottomTabNavigator: React.FC = () => {
     >
       <Tab.Screen name={ROUTES.DEBTS} component={DebtsStack} />
       <Tab.Screen name={ROUTES.EXPENSES} component={ExpensesStack} />
-      <Tab.Screen name={ROUTES.PROFILE} component={ProfileScreenWithFade} />
+      <Tab.Screen name={ROUTES.PROFILE} component={ProfileStack} />
     </Tab.Navigator>
   );
 };

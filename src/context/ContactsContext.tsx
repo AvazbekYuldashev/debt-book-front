@@ -1,6 +1,7 @@
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { ClientDTO, ClientFilterDTO, createClient, deleteClient, filterClients, getMyClients, updateClient } from '../api/client';
 import { AuthContext } from './AuthContext';
+import { WorkspaceContext } from './WorkspaceContext';
 
 export interface Contact {
   id: string;
@@ -118,6 +119,7 @@ const findDuplicateByPhone = (
 
 export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { profile } = useContext(AuthContext);
+  const { workspace } = useContext(WorkspaceContext);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -142,7 +144,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setLoading(false);
     }
-  }, [profile?.jwt]);
+  }, [profile?.jwt, workspace.activeBusinessId, workspace.mode]);
 
   const filterContacts = useCallback(
     async (input: ContactFilterInput): Promise<Contact[]> => {
@@ -259,7 +261,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   useEffect(() => {
     refreshContacts();
-  }, [refreshContacts]);
+  }, [refreshContacts, workspace.activeBusinessId, workspace.mode]);
 
   return (
     <ContactsContext.Provider

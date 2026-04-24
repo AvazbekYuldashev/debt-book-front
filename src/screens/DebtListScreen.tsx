@@ -13,6 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AppTextInput from '../components/form/AppTextInput';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
+import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import { ContactsContext } from '../context/ContactsContext';
 import { AuthContext } from '../context/AuthContext';
 import colors from '../styles/colors';
@@ -353,6 +354,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />}
       >
+        <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>Clientlar</Text>
           <TouchableOpacity style={styles.headerAction} onPress={openCreate}>

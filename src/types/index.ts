@@ -15,3 +15,4 @@ export * from './category';
 export * from './expense';
 export * from './money';
 export * from './profile';
+export * from './business';

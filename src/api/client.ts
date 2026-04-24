@@ -1,4 +1,4 @@
-import { API_BASE } from './baseUrl';
+import { authFetch } from './authFetch';
 
 export interface ClientDTO {
   id: string;
@@ -32,29 +32,6 @@ type PaginatedResponse<T> = {
   last?: boolean;
 };
 
-function getErrorMessage(status: number, statusText: string, body: unknown): string {
-  if (body && typeof body === 'object') {
-    const record = body as Record<string, unknown>;
-    const message = [record.message, record.error, record.detail].find(
-      (value) => typeof value === 'string' && value
-    );
-    if (typeof message === 'string') return message;
-  }
-
-  if (typeof body === 'string' && body) return body;
-  return `Request failed (${status}${statusText ? ` ${statusText}` : ''})`;
-}
-
-async function parseResponseBody(res: Response): Promise<unknown> {
-  const text = await res.text();
-  if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
-}
-
 export async function getMyClients(jwt: string, page = 1, size = 100): Promise<ClientDTO[]> {
   const fetchPage = async (pageNumber: number): Promise<PaginatedResponse<ClientDTO>> => {
     const params = new URLSearchParams({
@@ -62,20 +39,7 @@ export async function getMyClients(jwt: string, page = 1, size = 100): Promise<C
       size: String(size),
     });
 
-    const res = await fetch(`${API_BASE}/client/my?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${jwt}`,
-        'Accept-Language': 'UZ',
-      },
-    });
-
-    const parsed = await parseResponseBody(res);
-
-    if (!res.ok) {
-      throw new Error(getErrorMessage(res.status, res.statusText, parsed));
-    }
+    const parsed = await authFetch(`/client/my?${params.toString()}`, jwt, { method: 'GET' });
 
     if (Array.isArray(parsed)) {
       return { content: parsed as ClientDTO[], last: true, totalPages: 1, number: 0 };
@@ -119,22 +83,13 @@ export async function filterClients(
       size: String(size),
     });
 
-    const res = await fetch(`${API_BASE}/client/filter?${params.toString()}`, {
+    const parsed = await authFetch(`/client/filter?${params.toString()}`, jwt, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Accept: 'application/json',
-        Authorization: `Bearer ${jwt}`,
-        'Accept-Language': 'UZ',
       },
       body: JSON.stringify(dto),
     });
-
-    const parsed = await parseResponseBody(res);
-
-    if (!res.ok) {
-      throw new Error(getErrorMessage(res.status, res.statusText, parsed));
-    }
 
     if (Array.isArray(parsed)) {
       return { content: parsed as ClientDTO[], last: true, totalPages: 1, number: 0 };
@@ -167,59 +122,29 @@ export async function filterClients(
 }
 
 export async function createClient(jwt: string, dto: ClientCreatedDTO): Promise<ClientDTO> {
-  const res = await fetch(`${API_BASE}/client`, {
+  const parsed = await authFetch('/client', jwt, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Authorization: `Bearer ${jwt}`,
-      'Accept-Language': 'UZ',
     },
     body: JSON.stringify(dto),
   });
-
-  const parsed = await parseResponseBody(res);
-
-  if (!res.ok) {
-    throw new Error(getErrorMessage(res.status, res.statusText, parsed));
-  }
 
   return parsed as ClientDTO;
 }
 
 export async function updateClient(jwt: string, id: string, dto: ClientUpdateDTO): Promise<void> {
-  const res = await fetch(`${API_BASE}/client/`, {
+  await authFetch('/client/', jwt, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Authorization: `Bearer ${jwt}`,
-      'Accept-Language': 'UZ',
     },
     body: JSON.stringify({ ...dto, id }),
   });
-
-  const parsed = await parseResponseBody(res);
-
-  if (!res.ok) {
-    throw new Error(getErrorMessage(res.status, res.statusText, parsed));
-  }
-  return;
 }
 
 export async function deleteClient(jwt: string, id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/client/${id}`, {
+  await authFetch(`/client/${id}`, jwt, {
     method: 'DELETE',
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${jwt}`,
-      'Accept-Language': 'UZ',
-    },
   });
-
-  const parsed = await parseResponseBody(res);
-
-  if (!res.ok) {
-    throw new Error(getErrorMessage(res.status, res.statusText, parsed));
-  }
 }

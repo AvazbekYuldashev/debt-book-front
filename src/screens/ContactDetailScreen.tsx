@@ -15,6 +15,7 @@ import PrimaryButton from '../components/ui/PrimaryButton';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import { AuthContext } from '../context/AuthContext';
 import { ContactsContext } from '../context/ContactsContext';
+import { WorkspaceContext } from '../context/WorkspaceContext';
 import { useMoney } from '../hooks/useMoney';
 import { MoneyActionType, MoneyResponseDTO } from '../types/money';
 import { formatMoney } from '../utils/money';
@@ -25,6 +26,7 @@ const NEGATIVE = '#EF4444';
 const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const contactId = route.params?.id || '';
   const { profile } = useContext(AuthContext);
+  const { workspace } = useContext(WorkspaceContext);
   const { contacts } = useContext(ContactsContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
@@ -52,7 +54,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const loadScreenData = useCallback(async () => {
     if (!contact?.phone) return;
     await fetchData({ counterpartyPhone: contact.phone });
-  }, [contact?.phone, fetchData]);
+  }, [contact?.phone, fetchData, workspace.activeBusinessId, workspace.mode]);
 
   useFocusEffect(
     useCallback(() => {

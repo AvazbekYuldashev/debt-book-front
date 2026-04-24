@@ -3,8 +3,11 @@ export const ROUTES = {
   DEBTS: 'HisobKitob',
   EXPENSES: 'Expenses',
   PROFILE: 'Profile',
+  PROFILE_HOME: 'ProfileHome',
   DEBT_LIST: 'DebtList',
   CONTACT_DETAIL: 'ContactDetail',
   EXPENSE_CATEGORIES: 'ExpenseCategories',
   EXPENSE_CATEGORY_DETAIL: 'ExpenseCategoryDetail',
+  MY_BUSINESSES: 'MyBusinesses',
+  BUSINESS_MEMBERS: 'BusinessMembers',
 };
