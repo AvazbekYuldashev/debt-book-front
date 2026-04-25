@@ -1,24 +1,40 @@
+export type PartyType = 'PROFILE' | 'BUSINESS_ACCOUNT';
+
 export interface MoneyResponseDTO {
   id: string;
   amount: number;
   visible: boolean;
   createdDate: string;
-  debtorId: string;
-  creditorId: string;
+  debtorId?: string;
+  creditorId?: string;
+  debtorType?: PartyType;
+  creditorType?: PartyType;
+  debtorBusinessId?: string;
+  creditorBusinessId?: string;
   description: string;
 }
 
-export interface MoneyCreditorCreatedDTO {
+export interface MoneyCreditorProfileCreatedDTO {
   amount: number;
   debtorId: string;
   description: string;
 }
 
-export interface MoneyDebtorCreatedDTO {
+export interface MoneyDebtorProfileCreatedDTO {
   amount: number;
   creditorId: string;
   description: string;
 }
+
+export interface MoneyBusinessTargetDTO {
+  targetType: 'BUSINESS_ACCOUNT';
+  targetBusinessId: string;
+  amount: number;
+  description: string;
+}
+
+export type MoneyCreditorCreatedDTO = MoneyCreditorProfileCreatedDTO | MoneyBusinessTargetDTO;
+export type MoneyDebtorCreatedDTO = MoneyDebtorProfileCreatedDTO | MoneyBusinessTargetDTO;
 
 export interface MoneyPriceDTO {
   totalDebt?: number;

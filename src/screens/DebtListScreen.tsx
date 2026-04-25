@@ -16,26 +16,21 @@ import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import { ContactsContext } from '../context/ContactsContext';
 import { AuthContext } from '../context/AuthContext';
+import { WorkspaceContext } from '../context/WorkspaceContext';
 import colors from '../styles/colors';
 import { ROUTES } from '../navigation/routes';
-import { getMoneyHistory, getTotalPriceByCreditorId } from '../services/moneyService';
-import { getProfileByPhone } from '../services/profileService';
+import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import { extractMoneyTotals, formatMoney } from '../utils/money';
-import { MoneyPriceDTO, MoneyResponseDTO } from '../types/money';
+import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 
 type Mode = 'create' | 'edit';
 
 const POSITIVE = '#0D9488';
 const NEGATIVE = '#EF4444';
 
-const normalizePhoneForCompare = (value: string): string => {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 9) return `998${digits}`;
-  return digits;
-};
-
 const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { profile } = useContext(AuthContext);
+  const { workspace } = useContext(WorkspaceContext);
   const {
     contacts,
     loading,
@@ -55,6 +50,8 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [selectedId, setSelectedId] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [targetType, setTargetType] = useState<PartyType>('PROFILE');
+  const [targetBusinessId, setTargetBusinessId] = useState('');
   const [filterName, setFilterName] = useState('');
   const [filterPhone, setFilterPhone] = useState('');
   const [searchResults, setSearchResults] = useState<typeof contacts>([]);
@@ -100,37 +97,36 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     }, [])
   );
 
-  const resolveCounterpartyId = useCallback(
-    async (contact: { creditorId?: string; debtorId?: string; phone: string }): Promise<string> => {
-      const creditorId = contact.creditorId?.trim() || '';
-      const debtorId = contact.debtorId?.trim() || '';
-      const myId = profile?.id?.trim() || '';
-      const byRole =
-        creditorId && creditorId !== myId
-          ? creditorId
-          : debtorId && debtorId !== myId
-            ? debtorId
-            : '';
-      if (byRole) return byRole;
-      if (!profile?.jwt || !contact.phone) return '';
-      const resolved = await getProfileByPhone(contact.phone, profile.jwt);
-      return resolved.id || '';
-    },
-    [profile?.id, profile?.jwt]
-  );
-
   const computeTotalsFromHistory = useCallback(
-    (history: MoneyResponseDTO[], counterpartyId: string) => {
+    (history: MoneyResponseDTO[], counterpartyId: string, counterpartyType: PartyType) => {
       let totalDebt = 0;
       let totalCredit = 0;
+      const actorType: PartyType =
+        workspace.mode === 'business' && workspace.activeBusinessId ? 'BUSINESS_ACCOUNT' : 'PROFILE';
+      const actorId = actorType === 'BUSINESS_ACCOUNT' ? workspace.activeBusinessId || '' : profile?.id || '';
 
       for (const item of history) {
-        let isCreditor = Boolean(profile?.id && item.creditorId === profile.id);
-        let isDebtor = Boolean(profile?.id && item.debtorId === profile.id);
+        let isCreditor = false;
+        let isDebtor = false;
+
+        if (actorType === 'BUSINESS_ACCOUNT') {
+          isCreditor = (item.creditorType === 'BUSINESS_ACCOUNT' || !!item.creditorBusinessId)
+            && item.creditorBusinessId === actorId;
+          isDebtor = (item.debtorType === 'BUSINESS_ACCOUNT' || !!item.debtorBusinessId)
+            && item.debtorBusinessId === actorId;
+        } else {
+          isCreditor = (!item.creditorType || item.creditorType === 'PROFILE') && item.creditorId === actorId;
+          isDebtor = (!item.debtorType || item.debtorType === 'PROFILE') && item.debtorId === actorId;
+        }
 
         if (!isCreditor && !isDebtor && counterpartyId) {
-          if (item.debtorId === counterpartyId) isCreditor = true;
-          if (item.creditorId === counterpartyId) isDebtor = true;
+          if (counterpartyType === 'BUSINESS_ACCOUNT') {
+            if (item.debtorBusinessId === counterpartyId) isCreditor = true;
+            if (item.creditorBusinessId === counterpartyId) isDebtor = true;
+          } else {
+            if (item.debtorId === counterpartyId) isCreditor = true;
+            if (item.creditorId === counterpartyId) isDebtor = true;
+          }
         }
 
         if (isCreditor) totalCredit += item.amount;
@@ -139,7 +135,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
       return { totalDebt, totalCredit, balance: totalCredit - totalDebt };
     },
-    [profile?.id]
+    [profile?.id, workspace.activeBusinessId, workspace.mode]
   );
 
   useEffect(() => {
@@ -161,60 +157,51 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           const contact = queue.shift();
           if (!contact) return;
           try {
-            const counterpartyId = await resolveCounterpartyId(contact);
+            const counterpartyId = contact.partyId?.trim() || '';
+            const counterpartyType = contact.partyType;
             if (!counterpartyId) continue;
 
-            const price = (await getTotalPriceByCreditorId(counterpartyId, profile.jwt)) as MoneyPriceDTO;
+            const price = (await getTotalPriceByPartyId(counterpartyId, counterpartyType, profile.jwt)) as MoneyPriceDTO;
             let totals = extractMoneyTotals(price ?? null);
 
             if (totals.totalDebt === 0 && totals.totalCredit === 0) {
-              const creditorId = contact.creditorId?.trim() || '';
-              const debtorId = contact.debtorId?.trim() || '';
-              const otherId =
-                counterpartyId === creditorId ? debtorId : counterpartyId === debtorId ? creditorId : '';
-              if (otherId) {
-                const priceAlt = (await getTotalPriceByCreditorId(otherId, profile.jwt)) as MoneyPriceDTO;
-                const totalsAlt = extractMoneyTotals(priceAlt ?? null);
-                if (totalsAlt.totalDebt !== 0 || totalsAlt.totalCredit !== 0) totals = totalsAlt;
-              }
-            }
-
-            if (totals.totalDebt === 0 && totals.totalCredit === 0) {
               const all: MoneyResponseDTO[] = [];
-              let page = 1;
+              let page = 0;
               let safety = 0;
               while (safety < 20) {
                 const historyPage = await getMoneyHistory({
                   id: counterpartyId,
+                  partyType: counterpartyType,
                   page,
                   size: 100,
                   token: profile.jwt,
                 });
                 all.push(...(historyPage.content ?? []));
-                if (historyPage.last || historyPage.totalPages <= page) break;
+                if (historyPage.last || page >= historyPage.totalPages - 1) break;
                 page += 1;
                 safety += 1;
               }
-              totals = computeTotalsFromHistory(all, counterpartyId);
+              totals = computeTotalsFromHistory(all, counterpartyId, counterpartyType);
             }
 
             if (totals.totalDebt === 0 && totals.totalCredit === 0 && contact.id) {
               const all: MoneyResponseDTO[] = [];
-              let page = 1;
+              let page = 0;
               let safety = 0;
               while (safety < 20) {
                 const historyPage = await getMoneyHistory({
                   id: contact.id,
+                  partyType: 'PROFILE',
                   page,
                   size: 100,
                   token: profile.jwt,
                 });
                 all.push(...(historyPage.content ?? []));
-                if (historyPage.last || historyPage.totalPages <= page) break;
+                if (historyPage.last || page >= historyPage.totalPages - 1) break;
                 page += 1;
                 safety += 1;
               }
-              totals = computeTotalsFromHistory(all, contact.id);
+              totals = computeTotalsFromHistory(all, contact.id, 'PROFILE');
             }
 
             next[contact.id] = totals;
@@ -236,7 +223,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     return () => {
       cancelled = true;
     };
-  }, [computeTotalsFromHistory, contacts, profile?.jwt, resolveCounterpartyId, totalsKey]);
+  }, [computeTotalsFromHistory, contacts, profile?.jwt, totalsKey]);
 
   useEffect(() => {
     const nameQuery = filterName.trim();
@@ -278,6 +265,8 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setSelectedId('');
     setName('');
     setPhone('');
+    setTargetType('PROFILE');
+    setTargetBusinessId('');
     setLocalError('');
     setModalVisible(true);
   };
@@ -300,22 +289,29 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setLocalError(mode === 'create' ? 'Ism va telefonni kiriting' : 'Ismni kiriting');
+      setLocalError('Ismni kiriting');
       return;
     }
 
     if (mode === 'create') {
-      if (!phone.trim()) {
-        setLocalError('Ism va telefonni kiriting');
+      if (targetType === 'BUSINESS_ACCOUNT') {
+        if (!targetBusinessId.trim()) {
+          setLocalError('Business ID majburiy');
+          return;
+        }
+
+        const ok = await addContact({
+          name: name.trim(),
+          targetType,
+          targetBusinessId: targetBusinessId.trim(),
+        });
+
+        if (ok) closeModal();
         return;
       }
 
-      const normalizedPhone = normalizePhoneForCompare(phone);
-      const duplicate = contacts.some(
-        (contact) => normalizePhoneForCompare(contact.phone) === normalizedPhone
-      );
-      if (duplicate) {
-        setLocalError('Bu mijoz tizimda mavjud.');
+      if (!phone.trim()) {
+        setLocalError('Telefonni kiriting');
         return;
       }
       const digits = phone.replace(/\D/g, '');
@@ -331,10 +327,12 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
       const ok = await addContact({
         name: name.trim(),
+        targetType,
         phone: digits,
       });
 
       if (ok) closeModal();
+      else setLocalError("So'rov yuborilmadi yoki server xatolik qaytardi. Maydonlarni tekshirib qayta urinib ko'ring.");
       return;
     }
 
@@ -416,7 +414,11 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     onPress={() => navigation.navigate(ROUTES.CONTACT_DETAIL, { id: item.id })}
                   >
                     <Text style={styles.name}>{item.fullName}</Text>
-                    <Text style={styles.phone}>{item.phone}</Text>
+                    <Text style={styles.phone}>
+                      {item.partyType === 'BUSINESS_ACCOUNT'
+                        ? `Business: ${item.partyId || '--'}`
+                        : item.phone || item.partyId || '--'}
+                    </Text>
                   </TouchableOpacity>
 
                   <View style={styles.rowRight}>
@@ -447,12 +449,42 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             </Text>
             <AppTextInput label="Ism familiya" value={name} onChangeText={setName} placeholder="Ali Valiyev" />
             {mode === 'create' ? (
+              <View style={styles.targetTypeWrap}>
+                <TouchableOpacity
+                  style={[styles.targetChip, targetType === 'PROFILE' && styles.targetChipActive]}
+                  onPress={() => setTargetType('PROFILE')}
+                >
+                  <Text style={[styles.targetChipText, targetType === 'PROFILE' && styles.targetChipTextActive]}>
+                    Profile target
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.targetChip, targetType === 'BUSINESS_ACCOUNT' && styles.targetChipActive]}
+                  onPress={() => setTargetType('BUSINESS_ACCOUNT')}
+                >
+                  <Text
+                    style={[styles.targetChipText, targetType === 'BUSINESS_ACCOUNT' && styles.targetChipTextActive]}
+                  >
+                    Business target
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            {mode === 'create' && targetType === 'PROFILE' ? (
               <AppTextInput
                 label="Telefon"
                 value={phone}
                 onChangeText={(value) => setPhone(value.replace(/\D/g, '').slice(0, 12))}
                 keyboardType="phone-pad"
                 placeholder="901234567 yoki 998901234567"
+              />
+            ) : null}
+            {mode === 'create' && targetType === 'BUSINESS_ACCOUNT' ? (
+              <AppTextInput
+                label="Target business ID"
+                value={targetBusinessId}
+                onChangeText={setTargetBusinessId}
+                placeholder="business-id"
               />
             ) : null}
             {localError ? <Text style={styles.localError}>{localError}</Text> : null}
@@ -640,6 +672,33 @@ const styles = StyleSheet.create({
     color: NEGATIVE,
     marginBottom: 10,
     fontSize: 12,
+  },
+  targetTypeWrap: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  targetChip: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    minHeight: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  targetChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#EEF2FF',
+  },
+  targetChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  targetChipTextActive: {
+    color: colors.primary,
   },
   modalActions: {
     flexDirection: 'row',

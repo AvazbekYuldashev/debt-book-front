@@ -1,17 +1,35 @@
 import { authFetch } from './authFetch';
 
+import { PartyType } from '../types/money';
+
 export interface ClientDTO {
   id: string;
+  businessId?: string | null;
+  createdByProfileId?: string | null;
   name: string;
-  phoneNumber: string;
+  phoneNumber?: string | null;
+  creditorType?: PartyType;
+  debtorType?: PartyType;
   creditorId?: string;
   debtorId?: string;
+  creditorBusinessId?: string;
+  debtorBusinessId?: string;
+  visible?: boolean;
+  createdDate?: string;
 }
 
-export interface ClientCreatedDTO {
+export interface ClientProfileCreateDTO {
   name: string;
   phoneNumber: string;
 }
+
+export interface ClientBusinessCreateDTO {
+  name: string;
+  targetType: 'BUSINESS_ACCOUNT';
+  targetBusinessId: string;
+}
+
+export type ClientCreatedDTO = ClientProfileCreateDTO | ClientBusinessCreateDTO;
 
 export interface ClientUpdateDTO {
   id: string;
@@ -32,7 +50,7 @@ type PaginatedResponse<T> = {
   last?: boolean;
 };
 
-export async function getMyClients(jwt: string, page = 1, size = 100): Promise<ClientDTO[]> {
+export async function getMyClients(jwt: string, page = 0, size = 100): Promise<ClientDTO[]> {
   const fetchPage = async (pageNumber: number): Promise<PaginatedResponse<ClientDTO>> => {
     const params = new URLSearchParams({
       page: String(pageNumber),
@@ -74,7 +92,7 @@ export async function getMyClients(jwt: string, page = 1, size = 100): Promise<C
 export async function filterClients(
   jwt: string,
   dto: ClientFilterDTO,
-  page = 1,
+  page = 0,
   size = 100
 ): Promise<ClientDTO[]> {
   const fetchPage = async (pageNumber: number): Promise<PaginatedResponse<ClientDTO>> => {

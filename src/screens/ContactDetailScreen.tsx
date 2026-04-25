@@ -17,7 +17,7 @@ import { AuthContext } from '../context/AuthContext';
 import { ContactsContext } from '../context/ContactsContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { useMoney } from '../hooks/useMoney';
-import { MoneyActionType, MoneyResponseDTO } from '../types/money';
+import { MoneyActionType, MoneyResponseDTO, PartyType } from '../types/money';
 import { formatMoney } from '../utils/money';
 
 const POSITIVE = '#0D9488';
@@ -32,7 +32,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
   const [selectedTransaction, setSelectedTransaction] = useState<ReturnType<typeof mapTransaction> | null>(null);
 
-  const { history, totals, selectedCounterpartyId, loading, creating, error, fetchData, createMoney } = useMoney({
+  const { history, totals, selectedCounterparty, loading, creating, error, fetchData, createMoney } = useMoney({
     token: profile?.jwt,
   });
 
@@ -47,14 +47,24 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   );
 
   const mappedHistory = useMemo(
-    () => history.map((item) => mapTransaction(item, profile?.id, selectedCounterpartyId)),
-    [history, profile?.id, selectedCounterpartyId]
+    () =>
+      history.map((item) =>
+        mapTransaction(item, {
+          partyType: workspace.mode === 'business' && workspace.activeBusinessId ? 'BUSINESS_ACCOUNT' : 'PROFILE',
+          partyId: workspace.mode === 'business' ? workspace.activeBusinessId || '' : profile?.id || '',
+        }, selectedCounterparty || undefined)
+      ),
+    [history, profile?.id, selectedCounterparty, workspace.activeBusinessId, workspace.mode]
   );
 
   const loadScreenData = useCallback(async () => {
-    if (!contact?.phone) return;
-    await fetchData({ counterpartyPhone: contact.phone });
-  }, [contact?.phone, fetchData, workspace.activeBusinessId, workspace.mode]);
+    if (!contact?.partyType) return;
+    await fetchData({
+      partyType: contact.partyType,
+      partyId: contact.partyId,
+      phoneFallback: contact.partyType === 'PROFILE' ? contact.phone : undefined,
+    });
+  }, [contact?.partyId, contact?.partyType, contact?.phone, fetchData, workspace.activeBusinessId, workspace.mode]);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,14 +79,16 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
 
   const handleCreate = async (payload: {
     amount: number;
-    counterpartyId: string;
+    targetPartyType: PartyType;
+    targetPartyId?: string;
     description: string;
   }) => {
     if (!contact) return;
     const ok = await createMoney(actionType, {
       ...payload,
-      counterpartyId: undefined,
-      counterpartyPhone: contact.phone,
+      targetPartyType: contact.partyType,
+      targetPartyId: contact.partyId,
+      targetPhone: contact.partyType === 'PROFILE' ? contact.phone : undefined,
     });
     if (ok) setModalVisible(false);
   };
@@ -169,7 +181,8 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         visible={modalVisible}
         actionType={actionType}
         loading={creating}
-        fixedCounterpartyId={contact.id}
+        fixedCounterpartyId={contact.partyId}
+        fixedCounterpartyType={contact.partyType}
         onClose={() => setModalVisible(false)}
         onSubmit={handleCreate}
       />
@@ -233,13 +246,30 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   );
 };
 
-function mapTransaction(item: MoneyResponseDTO, ownerId?: string, counterpartyId?: string) {
-  let isCredit = Boolean(ownerId && item.creditorId === ownerId);
-  let isDebt = Boolean(ownerId && item.debtorId === ownerId);
+function mapTransaction(
+  item: MoneyResponseDTO,
+  owner: { partyType: PartyType; partyId: string },
+  counterparty?: { id: string; partyType: PartyType }
+) {
+  let isCredit = false;
+  let isDebt = false;
 
-  if (!isCredit && !isDebt && counterpartyId) {
-    if (item.debtorId === counterpartyId) isCredit = true;
-    if (item.creditorId === counterpartyId) isDebt = true;
+  if (owner.partyType === 'BUSINESS_ACCOUNT') {
+    isCredit = (item.creditorType === 'BUSINESS_ACCOUNT' || !!item.creditorBusinessId) && item.creditorBusinessId === owner.partyId;
+    isDebt = (item.debtorType === 'BUSINESS_ACCOUNT' || !!item.debtorBusinessId) && item.debtorBusinessId === owner.partyId;
+  } else {
+    isCredit = (!item.creditorType || item.creditorType === 'PROFILE') && item.creditorId === owner.partyId;
+    isDebt = (!item.debtorType || item.debtorType === 'PROFILE') && item.debtorId === owner.partyId;
+  }
+
+  if (!isCredit && !isDebt && counterparty?.id) {
+    if (counterparty.partyType === 'BUSINESS_ACCOUNT') {
+      if (item.debtorBusinessId === counterparty.id) isCredit = true;
+      if (item.creditorBusinessId === counterparty.id) isDebt = true;
+    } else {
+      if (item.debtorId === counterparty.id) isCredit = true;
+      if (item.creditorId === counterparty.id) isDebt = true;
+    }
   }
 
   return {

@@ -3,6 +3,7 @@ import {
   AppResponse,
   MoneyCreditorCreatedDTO,
   MoneyDebtorCreatedDTO,
+  PartyType,
   MoneyPriceDTO,
   MoneyResponseDTO,
   PageResponse,
@@ -71,6 +72,7 @@ export interface GetMoneyHistoryParams {
   page?: number;
   size?: number;
   id: string;
+  partyType: PartyType;
   token?: string;
 }
 
@@ -99,15 +101,16 @@ export const createDebt = async (
 };
 
 export const getMoneyHistory = async ({
-  page = 1,
+  page = 0,
   size = 15,
   id,
+  partyType,
   token,
 }: GetMoneyHistoryParams): Promise<PageResponse<MoneyResponseDTO>> => {
   setApiAuthToken(token);
   const response = await getWithMultiplePathsFallback<
     PageResponse<Omit<MoneyResponseDTO, 'amount'> & { amount: number | string }>
-  >([{ path: '/history', params: { page, size, id } }]);
+  >([{ path: '/history', params: { page, size, id, partyType } }]);
   return normalizeMoneyPage(response);
 };
 
@@ -117,8 +120,8 @@ export const getAllTotalPrice = async (token?: string): Promise<MoneyPriceDTO> =
   return response.data;
 };
 
-export const getTotalPriceByCreditorId = async (id: string, token?: string): Promise<MoneyPriceDTO> => {
+export const getTotalPriceByPartyId = async (id: string, partyType: PartyType, token?: string): Promise<MoneyPriceDTO> => {
   setApiAuthToken(token);
-  const response = await getWithFallback<AppResponse<MoneyPriceDTO>>(`/tootal-price/${id}`);
+  const response = await getWithFallback<AppResponse<MoneyPriceDTO>>(`/tootal-price/${id}`, { partyType });
   return response.data;
 };

@@ -2,6 +2,7 @@ import React, { createContext, ReactNode, useCallback, useContext, useEffect, us
 import { ClientDTO, ClientFilterDTO, createClient, deleteClient, filterClients, getMyClients, updateClient } from '../api/client';
 import { AuthContext } from './AuthContext';
 import { WorkspaceContext } from './WorkspaceContext';
+import { PartyType } from '../types/money';
 
 export interface Contact {
   id: string;
@@ -9,15 +10,23 @@ export interface Contact {
   lastName: string;
   phone: string;
   fullName: string;
+  partyType: PartyType;
+  partyId: string;
   creditorId?: string;
   debtorId?: string;
+  creditorType?: PartyType;
+  debtorType?: PartyType;
+  creditorBusinessId?: string;
+  debtorBusinessId?: string;
   debtAmount: number;
   interestAmount: number;
 }
 
 interface ContactFormInput {
   name: string;
-  phone: string;
+  targetType: PartyType;
+  phone?: string;
+  targetBusinessId?: string;
 }
 
 interface ContactUpdateInput {
@@ -57,18 +66,75 @@ export const ContactsContext = createContext<ContactsContextValue>({
   deleteContact: async () => false,
 });
 
-const toContact = (input: ClientDTO): Contact => {
+const normalized = (value?: string | null): string => (value || '').trim().toLowerCase();
+
+const resolveCounterparty = (
+  input: ClientDTO,
+  actorType: PartyType,
+  actorId?: string | null
+): { partyType: PartyType; partyId: string } => {
+  const actor = normalized(actorId);
+  const creditorProfileId = normalized(input.creditorId);
+  const debtorProfileId = normalized(input.debtorId);
+  const creditorBusinessId = normalized(input.creditorBusinessId);
+  const debtorBusinessId = normalized(input.debtorBusinessId);
+
+  const actorIsCreditor =
+    actorType === 'BUSINESS_ACCOUNT'
+      ? (input.creditorType === 'BUSINESS_ACCOUNT' && creditorBusinessId === actor) || creditorBusinessId === actor
+      : (input.creditorType === 'PROFILE' && creditorProfileId === actor) || creditorProfileId === actor;
+
+  const actorIsDebtor =
+    actorType === 'BUSINESS_ACCOUNT'
+      ? (input.debtorType === 'BUSINESS_ACCOUNT' && debtorBusinessId === actor) || debtorBusinessId === actor
+      : (input.debtorType === 'PROFILE' && debtorProfileId === actor) || debtorProfileId === actor;
+
+  if (actorIsCreditor) {
+    if (input.debtorType === 'BUSINESS_ACCOUNT' || debtorBusinessId) {
+      return { partyType: 'BUSINESS_ACCOUNT', partyId: input.debtorBusinessId || '' };
+    }
+    return { partyType: 'PROFILE', partyId: input.debtorId || '' };
+  }
+
+  if (actorIsDebtor) {
+    if (input.creditorType === 'BUSINESS_ACCOUNT' || creditorBusinessId) {
+      return { partyType: 'BUSINESS_ACCOUNT', partyId: input.creditorBusinessId || '' };
+    }
+    return { partyType: 'PROFILE', partyId: input.creditorId || '' };
+  }
+
+  if (input.debtorType === 'BUSINESS_ACCOUNT' || debtorBusinessId) {
+    return { partyType: 'BUSINESS_ACCOUNT', partyId: input.debtorBusinessId || '' };
+  }
+  if (input.debtorId) {
+    return { partyType: 'PROFILE', partyId: input.debtorId || '' };
+  }
+  if (input.creditorType === 'BUSINESS_ACCOUNT' || creditorBusinessId) {
+    return { partyType: 'BUSINESS_ACCOUNT', partyId: input.creditorBusinessId || '' };
+  }
+  return { partyType: 'PROFILE', partyId: input.creditorId || '' };
+};
+
+const toContact = (input: ClientDTO, actorType: PartyType, actorId?: string | null): Contact => {
   const parts = (input.name || '').trim().split(/\s+/).filter(Boolean);
   const firstName = parts[0] || input.name || '';
   const lastName = parts.slice(1).join(' ');
+  const counterparty = resolveCounterparty(input, actorType, actorId);
+  const fallbackPartyType = input.phoneNumber ? 'PROFILE' : 'BUSINESS_ACCOUNT';
   return {
     id: input.id,
     firstName,
     lastName,
-    phone: input.phoneNumber,
+    phone: input.phoneNumber || '',
     fullName: input.name || `${firstName} ${lastName}`.trim(),
+    partyType: counterparty.partyId ? counterparty.partyType : fallbackPartyType,
+    partyId: counterparty.partyId,
     creditorId: input.creditorId,
     debtorId: input.debtorId,
+    creditorType: input.creditorType,
+    debtorType: input.debtorType,
+    creditorBusinessId: input.creditorBusinessId,
+    debtorBusinessId: input.debtorBusinessId,
     debtAmount: 0,
     interestAmount: 0,
   };
@@ -89,8 +155,15 @@ const mapNameToContact = (contact: Contact, name: string): Contact => {
 
 const validateContactInput = (input: ContactFormInput): string => {
   const cleanName = input.name.trim();
-  const digits = input.phone.replace(/\D/g, '');
-  if (!cleanName || !digits) return "Ism va telefon majburiy";
+  if (!cleanName) return 'Ism majburiy';
+
+  if (input.targetType === 'BUSINESS_ACCOUNT') {
+    if (!input.targetBusinessId?.trim()) return 'Business ID majburiy';
+    return '';
+  }
+
+  const digits = (input.phone || '').replace(/\D/g, '');
+  if (!digits) return 'Telefon majburiy';
   if (digits.length !== 9 && digits.length !== 12) return "Telefon 9 yoki 12 xonali bo'lishi kerak";
   if (digits.length === 12 && !digits.startsWith('998')) return "12 xonali telefon 998 bilan boshlanishi kerak";
   return '';
@@ -108,15 +181,6 @@ const toPhoneNumber = (phone: string): string => {
   return digits;
 };
 
-const findDuplicateByPhone = (
-  contacts: Contact[],
-  phone: string,
-  ignoreId?: string
-): Contact | undefined => {
-  const normalizedPhone = toPhoneNumber(phone);
-  return contacts.find((contact) => contact.id !== ignoreId && toPhoneNumber(contact.phone) === normalizedPhone);
-};
-
 export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { profile } = useContext(AuthContext);
   const { workspace, isWorkspaceReady } = useContext(WorkspaceContext);
@@ -126,7 +190,8 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
-  const isBusinessWorkspace = workspace.mode === 'business' && !!workspace.activeBusinessId;
+  const actorType: PartyType = workspace.mode === 'business' && workspace.activeBusinessId ? 'BUSINESS_ACCOUNT' : 'PROFILE';
+  const actorId = actorType === 'BUSINESS_ACCOUNT' ? workspace.activeBusinessId : profile?.id;
 
   const refreshContacts = useCallback(async () => {
     if (!profile?.jwt) {
@@ -135,28 +200,23 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
       return;
     }
     if (!isWorkspaceReady) return;
-    if (!isBusinessWorkspace) {
-      setContacts([]);
-      setError('');
-      return;
-    }
 
     setLoading(true);
     setError('');
     try {
-      const clients = await getMyClients(profile.jwt, 1, 100);
-      setContacts(clients.map(toContact));
+      const clients = await getMyClients(profile.jwt, 0, 100);
+      setContacts(clients.map((client) => toContact(client, actorType, actorId)));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Kontaktlar yuklanmadi');
     } finally {
       setLoading(false);
     }
-  }, [isBusinessWorkspace, isWorkspaceReady, profile?.jwt]);
+  }, [actorId, actorType, isWorkspaceReady, profile?.jwt]);
 
   const filterContacts = useCallback(
     async (input: ContactFilterInput): Promise<Contact[]> => {
       if (!profile?.jwt) return [];
-      if (!isWorkspaceReady || !isBusinessWorkspace) return [];
+      if (!isWorkspaceReady) return [];
 
       const name = input.name?.trim() || '';
       const phoneDigits = (input.phoneNumber || '').replace(/\D/g, '');
@@ -166,10 +226,10 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         phoneNumber: phoneDigits.length > 0 ? phoneDigits : undefined,
       };
 
-      const filtered = await filterClients(profile.jwt, dto, 1, 100);
-      return filtered.map(toContact);
+      const filtered = await filterClients(profile.jwt, dto, 0, 100);
+      return filtered.map((client) => toContact(client, actorType, actorId));
     },
-    [contacts, isBusinessWorkspace, isWorkspaceReady, profile?.jwt]
+    [actorId, actorType, isWorkspaceReady, profile?.jwt]
   );
 
   const addContact = useCallback(
@@ -178,31 +238,29 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setError('Avval tizimga kiring');
         return false;
       }
-      if (!isWorkspaceReady || !isBusinessWorkspace) {
-        setError('Kontaktlar bilan ishlash uchun business workspace tanlang');
-        return false;
-      }
-
       const validationError = validateContactInput(input);
       if (validationError) {
         setError(validationError);
         return false;
       }
 
-      const duplicate = findDuplicateByPhone(contacts, input.phone);
-      if (duplicate) {
-        setError('Bu mijoz tizimda mavjud.');
-        return false;
-      }
-
       setCreating(true);
       setError('');
       try {
-        const created = await createClient(profile.jwt, {
-          name: input.name.trim(),
-          phoneNumber: toPhoneNumber(input.phone),
-        });
-        setContacts((prev) => [toContact(created), ...prev]);
+        const created = await createClient(
+          profile.jwt,
+          input.targetType === 'BUSINESS_ACCOUNT'
+            ? {
+                name: input.name.trim(),
+                targetType: 'BUSINESS_ACCOUNT',
+                targetBusinessId: input.targetBusinessId!.trim(),
+              }
+            : {
+                name: input.name.trim(),
+                phoneNumber: toPhoneNumber(input.phone || ''),
+              }
+        );
+        setContacts((prev) => [toContact(created, actorType, actorId), ...prev]);
         return true;
       } catch (e) {
         setError(e instanceof Error ? e.message : "Kontakt qo'shilmadi");
@@ -211,7 +269,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setCreating(false);
       }
     },
-    [contacts, isBusinessWorkspace, isWorkspaceReady, profile?.jwt]
+    [actorId, actorType, contacts, isWorkspaceReady, profile?.jwt]
   );
 
   const updateContact = useCallback(
@@ -220,8 +278,8 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setError('Avval tizimga kiring');
         return false;
       }
-      if (!isWorkspaceReady || !isBusinessWorkspace) {
-        setError('Kontaktlar bilan ishlash uchun business workspace tanlang');
+      if (!isWorkspaceReady) {
+        setError('Workspace hali tayyor emas');
         return false;
       }
 
@@ -249,7 +307,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setUpdating(false);
       }
     },
-    [isBusinessWorkspace, isWorkspaceReady, profile?.jwt]
+    [isWorkspaceReady, profile?.jwt]
   );
 
   const deleteContactHandler = useCallback(
@@ -258,8 +316,8 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setError('Avval tizimga kiring');
         return false;
       }
-      if (!isWorkspaceReady || !isBusinessWorkspace) {
-        setError('Kontaktlar bilan ishlash uchun business workspace tanlang');
+      if (!isWorkspaceReady) {
+        setError('Workspace hali tayyor emas');
         return false;
       }
 
@@ -276,7 +334,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setDeleting(false);
       }
     },
-    [isBusinessWorkspace, isWorkspaceReady, profile?.jwt]
+    [isWorkspaceReady, profile?.jwt]
   );
 
   useEffect(() => {

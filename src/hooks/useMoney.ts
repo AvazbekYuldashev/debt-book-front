@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import { createCredit, createDebt, getMoneyHistory, getTotalPriceByCreditorId } from '../services/moneyService';
+import { createCredit, createDebt, getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import { getProfileByPhone } from '../services/profileService';
-import { MoneyActionType, MoneyPriceDTO, MoneyResponseDTO } from '../types/money';
+import { MoneyActionType, MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 import { extractMoneyTotals } from '../utils/money';
 
 interface UseMoneyParams {
@@ -9,21 +9,23 @@ interface UseMoneyParams {
 }
 
 interface FetchMoneyInput {
-  counterpartyId?: string;
-  counterpartyPhone?: string;
+  partyType: PartyType;
+  partyId?: string;
+  phoneFallback?: string;
 }
 
 interface CreateMoneyInput {
   amount: number;
-  counterpartyId?: string;
-  counterpartyPhone?: string;
+  targetPartyType: PartyType;
+  targetPartyId?: string;
+  targetPhone?: string;
   description: string;
 }
 
 export const useMoney = ({ token }: UseMoneyParams) => {
   const [history, setHistory] = useState<MoneyResponseDTO[]>([]);
   const [totalPrice, setTotalPrice] = useState<MoneyPriceDTO | null>(null);
-  const [selectedCounterpartyId, setSelectedCounterpartyId] = useState<string>('');
+  const [selectedCounterparty, setSelectedCounterparty] = useState<{ id: string; partyType: PartyType } | null>(null);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -31,9 +33,9 @@ export const useMoney = ({ token }: UseMoneyParams) => {
   const resolveCounterpartyId = useCallback(
     async (input?: FetchMoneyInput): Promise<string> => {
       if (!input) return '';
-      if (input.counterpartyId?.trim()) return input.counterpartyId.trim();
-      if (input.counterpartyPhone) {
-        const profile = await getProfileByPhone(input.counterpartyPhone, token);
+      if (input.partyId?.trim()) return input.partyId.trim();
+      if (input.partyType === 'PROFILE' && input.phoneFallback) {
+        const profile = await getProfileByPhone(input.phoneFallback, token);
         return profile.id;
       }
       return '';
@@ -43,6 +45,11 @@ export const useMoney = ({ token }: UseMoneyParams) => {
 
   const fetchData = useCallback(async (input?: FetchMoneyInput) => {
     if (!token) {
+      setHistory([]);
+      setTotalPrice(null);
+      return;
+    }
+    if (!input) {
       setHistory([]);
       setTotalPrice(null);
       return;
@@ -57,11 +64,11 @@ export const useMoney = ({ token }: UseMoneyParams) => {
 
     setLoading(true);
     setError('');
-    setSelectedCounterpartyId(resolvedCounterpartyId);
+    setSelectedCounterparty({ id: resolvedCounterpartyId, partyType: input.partyType });
     try {
       const [historyPage, totals] = await Promise.all([
-        getMoneyHistory({ id: resolvedCounterpartyId, page: 1, size: 30, token }),
-        getTotalPriceByCreditorId(resolvedCounterpartyId, token),
+        getMoneyHistory({ id: resolvedCounterpartyId, partyType: input.partyType, page: 0, size: 30, token }),
+        getTotalPriceByPartyId(resolvedCounterpartyId, input.partyType, token),
       ]);
       setHistory(historyPage.content ?? []);
       setTotalPrice(totals ?? null);
@@ -82,7 +89,11 @@ export const useMoney = ({ token }: UseMoneyParams) => {
       setCreating(true);
       setError('');
       try {
-        const resolvedCounterpartyId = await resolveCounterpartyId(payload);
+        const resolvedCounterpartyId = payload.targetPartyId?.trim()
+          ? payload.targetPartyId.trim()
+          : payload.targetPartyType === 'PROFILE' && payload.targetPhone
+            ? (await getProfileByPhone(payload.targetPhone, token)).id
+            : '';
 
         if (!resolvedCounterpartyId) {
           throw new Error("Foydalanuvchi ID topilmadi");
@@ -92,30 +103,50 @@ export const useMoney = ({ token }: UseMoneyParams) => {
         if (type === 'GIVE') {
           // Qarz berish -> /take (Create Credit)
           created = await createCredit(
-            {
-              amount: payload.amount,
-              debtorId: resolvedCounterpartyId,
-              description: payload.description || 'Transaction',
-            },
+            payload.targetPartyType === 'BUSINESS_ACCOUNT'
+              ? {
+                  amount: payload.amount,
+                  description: payload.description || 'Transaction',
+                  targetType: 'BUSINESS_ACCOUNT',
+                  targetBusinessId: resolvedCounterpartyId,
+                }
+              : {
+                  amount: payload.amount,
+                  debtorId: resolvedCounterpartyId,
+                  description: payload.description || 'Transaction',
+                },
             token
           );
         } else {
           // Qarz olish -> /give (Create Debt)
           created = await createDebt(
-            {
-              amount: payload.amount,
-              creditorId: resolvedCounterpartyId,
-              description: payload.description || 'Transaction',
-            },
+            payload.targetPartyType === 'BUSINESS_ACCOUNT'
+              ? {
+                  amount: payload.amount,
+                  description: payload.description || 'Transaction',
+                  targetType: 'BUSINESS_ACCOUNT',
+                  targetBusinessId: resolvedCounterpartyId,
+                }
+              : {
+                  amount: payload.amount,
+                  creditorId: resolvedCounterpartyId,
+                  description: payload.description || 'Transaction',
+                },
             token
           );
         }
 
         setHistory((prev) => [created, ...prev]);
-        if (selectedCounterpartyId) {
+        if (selectedCounterparty?.id && selectedCounterparty.partyType) {
           const [historyPage, totals] = await Promise.all([
-            getMoneyHistory({ id: selectedCounterpartyId, page: 1, size: 30, token }),
-            getTotalPriceByCreditorId(selectedCounterpartyId, token),
+            getMoneyHistory({
+              id: selectedCounterparty.id,
+              partyType: selectedCounterparty.partyType,
+              page: 0,
+              size: 30,
+              token,
+            }),
+            getTotalPriceByPartyId(selectedCounterparty.id, selectedCounterparty.partyType, token),
           ]);
           setHistory(historyPage.content ?? []);
           setTotalPrice(totals ?? null);
@@ -128,7 +159,7 @@ export const useMoney = ({ token }: UseMoneyParams) => {
         setCreating(false);
       }
     },
-    [resolveCounterpartyId, selectedCounterpartyId, token]
+    [selectedCounterparty, token]
   );
 
   const totals = useMemo(() => extractMoneyTotals(totalPrice), [totalPrice]);
@@ -137,7 +168,7 @@ export const useMoney = ({ token }: UseMoneyParams) => {
     history,
     totalPrice,
     totals,
-    selectedCounterpartyId,
+    selectedCounterparty,
     loading,
     creating,
     error,

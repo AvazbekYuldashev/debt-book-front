@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppTextInput from '../form/AppTextInput';
 import PrimaryButton from '../ui/PrimaryButton';
-import { MoneyActionType } from '../../types/money';
+import { MoneyActionType, PartyType } from '../../types/money';
 import colors from '../../styles/colors';
 
 interface ContactOption {
@@ -16,8 +16,9 @@ interface MoneyActionModalProps {
   loading?: boolean;
   contacts?: ContactOption[];
   fixedCounterpartyId?: string;
+  fixedCounterpartyType?: PartyType;
   onClose: () => void;
-  onSubmit: (payload: { amount: number; counterpartyId: string; description: string }) => Promise<void>;
+  onSubmit: (payload: { amount: number; targetPartyType: PartyType; targetPartyId?: string; description: string }) => Promise<void>;
 }
 
 const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
@@ -26,11 +27,13 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   loading = false,
   contacts = [],
   fixedCounterpartyId,
+  fixedCounterpartyType,
   onClose,
   onSubmit,
 }) => {
   const [amount, setAmount] = useState('');
   const [counterpartyId, setCounterpartyId] = useState('');
+  const [targetType, setTargetType] = useState<PartyType>('PROFILE');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
 
@@ -53,6 +56,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   const resetState = () => {
     setAmount('');
     setCounterpartyId('');
+    setTargetType('PROFILE');
     setDescription('');
     setError('');
   };
@@ -70,14 +74,15 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     }
     const targetCounterpartyId = fixedCounterpartyId || counterpartyId.trim();
     if (!targetCounterpartyId) {
-      setError('Counterparty ID majburiy');
+      setError((fixedCounterpartyType || targetType) === 'BUSINESS_ACCOUNT' ? 'Target business ID majburiy' : 'Counterparty ID majburiy');
       return;
     }
 
     setError('');
     await onSubmit({
       amount: parsedAmount,
-      counterpartyId: targetCounterpartyId,
+      targetPartyType: fixedCounterpartyType || targetType,
+      targetPartyId: targetCounterpartyId,
       description: description.trim(),
     });
   };
@@ -95,11 +100,33 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
             placeholder="100000"
           />
           {!fixedCounterpartyId ? (
+            <View style={styles.targetTypeWrap}>
+              <TouchableOpacity
+                style={[styles.targetChip, targetType === 'PROFILE' && styles.targetChipActive]}
+                onPress={() => setTargetType('PROFILE')}
+              >
+                <Text style={[styles.targetChipText, targetType === 'PROFILE' && styles.targetChipTextActive]}>
+                  Profile
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.targetChip, targetType === 'BUSINESS_ACCOUNT' && styles.targetChipActive]}
+                onPress={() => setTargetType('BUSINESS_ACCOUNT')}
+              >
+                <Text
+                  style={[styles.targetChipText, targetType === 'BUSINESS_ACCOUNT' && styles.targetChipTextActive]}
+                >
+                  Business
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          {!fixedCounterpartyId ? (
             <AppTextInput
-              label={labels.idLabel}
+              label={targetType === 'BUSINESS_ACCOUNT' ? 'Target business ID' : labels.idLabel}
               value={counterpartyId}
               onChangeText={setCounterpartyId}
-              placeholder="counterparty-id"
+              placeholder={targetType === 'BUSINESS_ACCOUNT' ? 'business-id' : 'profile-id'}
             />
           ) : null}
           {!fixedCounterpartyId && contacts.length > 0 ? (
@@ -179,6 +206,33 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: colors.danger,
     fontSize: 12,
+  },
+  targetTypeWrap: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  targetChip: {
+    flex: 1,
+    minHeight: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  targetChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#eef5ff',
+  },
+  targetChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  targetChipTextActive: {
+    color: colors.primary,
   },
   actions: {
     flexDirection: 'row',
