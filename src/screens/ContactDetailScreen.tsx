@@ -17,8 +17,9 @@ import { AuthContext } from '../context/AuthContext';
 import { ContactsContext } from '../context/ContactsContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { useMoney } from '../hooks/useMoney';
-import { MoneyActionType, MoneyResponseDTO, PartyType } from '../types/money';
+import { AccountType, MoneyActionType, MoneyFlowType, MoneyResponseDTO, PartyType } from '../types/money';
 import { formatMoney } from '../utils/money';
+import { useAccountContext } from '../hooks/useAccountContext';
 
 const POSITIVE = '#0D9488';
 const NEGATIVE = '#EF4444';
@@ -27,6 +28,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const contactId = route.params?.id || '';
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
+  const { accountType } = useAccountContext();
   const { contacts } = useContext(ContactsContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
@@ -82,6 +84,9 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
     targetPartyType: PartyType;
     targetPartyId?: string;
     description: string;
+    fromAccountType: AccountType;
+    toAccountType: AccountType;
+    moneyFlowType: MoneyFlowType;
   }) => {
     if (!contact) return;
     const ok = await createMoney(actionType, {
@@ -134,7 +139,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
           {loading && mappedHistory.length === 0 ? (
             <SkeletonCardList count={4} containerStyle={styles.listSkeleton} />
           ) : mappedHistory.length === 0 ? (
-            <Text style={styles.emptyText}>Bu client uchun tranzaksiya yo'q</Text>
+            <Text style={styles.emptyText}>Bu accountda hali oldi-berdi yo'q</Text>
           ) : (
             mappedHistory.map((item, index) => (
               <TouchableOpacity
@@ -183,6 +188,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         loading={creating}
         fixedCounterpartyId={contact.partyId}
         fixedCounterpartyType={contact.partyType}
+        ownerAccountType={accountType}
         onClose={() => setModalVisible(false)}
         onSubmit={handleCreate}
       />

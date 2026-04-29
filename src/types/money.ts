@@ -1,3 +1,19 @@
+export const ACCOUNT_TYPE = {
+  PERSONAL: 'personal',
+  BUSINESS: 'business',
+} as const;
+
+export type AccountType = (typeof ACCOUNT_TYPE)[keyof typeof ACCOUNT_TYPE];
+
+export const MONEY_FLOW_TYPE = {
+  BUSINESS_TO_PERSONAL: 'BUSINESS_TO_PERSONAL',
+  PERSONAL_TO_BUSINESS: 'PERSONAL_TO_BUSINESS',
+  BUSINESS_TO_BUSINESS: 'BUSINESS_TO_BUSINESS',
+  PERSONAL_TO_PERSONAL: 'PERSONAL_TO_PERSONAL',
+} as const;
+
+export type MoneyFlowType = (typeof MONEY_FLOW_TYPE)[keyof typeof MONEY_FLOW_TYPE];
+
 export type PartyType = 'PROFILE' | 'BUSINESS_ACCOUNT';
 
 export interface MoneyResponseDTO {
@@ -18,12 +34,18 @@ export interface MoneyCreditorProfileCreatedDTO {
   amount: number;
   debtorId: string;
   description: string;
+  fromAccountType?: AccountType;
+  toAccountType?: AccountType;
+  moneyFlowType?: MoneyFlowType;
 }
 
 export interface MoneyDebtorProfileCreatedDTO {
   amount: number;
   creditorId: string;
   description: string;
+  fromAccountType?: AccountType;
+  toAccountType?: AccountType;
+  moneyFlowType?: MoneyFlowType;
 }
 
 export interface MoneyBusinessTargetDTO {
@@ -31,6 +53,9 @@ export interface MoneyBusinessTargetDTO {
   targetBusinessId: string;
   amount: number;
   description: string;
+  fromAccountType?: AccountType;
+  toAccountType?: AccountType;
+  moneyFlowType?: MoneyFlowType;
 }
 
 export type MoneyCreditorCreatedDTO = MoneyCreditorProfileCreatedDTO | MoneyBusinessTargetDTO;

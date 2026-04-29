@@ -1,5 +1,6 @@
 import apiClient, { ApiClientError, setApiAuthToken } from '../api/apiClient';
 import {
+  AccountType,
   AppResponse,
   MoneyCreditorCreatedDTO,
   MoneyDebtorCreatedDTO,
@@ -74,6 +75,7 @@ export interface GetMoneyHistoryParams {
   id: string;
   partyType: PartyType;
   token?: string;
+  accountType?: AccountType;
 }
 
 export const createCredit = async (
@@ -106,22 +108,28 @@ export const getMoneyHistory = async ({
   id,
   partyType,
   token,
+  accountType,
 }: GetMoneyHistoryParams): Promise<PageResponse<MoneyResponseDTO>> => {
   setApiAuthToken(token);
   const response = await getWithMultiplePathsFallback<
     PageResponse<Omit<MoneyResponseDTO, 'amount'> & { amount: number | string }>
-  >([{ path: '/history', params: { page, size, id, partyType } }]);
+  >([{ path: '/history', params: { page, size, id, partyType, accountType } }]);
   return normalizeMoneyPage(response);
 };
 
-export const getAllTotalPrice = async (token?: string): Promise<MoneyPriceDTO> => {
+export const getAllTotalPrice = async (token?: string, accountType?: AccountType): Promise<MoneyPriceDTO> => {
   setApiAuthToken(token);
-  const response = await getWithFallback<AppResponse<MoneyPriceDTO>>('/tootal-price');
+  const response = await getWithFallback<AppResponse<MoneyPriceDTO>>('/tootal-price', { accountType });
   return response.data;
 };
 
-export const getTotalPriceByPartyId = async (id: string, partyType: PartyType, token?: string): Promise<MoneyPriceDTO> => {
+export const getTotalPriceByPartyId = async (
+  id: string,
+  partyType: PartyType,
+  token?: string,
+  accountType?: AccountType
+): Promise<MoneyPriceDTO> => {
   setApiAuthToken(token);
-  const response = await getWithFallback<AppResponse<MoneyPriceDTO>>(`/tootal-price/${id}`, { partyType });
+  const response = await getWithFallback<AppResponse<MoneyPriceDTO>>(`/tootal-price/${id}`, { partyType, accountType });
   return response.data;
 };

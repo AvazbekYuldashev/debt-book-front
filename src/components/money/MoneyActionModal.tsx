@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppTextInput from '../form/AppTextInput';
 import PrimaryButton from '../ui/PrimaryButton';
-import { MoneyActionType, PartyType } from '../../types/money';
+import { AccountType, ACCOUNT_TYPE, MoneyActionType, MoneyFlowType, MONEY_FLOW_TYPE, PartyType } from '../../types/money';
 import colors from '../../styles/colors';
 
 interface ContactOption {
@@ -17,8 +17,17 @@ interface MoneyActionModalProps {
   contacts?: ContactOption[];
   fixedCounterpartyId?: string;
   fixedCounterpartyType?: PartyType;
+  ownerAccountType: AccountType;
   onClose: () => void;
-  onSubmit: (payload: { amount: number; targetPartyType: PartyType; targetPartyId?: string; description: string }) => Promise<void>;
+  onSubmit: (payload: {
+    amount: number;
+    targetPartyType: PartyType;
+    targetPartyId?: string;
+    description: string;
+    fromAccountType: AccountType;
+    toAccountType: AccountType;
+    moneyFlowType: MoneyFlowType;
+  }) => Promise<void>;
 }
 
 const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
@@ -28,6 +37,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   contacts = [],
   fixedCounterpartyId,
   fixedCounterpartyType,
+  ownerAccountType,
   onClose,
   onSubmit,
 }) => {
@@ -52,6 +62,10 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
           },
     [actionType]
   );
+
+  const targetAccountType = (fixedCounterpartyType || targetType) === 'BUSINESS_ACCOUNT'
+    ? ACCOUNT_TYPE.BUSINESS
+    : ACCOUNT_TYPE.PERSONAL;
 
   const resetState = () => {
     setAmount('');
@@ -84,6 +98,24 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
       targetPartyType: fixedCounterpartyType || targetType,
       targetPartyId: targetCounterpartyId,
       description: description.trim(),
+      fromAccountType: actionType === 'GIVE' ? ownerAccountType : targetAccountType,
+      toAccountType: actionType === 'GIVE' ? targetAccountType : ownerAccountType,
+      moneyFlowType:
+        actionType === 'GIVE'
+          ? ownerAccountType === ACCOUNT_TYPE.BUSINESS && targetAccountType === ACCOUNT_TYPE.PERSONAL
+            ? MONEY_FLOW_TYPE.BUSINESS_TO_PERSONAL
+            : ownerAccountType === ACCOUNT_TYPE.PERSONAL && targetAccountType === ACCOUNT_TYPE.BUSINESS
+              ? MONEY_FLOW_TYPE.PERSONAL_TO_BUSINESS
+              : ownerAccountType === ACCOUNT_TYPE.BUSINESS
+                ? MONEY_FLOW_TYPE.BUSINESS_TO_BUSINESS
+                : MONEY_FLOW_TYPE.PERSONAL_TO_PERSONAL
+          : targetAccountType === ACCOUNT_TYPE.BUSINESS && ownerAccountType === ACCOUNT_TYPE.PERSONAL
+            ? MONEY_FLOW_TYPE.BUSINESS_TO_PERSONAL
+            : targetAccountType === ACCOUNT_TYPE.PERSONAL && ownerAccountType === ACCOUNT_TYPE.BUSINESS
+              ? MONEY_FLOW_TYPE.PERSONAL_TO_BUSINESS
+              : targetAccountType === ACCOUNT_TYPE.BUSINESS
+                ? MONEY_FLOW_TYPE.BUSINESS_TO_BUSINESS
+                : MONEY_FLOW_TYPE.PERSONAL_TO_PERSONAL,
     });
   };
 

@@ -17,6 +17,7 @@ import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import { ContactsContext } from '../context/ContactsContext';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
+import { useAccountContext } from '../hooks/useAccountContext';
 import colors from '../styles/colors';
 import { ROUTES } from '../navigation/routes';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
@@ -31,6 +32,7 @@ const NEGATIVE = '#EF4444';
 const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
+  const { accountType } = useAccountContext();
   const {
     contacts,
     loading,
@@ -161,7 +163,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             const counterpartyType = contact.partyType;
             if (!counterpartyId) continue;
 
-            const price = (await getTotalPriceByPartyId(counterpartyId, counterpartyType, profile.jwt)) as MoneyPriceDTO;
+            const price = (await getTotalPriceByPartyId(counterpartyId, counterpartyType, profile.jwt, accountType)) as MoneyPriceDTO;
             let totals = extractMoneyTotals(price ?? null);
 
             if (totals.totalDebt === 0 && totals.totalCredit === 0) {
@@ -175,6 +177,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   page,
                   size: 100,
                   token: profile.jwt,
+                  accountType,
                 });
                 all.push(...(historyPage.content ?? []));
                 if (historyPage.last || page >= historyPage.totalPages - 1) break;
@@ -195,6 +198,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   page,
                   size: 100,
                   token: profile.jwt,
+                  accountType,
                 });
                 all.push(...(historyPage.content ?? []));
                 if (historyPage.last || page >= historyPage.totalPages - 1) break;
@@ -223,7 +227,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     return () => {
       cancelled = true;
     };
-  }, [computeTotalsFromHistory, contacts, profile?.jwt, totalsKey]);
+  }, [accountType, computeTotalsFromHistory, contacts, profile?.jwt, totalsKey]);
 
   useEffect(() => {
     const nameQuery = filterName.trim();
@@ -399,7 +403,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           {loading || searchLoading ? (
             <SkeletonCardList count={5} containerStyle={styles.listSkeleton} />
           ) : filteredContacts.length === 0 ? (
-            <Text style={styles.emptyText}>Clientlar topilmadi</Text>
+            <Text style={styles.emptyText}>Bu accountda hali oldi-berdi yo'q</Text>
           ) : (
             filteredContacts.map((item, index) => {
               const balance = totalsByContact[item.id]?.balance;

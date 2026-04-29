@@ -1,6 +1,6 @@
-import { authFetch } from './authFetch';
+import { ApiFetchError, authFetch } from './authFetch';
 
-import { PartyType } from '../types/money';
+import { AccountType, PartyType } from '../types/money';
 
 export interface ClientDTO {
   id: string;
@@ -14,6 +14,8 @@ export interface ClientDTO {
   debtorId?: string;
   creditorBusinessId?: string;
   debtorBusinessId?: string;
+  partyType?: PartyType;
+  partyId?: string;
   visible?: boolean;
   createdDate?: string;
 }
@@ -21,12 +23,14 @@ export interface ClientDTO {
 export interface ClientProfileCreateDTO {
   name: string;
   phoneNumber: string;
+  accountType?: AccountType;
 }
 
 export interface ClientBusinessCreateDTO {
   name: string;
   targetType: 'BUSINESS_ACCOUNT';
   targetBusinessId: string;
+  accountType?: AccountType;
 }
 
 export type ClientCreatedDTO = ClientProfileCreateDTO | ClientBusinessCreateDTO;
@@ -39,6 +43,7 @@ export interface ClientUpdateDTO {
 export interface ClientFilterDTO {
   name?: string;
   phoneNumber?: string;
+  accountType?: AccountType;
 }
 
 type PaginatedResponse<T> = {
@@ -50,27 +55,119 @@ type PaginatedResponse<T> = {
   last?: boolean;
 };
 
-export async function getMyClients(jwt: string, page = 0, size = 100): Promise<ClientDTO[]> {
-  const fetchPage = async (pageNumber: number): Promise<PaginatedResponse<ClientDTO>> => {
-    const params = new URLSearchParams({
-      page: String(pageNumber),
-      size: String(size),
-    });
+const CLIENT_BASE_PATHS = ['/client', '/core/client'] as const;
+interface ClientRequestOptions {
+  accountType?: AccountType;
+}
 
-    const parsed = await authFetch(`/client/my?${params.toString()}`, jwt, { method: 'GET' });
+function withQuery(path: string, query: Record<string, string | number | undefined>): string {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    params.append(key, String(value));
+  });
+  const queryString = params.toString();
+  return queryString ? `${path}${path.includes('?') ? '&' : '?'}${queryString}` : path;
+}
 
-    if (Array.isArray(parsed)) {
-      return { content: parsed as ClientDTO[], last: true, totalPages: 1, number: 0 };
+const DEFAULT_PAGE: PaginatedResponse<ClientDTO> = {
+  content: [],
+  last: true,
+  totalPages: 1,
+  number: 0,
+};
+
+const isRecoverableError = (error: unknown): boolean =>
+  error instanceof ApiFetchError && (error.status === 400 || error.status === 404);
+
+const normalizePage = (parsed: unknown): PaginatedResponse<ClientDTO> => {
+  if (Array.isArray(parsed)) {
+    return { content: parsed as ClientDTO[], last: true, totalPages: 1, number: 0 };
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    return DEFAULT_PAGE;
+  }
+
+  const root = parsed as Record<string, unknown>;
+  const node = (root.data && typeof root.data === 'object' ? root.data : root) as Record<string, unknown>;
+
+  if (Array.isArray(node.content) || Array.isArray(node.items) || Array.isArray(node.data)) {
+    return node as PaginatedResponse<ClientDTO>;
+  }
+
+  if (Array.isArray(root.data)) {
+    return { content: root.data as ClientDTO[], last: true, totalPages: 1, number: 0 };
+  }
+
+  return DEFAULT_PAGE;
+};
+
+async function fetchClientsPage(
+  jwt: string,
+  pageNumber: number,
+  size: number,
+  options?: ClientRequestOptions
+): Promise<PaginatedResponse<ClientDTO>> {
+  let lastError: unknown;
+
+  for (const base of CLIENT_BASE_PATHS) {
+    const attempts = [
+      withQuery(`${base}/my`, { page: pageNumber, size, accountType: options?.accountType }),
+      withQuery(`${base}/my`, { accountType: options?.accountType }),
+    ];
+
+    for (const path of attempts) {
+      try {
+        const parsed = await authFetch(path, jwt, { method: 'GET' });
+        return normalizePage(parsed);
+      } catch (e) {
+        lastError = e;
+        if (!isRecoverableError(e)) throw e;
+      }
     }
+  }
 
-    if (parsed && typeof parsed === 'object') {
-      return parsed as PaginatedResponse<ClientDTO>;
+  throw lastError;
+}
+
+async function fetchFilteredClientsPage(
+  jwt: string,
+  dto: ClientFilterDTO,
+  pageNumber: number,
+  size: number,
+  options?: ClientRequestOptions
+): Promise<PaginatedResponse<ClientDTO>> {
+  let lastError: unknown;
+
+  for (const base of CLIENT_BASE_PATHS) {
+    const attempts = [
+      withQuery(`${base}/filter`, { page: pageNumber, size, accountType: options?.accountType }),
+      withQuery(`${base}/filter`, { accountType: options?.accountType }),
+    ];
+
+    for (const path of attempts) {
+      try {
+        const parsed = await authFetch(path, jwt, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(dto),
+        });
+        return normalizePage(parsed);
+      } catch (e) {
+        lastError = e;
+        if (!isRecoverableError(e)) throw e;
+      }
     }
+  }
 
-    return { content: [], last: true, totalPages: 1, number: 0 };
-  };
+  throw lastError;
+}
 
-  const firstPage = await fetchPage(page);
+export async function getMyClients(jwt: string, page = 0, size = 100, options?: ClientRequestOptions): Promise<ClientDTO[]> {
+  const firstPage = await fetchClientsPage(jwt, page, size, options);
   const all = [...(firstPage.content || firstPage.items || firstPage.data || [])];
   const totalPages =
     typeof firstPage.totalPages === 'number' && firstPage.totalPages > 0 ? firstPage.totalPages : 1;
@@ -80,7 +177,7 @@ export async function getMyClients(jwt: string, page = 0, size = 100): Promise<C
   }
 
   for (let pageNumber = page + 1; pageNumber <= totalPages; pageNumber += 1) {
-    const nextPage = await fetchPage(pageNumber);
+    const nextPage = await fetchClientsPage(jwt, pageNumber, size, options);
     const batch = nextPage.content || nextPage.items || nextPage.data || [];
     all.push(...batch);
     if (nextPage.last) break;
@@ -93,34 +190,10 @@ export async function filterClients(
   jwt: string,
   dto: ClientFilterDTO,
   page = 0,
-  size = 100
+  size = 100,
+  options?: ClientRequestOptions
 ): Promise<ClientDTO[]> {
-  const fetchPage = async (pageNumber: number): Promise<PaginatedResponse<ClientDTO>> => {
-    const params = new URLSearchParams({
-      page: String(pageNumber),
-      size: String(size),
-    });
-
-    const parsed = await authFetch(`/client/filter?${params.toString()}`, jwt, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(dto),
-    });
-
-    if (Array.isArray(parsed)) {
-      return { content: parsed as ClientDTO[], last: true, totalPages: 1, number: 0 };
-    }
-
-    if (parsed && typeof parsed === 'object') {
-      return parsed as PaginatedResponse<ClientDTO>;
-    }
-
-    return { content: [], last: true, totalPages: 1, number: 0 };
-  };
-
-  const firstPage = await fetchPage(page);
+  const firstPage = await fetchFilteredClientsPage(jwt, dto, page, size, options);
   const all = [...(firstPage.content || firstPage.items || firstPage.data || [])];
   const totalPages =
     typeof firstPage.totalPages === 'number' && firstPage.totalPages > 0 ? firstPage.totalPages : 1;
@@ -130,7 +203,7 @@ export async function filterClients(
   }
 
   for (let pageNumber = page + 1; pageNumber <= totalPages; pageNumber += 1) {
-    const nextPage = await fetchPage(pageNumber);
+    const nextPage = await fetchFilteredClientsPage(jwt, dto, pageNumber, size, options);
     const batch = nextPage.content || nextPage.items || nextPage.data || [];
     all.push(...batch);
     if (nextPage.last) break;
@@ -139,30 +212,71 @@ export async function filterClients(
   return all;
 }
 
-export async function createClient(jwt: string, dto: ClientCreatedDTO): Promise<ClientDTO> {
-  const parsed = await authFetch('/client', jwt, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(dto),
-  });
+export async function createClient(jwt: string, dto: ClientCreatedDTO, options?: ClientRequestOptions): Promise<ClientDTO> {
+  let lastError: unknown;
 
-  return parsed as ClientDTO;
+  for (const base of CLIENT_BASE_PATHS) {
+    try {
+      const parsed = await authFetch(withQuery(base, { accountType: options?.accountType }), jwt, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dto),
+      });
+
+      if (parsed && typeof parsed === 'object' && 'data' in (parsed as Record<string, unknown>)) {
+        const data = (parsed as { data?: ClientDTO }).data;
+        if (data) return data;
+      }
+
+      return parsed as ClientDTO;
+    } catch (e) {
+      lastError = e;
+      if (!isRecoverableError(e)) throw e;
+    }
+  }
+
+  throw lastError;
 }
 
-export async function updateClient(jwt: string, id: string, dto: ClientUpdateDTO): Promise<void> {
-  await authFetch('/client/', jwt, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ ...dto, id }),
-  });
+export async function updateClient(
+  jwt: string,
+  id: string,
+  dto: ClientUpdateDTO,
+  options?: ClientRequestOptions
+): Promise<void> {
+  let lastError: unknown;
+  for (const base of CLIENT_BASE_PATHS) {
+    try {
+      await authFetch(withQuery(`${base}/`, { accountType: options?.accountType }), jwt, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...dto, id }),
+      });
+      return;
+    } catch (e) {
+      lastError = e;
+      if (!isRecoverableError(e)) throw e;
+    }
+  }
+  throw lastError;
 }
 
-export async function deleteClient(jwt: string, id: string): Promise<void> {
-  await authFetch(`/client/${id}`, jwt, {
-    method: 'DELETE',
-  });
+export async function deleteClient(jwt: string, id: string, options?: ClientRequestOptions): Promise<void> {
+  let lastError: unknown;
+  for (const base of CLIENT_BASE_PATHS) {
+    try {
+      await authFetch(withQuery(`${base}/${id}`, { accountType: options?.accountType }), jwt, {
+        method: 'DELETE',
+      });
+      return;
+    } catch (e) {
+      lastError = e;
+      if (!isRecoverableError(e)) throw e;
+    }
+  }
+  throw lastError;
 }

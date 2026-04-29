@@ -2,7 +2,8 @@ import React, { createContext, ReactNode, useCallback, useContext, useEffect, us
 import { ClientDTO, ClientFilterDTO, createClient, deleteClient, filterClients, getMyClients, updateClient } from '../api/client';
 import { AuthContext } from './AuthContext';
 import { WorkspaceContext } from './WorkspaceContext';
-import { PartyType } from '../types/money';
+import { ACCOUNT_TYPE, PartyType } from '../types/money';
+import { useAccountContext } from '../hooks/useAccountContext';
 
 export interface Contact {
   id: string;
@@ -119,7 +120,10 @@ const toContact = (input: ClientDTO, actorType: PartyType, actorId?: string | nu
   const parts = (input.name || '').trim().split(/\s+/).filter(Boolean);
   const firstName = parts[0] || input.name || '';
   const lastName = parts.slice(1).join(' ');
-  const counterparty = resolveCounterparty(input, actorType, actorId);
+  const counterparty =
+    input.partyType && input.partyId
+      ? { partyType: input.partyType, partyId: input.partyId }
+      : resolveCounterparty(input, actorType, actorId);
   const fallbackPartyType = input.phoneNumber ? 'PROFILE' : 'BUSINESS_ACCOUNT';
   return {
     id: input.id,
@@ -184,13 +188,14 @@ const toPhoneNumber = (phone: string): string => {
 export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { profile } = useContext(AuthContext);
   const { workspace, isWorkspaceReady } = useContext(WorkspaceContext);
+  const { accountType, accountKey } = useAccountContext();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
-  const actorType: PartyType = workspace.mode === 'business' && workspace.activeBusinessId ? 'BUSINESS_ACCOUNT' : 'PROFILE';
+  const actorType: PartyType = accountType === ACCOUNT_TYPE.BUSINESS ? 'BUSINESS_ACCOUNT' : 'PROFILE';
   const actorId = actorType === 'BUSINESS_ACCOUNT' ? workspace.activeBusinessId : profile?.id;
 
   const refreshContacts = useCallback(async () => {
@@ -200,36 +205,35 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
       return;
     }
     if (!isWorkspaceReady) return;
-
     setLoading(true);
     setError('');
     try {
-      const clients = await getMyClients(profile.jwt, 0, 100);
+      const clients = await getMyClients(profile.jwt, 0, 100, { accountType });
       setContacts(clients.map((client) => toContact(client, actorType, actorId)));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Kontaktlar yuklanmadi');
     } finally {
       setLoading(false);
     }
-  }, [actorId, actorType, isWorkspaceReady, profile?.jwt]);
+  }, [accountType, actorId, actorType, isWorkspaceReady, profile?.jwt]);
 
   const filterContacts = useCallback(
     async (input: ContactFilterInput): Promise<Contact[]> => {
       if (!profile?.jwt) return [];
       if (!isWorkspaceReady) return [];
-
       const name = input.name?.trim() || '';
       const phoneDigits = (input.phoneNumber || '').replace(/\D/g, '');
       if (name.length < 3 && phoneDigits.length < 3) return contacts;
       const dto: ClientFilterDTO = {
         name: name || undefined,
         phoneNumber: phoneDigits.length > 0 ? phoneDigits : undefined,
+        accountType,
       };
 
-      const filtered = await filterClients(profile.jwt, dto, 0, 100);
+      const filtered = await filterClients(profile.jwt, dto, 0, 100, { accountType });
       return filtered.map((client) => toContact(client, actorType, actorId));
     },
-    [actorId, actorType, isWorkspaceReady, profile?.jwt]
+    [accountType, actorId, actorType, contacts, isWorkspaceReady, profile?.jwt]
   );
 
   const addContact = useCallback(
@@ -254,11 +258,14 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
                 name: input.name.trim(),
                 targetType: 'BUSINESS_ACCOUNT',
                 targetBusinessId: input.targetBusinessId!.trim(),
+                accountType,
               }
             : {
                 name: input.name.trim(),
                 phoneNumber: toPhoneNumber(input.phone || ''),
-              }
+                accountType,
+              },
+          { accountType }
         );
         setContacts((prev) => [toContact(created, actorType, actorId), ...prev]);
         return true;
@@ -269,7 +276,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setCreating(false);
       }
     },
-    [actorId, actorType, contacts, isWorkspaceReady, profile?.jwt]
+    [accountType, actorId, actorType, profile?.jwt]
   );
 
   const updateContact = useCallback(
@@ -292,10 +299,15 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
       setUpdating(true);
       setError('');
       try {
-        await updateClient(profile.jwt, id, {
+        await updateClient(
+          profile.jwt,
           id,
-          name: input.name.trim(),
-        });
+          {
+            id,
+            name: input.name.trim(),
+          },
+          { accountType }
+        );
         setContacts((prev) =>
           prev.map((contact) => (contact.id === id ? mapNameToContact(contact, input.name) : contact))
         );
@@ -307,7 +319,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setUpdating(false);
       }
     },
-    [isWorkspaceReady, profile?.jwt]
+    [accountType, isWorkspaceReady, profile?.jwt]
   );
 
   const deleteContactHandler = useCallback(
@@ -324,7 +336,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
       setDeleting(true);
       setError('');
       try {
-        await deleteClient(profile.jwt, id);
+        await deleteClient(profile.jwt, id, { accountType });
         setContacts((prev) => prev.filter((contact) => contact.id !== id));
         return true;
       } catch (e) {
@@ -334,12 +346,14 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setDeleting(false);
       }
     },
-    [isWorkspaceReady, profile?.jwt]
+    [accountType, isWorkspaceReady, profile?.jwt]
   );
 
   useEffect(() => {
+    setContacts([]);
+    setError('');
     refreshContacts();
-  }, [refreshContacts, workspace.activeBusinessId, workspace.mode]);
+  }, [accountKey, refreshContacts, workspace.activeBusinessId, workspace.mode]);
 
   return (
     <ContactsContext.Provider
