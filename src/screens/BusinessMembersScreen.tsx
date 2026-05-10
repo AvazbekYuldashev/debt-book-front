@@ -5,20 +5,30 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import AppTextInput from '../components/form/AppTextInput';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import BusinessMembersTable from '../components/business/BusinessMembersTable';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
-import { addBusinessMember, getBusinessMembers } from '../services/businessService';
-import { BusinessProfileDTO } from '../types/business';
+import {
+  AddBusinessMemberError,
+  addBusinessMember,
+  getBusinessMembers,
+} from '../services/businessService';
+import { BusinessMemberRole, BusinessProfileDTO } from '../types/business';
 
-type MemberRole = 'ADMIN' | 'MEMBER';
+const PHONE_DIGITS = 9;
+
+const sanitizeLocalPhone = (value: string): string => {
+  let digits = value.replace(/\D/g, '');
+  if (digits.startsWith('998')) digits = digits.slice(3);
+  return digits.slice(0, PHONE_DIGITS);
+};
 
 const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
   const { profile } = useContext(AuthContext);
@@ -32,11 +42,14 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
   const [error, setError] = useState('');
   const [members, setMembers] = useState<BusinessProfileDTO[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [profileId, setProfileId] = useState('');
-  const [role, setRole] = useState<MemberRole>('MEMBER');
+  const [phone, setPhone] = useState('');
+  const [role, setRole] = useState<BusinessMemberRole>('MEMBER');
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [phoneBlocked, setPhoneBlocked] = useState(false);
 
   const canLoad = useMemo(() => Boolean(profile?.jwt && businessId), [profile?.jwt, businessId]);
+  const phoneValid = phone.length === PHONE_DIGITS;
 
   const loadMembers = useCallback(async (showSpinner = true) => {
     if (!profile?.jwt || !businessId) {
@@ -70,39 +83,58 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
   const closeModal = () => {
     if (saving) return;
     setModalVisible(false);
-    setProfileId('');
+    setPhone('');
     setRole('MEMBER');
+    setFormError('');
+    setPhoneBlocked(false);
+  };
+
+  const onPhoneChange = (value: string) => {
+    setPhone(sanitizeLocalPhone(value));
+    if (phoneBlocked) setPhoneBlocked(false);
+    if (formError) setFormError('');
   };
 
   const submitMember = async () => {
     if (!profile?.jwt) {
-      setError('Token topilmadi. Qayta login qiling.');
+      setFormError('Token topilmadi. Qayta login qiling.');
       return;
     }
     if (!businessId) {
-      setError('Business tanlanmagan.');
+      setFormError('Business tanlanmagan.');
       return;
     }
-    if (!profileId.trim()) {
-      setError('Profile ID kiriting.');
+    if (!phoneValid) {
+      setFormError("Telefon raqami 9 ta raqamdan iborat bo'lishi kerak");
       return;
     }
 
     setSaving(true);
-    setError('');
+    setFormError('');
     try {
       await addBusinessMember(
-        { businessId, profileId: profileId.trim(), role },
+        { businessId, phoneNumber: `998${phone}`, role },
         profile.jwt
       );
       closeModal();
       await loadMembers(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Member qo'shib bo‘lmadi");
+      if (e instanceof AddBusinessMemberError) {
+        setFormError(e.message);
+        setPhoneBlocked(
+          e.code === 'PHONE_NOT_REGISTERED' ||
+            e.code === 'PHONE_NOT_VERIFIED' ||
+            e.code === 'ALREADY_MEMBER'
+        );
+      } else {
+        setFormError(e instanceof Error ? e.message : "A'zo qo'shib bo'lmadi");
+      }
     } finally {
       setSaving(false);
     }
   };
+
+  const submitDisabled = saving || !phoneValid || phoneBlocked;
 
   return (
     <View style={styles.container}>
@@ -129,13 +161,21 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Add Member</Text>
-            <AppTextInput
-              label="Profile ID"
-              value={profileId}
-              onChangeText={setProfileId}
-              placeholder="uuid"
-              containerStyle={styles.field}
-            />
+
+            <Text style={styles.fieldLabel}>Telefon raqam</Text>
+            <View style={styles.phoneInputRow}>
+              <Text style={styles.phonePrefix}>+998</Text>
+              <TextInput
+                style={styles.phoneInput}
+                placeholder="90 123 45 67"
+                placeholderTextColor="#9CA3AF"
+                value={phone}
+                onChangeText={onPhoneChange}
+                keyboardType="number-pad"
+                editable={!saving}
+              />
+            </View>
+
             <Text style={styles.roleLabel}>Role</Text>
             <View style={styles.roleRow}>
               <TouchableOpacity
@@ -151,9 +191,18 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
                 <Text style={[styles.roleBtnText, role === 'MEMBER' ? styles.roleBtnTextActive : null]}>MEMBER</Text>
               </TouchableOpacity>
             </View>
+
+            {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+
             <View style={styles.modalActions}>
               <PrimaryButton title="Cancel" variant="secondary" onPress={closeModal} style={styles.actionBtn} />
-              <PrimaryButton title="Save" onPress={submitMember} loading={saving} style={styles.actionBtn} />
+              <PrimaryButton
+                title="Save"
+                onPress={submitMember}
+                loading={saving}
+                disabled={submitDisabled}
+                style={styles.actionBtn}
+              />
             </View>
           </View>
         </View>
@@ -226,8 +275,32 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 10,
   },
-  field: {
-    marginBottom: 8,
+  fieldLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  phoneInputRow: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  phonePrefix: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginRight: 8,
+    fontWeight: '600',
+  },
+  phoneInput: {
+    flex: 1,
+    paddingVertical: 10,
+    color: '#111827',
+    fontSize: 14,
   },
   roleLabel: {
     fontSize: 12,
@@ -259,6 +332,11 @@ const styles = StyleSheet.create({
   },
   roleBtnTextActive: {
     color: '#1D4ED8',
+  },
+  formError: {
+    color: '#DC2626',
+    fontSize: 12,
+    marginBottom: 10,
   },
   modalActions: {
     flexDirection: 'row',

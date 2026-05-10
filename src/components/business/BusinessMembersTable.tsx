@@ -26,6 +26,7 @@ const BusinessMembersTable: React.FC<BusinessMembersTableProps> = ({ members, lo
         <View style={[styles.row, styles.headerRow]}>
           <Text style={[styles.cell, styles.headerCell, styles.wide]}>Name</Text>
           <Text style={[styles.cell, styles.headerCell, styles.wide]}>Username</Text>
+          <Text style={[styles.cell, styles.headerCell, styles.wide]}>Phone</Text>
           <Text style={[styles.cell, styles.headerCell]}>Role</Text>
           <Text style={[styles.cell, styles.headerCell, styles.wide]}>Created</Text>
         </View>
@@ -33,6 +34,7 @@ const BusinessMembersTable: React.FC<BusinessMembersTableProps> = ({ members, lo
           <View style={styles.row} key={member.id}>
             <Text style={[styles.cell, styles.wide]}>{member.profileName || '--'}</Text>
             <Text style={[styles.cell, styles.wide]}>{member.profileUsername || '--'}</Text>
+            <Text style={[styles.cell, styles.wide]}>{formatPhone(member.phoneNumber)}</Text>
             <Text style={styles.cell}>{member.role}</Text>
             <Text style={[styles.cell, styles.wide]}>{formatDate(member.createdDate)}</Text>
           </View>
@@ -47,6 +49,15 @@ function formatDate(value?: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString();
+}
+
+function formatPhone(value?: string): string {
+  if (!value) return '--';
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('998')) {
+    return `+${digits}`;
+  }
+  return value;
 }
 
 const styles = StyleSheet.create({

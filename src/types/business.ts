@@ -11,13 +11,16 @@ export interface BusinessDTO {
   currentRole: BusinessRole;
 }
 
+export type BusinessMemberRole = Exclude<BusinessRole, 'OWNER'>;
+
 export interface BusinessProfileDTO {
   id: string;
   businessId: string;
   profileId: string;
-  role: 'ADMIN' | 'MEMBER';
+  role: BusinessMemberRole;
   profileName: string;
   profileUsername: string;
+  phoneNumber: string;
   createdDate: string;
 }
 
@@ -28,8 +31,8 @@ export interface BusinessCreateDTO {
 
 export interface BusinessMemberCreateDTO {
   businessId: string;
-  profileId: string;
-  role: 'ADMIN' | 'MEMBER';
+  phoneNumber: string;
+  role: BusinessMemberRole;
 }
 
 export interface WorkspaceState {
