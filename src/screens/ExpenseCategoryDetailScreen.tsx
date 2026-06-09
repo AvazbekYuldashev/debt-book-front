@@ -22,6 +22,7 @@ import { WorkspaceContext } from '../context/WorkspaceContext';
 import { ExpenseResponseDTO } from '../types/expense';
 import { createExpense, deleteExpense, getExpensesByCategory } from '../services/expenseService';
 import { formatMoney } from '../utils/money';
+import { canWrite, canDelete } from '../utils/permissions';
 
 const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
   const { profile } = useContext(AuthContext);
@@ -173,11 +174,16 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
     });
   }, [searchQuery, sortedExpenses]);
 
+  // ADMIN xarajat qo'sha oladi (yozish), lekin o'chirish faqat OWNER.
+  const role = workspace.activeBusinessRole;
+  const allowWrite = canWrite(role);
+  const allowDelete = canDelete(role);
+
   const renderHeader = () => (
     <View>
       <View style={styles.headerRow}>
         <Text style={styles.title}>{categoryName || 'Xarajatlar'}</Text>
-        <PrimaryButton title="Xarajat qo'shish" onPress={openCreateExpense} />
+        {allowWrite ? <PrimaryButton title="Xarajat qo'shish" onPress={openCreateExpense} /> : null}
       </View>
       <View style={styles.searchRow}>
         <Ionicons name="search-outline" size={17} color={colors.textSecondary} />
@@ -228,17 +234,19 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
                   </Text>
                 ) : null}
               </View>
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => handleDeleteExpense(item.id)}
-                disabled={deletingExpense === item.id}
-              >
-                {deletingExpense === item.id ? (
-                  <ActivityIndicator size="small" color={colors.danger} />
-                ) : (
-                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
-                )}
-              </TouchableOpacity>
+              {allowDelete ? (
+                <TouchableOpacity
+                  style={styles.iconBtn}
+                  onPress={() => handleDeleteExpense(item.id)}
+                  disabled={deletingExpense === item.id}
+                >
+                  {deletingExpense === item.id ? (
+                    <ActivityIndicator size="small" color={colors.danger} />
+                  ) : (
+                    <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                  )}
+                </TouchableOpacity>
+              ) : null}
             </Card>
           );
         }}

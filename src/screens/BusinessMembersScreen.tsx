@@ -19,8 +19,12 @@ import {
   AddBusinessMemberError,
   addBusinessMember,
   getBusinessMembers,
+  removeBusinessMember,
+  updateBusinessMemberRole,
 } from '../services/businessService';
 import { BusinessMemberRole, BusinessProfileDTO } from '../types/business';
+import { normalizePhone } from '../utils/phone';
+import { canManageMembers, isBusinessOwner } from '../utils/permissions';
 
 const PHONE_DIGITS = 9;
 
@@ -47,6 +51,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [phoneBlocked, setPhoneBlocked] = useState(false);
+  const [busyMemberId, setBusyMemberId] = useState('');
 
   const canLoad = useMemo(() => Boolean(profile?.jwt && businessId), [profile?.jwt, businessId]);
   const phoneValid = phone.length === PHONE_DIGITS;
@@ -79,6 +84,47 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
     await loadMembers(false);
     setRefreshing(false);
   }, [loadMembers]);
+
+  // Faqat OWNER: a'zoning rolini o'zgartirish (ADMIN <-> MEMBER)
+  const handleToggleRole = useCallback(
+    async (member: BusinessProfileDTO, nextRole: BusinessMemberRole) => {
+      if (!profile?.jwt || !businessId) return;
+      setBusyMemberId(member.profileId);
+      setError('');
+      try {
+        await updateBusinessMemberRole(businessId, member.profileId, nextRole, profile.jwt);
+        await loadMembers(false);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Rolni o'zgartirib bo'lmadi");
+      } finally {
+        setBusyMemberId('');
+      }
+    },
+    [businessId, profile?.jwt, loadMembers]
+  );
+
+  // Faqat OWNER: a'zoni biznesdan o'chirish
+  const handleRemoveMember = useCallback(
+    async (member: BusinessProfileDTO) => {
+      if (!profile?.jwt || !businessId) return;
+      const confirmFn = (globalThis as { confirm?: (m: string) => boolean }).confirm;
+      const label = member.profileName || member.phoneNumber || "Ushbu a'zo";
+      if (typeof confirmFn === 'function' && !confirmFn(`${label} ni biznesdan o'chirasizmi?`)) {
+        return;
+      }
+      setBusyMemberId(member.profileId);
+      setError('');
+      try {
+        await removeBusinessMember(businessId, member.profileId, profile.jwt);
+        await loadMembers(false);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "A'zoni o'chirib bo'lmadi");
+      } finally {
+        setBusyMemberId('');
+      }
+    },
+    [businessId, profile?.jwt, loadMembers]
+  );
 
   const closeModal = () => {
     if (saving) return;
@@ -113,7 +159,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
     setFormError('');
     try {
       await addBusinessMember(
-        { businessId, phoneNumber: `998${phone}`, role },
+        { businessId, phoneNumber: normalizePhone(phone), role },
         profile.jwt
       );
       closeModal();
@@ -148,13 +194,22 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
             <Text style={styles.title}>Business Members</Text>
             <Text style={styles.subtitle}>{businessName}</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)} disabled={!canLoad}>
-            <Text style={styles.addBtnText}>Add member</Text>
-          </TouchableOpacity>
+          {canManageMembers(workspace.activeBusinessRole) ? (
+            <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)} disabled={!canLoad}>
+              <Text style={styles.addBtnText}>Add member</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <BusinessMembersTable members={members} loading={loading} />
+        <BusinessMembersTable
+          members={members}
+          loading={loading}
+          canManage={isBusinessOwner(workspace.activeBusinessRole)}
+          busyMemberId={busyMemberId}
+          onRemove={handleRemoveMember}
+          onToggleRole={handleToggleRole}
+        />
       </ScrollView>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={closeModal}>

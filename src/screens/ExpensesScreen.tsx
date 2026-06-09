@@ -24,6 +24,7 @@ import { createCategory, deleteCategory, getCategories, pinCategory, updateCateg
 import { getExpenseSumByCategory } from '../services/expenseService';
 import { ROUTES } from '../navigation/routes';
 import { formatMoney } from '../utils/money';
+import { canManageCategories } from '../utils/permissions';
 
 const DateTimePicker = Platform.OS !== 'web'
   ? require('@react-native-community/datetimepicker').default
@@ -318,6 +319,9 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     return duration ? `Jami ${duration} xarajat:` : 'Jami xarajat:';
   }, [endDate, fromDate]);
 
+  // Kategoriya boshqaruvi (yaratish/tahrirlash/o'chirish/pin) faqat OWNER (yoki shaxsiy hisob) uchun.
+  const allowCategoryManage = canManageCategories(workspace.activeBusinessRole);
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -330,10 +334,12 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>Kunlik xarajatlar</Text>
-          <TouchableOpacity style={styles.headerAction} onPress={openCreateCategory}>
-            <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-            <Text style={styles.headerActionText}>Kategoriya</Text>
-          </TouchableOpacity>
+          {allowCategoryManage ? (
+            <TouchableOpacity style={styles.headerAction} onPress={openCreateCategory}>
+              <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+              <Text style={styles.headerActionText}>Kategoriya</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         <View style={styles.totalCard}>
@@ -530,7 +536,8 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   <Text style={styles.name}>{item.name}</Text>
                   <Text style={styles.sumText}>{formatMoney(categorySums[item.id] ?? 0)}</Text>
                 </TouchableOpacity>
-                {expandedCategoryActionsId === item.id ? (
+                {allowCategoryManage ? (
+                  expandedCategoryActionsId === item.id ? (
                   <View style={styles.actions}>
                     <TouchableOpacity
                       style={styles.iconBtn}
@@ -583,7 +590,8 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   >
                     <Ionicons name="ellipsis-horizontal" size={16} color="#6B7280" />
                   </TouchableOpacity>
-                )}
+                )
+                ) : null}
               </View>
             ))
           )}

@@ -4,6 +4,7 @@ import { AuthContext } from './AuthContext';
 import { WorkspaceContext } from './WorkspaceContext';
 import { ACCOUNT_TYPE, PartyType } from '../types/money';
 import { useAccountContext } from '../hooks/useAccountContext';
+import { normalizePhone } from '../utils/phone';
 
 export interface Contact {
   id: string;
@@ -179,11 +180,8 @@ const validateContactUpdateInput = (input: ContactUpdateInput): string => {
   return '';
 };
 
-const toPhoneNumber = (phone: string): string => {
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 9) return `998${digits}`;
-  return digits;
-};
+// Yagona normalizatsiya manbasi: ../utils/phone.normalizePhone
+const toPhoneNumber = (phone: string): string => normalizePhone(phone);
 
 export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { profile } = useContext(AuthContext);

@@ -23,6 +23,7 @@ import { ROUTES } from '../navigation/routes';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import { extractMoneyTotals, formatMoney } from '../utils/money';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
+import { canWrite, canDelete } from '../utils/permissions';
 
 type Mode = 'create' | 'edit';
 
@@ -359,10 +360,12 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>Clientlar</Text>
-          <TouchableOpacity style={styles.headerAction} onPress={openCreate}>
-            <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-            <Text style={styles.headerActionText}>Qo'shish</Text>
-          </TouchableOpacity>
+          {canWrite(workspace.activeBusinessRole) ? (
+            <TouchableOpacity style={styles.headerAction} onPress={openCreate}>
+              <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+              <Text style={styles.headerActionText}>Qo'shish</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         <AppTextInput
@@ -430,12 +433,16 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                       {typeof balance === 'number' ? formatMoney(balance) : totalsLoading ? '...' : '--'}
                     </Text>
                     <View style={styles.actions}>
-                      <TouchableOpacity style={styles.iconBtn} onPress={() => openEdit(item.id)}>
-                        <Ionicons name="create-outline" size={16} color={colors.textSecondary} />
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(item.id)} disabled={deleting}>
-                        <Ionicons name="trash-outline" size={16} color={NEGATIVE} />
-                      </TouchableOpacity>
+                      {canWrite(workspace.activeBusinessRole) ? (
+                        <TouchableOpacity style={styles.iconBtn} onPress={() => openEdit(item.id)}>
+                          <Ionicons name="create-outline" size={16} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                      ) : null}
+                      {canDelete(workspace.activeBusinessRole) ? (
+                        <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(item.id)} disabled={deleting}>
+                          <Ionicons name="trash-outline" size={16} color={NEGATIVE} />
+                        </TouchableOpacity>
+                      ) : null}
                     </View>
                   </View>
                 </View>

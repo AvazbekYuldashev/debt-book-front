@@ -21,12 +21,18 @@ export interface MoneyResponseDTO {
   amount: number;
   visible: boolean;
   createdDate: string;
+  createdByProfileId?: string;
+  createdByProfilePhone?: string;
   debtorId?: string;
   creditorId?: string;
   debtorType?: PartyType;
   creditorType?: PartyType;
   debtorBusinessId?: string;
   creditorBusinessId?: string;
+  creditorBusinessProfilePhone?: string;
+  creditorBusinessProfileId?: string;
+  debtorBusinessProfilePhone?: string;
+  debtorBusinessProfileId?: string;
   description: string;
 }
 

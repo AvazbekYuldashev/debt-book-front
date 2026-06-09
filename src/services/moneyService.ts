@@ -111,10 +111,18 @@ export const getMoneyHistory = async ({
   accountType,
 }: GetMoneyHistoryParams): Promise<PageResponse<MoneyResponseDTO>> => {
   setApiAuthToken(token);
-  const response = await getWithMultiplePathsFallback<
-    PageResponse<Omit<MoneyResponseDTO, 'amount'> & { amount: number | string }>
-  >([{ path: '/history', params: { page, size, id, partyType, accountType } }]);
-  return normalizeMoneyPage(response);
+  try {
+    const response = await getWithMultiplePathsFallback<
+      PageResponse<Omit<MoneyResponseDTO, 'amount'> & { amount: number | string }>
+    >([{ path: '/history', params: { page, size, id, partyType, accountType } }]);
+    return normalizeMoneyPage(response);
+  } catch (e) {
+    // 404 = bu kontakt bilan hali aloqa yo'q. Xato tashlamay bo'sh sahifa qaytaramiz.
+    if (e instanceof ApiClientError && e.status === 404) {
+      return { content: [], number: page, size, totalElements: 0, totalPages: 0, last: true };
+    }
+    throw e;
+  }
 };
 
 export const getAllTotalPrice = async (token?: string, accountType?: AccountType): Promise<MoneyPriceDTO> => {
@@ -130,6 +138,15 @@ export const getTotalPriceByPartyId = async (
   accountType?: AccountType
 ): Promise<MoneyPriceDTO> => {
   setApiAuthToken(token);
-  const response = await getWithFallback<AppResponse<MoneyPriceDTO>>(`/tootal-price/${id}`, { partyType, accountType });
-  return response.data;
+  try {
+    const response = await getWithFallback<AppResponse<MoneyPriceDTO>>(`/tootal-price/${id}`, { partyType, accountType });
+    return response.data;
+  } catch (e) {
+    // 404 = bu kontakt bilan hali hisob-kitob aloqasi yo'q. Xatoni tashlamay nol qaytaramiz,
+    // shunda DebtListScreen history orqali hisoblovchi fallback'ga tabiiy o'tadi.
+    if (e instanceof ApiClientError && e.status === 404) {
+      return { totalDebt: 0, totalCredit: 0, balance: 0 };
+    }
+    throw e;
+  }
 };

@@ -1,13 +1,26 @@
 import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { BusinessProfileDTO } from '../../types/business';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { BusinessMemberRole, BusinessProfileDTO } from '../../types/business';
 
 interface BusinessMembersTableProps {
   members: BusinessProfileDTO[];
   loading?: boolean;
+  /** OWNER bo'lsa o'chirish/rol o'zgartirish amallari ko'rinadi. */
+  canManage?: boolean;
+  /** Hozir qayta ishlanayotgan a'zo profileId (loading holati). */
+  busyMemberId?: string;
+  onRemove?: (member: BusinessProfileDTO) => void;
+  onToggleRole?: (member: BusinessProfileDTO, nextRole: BusinessMemberRole) => void;
 }
 
-const BusinessMembersTable: React.FC<BusinessMembersTableProps> = ({ members, loading }) => {
+const BusinessMembersTable: React.FC<BusinessMembersTableProps> = ({
+  members,
+  loading,
+  canManage = false,
+  busyMemberId,
+  onRemove,
+  onToggleRole,
+}) => {
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -29,16 +42,48 @@ const BusinessMembersTable: React.FC<BusinessMembersTableProps> = ({ members, lo
           <Text style={[styles.cell, styles.headerCell, styles.wide]}>Phone</Text>
           <Text style={[styles.cell, styles.headerCell]}>Role</Text>
           <Text style={[styles.cell, styles.headerCell, styles.wide]}>Created</Text>
+          {canManage ? <Text style={[styles.cell, styles.headerCell, styles.actionsWide]}>Amallar</Text> : null}
         </View>
-        {members.map((member) => (
-          <View style={styles.row} key={member.id}>
-            <Text style={[styles.cell, styles.wide]}>{member.profileName || '--'}</Text>
-            <Text style={[styles.cell, styles.wide]}>{member.profileUsername || '--'}</Text>
-            <Text style={[styles.cell, styles.wide]}>{formatPhone(member.phoneNumber)}</Text>
-            <Text style={styles.cell}>{member.role}</Text>
-            <Text style={[styles.cell, styles.wide]}>{formatDate(member.createdDate)}</Text>
-          </View>
-        ))}
+        {members.map((member) => {
+          const isOwner = member.role === 'OWNER';
+          const busy = busyMemberId === member.profileId;
+          const nextRole: BusinessMemberRole = member.role === 'ADMIN' ? 'MEMBER' : 'ADMIN';
+          return (
+            <View style={styles.row} key={member.id}>
+              <Text style={[styles.cell, styles.wide]}>{member.profileName || '--'}</Text>
+              <Text style={[styles.cell, styles.wide]}>{member.profileUsername || '--'}</Text>
+              <Text style={[styles.cell, styles.wide]}>{formatPhone(member.phoneNumber)}</Text>
+              <Text style={styles.cell}>{member.role}</Text>
+              <Text style={[styles.cell, styles.wide]}>{formatDate(member.createdDate)}</Text>
+              {canManage ? (
+                <View style={[styles.cell, styles.actionsWide, styles.actionsCell]}>
+                  {isOwner ? (
+                    <Text style={styles.ownerTag}>Owner</Text>
+                  ) : busy ? (
+                    <ActivityIndicator size="small" />
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.roleBtn]}
+                        onPress={() => onToggleRole?.(member, nextRole)}
+                      >
+                        <Text style={styles.roleBtnText}>
+                          {nextRole === 'ADMIN' ? 'ADMIN qil' : 'USER qil'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.removeBtn]}
+                        onPress={() => onRemove?.(member)}
+                      >
+                        <Text style={styles.removeBtnText}>O'chirish</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
+              ) : null}
+            </View>
+          );
+        })}
       </View>
     </ScrollView>
   );
@@ -79,6 +124,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
+    alignItems: 'center',
   },
   headerRow: {
     backgroundColor: '#F3F4F6',
@@ -93,8 +139,42 @@ const styles = StyleSheet.create({
   wide: {
     width: 170,
   },
+  actionsWide: {
+    width: 200,
+  },
+  actionsCell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   headerCell: {
     fontWeight: '700',
+  },
+  actionBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  roleBtn: {
+    backgroundColor: '#EEF2FF',
+  },
+  roleBtnText: {
+    color: '#4F46E5',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  removeBtn: {
+    backgroundColor: '#FEF2F2',
+  },
+  removeBtnText: {
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  ownerTag: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontStyle: 'italic',
   },
 });
 

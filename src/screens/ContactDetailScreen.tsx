@@ -20,6 +20,7 @@ import { useMoney } from '../hooks/useMoney';
 import { AccountType, MoneyActionType, MoneyFlowType, MoneyResponseDTO, PartyType } from '../types/money';
 import { formatMoney } from '../utils/money';
 import { useAccountContext } from '../hooks/useAccountContext';
+import { canWrite } from '../utils/permissions';
 
 const POSITIVE = '#0D9488';
 const NEGATIVE = '#EF4444';
@@ -47,6 +48,24 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
     () => totals.totalCredit - totals.totalDebt,
     [totals.totalCredit, totals.totalDebt]
   );
+
+  // Biznes kontekstida MEMBER (USER) faqat ko'rishi mumkin -> yozish tugmalari yashiriladi.
+  const allowWrite = canWrite(workspace.activeBusinessRole);
+
+  // Biznes ishtirok etgan tranzaksiyada: biznesdagi qaysi xodim (personal account) qilgan.
+  const performerPhone = useMemo(() => {
+    if (!selectedTransaction) return '';
+    const businessInvolved = Boolean(
+      selectedTransaction.creditorBusinessId || selectedTransaction.debtorBusinessId
+    );
+    if (!businessInvolved) return '';
+    return (
+      selectedTransaction.creditorBusinessProfilePhone ||
+      selectedTransaction.debtorBusinessProfilePhone ||
+      selectedTransaction.createdByProfilePhone ||
+      ''
+    );
+  }, [selectedTransaction]);
 
   const mappedHistory = useMemo(
     () =>
@@ -167,19 +186,23 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
           )}
         </View>
 
-        <View style={styles.bottomActions}>
-          <PrimaryButton
-            title="Oldim"
-            variant="primary"
-            onPress={() => openModal('TAKE')}
-            style={[styles.actionBtn, styles.takeActionBtn]}
-          />
-          <PrimaryButton
-            title="Berdim"
-            onPress={() => openModal('GIVE')}
-            style={[styles.actionBtn, styles.giveActionBtn]}
-          />
-        </View>
+        {allowWrite ? (
+          <View style={styles.bottomActions}>
+            <PrimaryButton
+              title="Oldim"
+              variant="primary"
+              onPress={() => openModal('TAKE')}
+              style={[styles.actionBtn, styles.takeActionBtn]}
+            />
+            <PrimaryButton
+              title="Berdim"
+              onPress={() => openModal('GIVE')}
+              style={[styles.actionBtn, styles.giveActionBtn]}
+            />
+          </View>
+        ) : (
+          <Text style={styles.readOnlyNote}>Sizda faqat ko'rish huquqi bor (USER)</Text>
+        )}
       </ScrollView>
 
       <MoneyActionModal
@@ -239,6 +262,13 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
               </Text>
             </View>
 
+            {performerPhone ? (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Xodim</Text>
+                <Text style={styles.detailValueMuted}>{formatPhoneDisplay(performerPhone)}</Text>
+              </View>
+            ) : null}
+
             <View style={styles.detailDescriptionBox}>
               <Text style={styles.detailLabel}>Izoh</Text>
               <Text style={styles.detailDescription}>
@@ -295,6 +325,12 @@ function formatDateLong(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString();
+}
+
+function formatPhoneDisplay(value: string): string {
+  const digits = (value || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('998')) return `+${digits}`;
+  return value;
 }
 
 const styles = StyleSheet.create({
@@ -456,6 +492,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#6B7280',
     paddingVertical: 22,
+  },
+  readOnlyNote: {
+    textAlign: 'center',
+    color: '#6B7280',
+    fontSize: 13,
+    marginTop: 16,
+    paddingVertical: 12,
   },
   centered: {
     flex: 1,

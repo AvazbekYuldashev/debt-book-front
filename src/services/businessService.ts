@@ -3,6 +3,7 @@ import {
   BusinessCreateDTO,
   BusinessDTO,
   BusinessMemberCreateDTO,
+  BusinessMemberRole,
   BusinessProfileDTO,
 } from '../types/business';
 
@@ -78,4 +79,29 @@ export const addBusinessMember = async (
     }
     throw e;
   }
+};
+
+// Faqat OWNER: a'zoni biznesdan o'chirish
+export const removeBusinessMember = async (
+  businessId: string,
+  profileId: string,
+  token?: string
+): Promise<void> => {
+  setApiAuthToken(token);
+  await apiClient.delete(`/business/${businessId}/members/${profileId}`);
+};
+
+// Faqat OWNER: a'zoning rolini o'zgartirish (ADMIN <-> MEMBER)
+export const updateBusinessMemberRole = async (
+  businessId: string,
+  profileId: string,
+  role: BusinessMemberRole,
+  token?: string
+): Promise<BusinessProfileDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.put<BusinessProfileDTO>(
+    `/business/${businessId}/members/${profileId}/role`,
+    { role }
+  );
+  return response.data;
 };

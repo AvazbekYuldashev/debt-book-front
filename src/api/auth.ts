@@ -1,5 +1,6 @@
 import { ProfileDTO } from '../types';
 import { API_BASE } from './baseUrl';
+import { normalizePhone } from '../utils/phone';
 
 type ApiErrorBody = {
   message?: string;
@@ -7,15 +8,10 @@ type ApiErrorBody = {
   errors?: Record<string, string>;
 };
 
+// Yagona normalizatsiya manbasi: ../utils/phone.normalizePhone
+// (backenddagi SmsUtil.normalize bilan bir xil).
 function normalizeUsername(value: string): string {
-  const raw = value.trim();
-  const digits = raw.replace(/\D/g, '');
-
-  // If user entered phone-like username, auto-prepend Uzbekistan country code.
-  if (digits.length === 9) return `998${digits}`;
-  if (digits.length === 12 && digits.startsWith('998')) return digits;
-
-  return raw;
+  return normalizePhone(value);
 }
 
 export class ApiRequestError extends Error {
