@@ -457,4 +457,11 @@ function isValidDateInput(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+function formatPhone(value?: string): string {
+  if (!value) return '';
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('998')) return `+${digits}`;
+  return value;
+}
+
 export default ExpenseCategoryDetailScreen;
