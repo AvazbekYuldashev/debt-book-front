@@ -23,6 +23,7 @@ import { ExpenseResponseDTO } from '../types/expense';
 import { createExpense, deleteExpense, getExpensesByCategory } from '../services/expenseService';
 import { formatMoney } from '../utils/money';
 import { canWrite, canDelete } from '../utils/permissions';
+import { confirmAction } from '../utils/confirm';
 
 const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
   const { profile } = useContext(AuthContext);
@@ -237,7 +238,9 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
               {allowDelete ? (
                 <TouchableOpacity
                   style={styles.iconBtn}
-                  onPress={() => handleDeleteExpense(item.id)}
+                  onPress={() =>
+                    confirmAction("Ushbu xarajatni o'chirasizmi?", () => handleDeleteExpense(item.id))
+                  }
                   disabled={deletingExpense === item.id}
                 >
                   {deletingExpense === item.id ? (

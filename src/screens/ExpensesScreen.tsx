@@ -141,7 +141,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const openEditCategory = (category: CategoryResponseDTO) => {
     setCategoryMode('edit');
     setEditingCategoryId(category.id);
-    setCategoryName(category.name);
+    setCategoryName(category.name || '');
     setCategoryModalVisible(true);
   };
 
@@ -285,16 +285,12 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     });
   };
 
-  const sortedCategories = useMemo(
-    () =>
-      [...categories].sort((a, b) => {
-        const aPinned = Boolean(a.pin);
-        const bPinned = Boolean(b.pin);
-        if (aPinned !== bPinned) return aPinned ? -1 : 1;
-        return (a.name || '').localeCompare(b.name || '');
-      }),
-    [categories]
-  );
+  // pin === true bo'lganlar yuqorida (o'z tartibida), qolganlari (false/null) o'z o'rnida qoladi.
+  const sortedCategories = useMemo(() => {
+    const pinned = categories.filter((c) => c.pin === true);
+    const others = categories.filter((c) => c.pin !== true);
+    return [...pinned, ...others];
+  }, [categories]);
 
   const totalExpenseAmount = useMemo(
     () => Object.values(categorySums).reduce((acc, value) => acc + (Number.isFinite(value) ? value : 0), 0),

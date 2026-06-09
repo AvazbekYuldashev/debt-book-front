@@ -27,6 +27,7 @@ const Input: React.FC<InputProps> = ({
   containerStyle,
   variant = 'primary',
   secureTextEntry,
+  value,
   ...props
 }) => {
   const { colors, spacing, typography } = useAppTheme();
@@ -71,6 +72,7 @@ const Input: React.FC<InputProps> = ({
           onBlur={handleBlur}
           secureTextEntry={hasPasswordToggle ? !isPasswordVisible : undefined}
           {...props}
+          value={value === undefined ? undefined : (value ?? '')}
         />
         {hasPasswordToggle ? (
           <TouchableOpacity

@@ -24,6 +24,7 @@ import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyServic
 import { extractMoneyTotals, formatMoney } from '../utils/money';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 import { canWrite, canDelete } from '../utils/permissions';
+import { confirmDelete } from '../utils/confirm';
 
 type Mode = 'create' | 'edit';
 
@@ -346,8 +347,11 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     if (ok) closeModal();
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteContact(id);
+  const handleDelete = (id: string) => {
+    const target = contacts.find((c) => c.id === id);
+    confirmDelete(target?.fullName || 'Ushbu kontakt', async () => {
+      await deleteContact(id);
+    });
   };
 
   return (

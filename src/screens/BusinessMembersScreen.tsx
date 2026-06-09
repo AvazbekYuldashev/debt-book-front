@@ -25,6 +25,7 @@ import {
 import { BusinessMemberRole, BusinessProfileDTO } from '../types/business';
 import { normalizePhone } from '../utils/phone';
 import { canManageMembers, isBusinessOwner } from '../utils/permissions';
+import { confirmAction } from '../utils/confirm';
 
 const PHONE_DIGITS = 9;
 
@@ -105,23 +106,21 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
 
   // Faqat OWNER: a'zoni biznesdan o'chirish
   const handleRemoveMember = useCallback(
-    async (member: BusinessProfileDTO) => {
+    (member: BusinessProfileDTO) => {
       if (!profile?.jwt || !businessId) return;
-      const confirmFn = (globalThis as { confirm?: (m: string) => boolean }).confirm;
       const label = member.profileName || member.phoneNumber || "Ushbu a'zo";
-      if (typeof confirmFn === 'function' && !confirmFn(`${label} ni biznesdan o'chirasizmi?`)) {
-        return;
-      }
-      setBusyMemberId(member.profileId);
-      setError('');
-      try {
-        await removeBusinessMember(businessId, member.profileId, profile.jwt);
-        await loadMembers(false);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "A'zoni o'chirib bo'lmadi");
-      } finally {
-        setBusyMemberId('');
-      }
+      confirmAction(`${label} ni biznesdan o'chirasizmi?`, async () => {
+        setBusyMemberId(member.profileId);
+        setError('');
+        try {
+          await removeBusinessMember(businessId, member.profileId, profile.jwt);
+          await loadMembers(false);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "A'zoni o'chirib bo'lmadi");
+        } finally {
+          setBusyMemberId('');
+        }
+      });
     },
     [businessId, profile?.jwt, loadMembers]
   );
