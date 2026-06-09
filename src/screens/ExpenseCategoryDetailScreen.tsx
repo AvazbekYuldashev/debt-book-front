@@ -234,6 +234,9 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
                     {new Date(item.createdDate).toLocaleString()}
                   </Text>
                 ) : null}
+                {item.creatorPhone ? (
+                  <Text style={styles.expenseCreator}>Qo'shdi: {formatPhone(item.creatorPhone)}</Text>
+                ) : null}
               </View>
               {allowDelete ? (
                 <TouchableOpacity
@@ -376,6 +379,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  expenseCreator: {
+    marginTop: 2,
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   iconBtn: {
     width: 34,

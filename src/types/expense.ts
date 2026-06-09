@@ -4,6 +4,8 @@ export interface ExpenseResponseDTO {
   description?: string;
   categoryId: string;
   createdDate?: string;
+  creatorId?: string;
+  creatorPhone?: string;
 }
 
 export interface ExpenseCreatedDTO {
