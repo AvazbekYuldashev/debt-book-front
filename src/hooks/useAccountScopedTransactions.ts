@@ -25,6 +25,8 @@ interface CreateMoneyInput {
   targetPartyId?: string;
   targetPhone?: string;
   description: string;
+  // Counterparty business bo'lsa: tanlangan a'zo (profileId)
+  targetBusinessProfileId?: string;
 }
 
 interface UseAccountScopedTransactionsParams {
@@ -151,6 +153,7 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
                   ...commonPayload,
                   targetType: 'BUSINESS_ACCOUNT',
                   targetBusinessId: resolvedCounterpartyId,
+                  targetBusinessProfileId: payload.targetBusinessProfileId,
                 }
               : {
                   ...commonPayload,
@@ -165,6 +168,7 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
                   ...commonPayload,
                   targetType: 'BUSINESS_ACCOUNT',
                   targetBusinessId: resolvedCounterpartyId,
+                  targetBusinessProfileId: payload.targetBusinessProfileId,
                 }
               : {
                   ...commonPayload,

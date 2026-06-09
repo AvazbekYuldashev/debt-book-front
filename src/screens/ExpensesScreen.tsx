@@ -291,7 +291,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         const aPinned = Boolean(a.pin);
         const bPinned = Boolean(b.pin);
         if (aPinned !== bPinned) return aPinned ? -1 : 1;
-        return a.name.localeCompare(b.name);
+        return (a.name || '').localeCompare(b.name || '');
       }),
     [categories]
   );

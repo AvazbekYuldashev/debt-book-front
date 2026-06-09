@@ -62,6 +62,8 @@ export interface MoneyBusinessTargetDTO {
   fromAccountType?: AccountType;
   toAccountType?: AccountType;
   moneyFlowType?: MoneyFlowType;
+  // Counterparty business'ning tanlangan a'zosi (kim bilan ish ko'rildi)
+  targetBusinessProfileId?: string;
 }
 
 export type MoneyCreditorCreatedDTO = MoneyCreditorProfileCreatedDTO | MoneyBusinessTargetDTO;

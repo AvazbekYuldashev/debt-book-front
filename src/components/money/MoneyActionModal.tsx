@@ -1,9 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AppTextInput from '../form/AppTextInput';
 import PrimaryButton from '../ui/PrimaryButton';
 import { AccountType, ACCOUNT_TYPE, MoneyActionType, MoneyFlowType, MONEY_FLOW_TYPE, PartyType } from '../../types/money';
 import colors from '../../styles/colors';
+import { getSelectableBusinessMembers } from '../../services/businessService';
+import { BusinessProfileDTO } from '../../types/business';
 
 interface ContactOption {
   id: string;
@@ -18,6 +20,7 @@ interface MoneyActionModalProps {
   fixedCounterpartyId?: string;
   fixedCounterpartyType?: PartyType;
   ownerAccountType: AccountType;
+  token?: string;
   onClose: () => void;
   onSubmit: (payload: {
     amount: number;
@@ -27,6 +30,7 @@ interface MoneyActionModalProps {
     fromAccountType: AccountType;
     toAccountType: AccountType;
     moneyFlowType: MoneyFlowType;
+    targetBusinessProfileId?: string;
   }) => Promise<void>;
 }
 
@@ -38,6 +42,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   fixedCounterpartyId,
   fixedCounterpartyType,
   ownerAccountType,
+  token,
   onClose,
   onSubmit,
 }) => {
@@ -46,6 +51,37 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   const [targetType, setTargetType] = useState<PartyType>('PROFILE');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
+  const [members, setMembers] = useState<BusinessProfileDTO[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [membersLoading, setMembersLoading] = useState(false);
+
+  const effectiveType = fixedCounterpartyType || targetType;
+  const businessIdForMembers =
+    effectiveType === 'BUSINESS_ACCOUNT' ? (fixedCounterpartyId || counterpartyId).trim() : '';
+
+  // Counterparty business bo'lsa, o'sha biznes a'zolarini yuklab tanlash imkonini beramiz.
+  useEffect(() => {
+    let cancelled = false;
+    if (!visible || !businessIdForMembers) {
+      setMembers([]);
+      setSelectedMemberId('');
+      return;
+    }
+    setMembersLoading(true);
+    getSelectableBusinessMembers(businessIdForMembers, token)
+      .then((list) => {
+        if (!cancelled) setMembers(list);
+      })
+      .catch(() => {
+        if (!cancelled) setMembers([]);
+      })
+      .finally(() => {
+        if (!cancelled) setMembersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, businessIdForMembers, token]);
 
   const labels = useMemo(
     () =>
@@ -73,6 +109,8 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     setTargetType('PROFILE');
     setDescription('');
     setError('');
+    setSelectedMemberId('');
+    setMembers([]);
   };
 
   const handleClose = () => {
@@ -97,6 +135,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
       amount: parsedAmount,
       targetPartyType: fixedCounterpartyType || targetType,
       targetPartyId: targetCounterpartyId,
+      targetBusinessProfileId: selectedMemberId || undefined,
       description: description.trim(),
       fromAccountType: actionType === 'GIVE' ? ownerAccountType : targetAccountType,
       toAccountType: actionType === 'GIVE' ? targetAccountType : ownerAccountType,
@@ -177,6 +216,32 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               ))}
             </ScrollView>
           ) : null}
+          {effectiveType === 'BUSINESS_ACCOUNT' && businessIdForMembers ? (
+            <View style={styles.memberWrap}>
+              <Text style={styles.memberLabel}>Biznes xodimi (kim bilan)</Text>
+              {membersLoading ? (
+                <Text style={styles.memberHint}>Yuklanmoqda...</Text>
+              ) : members.length === 0 ? (
+                <Text style={styles.memberHint}>A'zolar topilmadi</Text>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.contactRow}>
+                  {members.map((m) => (
+                    <TouchableOpacity
+                      key={m.profileId}
+                      style={[styles.contactChip, selectedMemberId === m.profileId ? styles.contactChipActive : null]}
+                      onPress={() =>
+                        setSelectedMemberId((prev) => (prev === m.profileId ? '' : m.profileId))
+                      }
+                    >
+                      <Text style={styles.contactChipText}>
+                        {m.profileName || m.profileUsername || m.phoneNumber || '--'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          ) : null}
           <AppTextInput
             label="Izoh"
             value={description}
@@ -232,6 +297,19 @@ const styles = StyleSheet.create({
   contactChipText: {
     fontSize: 12,
     color: colors.textPrimary,
+  },
+  memberWrap: {
+    marginBottom: 8,
+  },
+  memberLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 6,
+  },
+  memberHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   error: {
     marginTop: 6,

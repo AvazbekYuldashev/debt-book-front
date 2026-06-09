@@ -64,6 +64,16 @@ export const getBusinessMembers = async (businessId: string, token?: string): Pr
   return response.data ?? [];
 };
 
+// Oldi-berdi uchun: biznes a'zolarini tanlash (a'zolik talab qilinmaydi)
+export const getSelectableBusinessMembers = async (
+  businessId: string,
+  token?: string
+): Promise<BusinessProfileDTO[]> => {
+  setApiAuthToken(token);
+  const response = await apiClient.get<BusinessProfileDTO[]>(`/business/${businessId}/members/selectable`);
+  return response.data ?? [];
+};
+
 export const addBusinessMember = async (
   dto: BusinessMemberCreateDTO,
   token?: string

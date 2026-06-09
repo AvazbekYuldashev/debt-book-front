@@ -106,6 +106,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
     fromAccountType: AccountType;
     toAccountType: AccountType;
     moneyFlowType: MoneyFlowType;
+    targetBusinessProfileId?: string;
   }) => {
     if (!contact) return;
     const ok = await createMoney(actionType, {
@@ -212,6 +213,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         fixedCounterpartyId={contact.partyId}
         fixedCounterpartyType={contact.partyType}
         ownerAccountType={accountType}
+        token={profile?.jwt}
         onClose={() => setModalVisible(false)}
         onSubmit={handleCreate}
       />
