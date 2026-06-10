@@ -1,114 +1,76 @@
 import React, { useContext, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import colors from '../styles/colors';
 import { verifySms, resendSms } from '../api/auth';
 import { AuthContext } from '../context/AuthContext';
 import { ProfileDTO } from '../types';
+import AuthShell from '../components/auth/AuthShell';
+import { authStyles as s } from '../components/auth/authStyles';
 
-const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ route }) => {
+const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
   const username = String(route?.params?.username || '').trim();
   const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { setProfile } = useContext(AuthContext);
 
   const handleVerify = async () => {
+    setError('');
     if (!username) {
-      Alert.alert('Verification failed', 'Username topilmadi, qayta ro`yxatdan o`ting');
+      setError("Raqam topilmadi, qayta ro'yxatdan o'ting");
       return;
     }
+    setLoading(true);
     try {
-      const profile = await verifySms({ phone: username, code: code.trim() }) as ProfileDTO;
+      const profile = (await verifySms({ phone: username, code: code.trim() })) as ProfileDTO;
       setProfile(profile);
-      Alert.alert('Success', 'Verification completed');
     } catch (e) {
-      console.error(e);
-      const message = e instanceof Error ? e.message : 'Please check code';
-      Alert.alert('Verification failed', message);
+      setError(e instanceof Error ? e.message : "Kodni tekshiring");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleResend = async () => {
+    setError('');
     if (!username) {
-      Alert.alert('Error', 'Username topilmadi, qayta ro`yxatdan o`ting');
+      setError("Raqam topilmadi, qayta ro'yxatdan o'ting");
       return;
     }
     try {
       await resendSms({ phone: username });
-      Alert.alert('Sent', 'Verification code resent');
     } catch (e) {
-      console.error(e);
-      Alert.alert('Error', 'Unable to resend');
+      setError("Qayta yuborib bo'lmadi");
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>SMS Tasdiqlash</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Kod"
-        value={code}
-        onChangeText={setCode}
-        keyboardType="numeric"
-      />
-      <TouchableOpacity style={styles.button} onPress={handleVerify}>
-        <Text style={styles.buttonText}>Tasdiqlash</Text>
+    <AuthShell emoji="✉️" title="SMS tasdiqlash" subtitle="Raqamingizga yuborilgan kodni kiriting" onBack={() => navigation.goBack()}>
+      <View style={s.field}>
+        <Text style={s.fieldLabel}>Tasdiqlash kodi</Text>
+        <View style={s.inputRow}>
+          <TextInput
+            style={s.codeInput}
+            placeholder="• • • • •"
+            placeholderTextColor={colors.textSecondary}
+            value={code}
+            onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+            keyboardType="number-pad"
+          />
+        </View>
+      </View>
+
+      {error ? <Text style={s.errorText}>{error}</Text> : null}
+
+      <TouchableOpacity style={s.button} onPress={handleVerify} disabled={loading} activeOpacity={0.9}>
+        {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.buttonText}>Tasdiqlash</Text>}
       </TouchableOpacity>
-      <TouchableOpacity style={styles.linkButton} onPress={handleResend}>
-        <Text style={styles.linkText}>Qayta yuborish</Text>
+
+      <TouchableOpacity onPress={handleResend}>
+        <Text style={s.linkCenter}>Kodni qayta yuborish</Text>
       </TouchableOpacity>
-    </View>
+    </AuthShell>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.primary,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  input: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  linkButton: {
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: colors.primary,
-    fontSize: 14,
-  },
-});
 
 export default SmsVerificationScreen;

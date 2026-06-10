@@ -25,9 +25,9 @@ export interface ColorTokens {
 export const lightColors: ColorTokens = {
   gray50: '#F9FAFB',
   gray100: '#F3F4F6',
-  primary: '#4F46E5',
-  primaryPressed: '#4338CA',
-  primarySoft: '#EEF2FF',
+  primary: '#2563EB',
+  primaryPressed: '#1D4ED8',
+  primarySoft: '#E0EAFF',
   secondary: '#0EA5A4',
   secondaryPressed: '#0F8B89',
   outline: '#D1D5DB',

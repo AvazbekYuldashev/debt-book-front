@@ -1,160 +1,94 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import colors from '../styles/colors';
 import { confirmReset } from '../api/auth';
+import AuthShell from '../components/auth/AuthShell';
+import { authStyles as s } from '../components/auth/authStyles';
 
 const ResetConfirmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
 
   const handleUsernameChange = (value: string) => {
     let digits = value.replace(/\D/g, '');
-    if (digits.startsWith('998')) {
-      digits = digits.slice(3);
-    }
+    if (digits.startsWith('998')) digits = digits.slice(3);
     setUsername(digits.slice(0, 9));
   };
 
   const handleConfirm = async () => {
+    setError('');
     try {
-      await confirmReset({
-        username: username.trim(),
-        confirmCode: confirmCode.trim(),
-        password,
-      });
-      Alert.alert('Success', 'Password updated');
+      await confirmReset({ username: username.trim(), confirmCode: confirmCode.trim(), password });
+      Alert.alert('Muvaffaqiyatli', 'Parol yangilandi');
       navigation.navigate('Login');
     } catch (e) {
-      console.error(e);
-      const message = e instanceof Error ? e.message : 'Unable to reset password';
-      Alert.alert('Error', message);
+      setError(e instanceof Error ? e.message : "Parolni tiklab bo'lmadi");
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Parolni yangilash</Text>
-      <View style={styles.phoneInputRow}>
-        <Text style={styles.phonePrefix}>+998</Text>
-        <TextInput
-          style={styles.phoneInput}
-          placeholder="90 123 45 67"
-          placeholderTextColor="#9CA3AF"
-          value={username}
-          onChangeText={handleUsernameChange}
-          keyboardType="number-pad"
-        />
+    <AuthShell emoji="🔑" title="Yangi parol" subtitle="Kod va yangi parolingizni kiriting" onBack={() => navigation.goBack()}>
+      <View style={s.field}>
+        <Text style={s.fieldLabel}>Telefon raqam</Text>
+        <View style={s.inputRow}>
+          <Text style={s.phonePrefix}>+998</Text>
+          <TextInput
+            style={s.input}
+            placeholder="90 123 45 67"
+            placeholderTextColor={colors.textSecondary}
+            value={username}
+            onChangeText={handleUsernameChange}
+            keyboardType="number-pad"
+          />
+        </View>
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Tasdiqlash kodi"
-        value={confirmCode}
-        onChangeText={setConfirmCode}
-        keyboardType="numeric"
-      />
-      <View style={styles.passwordInputRow}>
-        <TextInput
-          style={[styles.input, styles.passwordInput]}
-          placeholder="Yangi parol"
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
-        />
-        <TouchableOpacity style={styles.passwordToggle} onPress={() => setShowPassword((prev) => !prev)}>
-          <Text style={styles.passwordToggleText}>{showPassword ? 'Yashir' : "Ko'rsat"}</Text>
-        </TouchableOpacity>
+
+      <View style={s.field}>
+        <Text style={s.fieldLabel}>Tasdiqlash kodi</Text>
+        <View style={s.inputRow}>
+          <TextInput
+            style={s.input}
+            placeholder="Kod"
+            placeholderTextColor={colors.textSecondary}
+            value={confirmCode}
+            onChangeText={(v) => setConfirmCode(v.replace(/\D/g, '').slice(0, 6))}
+            keyboardType="number-pad"
+          />
+        </View>
       </View>
-      <TouchableOpacity style={styles.button} onPress={handleConfirm}>
-        <Text style={styles.buttonText}>Yangilash</Text>
+
+      <View style={s.field}>
+        <Text style={s.fieldLabel}>Yangi parol</Text>
+        <View style={s.inputRow}>
+          <TextInput
+            style={s.input}
+            placeholder="••••••••"
+            placeholderTextColor={colors.textSecondary}
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword((p) => !p)}>
+            <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {error ? <Text style={s.errorText}>{error}</Text> : null}
+
+      <TouchableOpacity style={s.button} onPress={handleConfirm} activeOpacity={0.9}>
+        <Text style={s.buttonText}>Yangilash</Text>
       </TouchableOpacity>
-    </View>
+
+      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+        <Text style={s.linkCenter}>Kirishga qaytish</Text>
+      </TouchableOpacity>
+    </AuthShell>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.primary,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  input: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 16,
-  },
-  passwordInputRow: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  passwordInput: {
-    marginBottom: 0,
-    paddingRight: 80,
-  },
-  passwordToggle: {
-    position: 'absolute',
-    right: 12,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
-  passwordToggleText: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  phoneInputRow: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  phonePrefix: {
-    fontSize: 16,
-    color: '#9CA3AF',
-    marginRight: 8,
-    fontWeight: '600',
-  },
-  phoneInput: {
-    flex: 1,
-    paddingVertical: 12,
-    color: '#6B7280',
-  },
-  button: {
-    backgroundColor: colors.primary,
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});
 
 export default ResetConfirmScreen;
