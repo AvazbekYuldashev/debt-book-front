@@ -3,7 +3,8 @@ import { Alert } from 'react-native';
 import { AuthContext } from './AuthContext';
 import { BusinessRole, WorkspaceState } from '../types/business';
 import { setBusinessAccessDeniedHandler } from '../api/apiClient';
-import { WORKSPACE_STORAGE_KEY } from '../api/workspaceHeaders';
+import { WORKSPACE_STORAGE_KEY, setActiveBusinessId } from '../api/workspaceHeaders';
+import { storage } from '../utils/storage';
 
 const PERSONAL_WORKSPACE: WorkspaceState = {
   mode: 'personal',
@@ -28,9 +29,9 @@ export const WorkspaceContext = createContext<WorkspaceContextValue>({
   clearWorkspace: () => {},
 });
 
-function readWorkspaceFromStorage(): WorkspaceState {
+async function readWorkspaceFromStorage(): Promise<WorkspaceState> {
   try {
-    const raw = globalThis?.localStorage?.getItem(WORKSPACE_STORAGE_KEY);
+    const raw = await storage.get(WORKSPACE_STORAGE_KEY);
     if (!raw) return PERSONAL_WORKSPACE;
     const parsed = JSON.parse(raw) as Partial<WorkspaceState>;
     if (parsed.mode === 'business' && parsed.activeBusinessId) {
@@ -48,11 +49,7 @@ function readWorkspaceFromStorage(): WorkspaceState {
 }
 
 function persistWorkspace(nextWorkspace: WorkspaceState) {
-  try {
-    globalThis?.localStorage?.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(nextWorkspace));
-  } catch {
-    // Keep in-memory state if persistence fails.
-  }
+  storage.set(WORKSPACE_STORAGE_KEY, JSON.stringify(nextWorkspace));
 }
 
 export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -61,9 +58,22 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [isWorkspaceReady, setIsWorkspaceReady] = useState(false);
 
   useEffect(() => {
-    setWorkspace(readWorkspaceFromStorage());
-    setIsWorkspaceReady(true);
+    let cancelled = false;
+    (async () => {
+      const restored = await readWorkspaceFromStorage();
+      if (cancelled) return;
+      setWorkspace(restored);
+      setIsWorkspaceReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  // Faol biznes id'sini xotiraga sinxronlaymiz (apiClient interceptor shundan o'qiydi).
+  useEffect(() => {
+    setActiveBusinessId(workspace.mode === 'business' ? workspace.activeBusinessId : null);
+  }, [workspace]);
 
   const clearWorkspace = useCallback(() => {
     setWorkspace(PERSONAL_WORKSPACE);

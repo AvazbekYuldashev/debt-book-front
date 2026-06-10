@@ -1,5 +1,5 @@
 import { API_BASE } from './baseUrl';
-import { BUSINESS_HEADER_KEY, getBusinessIdFromWorkspaceStorage } from './workspaceHeaders';
+import { BUSINESS_HEADER_KEY, getActiveBusinessId } from './workspaceHeaders';
 import { notifyBusinessAccessDeniedIfNeeded } from './apiClient';
 
 export class ApiFetchError extends Error {
@@ -43,7 +43,7 @@ export async function authFetch(path: string, jwt: string, init: RequestInit = {
   headers.set('Authorization', `Bearer ${jwt}`);
   headers.set('Accept-Language', 'UZ');
 
-  const businessId = getBusinessIdFromWorkspaceStorage();
+  const businessId = getActiveBusinessId();
   if (businessId) {
     headers.set(BUSINESS_HEADER_KEY, businessId);
   } else {

@@ -1,13 +1,17 @@
+import { Platform } from 'react-native';
+
 // ============================================================
-//  BACKEND MANZILI / BACKEND ADDRESS
+//  BACKEND MANZILI
 // ============================================================
-//  Keyingi safar backend IP yoki portni faqat SHU YERDA o'zgartiring.
-//  Change ONLY this line next time the backend IP/port changes.
+//  WEB  : '' (bo'sh) -> '/api/v1' nisbiy. Apache/nginx /api ni backendga proxy qiladi.
+//  MOBIL (Android/iOS): to'liq absolyut URL kerak (nisbiy ishlamaydi).
 //
-//  Misollar / Examples:
-//    'http://localhost:8080'        -> shu kompyuterda
-//    'http://192.168.1.50:8080'     -> lokal tarmoqdagi server IP
-//    'https://api.example.com'      -> domen orqali (portsiz)
+//  ⚠️ Play Store/Android: HTTPS majburiy. Android cleartext http ni bloklaydi.
+//     Production'da bu yerga domeningizni qo'ying: 'https://api.domeningiz.uz'
+//     (Hozircha test uchun server IP qo'yilgan.)
 // ============================================================
 
-export const BACKEND_URL = 'http://localhost:8080';
+const WEB_BACKEND = ''; // nisbiy — Apache/nginx proxy orqali
+const MOBILE_BACKEND = 'http://138.249.7.224'; // TODO: production uchun 'https://domeningiz.uz'
+
+export const BACKEND_URL = Platform.OS === 'web' ? WEB_BACKEND : MOBILE_BACKEND;

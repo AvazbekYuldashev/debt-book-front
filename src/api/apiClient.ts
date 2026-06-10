@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { API_BASE } from './baseUrl';
-import { BUSINESS_HEADER_KEY, getBusinessIdFromWorkspaceStorage } from './workspaceHeaders';
+import { BUSINESS_HEADER_KEY, getActiveBusinessId } from './workspaceHeaders';
 
 export class ApiClientError extends Error {
   status?: number;
@@ -102,7 +102,7 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const businessId = getBusinessIdFromWorkspaceStorage();
+  const businessId = getActiveBusinessId();
   if (businessId) {
     config.headers = config.headers || {};
     config.headers[BUSINESS_HEADER_KEY] = businessId;

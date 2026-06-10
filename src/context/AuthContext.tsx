@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useEffect, useState, ReactNode, SetStateAction } from 'react';
 import { ProfileDTO } from '../types';
 import { setUnauthorizedHandler } from '../api/apiClient';
+import { storage } from '../utils/storage';
 
 interface AuthContextValue {
   profile: ProfileDTO | null;
@@ -21,18 +22,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = globalThis?.localStorage?.getItem(AUTH_PROFILE_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as ProfileDTO | null;
-      if (parsed && typeof parsed === 'object' && typeof parsed.jwt === 'string' && parsed.jwt) {
-        setProfile(parsed);
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = await storage.get(AUTH_PROFILE_STORAGE_KEY);
+        if (!raw || cancelled) return;
+        const parsed = JSON.parse(raw) as ProfileDTO | null;
+        if (parsed && typeof parsed === 'object' && typeof parsed.jwt === 'string' && parsed.jwt) {
+          setProfile(parsed);
+        }
+      } catch {
+        // Ignore malformed storage and continue as logged out.
+      } finally {
+        if (!cancelled) setIsAuthReady(true);
       }
-    } catch {
-      // Ignore malformed storage and continue as logged out.
-    } finally {
-      setIsAuthReady(true);
-    }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const persistProfile = useCallback((nextProfileOrUpdater: SetStateAction<ProfileDTO | null>) => {
@@ -42,14 +49,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           ? (nextProfileOrUpdater as (prevState: ProfileDTO | null) => ProfileDTO | null)(prev)
           : nextProfileOrUpdater;
 
-      try {
-        if (nextProfile) {
-          globalThis?.localStorage?.setItem(AUTH_PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
-        } else {
-          globalThis?.localStorage?.removeItem(AUTH_PROFILE_STORAGE_KEY);
-        }
-      } catch {
-        // If persistence fails, keep session in memory.
+      // fire-and-forget (cross-platform AsyncStorage)
+      if (nextProfile) {
+        storage.set(AUTH_PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
+      } else {
+        storage.remove(AUTH_PROFILE_STORAGE_KEY);
       }
 
       return nextProfile;
