@@ -130,6 +130,12 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
       return;
     }
 
+    // Counterparty business bo'lsa — pul kimga (qaysi xodimga) berilgani MAJBURIY.
+    if (effectiveType === 'BUSINESS_ACCOUNT' && !selectedMemberId) {
+      setError('Biznes xodimini (pul kimga berilganini) tanlang');
+      return;
+    }
+
     setError('');
     await onSubmit({
       amount: parsedAmount,
@@ -218,7 +224,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
           ) : null}
           {effectiveType === 'BUSINESS_ACCOUNT' && businessIdForMembers ? (
             <View style={styles.memberWrap}>
-              <Text style={styles.memberLabel}>Biznes xodimi (kim bilan)</Text>
+              <Text style={styles.memberLabel}>Biznes xodimi (pul kimga berildi) *</Text>
               {membersLoading ? (
                 <Text style={styles.memberHint}>Yuklanmoqda...</Text>
               ) : members.length === 0 ? (
