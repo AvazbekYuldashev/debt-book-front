@@ -62,6 +62,8 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     (async () => {
       const restored = await readWorkspaceFromStorage();
       if (cancelled) return;
+      // Birinchi so'rovdan oldin header to'g'ri bo'lishi uchun sinxron o'rnatamiz.
+      setActiveBusinessId(restored.mode === 'business' ? restored.activeBusinessId : null);
       setWorkspace(restored);
       setIsWorkspaceReady(true);
     })();
@@ -70,31 +72,33 @@ export const WorkspaceProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
   }, []);
 
-  // Faol biznes id'sini xotiraga sinxronlaymiz (apiClient interceptor shundan o'qiydi).
-  useEffect(() => {
-    setActiveBusinessId(workspace.mode === 'business' ? workspace.activeBusinessId : null);
-  }, [workspace]);
+  // Workspace o'rnatishning yagona nuqtasi: faol biznes id'sini SINXRON yangilaymiz.
+  // Ilgari bu alohida useEffect([workspace]) ichida edi. React passiv effektlarni
+  // farzanddan-otaga tartibda ishlatgani uchun, ContactsContext (farzand) effekti
+  // bu ota-effektdan OLDIN ishlab, eski X-Business-ID bilan so'rov yuborardi —
+  // natijada workspace almashganda eski (business) data ko'rinib qolardi.
+  const applyWorkspace = useCallback((next: WorkspaceState) => {
+    setActiveBusinessId(next.mode === 'business' ? next.activeBusinessId : null);
+    setWorkspace(next);
+    persistWorkspace(next);
+  }, []);
 
   const clearWorkspace = useCallback(() => {
-    setWorkspace(PERSONAL_WORKSPACE);
-    persistWorkspace(PERSONAL_WORKSPACE);
-  }, []);
+    applyWorkspace(PERSONAL_WORKSPACE);
+  }, [applyWorkspace]);
 
   const setPersonalWorkspace = useCallback(() => {
-    setWorkspace(PERSONAL_WORKSPACE);
-    persistWorkspace(PERSONAL_WORKSPACE);
-  }, []);
+    applyWorkspace(PERSONAL_WORKSPACE);
+  }, [applyWorkspace]);
 
   const setBusinessWorkspace = useCallback((input: { id: string; name: string; role: BusinessRole }) => {
-    const next: WorkspaceState = {
+    applyWorkspace({
       mode: 'business',
       activeBusinessId: input.id,
       activeBusinessName: input.name,
       activeBusinessRole: input.role,
-    };
-    setWorkspace(next);
-    persistWorkspace(next);
-  }, []);
+    });
+  }, [applyWorkspace]);
 
   useEffect(() => {
     setBusinessAccessDeniedHandler(() => {
