@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
-import colors from '../../styles/colors';
+import { useAppTheme } from '../../theme';
+import { ColorTokens } from '../../theme/colors';
 import { PartyType } from '../../types/money';
 
 interface Props {
@@ -15,7 +16,10 @@ interface Props {
  * PROFILE / BUSINESS_ACCOUNT tanlash uchun qayta ishlatiladigan ikki-chip selektor.
  * DebtListScreen va MoneyActionModal'da bir xil ishlatiladi (DRY).
  */
-const PartyTypeSelector: React.FC<Props> = ({ value, onChange, profileLabel, businessLabel, style }) => (
+const PartyTypeSelector: React.FC<Props> = ({ value, onChange, profileLabel, businessLabel, style }) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
   <View style={[styles.wrap, style]}>
     <TouchableOpacity
       style={[styles.chip, value === 'PROFILE' && styles.chipActive]}
@@ -30,9 +34,10 @@ const PartyTypeSelector: React.FC<Props> = ({ value, onChange, profileLabel, bus
       <Text style={[styles.chipText, value === 'BUSINESS_ACCOUNT' && styles.chipTextActive]}>{businessLabel}</Text>
     </TouchableOpacity>
   </View>
-);
+  );
+};
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     gap: 8,
@@ -46,11 +51,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   chipActive: {
     borderColor: colors.primary,
-    backgroundColor: '#eef5ff',
+    backgroundColor: colors.primarySoft,
   },
   chipText: {
     fontSize: 12,

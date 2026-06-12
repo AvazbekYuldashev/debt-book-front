@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Card from '../Card';
 import { MoneyResponseDTO } from '../../types/money';
 import { formatDateTime, formatMoney } from '../../utils/money';
-import colors from '../../styles/colors';
 import { useI18n } from '../../i18n';
+import { useAppTheme } from '../../theme';
+import { ColorTokens } from '../../theme/colors';
 
 interface MoneyHistoryCardProps {
   item: MoneyResponseDTO;
@@ -26,6 +27,8 @@ const MoneyHistoryCard: React.FC<MoneyHistoryCardProps> = ({
   counterpartyPhone,
 }) => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   let isCreditor = idsEqual(item.creditorId, ownerId);
   let isDebtor = idsEqual(item.debtorId, ownerId);
 
@@ -75,7 +78,7 @@ const MoneyHistoryCard: React.FC<MoneyHistoryCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   card: {
     marginBottom: 10,
   },
@@ -92,13 +95,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     overflow: 'hidden',
-    color: '#fff',
+    color: colors.textOnPrimary,
   },
   taken: {
     backgroundColor: colors.danger,
   },
   creditorBadge: {
-    backgroundColor: '#1f9d55',
+    backgroundColor: colors.success,
   },
   unknownBadge: {
     backgroundColor: colors.textSecondary,
@@ -112,7 +115,7 @@ const styles = StyleSheet.create({
     color: colors.danger,
   },
   amountGreen: {
-    color: '#1f9d55',
+    color: colors.success,
   },
   amountMuted: {
     color: colors.textSecondary,
@@ -124,7 +127,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   directionGreen: {
-    color: '#1f9d55',
+    color: colors.success,
   },
   directionMuted: {
     color: colors.textSecondary,

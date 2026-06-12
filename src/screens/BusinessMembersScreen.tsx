@@ -27,9 +27,13 @@ import { normalizePhone, sanitizeLocalPhone, LOCAL_PHONE_DIGITS } from '../utils
 import { canManageMembers, isBusinessOwner } from '../utils/permissions';
 import { confirmAction } from '../utils/confirm';
 import { useI18n } from '../i18n';
+import { useAppTheme } from '../theme';
+import { ColorTokens } from '../theme/colors';
 
 const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const routeBusinessId = String(route.params?.businessId || '');
@@ -216,7 +220,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
               <TextInput
                 style={styles.phoneInput}
                 placeholder="90 123 45 67"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textSecondary}
                 value={phone}
                 onChangeText={onPhoneChange}
                 keyboardType="number-pad"
@@ -259,10 +263,10 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
@@ -281,58 +285,58 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   subtitle: {
     marginTop: 2,
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   addBtn: {
     minHeight: 34,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addBtnText: {
-    color: '#FFFFFF',
+    color: colors.textOnPrimary,
     fontSize: 12,
     fontWeight: '700',
   },
   error: {
-    color: '#DC2626',
+    color: colors.danger,
     fontSize: 12,
     marginBottom: 8,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 16,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
     marginBottom: 10,
   },
   fieldLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 6,
   },
   phoneInputRow: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.outline,
     marginBottom: 10,
     paddingHorizontal: 12,
     flexDirection: 'row',
@@ -340,19 +344,19 @@ const styles = StyleSheet.create({
   },
   phonePrefix: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginRight: 8,
     fontWeight: '600',
   },
   phoneInput: {
     flex: 1,
     paddingVertical: 10,
-    color: '#111827',
+    color: colors.textPrimary,
     fontSize: 14,
   },
   roleLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 6,
   },
   roleRow: {
@@ -363,26 +367,26 @@ const styles = StyleSheet.create({
   roleBtn: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.outline,
     borderRadius: 8,
     minHeight: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
   roleBtnActive: {
-    borderColor: '#93C5FD',
-    backgroundColor: '#EFF6FF',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   roleBtnText: {
-    color: '#374151',
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: '700',
   },
   roleBtnTextActive: {
-    color: '#1D4ED8',
+    color: colors.primaryPressed,
   },
   formError: {
-    color: '#DC2626',
+    color: colors.danger,
     fontSize: 12,
     marginBottom: 10,
   },

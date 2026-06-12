@@ -37,6 +37,8 @@ const uz: Dict = {
   'common.empty': "Ma'lumot yo'q",
   'common.all': 'Hammasi',
   'common.tryAgain': "Qayta urinib ko'ring",
+  'common.show': "Ko'rsat",
+  'common.hide': 'Yashir',
 
   // language
   'lang.title': 'Til',
@@ -132,6 +134,8 @@ const uz: Dict = {
   'profile.oldPasswordLabel': 'Eski parol',
   'profile.newPasswordConfirm': 'Yangi parol (tasdiq)',
   'profile.deleteProfile': "Profilni o'chirish",
+  'profile.deleteConfirm': "Profilingizni butunlay o'chirmoqchimisiz? Bu amalni orqaga qaytarib bo'lmaydi.",
+  'profile.passwordMin': "Parol kamida 8 ta belgidan iborat bo'lishi kerak",
   'profile.genericError': 'Xatolik yuz berdi',
   'profile.noToken': 'Token topilmadi',
   'profile.enterUsername': 'Username kiriting',
@@ -358,6 +362,8 @@ const ru: Dict = {
   'common.empty': 'Нет данных',
   'common.all': 'Все',
   'common.tryAgain': 'Попробуйте ещё раз',
+  'common.show': 'Показать',
+  'common.hide': 'Скрыть',
 
   'lang.title': 'Язык',
   'lang.uz': "O'zbekcha",
@@ -445,6 +451,8 @@ const ru: Dict = {
   'profile.oldPasswordLabel': 'Старый пароль',
   'profile.newPasswordConfirm': 'Новый пароль (подтверждение)',
   'profile.deleteProfile': 'Удалить профиль',
+  'profile.deleteConfirm': 'Вы действительно хотите удалить свой профиль? Это действие необратимо.',
+  'profile.passwordMin': 'Пароль должен содержать не менее 8 символов',
   'profile.genericError': 'Произошла ошибка',
   'profile.noToken': 'Токен не найден',
   'profile.enterUsername': 'Введите логин',
@@ -667,6 +675,8 @@ const en: Dict = {
   'common.empty': 'No data',
   'common.all': 'All',
   'common.tryAgain': 'Please try again',
+  'common.show': 'Show',
+  'common.hide': 'Hide',
 
   'lang.title': 'Language',
   'lang.uz': "O'zbekcha",
@@ -754,6 +764,8 @@ const en: Dict = {
   'profile.oldPasswordLabel': 'Old password',
   'profile.newPasswordConfirm': 'New password (confirm)',
   'profile.deleteProfile': 'Delete profile',
+  'profile.deleteConfirm': 'Do you really want to delete your profile? This action cannot be undone.',
+  'profile.passwordMin': 'Password must be at least 8 characters',
   'profile.genericError': 'An error occurred',
   'profile.noToken': 'Token not found',
   'profile.enterUsername': 'Enter username',

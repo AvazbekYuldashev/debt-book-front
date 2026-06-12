@@ -10,6 +10,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { useAppTheme } from '../../theme';
+import { useI18n } from '../../i18n';
 
 export type InputVariant = 'primary' | 'secondary' | 'outline';
 
@@ -31,6 +32,7 @@ const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   const { colors, spacing, typography } = useAppTheme();
+  const { t } = useI18n();
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
@@ -80,7 +82,7 @@ const Input: React.FC<InputProps> = ({
             onPress={() => setIsPasswordVisible((prev) => !prev)}
           >
             <Text style={[typography.Caption, { color: colors.primary }]}>
-              {isPasswordVisible ? 'Yashir' : "Ko'rsat"}
+              {isPasswordVisible ? t('common.hide') : t('common.show')}
             </Text>
           </TouchableOpacity>
         ) : null}

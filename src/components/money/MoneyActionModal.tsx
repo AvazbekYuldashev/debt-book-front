@@ -3,7 +3,8 @@ import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import AppTextInput from '../form/AppTextInput';
 import PrimaryButton from '../ui/PrimaryButton';
 import { AccountType, ACCOUNT_TYPE, MoneyActionType, MoneyFlowType, MONEY_FLOW_TYPE, PartyType } from '../../types/money';
-import colors from '../../styles/colors';
+import { useAppTheme } from '../../theme';
+import { ColorTokens } from '../../theme/colors';
 import { getSelectableBusinessMembers } from '../../services/businessService';
 import { BusinessProfileDTO } from '../../types/business';
 import { useI18n } from '../../i18n';
@@ -49,6 +50,8 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   onSubmit,
 }) => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [amount, setAmount] = useState('');
   const [counterpartyId, setCounterpartyId] = useState('');
   const [targetType, setTargetType] = useState<PartyType>('PROFILE');
@@ -256,16 +259,16 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.overlay,
     padding: 16,
   },
   modal: {
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     padding: 16,
   },
   title: {
@@ -287,7 +290,7 @@ const styles = StyleSheet.create({
   },
   contactChipActive: {
     borderColor: colors.primary,
-    backgroundColor: '#eef5ff',
+    backgroundColor: colors.primarySoft,
   },
   contactChipText: {
     fontSize: 12,
@@ -325,11 +328,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   targetChipActive: {
     borderColor: colors.primary,
-    backgroundColor: '#eef5ff',
+    backgroundColor: colors.primarySoft,
   },
   targetChipText: {
     fontSize: 12,

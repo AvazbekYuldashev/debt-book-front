@@ -1,7 +1,8 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '../../styles/colors';
+import { useAppTheme } from '../../theme';
+import { ColorTokens } from '../../theme/colors';
 import LanguageSwitcher from '../LanguageSwitcher';
 
 interface AuthShellProps {
@@ -12,40 +13,45 @@ interface AuthShellProps {
   children: ReactNode;
 }
 
-const AuthShell: React.FC<AuthShellProps> = ({ emoji, title, subtitle, onBack, children }) => (
-  <ScrollView
-    style={styles.screen}
-    contentContainerStyle={styles.content}
-    showsVerticalScrollIndicator={false}
-    keyboardShouldPersistTaps="handled"
-  >
-    <View style={styles.card}>
-      {onBack ? (
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={onBack}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
-      ) : null}
-      <View style={styles.langSwitch}>
-        <LanguageSwitcher />
-      </View>
-      <View style={styles.iconBadge}>
-        <Text style={styles.iconEmoji}>{emoji}</Text>
-      </View>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-      {children}
-    </View>
-  </ScrollView>
-);
+const AuthShell: React.FC<AuthShellProps> = ({ emoji, title, subtitle, onBack, children }) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-const styles = StyleSheet.create({
+  return (
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.card}>
+        {onBack ? (
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={onBack}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+        ) : null}
+        <View style={styles.langSwitch}>
+          <LanguageSwitcher />
+        </View>
+        <View style={styles.iconBadge}>
+          <Text style={styles.iconEmoji}>{emoji}</Text>
+        </View>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {children}
+      </View>
+    </ScrollView>
+  );
+};
+
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#EEF2F9',
+    backgroundColor: colors.background,
   },
   content: {
     flexGrow: 1,
@@ -56,7 +62,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 24,
     paddingVertical: 32,
     paddingHorizontal: 24,
@@ -79,7 +85,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,

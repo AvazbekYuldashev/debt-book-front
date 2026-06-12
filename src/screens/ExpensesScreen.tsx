@@ -16,7 +16,8 @@ import AppTextInput from '../components/form/AppTextInput';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
-import colors from '../styles/colors';
+import { useAppTheme } from '../theme';
+import { ColorTokens } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { CategoryResponseDTO } from '../types/category';
@@ -38,6 +39,8 @@ type QuickFilterKey = 'today' | 'currentWeek' | 'currentMonth' | 'customRange';
 
 const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const [categories, setCategories] = useState<CategoryResponseDTO[]>([]);
@@ -346,7 +349,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Text style={styles.totalInlineLabel}>{totalLabelText}</Text>
             <Text style={styles.totalValue}>{formatMoney(totalExpenseAmount)}</Text>
             <TouchableOpacity style={styles.totalMenuBtn} onPress={() => setQuickFilterVisible(true)}>
-              <Ionicons name="ellipsis-horizontal" size={16} color="#6B7280" />
+              <Ionicons name="ellipsis-horizontal" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -365,7 +368,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Ionicons
               name={filterPanelOpen ? 'chevron-up-outline' : 'chevron-down-outline'}
               size={18}
-              color="#6B7280"
+              color={colors.textSecondary}
             />
           </TouchableOpacity>
 
@@ -587,7 +590,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                       setExpandedCategoryActionsId((prev) => (prev === item.id ? null : item.id))
                     }
                   >
-                    <Ionicons name="ellipsis-horizontal" size={16} color="#6B7280" />
+                    <Ionicons name="ellipsis-horizontal" size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )
                 ) : null}
@@ -685,10 +688,10 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
@@ -703,7 +706,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   headerAction: {
     flexDirection: 'row',
@@ -712,7 +715,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.primarySoft,
   },
   headerActionText: {
     fontSize: 13,
@@ -720,7 +723,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   totalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     paddingVertical: 20,
     paddingHorizontal: 16,
@@ -740,7 +743,7 @@ const styles = StyleSheet.create({
   totalInlineLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   totalMenuBtn: {
     width: 24,
@@ -748,7 +751,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.border,
   },
   totalValue: {
     fontSize: 22,
@@ -756,17 +759,17 @@ const styles = StyleSheet.create({
     color: TOTAL_ACCENT,
   },
   filterCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
   },
   filterTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   filterTitleRow: {
     flexDirection: 'row',
@@ -782,10 +785,10 @@ const styles = StyleSheet.create({
   },
   filterSummaryText: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.textSecondary,
   },
   filterSummaryActive: {
-    color: '#4F46E5',
+    color: colors.primary,
     fontWeight: '600',
   },
   segmentedWrapper: {
@@ -794,15 +797,15 @@ const styles = StyleSheet.create({
   },
   segmentGroup: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 10,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceMuted,
   },
   segmentLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   segmentRow: {
@@ -812,10 +815,10 @@ const styles = StyleSheet.create({
   segmentSelect: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    color: '#111827',
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
@@ -838,7 +841,7 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.border,
   },
   filterActionRow: {
     marginTop: 12,
@@ -850,8 +853,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerMuted,
     borderRadius: 10,
   },
   filterErrorText: {
@@ -861,8 +864,8 @@ const styles = StyleSheet.create({
   errorRow: {
     padding: 10,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerMuted,
     borderRadius: 10,
     marginBottom: 16,
   },
@@ -873,14 +876,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   listCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   listSkeleton: {
@@ -896,7 +899,7 @@ const styles = StyleSheet.create({
   },
   categoryRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   rowMain: {
     flex: 1,
@@ -904,12 +907,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   sumText: {
     marginTop: 4,
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   actions: {
@@ -923,7 +926,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceMuted,
   },
   ellipsisBtn: {
     width: 30,
@@ -931,21 +934,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceMuted,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#6B7280',
+    color: colors.textSecondary,
     paddingVertical: 24,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     padding: 16,
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
   },
@@ -964,23 +967,23 @@ const styles = StyleSheet.create({
   },
   deleteConfirmText: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.textSecondary,
     marginBottom: 14,
     lineHeight: 20,
   },
   deleteConfirmBtn: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
+    backgroundColor: colors.danger,
+    borderColor: colors.danger,
     borderWidth: 0,
   },
   quickFilterBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
   quickFilterCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 14,
     paddingVertical: 8,
     overflow: 'hidden',
@@ -988,7 +991,7 @@ const styles = StyleSheet.create({
   quickFilterTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
@@ -996,11 +999,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: colors.border,
   },
   quickFilterItemText: {
     fontSize: 14,
-    color: '#111827',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
 });

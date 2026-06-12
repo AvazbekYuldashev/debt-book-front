@@ -23,12 +23,16 @@ import { formatPhoneDisplay } from '../utils/phone';
 import { useAccountContext } from '../hooks/useAccountContext';
 import { canWrite } from '../utils/permissions';
 import { useI18n, translate } from '../i18n';
+import { useAppTheme } from '../theme';
+import { ColorTokens } from '../theme/colors';
 
 const POSITIVE = '#0D9488';
 const NEGATIVE = '#EF4444';
 
 const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const contactId = route.params?.id || '';
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
@@ -134,11 +138,11 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadScreenData} tintColor="#4F46E5" />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadScreenData} tintColor={colors.primary} />}
       >
         <View style={styles.topBar}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={20} color="#111827" />
+            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -232,7 +236,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
             <View style={styles.detailHeader}>
               <Text style={styles.detailTitle}>{t('contact.txDetail')}</Text>
               <TouchableOpacity style={styles.detailCloseBtn} onPress={() => setSelectedTransaction(null)}>
-                <Ionicons name="close" size={18} color="#111827" />
+                <Ionicons name="close" size={18} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -332,10 +336,10 @@ function formatDateLong(value: string): string {
   return date.toLocaleString();
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
@@ -350,12 +354,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
   },
   balanceCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -368,17 +372,17 @@ const styles = StyleSheet.create({
   contactName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   contactPhone: {
     marginTop: 4,
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   balanceLabel: {
     marginTop: 14,
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   balanceValue: {
     marginTop: 4,
@@ -393,8 +397,8 @@ const styles = StyleSheet.create({
   },
   errorBox: {
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerMuted,
     borderRadius: 10,
     padding: 10,
     marginBottom: 12,
@@ -404,16 +408,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   retryText: {
-    color: '#4F46E5',
+    color: colors.primary,
     marginTop: 4,
     fontWeight: '600',
     fontSize: 12,
   },
   listCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   listSkeleton: {
@@ -428,7 +432,7 @@ const styles = StyleSheet.create({
   },
   txBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   txLeft: {
     width: 120,
@@ -444,19 +448,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   txIconCredit: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: colors.primarySoft,
   },
   txIconDebt: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.dangerMuted,
   },
   txDate: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   txLabel: {
     flex: 1,
     fontSize: 14,
-    color: '#111827',
+    color: colors.textPrimary,
     fontWeight: '500',
   },
   txAmount: {
@@ -478,23 +482,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   takeActionBtn: {
-    backgroundColor: '#EF4444',
-    borderColor: '#EF4444',
+    backgroundColor: colors.danger,
+    borderColor: colors.danger,
     borderWidth: 0,
   },
   giveActionBtn: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
     borderWidth: 0,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#6B7280',
+    color: colors.textSecondary,
     paddingVertical: 22,
   },
   readOnlyNote: {
     textAlign: 'center',
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontSize: 13,
     marginTop: 16,
     paddingVertical: 12,
@@ -503,16 +507,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   detailBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(17, 24, 39, 0.4)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     padding: 16,
   },
   detailCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
   },
@@ -525,7 +529,7 @@ const styles = StyleSheet.create({
   detailTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   detailCloseBtn: {
     width: 28,
@@ -533,7 +537,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceMuted,
   },
   detailRow: {
     flexDirection: 'row',
@@ -543,28 +547,28 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   detailValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   detailValueMuted: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   detailDescriptionBox: {
     marginTop: 6,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceMuted,
   },
   detailDescription: {
     marginTop: 4,
     fontSize: 14,
-    color: '#111827',
+    color: colors.textPrimary,
     lineHeight: 20,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useState } from 'react';
+import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -9,9 +9,13 @@ import { BusinessDTO } from '../../types/business';
 import CreateBusinessModal from './CreateBusinessModal';
 import { ROUTES } from '../../navigation/routes';
 import { useI18n } from '../../i18n';
+import { useAppTheme } from '../../theme';
+import { ColorTokens } from '../../theme/colors';
 
 const WorkspaceSwitcher: React.FC = () => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<any>();
   const { profile } = useContext(AuthContext);
   const { workspace, setPersonalWorkspace, setBusinessWorkspace } = useContext(WorkspaceContext);
@@ -71,7 +75,7 @@ const WorkspaceSwitcher: React.FC = () => {
             </View>
           ) : null}
         </View>
-        <Ionicons name="chevron-down-outline" size={18} color="#374151" />
+        <Ionicons name="chevron-down-outline" size={18} color={colors.textSecondary} />
       </TouchableOpacity>
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
@@ -89,7 +93,7 @@ const WorkspaceSwitcher: React.FC = () => {
               }}
             >
               <Text style={styles.optionText}>{t('workspace.personal')}</Text>
-              {workspace.mode === 'personal' ? <Ionicons name="checkmark" size={16} color="#2563EB" /> : null}
+              {workspace.mode === 'personal' ? <Ionicons name="checkmark" size={16} color={colors.primary} /> : null}
             </TouchableOpacity>
 
             <View style={styles.sectionRow}>
@@ -123,7 +127,7 @@ const WorkspaceSwitcher: React.FC = () => {
                       <Text style={styles.optionText}>{business.name}</Text>
                       <Text style={styles.businessSub}>{business.currentRole}</Text>
                     </View>
-                    {isActive ? <Ionicons name="checkmark" size={16} color="#2563EB" /> : null}
+                    {isActive ? <Ionicons name="checkmark" size={16} color={colors.primary} /> : null}
                   </TouchableOpacity>
                 );
               })
@@ -156,14 +160,14 @@ const WorkspaceSwitcher: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   wrapper: {
     paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.border,
   },
   trigger: {
     flexDirection: 'row',
@@ -171,10 +175,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: 34,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 10,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceMuted,
   },
   labelWrap: {
     flexDirection: 'row',
@@ -185,12 +189,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    color: '#111827',
+    color: colors.textPrimary,
     fontWeight: '600',
     flexShrink: 1,
   },
   roleBadge: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: colors.primarySoft,
     borderRadius: 10,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -198,16 +202,16 @@ const styles = StyleSheet.create({
   roleBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#1D4ED8',
+    color: colors.primaryPressed,
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.28)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 14,
     maxHeight: '75%',
@@ -215,7 +219,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   sectionRow: {
@@ -227,33 +231,33 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   linkText: {
     fontSize: 12,
-    color: '#2563EB',
+    color: colors.primary,
     fontWeight: '600',
   },
   optionRow: {
     minHeight: 38,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     paddingHorizontal: 10,
     marginBottom: 6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   optionActive: {
-    borderColor: '#93C5FD',
-    backgroundColor: '#EFF6FF',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   optionText: {
     fontSize: 14,
-    color: '#111827',
+    color: colors.textPrimary,
     fontWeight: '600',
   },
   businessMeta: {
@@ -262,7 +266,7 @@ const styles = StyleSheet.create({
   businessSub: {
     marginTop: 2,
     fontSize: 11,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   loadingWrap: {
     minHeight: 80,
@@ -270,12 +274,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
-    color: '#6B7280',
+    color: colors.textSecondary,
     fontSize: 13,
     marginBottom: 8,
   },
   error: {
-    color: '#DC2626',
+    color: colors.danger,
     fontSize: 12,
     marginTop: 2,
   },
@@ -286,11 +290,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderRadius: 10,
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.primary,
     minHeight: 40,
   },
   createBtnText: {
-    color: '#FFFFFF',
+    color: colors.textOnPrimary,
     fontWeight: '700',
     fontSize: 13,
   },

@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import AppTextInput from '../form/AppTextInput';
 import PrimaryButton from '../ui/PrimaryButton';
@@ -6,6 +6,8 @@ import { AuthContext } from '../../context/AuthContext';
 import { createBusiness } from '../../services/businessService';
 import { BusinessDTO } from '../../types/business';
 import { useI18n } from '../../i18n';
+import { useAppTheme } from '../../theme';
+import { ColorTokens } from '../../theme/colors';
 
 interface CreateBusinessModalProps {
   visible: boolean;
@@ -15,6 +17,8 @@ interface CreateBusinessModalProps {
 
 const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onClose, onCreated }) => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile } = useContext(AuthContext);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -85,22 +89,22 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     padding: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 16,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   field: {
@@ -115,7 +119,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   error: {
-    color: '#DC2626',
+    color: colors.danger,
     fontSize: 12,
     marginBottom: 8,
   },

@@ -1,15 +1,17 @@
 import React, { useContext, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import colors from '../styles/colors';
 import { verifySms, resendSms } from '../api/auth';
 import { AuthContext } from '../context/AuthContext';
 import { ProfileDTO } from '../types';
 import AuthShell from '../components/auth/AuthShell';
-import { authStyles as s } from '../components/auth/authStyles';
+import { useAuthStyles } from '../components/auth/authStyles';
 import { useI18n } from '../i18n';
+import { useAppTheme } from '../theme';
 
 const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
   const { t } = useI18n();
+  const s = useAuthStyles();
+  const { colors } = useAppTheme();
   const username = String(route?.params?.username || '').trim();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');

@@ -16,7 +16,8 @@ import Card from '../components/Card';
 import AppTextInput from '../components/form/AppTextInput';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
-import colors from '../styles/colors';
+import { useAppTheme } from '../theme';
+import { ColorTokens } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { ExpenseResponseDTO } from '../types/expense';
@@ -30,6 +31,8 @@ import { formatPhoneDisplay } from '../utils/phone';
 
 const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const categoryId = String(route.params?.id ?? '');
@@ -303,7 +306,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
@@ -321,7 +324,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 10,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     paddingHorizontal: 10,
     minHeight: 40,
     flexDirection: 'row',
@@ -342,8 +345,8 @@ const styles = StyleSheet.create({
   errorRow: {
     padding: 10,
     borderWidth: 1,
-    borderColor: '#ffd7d5',
-    backgroundColor: '#fff1f0',
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerMuted,
     borderRadius: 10,
     marginBottom: 10,
   },
@@ -398,16 +401,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     padding: 16,
   },
   modalCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
   },

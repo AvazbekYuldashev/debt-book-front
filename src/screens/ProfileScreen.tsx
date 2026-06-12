@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   Modal,
@@ -12,13 +13,16 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '../styles/colors';
+import { useAppTheme } from '../theme';
+import { ColorTokens } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
 import Card from '../components/Card';
 import AppTextInput from '../components/form/AppTextInput';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import ThemeSwitcher from '../components/ThemeSwitcher';
 import { useI18n } from '../i18n';
+import { confirmAction } from '../utils/confirm';
 import * as ImagePicker from 'expo-image-picker';
 import {
   confirmProfileUsername,
@@ -35,6 +39,8 @@ import { ROUTES } from '../navigation/routes';
 
 const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile, setProfile } = useContext(AuthContext);
   const [name, setName] = useState(profile?.name ?? '');
   const [surname, setSurname] = useState(profile?.surname ?? '');
@@ -49,6 +55,13 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [photoModalError, setPhotoModalError] = useState('');
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [status, setStatus] = useState('');
+  const [statusError, setStatusError] = useState(false);
+
+  // Tasdiq dialoglari uchun tarjima qilingan tugma matnlari.
+  const confirmLabels = useMemo(
+    () => ({ cancelLabel: t('common.cancel') }),
+    [t]
+  );
 
   const token = useMemo(() => profile?.jwt, [profile?.jwt]);
   const photoUri =
@@ -74,7 +87,11 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
 
   const handleLogout = () => {
-    setProfile(null);
+    confirmAction(
+      t('profile.logoutConfirm'),
+      () => setProfile(null),
+      { title: t('profile.logout'), confirmLabel: t('profile.logout'), ...confirmLabels }
+    );
   };
 
   const run = async (key: string, action: () => Promise<void>) => {
@@ -82,13 +99,22 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setStatus('');
     try {
       await action();
+      setStatusError(false);
       setStatus(t('common.success'));
     } catch (e) {
+      setStatusError(true);
       setStatus(e instanceof Error ? e.message : t('profile.genericError'));
     } finally {
       setLoadingKey(null);
     }
   };
+
+  // Muvaffaqiyat statusini avtomatik tozalash (xatolar ko'rinib turaveradi).
+  useEffect(() => {
+    if (!status || statusError) return;
+    const timer = setTimeout(() => setStatus(''), 3000);
+    return () => clearTimeout(timer);
+  }, [status, statusError]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -157,6 +183,9 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       if (!oldPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim()) {
         throw new Error(t('profile.enterPasswords'));
       }
+      if (newPassword.trim().length < 8) {
+        throw new Error(t('profile.passwordMin'));
+      }
       if (newPassword.trim() !== confirmNewPassword.trim()) {
         throw new Error(t('profile.passwordMismatch'));
       }
@@ -202,12 +231,18 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       );
     });
 
-  const handleDelete = () =>
-    run('delete', async () => {
-      if (!token || !profile?.id) throw new Error('Token topilmadi');
-      await deleteProfile(profile.id, token);
-      setProfile(null);
-    });
+  const handleDelete = () => {
+    confirmAction(
+      t('profile.deleteConfirm'),
+      () =>
+        run('delete', async () => {
+          if (!token || !profile?.id) throw new Error(t('profile.noToken'));
+          await deleteProfile(profile.id, token);
+          setProfile(null);
+        }),
+      { title: t('profile.deleteProfile'), confirmLabel: t('common.delete'), ...confirmLabels }
+    );
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -236,7 +271,11 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             onPress={handlePickPhoto}
             disabled={loadingKey === 'photo'}
           >
-            <Ionicons name="create-outline" size={16} color={colors.primary} />
+            {loadingKey === 'photo' ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="create-outline" size={16} color={colors.primary} />
+            )}
           </TouchableOpacity>
         </View>
       ) : null}
@@ -253,6 +292,11 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <Card style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
         <LanguageSwitcher variant="list" />
+      </Card>
+
+      <Card style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>{t('profile.theme')}</Text>
+        <ThemeSwitcher />
       </Card>
 
       {profile ? (
@@ -272,7 +316,11 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 onPress={handleUpdateDetail}
                 disabled={loadingKey === 'detail'}
               >
-                <Ionicons name="create-outline" size={18} color={colors.primary} />
+                {loadingKey === 'detail' ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="create-outline" size={18} color={colors.primary} />
+                )}
               </TouchableOpacity>
             </View>
           </Card>
@@ -291,7 +339,11 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 onPress={handleUpdateUsername}
                 disabled={loadingKey === 'username'}
               >
-                <Ionicons name="create-outline" size={18} color={colors.primary} />
+                {loadingKey === 'username' ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="create-outline" size={18} color={colors.primary} />
+                )}
               </TouchableOpacity>
             </View>
             {pendingUsername ? (
@@ -308,7 +360,11 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     onPress={handleConfirmUsername}
                     disabled={loadingKey === 'usernameConfirm'}
                   >
-                    <Ionicons name="checkmark-outline" size={18} color={colors.primary} />
+                    {loadingKey === 'usernameConfirm' ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Ionicons name="checkmark-outline" size={18} color={colors.primary} />
+                    )}
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.helperText}>{t('profile.newUsername')}: {pendingUsername}</Text>
@@ -345,12 +401,18 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 onPress={handleUpdatePassword}
                 disabled={loadingKey === 'password'}
               >
-                <Ionicons name="create-outline" size={18} color={colors.primary} />
+                {loadingKey === 'password' ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="create-outline" size={18} color={colors.primary} />
+                )}
               </TouchableOpacity>
             </View>
           </Card>
 
-          {status ? <Text style={styles.statusText}>{status}</Text> : null}
+          {status ? (
+            <Text style={[styles.statusText, statusError && styles.statusError]}>{status}</Text>
+          ) : null}
 
           <View style={styles.actionsRow}>
             <TouchableOpacity
@@ -366,7 +428,11 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Text style={styles.secondaryBtnText}>{t('profile.logout')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.dangerBtn} onPress={handleDelete} disabled={loadingKey === 'delete'}>
-              <Text style={styles.dangerBtnText}>{t('profile.deleteProfile')}</Text>
+              {loadingKey === 'delete' ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.dangerBtnText}>{t('profile.deleteProfile')}</Text>
+              )}
             </TouchableOpacity>
           </View>
         </>
@@ -402,7 +468,7 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     padding: 12,
     backgroundColor: colors.background,
@@ -450,7 +516,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   helperText: {
     marginTop: 8,
@@ -467,7 +533,7 @@ const styles = StyleSheet.create({
     borderRadius: 42,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.card,
+    backgroundColor: colors.surfaceMuted,
   },
   avatarPlaceholder: {
     width: 84,
@@ -475,7 +541,7 @@ const styles = StyleSheet.create({
     borderRadius: 42,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.card,
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -488,7 +554,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   photoModalBackdrop: {
     flex: 1,
@@ -517,16 +583,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: 10,
   },
-  photoModalClose: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    zIndex: 2,
-  },
   statusText: {
     color: colors.primary,
     textAlign: 'center',
     marginBottom: 10,
+  },
+  statusError: {
+    color: colors.danger,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -541,7 +604,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   secondaryBtnText: {
     color: colors.textPrimary,

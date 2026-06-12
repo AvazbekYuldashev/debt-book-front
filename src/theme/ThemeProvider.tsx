@@ -4,9 +4,16 @@ import { ColorTokens, darkColors, lightColors } from './colors';
 import { loadInterFonts } from './fonts';
 import { radius, spacing } from './spacing';
 import { typography } from './typography';
+import { storage } from '../utils/storage';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 type ActiveTheme = 'light' | 'dark';
+
+const THEME_STORAGE_KEY = 'debt-book.theme';
+
+function isThemeMode(value: unknown): value is ThemeMode {
+  return value === 'light' || value === 'dark' || value === 'system';
+}
 
 interface ThemeValue {
   mode: ThemeMode;
@@ -30,8 +37,22 @@ function resolveActiveTheme(mode: ThemeMode, scheme: ColorSchemeName): ActiveThe
 export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mode, setMode] = useState<ThemeMode>('system');
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const systemScheme = useColorScheme();
   const activeTheme = resolveActiveTheme(mode, systemScheme);
+
+  // Saqlangan mavzu rejimini yuklash (yangilanganda tiklanib qolmasligi uchun).
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const saved = await storage.get(THEME_STORAGE_KEY);
+      if (mounted && isThemeMode(saved)) setMode(saved);
+      if (mounted) setHydrated(true);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -45,10 +66,18 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, []);
 
+  // Mavzuni o'zgartirish + saqlash (fire-and-forget).
+  const applyMode = useCallback((next: ThemeMode) => {
+    setMode(next);
+    storage.set(THEME_STORAGE_KEY, next);
+  }, []);
+
   const toggleTheme = useCallback(() => {
     setMode((current) => {
       const resolved = resolveActiveTheme(current, Appearance.getColorScheme());
-      return resolved === 'light' ? 'dark' : 'light';
+      const next: ThemeMode = resolved === 'light' ? 'dark' : 'light';
+      storage.set(THEME_STORAGE_KEY, next);
+      return next;
     });
   }, []);
 
@@ -60,9 +89,14 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     radius,
     typography,
     fontsLoaded,
-    setMode,
+    setMode: applyMode,
     toggleTheme,
-  }), [mode, activeTheme, toggleTheme, fontsLoaded]);
+  }), [mode, activeTheme, toggleTheme, applyMode, fontsLoaded]);
+
+  // Saqlangan mavzu o'qilmaguncha render qilmaymiz — light->dark "miltillash"ning oldini oladi.
+  if (!hydrated) {
+    return null;
+  }
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };

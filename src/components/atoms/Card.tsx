@@ -13,10 +13,10 @@ const Card: React.FC<CardProps> = ({ children, style, variant = 'primary', ...pr
   const { colors, spacing, radius } = useAppTheme();
 
   const variantStyle: ViewStyle = variant === 'secondary'
-    ? { backgroundColor: colors.gray50, borderWidth: 0 }
+    ? { backgroundColor: colors.surfaceMuted, borderWidth: 0 }
     : variant === 'outline'
-      ? { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: colors.outline }
-      : { backgroundColor: '#FFFFFF', borderWidth: 0 };
+      ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.outline }
+      : { backgroundColor: colors.surface, borderWidth: 0 };
 
   return (
     <View

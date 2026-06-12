@@ -5,13 +5,14 @@ import ExpensesStack from './ExpensesStack';
 import ProfileStack from './ProfileStack';
 import { Feather } from '@expo/vector-icons';
 import { ROUTES } from './routes';
-import colors from '../styles/colors';
 import { useI18n } from '../i18n';
+import { useAppTheme } from '../theme';
 
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator: React.FC = () => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
   const tabLabel = (routeName: string) => {
     if (routeName === ROUTES.DEBTS) return t('tab.debts');
     if (routeName === ROUTES.EXPENSES) return t('tab.expenses');
@@ -26,11 +27,11 @@ const BottomTabNavigator: React.FC = () => {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          borderTopColor: '#E5E7EB',
+          borderTopColor: colors.border,
           height: 62,
           paddingBottom: 8,
           paddingTop: 6,
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surface,
         },
         tabBarLabelStyle: {
           fontSize: 12,

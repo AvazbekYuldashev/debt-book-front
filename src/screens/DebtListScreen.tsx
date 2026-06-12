@@ -18,7 +18,8 @@ import { ContactsContext } from '../context/ContactsContext';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { useAccountContext } from '../hooks/useAccountContext';
-import colors from '../styles/colors';
+import { useAppTheme } from '../theme';
+import { ColorTokens } from '../theme/colors';
 import { ROUTES } from '../navigation/routes';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import { extractMoneyTotals, formatMoney } from '../utils/money';
@@ -35,6 +36,8 @@ const NEGATIVE = '#EF4444';
 
 const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const { accountType } = useAccountContext();
@@ -516,10 +519,10 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
@@ -534,7 +537,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   headerAction: {
     flexDirection: 'row',
@@ -543,7 +546,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.primarySoft,
   },
   headerActionText: {
     fontSize: 13,
@@ -555,7 +558,7 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -570,7 +573,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginBottom: 6,
   },
   summaryValue: {
@@ -579,14 +582,14 @@ const styles = StyleSheet.create({
   },
   summaryDivider: {
     width: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.border,
     marginHorizontal: 12,
   },
   errorRow: {
     padding: 10,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerMuted,
     borderRadius: 10,
     marginBottom: 16,
   },
@@ -595,10 +598,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   listCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   listSkeleton: {
@@ -614,7 +617,7 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   rowMain: {
     flex: 1,
@@ -622,12 +625,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
   },
   phone: {
     marginTop: 4,
     fontSize: 13,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   rowRight: {
     alignItems: 'flex-end',
@@ -648,21 +651,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surfaceMuted,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#6B7280',
+    color: colors.textSecondary,
     paddingVertical: 24,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     padding: 16,
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
   },
@@ -685,21 +688,21 @@ const styles = StyleSheet.create({
   targetChip: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.outline,
     borderRadius: 8,
     minHeight: 34,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
   },
   targetChipActive: {
     borderColor: colors.primary,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.primarySoft,
   },
   targetChipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
   },
   targetChipTextActive: {
     color: colors.primary,
@@ -714,7 +717,7 @@ const styles = StyleSheet.create({
   editHint: {
     marginTop: 10,
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
 });
 

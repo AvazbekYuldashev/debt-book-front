@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '../styles/colors';
 import { ApiRequestError, register } from '../api/auth';
 import AuthShell from '../components/auth/AuthShell';
-import { authStyles as s } from '../components/auth/authStyles';
+import { useAuthStyles } from '../components/auth/authStyles';
 import { useI18n } from '../i18n';
+import { useAppTheme } from '../theme';
 
 const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t } = useI18n();
+  const s = useAuthStyles();
+  const { colors } = useAppTheme();
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [username, setUsername] = useState('');

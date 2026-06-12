@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
-import colors from '../../styles/colors';
+import { useAppTheme } from '../../theme';
+import { ColorTokens } from '../../theme/colors';
 
-// Auth ekranlari uchun umumiy maydon/tugma/link stillari (AuthShell ichida ishlatiladi).
-export const authStyles = StyleSheet.create({
+// Auth ekranlari uchun umumiy maydon/tugma/link stillari (theme-aware).
+export const createAuthStyles = (colors: ColorTokens) => StyleSheet.create({
   field: {
     marginBottom: 16,
   },
@@ -15,9 +17,9 @@ export const authStyles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: '#E5E9F0',
+    borderColor: colors.border,
     borderRadius: 14,
     paddingHorizontal: 14,
     height: 52,
@@ -61,7 +63,7 @@ export const authStyles = StyleSheet.create({
     elevation: 3,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.textOnPrimary,
     fontWeight: '700',
     fontSize: 16,
   },
@@ -90,3 +92,9 @@ export const authStyles = StyleSheet.create({
     marginTop: 16,
   },
 });
+
+/** Auth ekranlari uchun theme-aware stillar hooki. */
+export const useAuthStyles = () => {
+  const { colors } = useAppTheme();
+  return useMemo(() => createAuthStyles(colors), [colors]);
+};

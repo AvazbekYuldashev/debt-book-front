@@ -1,15 +1,17 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '../styles/colors';
 import { ApiRequestError, login } from '../api/auth';
 import { AuthContext } from '../context/AuthContext';
 import AuthShell from '../components/auth/AuthShell';
-import { authStyles as s } from '../components/auth/authStyles';
+import { useAuthStyles } from '../components/auth/authStyles';
 import { useI18n } from '../i18n';
+import { useAppTheme } from '../theme';
 
 const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t } = useI18n();
+  const s = useAuthStyles();
+  const { colors } = useAppTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

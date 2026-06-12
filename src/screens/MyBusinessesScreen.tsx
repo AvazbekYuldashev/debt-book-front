@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useState } from 'react';
+import React, { useCallback, useContext, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -17,9 +17,13 @@ import CreateBusinessModal from '../components/business/CreateBusinessModal';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import { ROUTES } from '../navigation/routes';
 import { useI18n } from '../i18n';
+import { useAppTheme } from '../theme';
+import { ColorTokens } from '../theme/colors';
 
 const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t } = useI18n();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile } = useContext(AuthContext);
   const { workspace, setBusinessWorkspace } = useContext(WorkspaceContext);
   const [loading, setLoading] = useState(false);
@@ -134,10 +138,10 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.background,
   },
   content: {
     padding: 16,
@@ -151,19 +155,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    color: '#111827',
+    color: colors.textPrimary,
     fontWeight: '700',
   },
   createBtn: {
     minHeight: 34,
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   createBtnText: {
-    color: '#FFFFFF',
+    color: colors.textOnPrimary,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -174,20 +178,20 @@ const styles = StyleSheet.create({
   },
   empty: {
     textAlign: 'center',
-    color: '#6B7280',
+    color: colors.textSecondary,
     marginTop: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 14,
     padding: 12,
     marginBottom: 10,
   },
   cardActive: {
-    borderColor: '#93C5FD',
-    backgroundColor: '#EFF6FF',
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   cardTop: {
     flexDirection: 'row',
@@ -198,24 +202,24 @@ const styles = StyleSheet.create({
   businessName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
     flex: 1,
   },
   roleBadge: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: colors.primarySoft,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   roleText: {
-    color: '#1D4ED8',
+    color: colors.primaryPressed,
     fontSize: 10,
     fontWeight: '700',
   },
   metaText: {
     marginTop: 4,
     fontSize: 12,
-    color: '#6B7280',
+    color: colors.textSecondary,
   },
   cardActions: {
     marginTop: 10,
@@ -226,12 +230,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 34,
     borderRadius: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   openBtnText: {
-    color: '#FFFFFF',
+    color: colors.textOnPrimary,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -240,19 +244,19 @@ const styles = StyleSheet.create({
     minHeight: 34,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.outline,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   membersBtnText: {
-    color: '#111827',
+    color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '700',
   },
   error: {
     marginTop: 6,
-    color: '#DC2626',
+    color: colors.danger,
     fontSize: 12,
   },
 });
