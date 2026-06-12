@@ -19,13 +19,16 @@ import { WorkspaceContext } from '../context/WorkspaceContext';
 import { useMoney } from '../hooks/useMoney';
 import { AccountType, MoneyActionType, MoneyFlowType, MoneyResponseDTO, PartyType } from '../types/money';
 import { formatMoney } from '../utils/money';
+import { formatPhoneDisplay } from '../utils/phone';
 import { useAccountContext } from '../hooks/useAccountContext';
 import { canWrite } from '../utils/permissions';
+import { useI18n, translate } from '../i18n';
 
 const POSITIVE = '#0D9488';
 const NEGATIVE = '#EF4444';
 
 const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
+  const { t } = useI18n();
   const contactId = route.params?.id || '';
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
@@ -121,7 +124,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   if (!contact) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyText}>Client topilmadi</Text>
+        <Text style={styles.emptyText}>{t('contact.notFound')}</Text>
       </View>
     );
   }
@@ -142,7 +145,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         <View style={styles.balanceCard}>
           <Text style={styles.contactName}>{contact.fullName}</Text>
           <Text style={styles.contactPhone}>{contact.phone}</Text>
-          <Text style={styles.balanceLabel}>Hozirgi Balans</Text>
+          <Text style={styles.balanceLabel}>{t('contact.currentBalance')}</Text>
           <Text style={[styles.balanceValue, netBalance >= 0 ? styles.balancePositive : styles.balanceNegative]}>
             {formatMoney(netBalance)}
           </Text>
@@ -151,7 +154,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         {error ? (
           <TouchableOpacity style={styles.errorBox} onPress={loadScreenData}>
             <Text style={styles.errorText}>{error}</Text>
-            <Text style={styles.retryText}>Qayta urinish</Text>
+            <Text style={styles.retryText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         ) : null}
 
@@ -159,7 +162,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
           {loading && mappedHistory.length === 0 ? (
             <SkeletonCardList count={4} containerStyle={styles.listSkeleton} />
           ) : mappedHistory.length === 0 ? (
-            <Text style={styles.emptyText}>Bu accountda hali oldi-berdi yo'q</Text>
+            <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
           ) : (
             mappedHistory.map((item, index) => (
               <TouchableOpacity
@@ -190,19 +193,19 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         {allowWrite ? (
           <View style={styles.bottomActions}>
             <PrimaryButton
-              title="Oldim"
+              title={t('contact.took')}
               variant="primary"
               onPress={() => openModal('TAKE')}
               style={[styles.actionBtn, styles.takeActionBtn]}
             />
             <PrimaryButton
-              title="Berdim"
+              title={t('contact.gave')}
               onPress={() => openModal('GIVE')}
               style={[styles.actionBtn, styles.giveActionBtn]}
             />
           </View>
         ) : (
-          <Text style={styles.readOnlyNote}>Sizda faqat ko'rish huquqi bor (USER)</Text>
+          <Text style={styles.readOnlyNote}>{t('contact.readOnly')}</Text>
         )}
       </ScrollView>
 
@@ -227,26 +230,26 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         <View style={styles.detailBackdrop}>
           <View style={styles.detailCard}>
             <View style={styles.detailHeader}>
-              <Text style={styles.detailTitle}>Tranzaksiya tafsiloti</Text>
+              <Text style={styles.detailTitle}>{t('contact.txDetail')}</Text>
               <TouchableOpacity style={styles.detailCloseBtn} onPress={() => setSelectedTransaction(null)}>
                 <Ionicons name="close" size={18} color="#111827" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Turi</Text>
+              <Text style={styles.detailLabel}>{t('contact.type')}</Text>
               <Text
                 style={[
                   styles.detailValue,
                   selectedTransaction?.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative,
                 ]}
               >
-                {selectedTransaction?.kind === 'credit' ? 'Haq berildi' : 'Qarz olindi'}
+                {selectedTransaction?.kind === 'credit' ? t('contact.creditGiven') : t('contact.debtTaken')}
               </Text>
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Summa</Text>
+              <Text style={styles.detailLabel}>{t('contact.amount')}</Text>
               <Text
                 style={[
                   styles.detailValue,
@@ -258,7 +261,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Sana</Text>
+              <Text style={styles.detailLabel}>{t('contact.date')}</Text>
               <Text style={styles.detailValueMuted}>
                 {selectedTransaction ? formatDateLong(selectedTransaction.createdDate) : '--'}
               </Text>
@@ -266,15 +269,15 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
 
             {performerPhone ? (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Xodim</Text>
+                <Text style={styles.detailLabel}>{t('contact.employee')}</Text>
                 <Text style={styles.detailValueMuted}>{formatPhoneDisplay(performerPhone)}</Text>
               </View>
             ) : null}
 
             <View style={styles.detailDescriptionBox}>
-              <Text style={styles.detailLabel}>Izoh</Text>
+              <Text style={styles.detailLabel}>{t('contact.comment')}</Text>
               <Text style={styles.detailDescription}>
-                {selectedTransaction?.description?.trim() || "Izoh kiritilmagan"}
+                {selectedTransaction?.description?.trim() || t('contact.noComment')}
               </Text>
             </View>
           </View>
@@ -313,7 +316,7 @@ function mapTransaction(
   return {
     ...item,
     kind: isCredit ? 'credit' as const : 'debt' as const,
-    label: isCredit ? 'Haq berildi' : 'Qarz olindi',
+    label: isCredit ? translate('contact.creditGiven') : translate('contact.debtTaken'),
   };
 }
 
@@ -327,12 +330,6 @@ function formatDateLong(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString();
-}
-
-function formatPhoneDisplay(value: string): string {
-  const digits = (value || '').replace(/\D/g, '');
-  if (digits.length === 12 && digits.startsWith('998')) return `+${digits}`;
-  return value;
 }
 
 const styles = StyleSheet.create({

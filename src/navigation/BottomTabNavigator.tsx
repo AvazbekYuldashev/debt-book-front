@@ -6,14 +6,23 @@ import ProfileStack from './ProfileStack';
 import { Feather } from '@expo/vector-icons';
 import { ROUTES } from './routes';
 import colors from '../styles/colors';
+import { useI18n } from '../i18n';
 
 const Tab = createBottomTabNavigator();
 
 const BottomTabNavigator: React.FC = () => {
+  const { t } = useI18n();
+  const tabLabel = (routeName: string) => {
+    if (routeName === ROUTES.DEBTS) return t('tab.debts');
+    if (routeName === ROUTES.EXPENSES) return t('tab.expenses');
+    if (routeName === ROUTES.PROFILE) return t('tab.profile');
+    return routeName;
+  };
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarLabel: tabLabel(route.name),
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {

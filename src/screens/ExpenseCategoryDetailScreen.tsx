@@ -24,8 +24,12 @@ import { createExpense, deleteExpense, getExpensesByCategory } from '../services
 import { formatMoney } from '../utils/money';
 import { canWrite, canDelete } from '../utils/permissions';
 import { confirmAction } from '../utils/confirm';
+import { useI18n } from '../i18n';
+import { resolveDateRange } from '../utils/date';
+import { formatPhoneDisplay } from '../utils/phone';
 
 const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
+  const { t } = useI18n();
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const categoryId = String(route.params?.id ?? '');
@@ -67,7 +71,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
         });
         setExpenses(page.content ?? []);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Xarajatlarni yuklab bo'lmadi");
+        setError(e instanceof Error ? e.message : t('expenses.loadExpensesFailed'));
       } finally {
         if (showSpinner) setLoading(false);
       }
@@ -105,16 +109,16 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
 
   const handleSaveExpense = async () => {
     if (!profile?.jwt) {
-      setError('Token topilmadi. Qayta login qiling');
+      setError(t('expenses.noToken'));
       return;
     }
     if (!categoryId) {
-      setError('Kategoriya topilmadi');
+      setError(t('expenses.noCategories'));
       return;
     }
     const normalizedAmount = Number(amount.replace(',', '.'));
     if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
-      setError("Summa noto'g'ri");
+      setError(t('expenses.amountInvalid'));
       return;
     }
 
@@ -132,7 +136,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
       closeExpenseModal();
       await loadExpenses(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Saqlab bo'lmadi");
+      setError(e instanceof Error ? e.message : t('expenses.saveFailed'));
     } finally {
       setSavingExpense(false);
     }
@@ -140,7 +144,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
 
   const handleDeleteExpense = async (id: string) => {
     if (!profile?.jwt) {
-      setError('Token topilmadi. Qayta login qiling');
+      setError(t('expenses.noToken'));
       return;
     }
     setDeletingExpense(id);
@@ -149,7 +153,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
       await deleteExpense(id, profile.jwt);
       setExpenses((prev) => prev.filter((item) => item.id !== id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "O'chirib bo'lmadi");
+      setError(e instanceof Error ? e.message : t('expenses.deleteFailed'));
     } finally {
       setDeletingExpense('');
     }
@@ -183,8 +187,8 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
   const renderHeader = () => (
     <View>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>{categoryName || 'Xarajatlar'}</Text>
-        {allowWrite ? <PrimaryButton title="Xarajat qo'shish" onPress={openCreateExpense} /> : null}
+        <Text style={styles.title}>{categoryName || t('expenses.title')}</Text>
+        {allowWrite ? <PrimaryButton title={t('expenses.addExpense')} onPress={openCreateExpense} /> : null}
       </View>
       <View style={styles.searchRow}>
         <Ionicons name="search-outline" size={17} color={colors.textSecondary} />
@@ -192,7 +196,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
           style={styles.searchInput}
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Xarajat qidirish"
+          placeholder={t('expenses.searchExpense')}
           placeholderTextColor={colors.textSecondary}
         />
       </View>
@@ -219,7 +223,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
           loading ? (
             <SkeletonCardList count={4} />
           ) : (
-            <Text style={styles.emptyText}>Xarajat topilmadi</Text>
+            <Text style={styles.emptyText}>{t('expenses.noExpenses')}</Text>
           )
         }
         renderItem={({ item }) => {
@@ -228,21 +232,21 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
             <Card style={styles.expenseCard}>
               <View style={styles.expenseMain}>
                 <Text style={styles.expenseAmount}>{formatMoney(amountValue || 0)}</Text>
-                <Text style={styles.expenseDescription}>{item.description || 'Izoh yoq'}</Text>
+                <Text style={styles.expenseDescription}>{item.description || t('expenses.noComment')}</Text>
                 {item.createdDate ? (
                   <Text style={styles.expenseDate}>
                     {new Date(item.createdDate).toLocaleString()}
                   </Text>
                 ) : null}
                 {item.creatorPhone ? (
-                  <Text style={styles.expenseCreator}>Qo'shdi: {formatPhone(item.creatorPhone)}</Text>
+                  <Text style={styles.expenseCreator}>{t('expenses.addedBy')}: {formatPhoneDisplay(item.creatorPhone)}</Text>
                 ) : null}
               </View>
               {allowDelete ? (
                 <TouchableOpacity
                   style={styles.iconBtn}
                   onPress={() =>
-                    confirmAction("Ushbu xarajatni o'chirasizmi?", () => handleDeleteExpense(item.id))
+                    confirmAction(t('expenses.deleteExpenseConfirm'), () => handleDeleteExpense(item.id))
                   }
                   disabled={deletingExpense === item.id}
                 >
@@ -261,32 +265,32 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
       <Modal visible={expenseModalVisible} animationType="slide" transparent onRequestClose={closeExpenseModal}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Xarajat qo'shish</Text>
+            <Text style={styles.modalTitle}>{t('expenses.addExpense')}</Text>
             <Text style={styles.modalHint}>
-              Kategoriya: {categoryName || 'tanlanmagan'}
+              {t('expenses.categoryColon')}: {categoryName || t('expenses.notSelected')}
             </Text>
             <AppTextInput
-              label="Summa"
+              label={t('expenses.amountLabel')}
               value={amount}
               onChangeText={(value) => setAmount(value.replace(/[^0-9.,]/g, ''))}
-              placeholder="Masalan: 120000"
+              placeholder={t('expenses.amountExample')}
               keyboardType="numeric"
             />
             <AppTextInput
-              label="Izoh"
+              label={t('expenses.commentLabel')}
               value={description}
               onChangeText={setDescription}
-              placeholder="Masalan: Non va sut"
+              placeholder={t('expenses.commentExample')}
             />
             <View style={styles.modalActions}>
               <PrimaryButton
-                title="Bekor qilish"
+                title={t('common.cancel')}
                 variant="secondary"
                 onPress={closeExpenseModal}
                 style={styles.modalActionBtn}
               />
               <PrimaryButton
-                title="Saqlash"
+                title={t('common.save')}
                 onPress={handleSaveExpense}
                 loading={savingExpense}
                 style={styles.modalActionBtn}
@@ -426,42 +430,5 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
-function resolveDateRange(fromDate: string, endDate: string) {
-  const normalizedFrom = fromDate?.trim() || '';
-  const normalizedEnd = endDate?.trim() || '';
-  if (normalizedFrom && !isValidDateInput(normalizedFrom)) {
-    return { ok: false as const, error: "Boshlanish sana formati noto'g'ri. YYYY-MM-DD kiriting." };
-  }
-  if (normalizedEnd && !isValidDateInput(normalizedEnd)) {
-    return { ok: false as const, error: "Tugash sana formati noto'g'ri. YYYY-MM-DD kiriting." };
-  }
-  if (normalizedFrom && normalizedEnd) {
-    const fromValue = new Date(normalizedFrom);
-    const endValue = new Date(normalizedEnd);
-    if (Number.isNaN(fromValue.getTime()) || Number.isNaN(endValue.getTime())) {
-      return { ok: false as const, error: "Sana noto'g'ri kiritilgan." };
-    }
-    if (endValue < fromValue) {
-      return { ok: false as const, error: 'Tugash sana boshlanish sanasidan oldin bo‘lishi mumkin emas.' };
-    }
-  }
-  return {
-    ok: true as const,
-    fromDate: normalizedFrom || undefined,
-    endDate: normalizedEnd || undefined,
-  };
-}
-
-function isValidDateInput(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
-function formatPhone(value?: string): string {
-  if (!value) return '';
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 12 && digits.startsWith('998')) return `+${digits}`;
-  return value;
-}
 
 export default ExpenseCategoryDetailScreen;

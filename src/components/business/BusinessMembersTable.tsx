@@ -1,6 +1,8 @@
 import React from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BusinessMemberRole, BusinessProfileDTO } from '../../types/business';
+import { useI18n } from '../../i18n';
+import { formatPhoneDisplay } from '../../utils/phone';
 
 interface BusinessMembersTableProps {
   members: BusinessProfileDTO[];
@@ -21,6 +23,7 @@ const BusinessMembersTable: React.FC<BusinessMembersTableProps> = ({
   onRemove,
   onToggleRole,
 }) => {
+  const { t } = useI18n();
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -30,19 +33,19 @@ const BusinessMembersTable: React.FC<BusinessMembersTableProps> = ({
   }
 
   if (members.length === 0) {
-    return <Text style={styles.empty}>Members topilmadi</Text>;
+    return <Text style={styles.empty}>{t('members.empty')}</Text>;
   }
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tableContainer}>
       <View>
         <View style={[styles.row, styles.headerRow]}>
-          <Text style={[styles.cell, styles.headerCell, styles.wide]}>Name</Text>
-          <Text style={[styles.cell, styles.headerCell, styles.wide]}>Username</Text>
-          <Text style={[styles.cell, styles.headerCell, styles.wide]}>Phone</Text>
-          <Text style={[styles.cell, styles.headerCell]}>Role</Text>
-          <Text style={[styles.cell, styles.headerCell, styles.wide]}>Created</Text>
-          {canManage ? <Text style={[styles.cell, styles.headerCell, styles.actionsWide]}>Amallar</Text> : null}
+          <Text style={[styles.cell, styles.headerCell, styles.wide]}>{t('members.name')}</Text>
+          <Text style={[styles.cell, styles.headerCell, styles.wide]}>{t('members.username')}</Text>
+          <Text style={[styles.cell, styles.headerCell, styles.wide]}>{t('members.phoneCol')}</Text>
+          <Text style={[styles.cell, styles.headerCell]}>{t('members.roleCol')}</Text>
+          <Text style={[styles.cell, styles.headerCell, styles.wide]}>{t('members.created')}</Text>
+          {canManage ? <Text style={[styles.cell, styles.headerCell, styles.actionsWide]}>{t('members.actions')}</Text> : null}
         </View>
         {members.map((member) => {
           const isOwner = member.role === 'OWNER';
@@ -52,13 +55,13 @@ const BusinessMembersTable: React.FC<BusinessMembersTableProps> = ({
             <View style={styles.row} key={member.id}>
               <Text style={[styles.cell, styles.wide]}>{member.profileName || '--'}</Text>
               <Text style={[styles.cell, styles.wide]}>{member.profileUsername || '--'}</Text>
-              <Text style={[styles.cell, styles.wide]}>{formatPhone(member.phoneNumber)}</Text>
+              <Text style={[styles.cell, styles.wide]}>{formatPhoneDisplay(member.phoneNumber, '--')}</Text>
               <Text style={styles.cell}>{member.role}</Text>
               <Text style={[styles.cell, styles.wide]}>{formatDate(member.createdDate)}</Text>
               {canManage ? (
                 <View style={[styles.cell, styles.actionsWide, styles.actionsCell]}>
                   {isOwner ? (
-                    <Text style={styles.ownerTag}>Owner</Text>
+                    <Text style={styles.ownerTag}>{t('business.role.owner')}</Text>
                   ) : busy ? (
                     <ActivityIndicator size="small" />
                   ) : (
@@ -68,14 +71,14 @@ const BusinessMembersTable: React.FC<BusinessMembersTableProps> = ({
                         onPress={() => onToggleRole?.(member, nextRole)}
                       >
                         <Text style={styles.roleBtnText}>
-                          {nextRole === 'ADMIN' ? 'ADMIN qil' : 'USER qil'}
+                          {nextRole === 'ADMIN' ? t('members.makeAdmin') : t('members.makeUser')}
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.actionBtn, styles.removeBtn]}
                         onPress={() => onRemove?.(member)}
                       >
-                        <Text style={styles.removeBtnText}>O'chirish</Text>
+                        <Text style={styles.removeBtnText}>{t('common.delete')}</Text>
                       </TouchableOpacity>
                     </>
                   )}
@@ -94,15 +97,6 @@ function formatDate(value?: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString();
-}
-
-function formatPhone(value?: string): string {
-  if (!value) return '--';
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 12 && digits.startsWith('998')) {
-    return `+${digits}`;
-  }
-  return value;
 }
 
 const styles = StyleSheet.create({

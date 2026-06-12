@@ -5,6 +5,7 @@ import PrimaryButton from '../ui/PrimaryButton';
 import { AuthContext } from '../../context/AuthContext';
 import { createBusiness } from '../../services/businessService';
 import { BusinessDTO } from '../../types/business';
+import { useI18n } from '../../i18n';
 
 interface CreateBusinessModalProps {
   visible: boolean;
@@ -13,6 +14,7 @@ interface CreateBusinessModalProps {
 }
 
 const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onClose, onCreated }) => {
+  const { t } = useI18n();
   const { profile } = useContext(AuthContext);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -29,11 +31,11 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
 
   const handleSubmit = async () => {
     if (!profile?.jwt) {
-      setError('Token topilmadi. Qayta login qiling.');
+      setError(t('business.noToken'));
       return;
     }
     if (!name.trim()) {
-      setError('Business nomini kiriting.');
+      setError(t('business.enterName'));
       return;
     }
 
@@ -47,7 +49,7 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
       onCreated?.(created);
       handleClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Business yaratib bo‘lmadi.');
+      setError(e instanceof Error ? e.message : t('business.createFailed'));
     } finally {
       setLoading(false);
     }
@@ -57,25 +59,25 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Text style={styles.title}>Create Business</Text>
+          <Text style={styles.title}>{t('business.createTitle')}</Text>
           <AppTextInput
-            label="Business name"
+            label={t('business.name')}
             value={name}
             onChangeText={setName}
-            placeholder="My Shop"
+            placeholder={t('business.namePlaceholder')}
             containerStyle={styles.field}
           />
           <AppTextInput
-            label="Address"
+            label={t('business.address')}
             value={address}
             onChangeText={setAddress}
-            placeholder="Tashkent, Chilonzor"
+            placeholder={t('business.addressPlaceholder')}
             containerStyle={styles.field}
           />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <View style={styles.actions}>
-            <PrimaryButton title="Cancel" variant="secondary" onPress={handleClose} style={styles.actionBtn} />
-            <PrimaryButton title="Create" onPress={handleSubmit} loading={loading} style={styles.actionBtn} />
+            <PrimaryButton title={t('common.cancel')} variant="secondary" onPress={handleClose} style={styles.actionBtn} />
+            <PrimaryButton title={t('business.createBtn')} onPress={handleSubmit} loading={loading} style={styles.actionBtn} />
           </View>
         </View>
       </View>

@@ -6,8 +6,10 @@ import { AuthContext } from '../context/AuthContext';
 import { ProfileDTO } from '../types';
 import AuthShell from '../components/auth/AuthShell';
 import { authStyles as s } from '../components/auth/authStyles';
+import { useI18n } from '../i18n';
 
 const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
+  const { t } = useI18n();
   const username = String(route?.params?.username || '').trim();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -17,7 +19,7 @@ const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ navi
   const handleVerify = async () => {
     setError('');
     if (!username) {
-      setError("Raqam topilmadi, qayta ro'yxatdan o'ting");
+      setError(t('sms.noNumber'));
       return;
     }
     setLoading(true);
@@ -25,7 +27,7 @@ const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ navi
       const profile = (await verifySms({ phone: username, code: code.trim() })) as ProfileDTO;
       setProfile(profile);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Kodni tekshiring");
+      setError(e instanceof Error ? e.message : t('sms.checkCode'));
     } finally {
       setLoading(false);
     }
@@ -34,20 +36,20 @@ const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ navi
   const handleResend = async () => {
     setError('');
     if (!username) {
-      setError("Raqam topilmadi, qayta ro'yxatdan o'ting");
+      setError(t('sms.noNumber'));
       return;
     }
     try {
       await resendSms({ phone: username });
     } catch (e) {
-      setError("Qayta yuborib bo'lmadi");
+      setError(t('sms.resendFailed'));
     }
   };
 
   return (
-    <AuthShell emoji="✉️" title="SMS tasdiqlash" subtitle="Raqamingizga yuborilgan kodni kiriting" onBack={() => navigation.goBack()}>
+    <AuthShell emoji="✉️" title={t('sms.title')} subtitle={t('sms.subtitle')} onBack={() => navigation.goBack()}>
       <View style={s.field}>
-        <Text style={s.fieldLabel}>Tasdiqlash kodi</Text>
+        <Text style={s.fieldLabel}>{t('sms.code')}</Text>
         <View style={s.inputRow}>
           <TextInput
             style={s.codeInput}
@@ -63,11 +65,11 @@ const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ navi
       {error ? <Text style={s.errorText}>{error}</Text> : null}
 
       <TouchableOpacity style={s.button} onPress={handleVerify} disabled={loading} activeOpacity={0.9}>
-        {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.buttonText}>Tasdiqlash</Text>}
+        {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.buttonText}>{t('sms.submit')}</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={handleResend}>
-        <Text style={s.linkCenter}>Kodni qayta yuborish</Text>
+        <Text style={s.linkCenter}>{t('sms.resend')}</Text>
       </TouchableOpacity>
     </AuthShell>
   );

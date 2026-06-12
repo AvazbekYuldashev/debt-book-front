@@ -1,6 +1,7 @@
 import { ProfileDTO } from '../types';
 import { API_BASE } from './baseUrl';
 import { normalizePhone } from '../utils/phone';
+import { getApiLanguage } from '../i18n';
 
 type ApiErrorBody = {
   message?: string;
@@ -89,7 +90,7 @@ async function request<T>(path: string, dto: unknown): Promise<T> {
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'Accept-Language': 'UZ',
+      'Accept-Language': getApiLanguage(),
     },
     body: JSON.stringify(dto),
   });

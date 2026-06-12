@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../styles/colors';
+import LanguageSwitcher from '../LanguageSwitcher';
 
 interface AuthShellProps {
   emoji: string;
@@ -28,6 +29,9 @@ const AuthShell: React.FC<AuthShellProps> = ({ emoji, title, subtitle, onBack, c
           <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
       ) : null}
+      <View style={styles.langSwitch}>
+        <LanguageSwitcher />
+      </View>
       <View style={styles.iconBadge}>
         <Text style={styles.iconEmoji}>{emoji}</Text>
       </View>
@@ -61,6 +65,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 28,
     elevation: 4,
+  },
+  langSwitch: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 2,
   },
   backBtn: {
     position: 'absolute',

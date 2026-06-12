@@ -25,6 +25,7 @@ import { extractMoneyTotals, formatMoney } from '../utils/money';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 import { canWrite, canDelete } from '../utils/permissions';
 import { confirmDelete } from '../utils/confirm';
+import { useI18n } from '../i18n';
 
 type Mode = 'create' | 'edit';
 
@@ -32,6 +33,7 @@ const POSITIVE = '#0D9488';
 const NEGATIVE = '#EF4444';
 
 const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useI18n();
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const { accountType } = useAccountContext();
@@ -253,7 +255,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       } catch (e) {
         if (!cancelled) {
           setSearchResults([]);
-          setLocalError(e instanceof Error ? e.message : 'Qidiruvda xatolik yuz berdi');
+          setLocalError(e instanceof Error ? e.message : t('debts.searchError'));
         }
       } finally {
         if (!cancelled) setSearchLoading(false);
@@ -295,14 +297,14 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setLocalError('Ismni kiriting');
+      setLocalError(t('debts.enterName'));
       return;
     }
 
     if (mode === 'create') {
       if (targetType === 'BUSINESS_ACCOUNT') {
         if (!targetBusinessId.trim()) {
-          setLocalError('Business ID majburiy');
+          setLocalError(t('debts.businessIdRequired'));
           return;
         }
 
@@ -317,17 +319,17 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       }
 
       if (!phone.trim()) {
-        setLocalError('Telefonni kiriting');
+        setLocalError(t('debts.enterPhone'));
         return;
       }
       const digits = phone.replace(/\D/g, '');
       if (digits.length !== 9 && digits.length !== 12) {
-        setLocalError("Telefon 9 yoki 12 xonali bo'lishi kerak");
+        setLocalError(t('debts.phoneLength'));
         return;
       }
 
       if (digits.length === 12 && !digits.startsWith('998')) {
-        setLocalError("12 xonali telefon 998 bilan boshlanishi kerak");
+        setLocalError(t('debts.phone998'));
         return;
       }
 
@@ -338,7 +340,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       });
 
       if (ok) closeModal();
-      else setLocalError("So'rov yuborilmadi yoki server xatolik qaytardi. Maydonlarni tekshirib qayta urinib ko'ring.");
+      else setLocalError(t('debts.saveFailed'));
       return;
     }
 
@@ -349,7 +351,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleDelete = (id: string) => {
     const target = contacts.find((c) => c.id === id);
-    confirmDelete(target?.fullName || 'Ushbu kontakt', async () => {
+    confirmDelete(target?.fullName || t('debts.thisContact'), async () => {
       await deleteContact(id);
     });
   };
@@ -363,39 +365,39 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       >
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
-          <Text style={styles.title}>Clientlar</Text>
+          <Text style={styles.title}>{t('debts.clientsTitle')}</Text>
           {canWrite(workspace.activeBusinessRole) ? (
             <TouchableOpacity style={styles.headerAction} onPress={openCreate}>
               <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-              <Text style={styles.headerActionText}>Qo'shish</Text>
+              <Text style={styles.headerActionText}>{t('common.add')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
 
         <AppTextInput
-          label="Ism bo'yicha filter"
+          label={t('debts.filterName')}
           value={filterName}
           onChangeText={setFilterName}
-          placeholder="Kamida 3 ta harf kiriting"
+          placeholder={t('debts.min3letters')}
           containerStyle={styles.searchInput}
         />
         <AppTextInput
-          label="Telefon bo'yicha filter"
+          label={t('debts.filterPhone')}
           value={filterPhone}
           onChangeText={(value) => setFilterPhone(value.replace(/\D/g, '').slice(0, 12))}
           keyboardType="phone-pad"
-          placeholder="Kamida 3 ta raqam kiriting"
+          placeholder={t('debts.min3digits')}
           containerStyle={styles.searchInput}
         />
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryCol}>
-            <Text style={styles.summaryLabel}>Hozirgi Qarz</Text>
+            <Text style={styles.summaryLabel}>{t('debts.currentDebt')}</Text>
             <Text style={[styles.summaryValue, { color: NEGATIVE }]}>{formatMoney(aggregateTotals.totalDebt)}</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryCol}>
-            <Text style={styles.summaryLabel}>Hozirgi Haq</Text>
+            <Text style={styles.summaryLabel}>{t('debts.currentCredit')}</Text>
             <Text style={[styles.summaryValue, { color: POSITIVE }]}>{formatMoney(aggregateTotals.totalCredit)}</Text>
           </View>
         </View>
@@ -410,7 +412,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           {loading || searchLoading ? (
             <SkeletonCardList count={5} containerStyle={styles.listSkeleton} />
           ) : filteredContacts.length === 0 ? (
-            <Text style={styles.emptyText}>Bu accountda hali oldi-berdi yo'q</Text>
+            <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
           ) : (
             filteredContacts.map((item, index) => {
               const balance = totalsByContact[item.id]?.balance;
@@ -427,7 +429,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     <Text style={styles.name}>{item.fullName}</Text>
                     <Text style={styles.phone}>
                       {item.partyType === 'BUSINESS_ACCOUNT'
-                        ? `Business: ${item.partyId || '--'}`
+                        ? `${t('debts.businessLabel')}: ${item.partyId || '--'}`
                         : item.phone || item.partyId || '--'}
                     </Text>
                   </TouchableOpacity>
@@ -460,9 +462,9 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
-              {mode === 'create' ? "Yangi client qo'shish" : "Clientni o'zgartirish"}
+              {mode === 'create' ? t('debts.addClient') : t('debts.editClient')}
             </Text>
-            <AppTextInput label="Ism familiya" value={name} onChangeText={setName} placeholder="Ali Valiyev" />
+            <AppTextInput label={t('debts.fullName')} value={name} onChangeText={setName} placeholder="Ali Valiyev" />
             {mode === 'create' ? (
               <View style={styles.targetTypeWrap}>
                 <TouchableOpacity
@@ -470,7 +472,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   onPress={() => setTargetType('PROFILE')}
                 >
                   <Text style={[styles.targetChipText, targetType === 'PROFILE' && styles.targetChipTextActive]}>
-                    Profile target
+                    {t('debts.profileTarget')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -480,23 +482,23 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   <Text
                     style={[styles.targetChipText, targetType === 'BUSINESS_ACCOUNT' && styles.targetChipTextActive]}
                   >
-                    Business target
+                    {t('debts.businessTarget')}
                   </Text>
                 </TouchableOpacity>
               </View>
             ) : null}
             {mode === 'create' && targetType === 'PROFILE' ? (
               <AppTextInput
-                label="Telefon"
+                label={t('debts.phone')}
                 value={phone}
                 onChangeText={(value) => setPhone(value.replace(/\D/g, '').slice(0, 12))}
                 keyboardType="phone-pad"
-                placeholder="901234567 yoki 998901234567"
+                placeholder={t('debts.phonePlaceholder')}
               />
             ) : null}
             {mode === 'create' && targetType === 'BUSINESS_ACCOUNT' ? (
               <AppTextInput
-                label="Target business ID"
+                label={t('debts.targetBusinessId')}
                 value={targetBusinessId}
                 onChangeText={setTargetBusinessId}
                 placeholder="business-id"
@@ -505,20 +507,20 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             {localError ? <Text style={styles.localError}>{localError}</Text> : null}
             <View style={styles.modalActions}>
               <PrimaryButton
-                title="Bekor qilish"
+                title={t('common.cancel')}
                 variant="secondary"
                 onPress={closeModal}
                 style={styles.modalActionBtn}
               />
               <PrimaryButton
-                title={mode === 'create' ? "Qo'shish" : 'Saqlash'}
+                title={mode === 'create' ? t('common.add') : t('common.save')}
                 onPress={handleSave}
                 loading={creating || updating}
                 style={styles.modalActionBtn}
               />
             </View>
             {mode === 'edit' && selectedContact ? (
-              <Text style={styles.editHint}>Kontakt yangilanmoqda</Text>
+              <Text style={styles.editHint}>{t('debts.updatingContact')}</Text>
             ) : null}
           </View>
         </View>

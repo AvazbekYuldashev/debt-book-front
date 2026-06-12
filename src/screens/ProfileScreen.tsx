@@ -17,6 +17,8 @@ import { AuthContext } from '../context/AuthContext';
 import Card from '../components/Card';
 import AppTextInput from '../components/form/AppTextInput';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import { useI18n } from '../i18n';
 import * as ImagePicker from 'expo-image-picker';
 import {
   confirmProfileUsername,
@@ -32,6 +34,7 @@ import { API_BASE } from '../api/baseUrl';
 import { ROUTES } from '../navigation/routes';
 
 const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useI18n();
   const { profile, setProfile } = useContext(AuthContext);
   const [name, setName] = useState(profile?.name ?? '');
   const [surname, setSurname] = useState(profile?.surname ?? '');
@@ -79,9 +82,9 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setStatus('');
     try {
       await action();
-      setStatus('Muvaffaqiyatli');
+      setStatus(t('common.success'));
     } catch (e) {
-      setStatus(e instanceof Error ? e.message : 'Xatolik yuz berdi');
+      setStatus(e instanceof Error ? e.message : t('profile.genericError'));
     } finally {
       setLoadingKey(null);
     }
@@ -120,16 +123,16 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleUpdateDetail = () =>
     run('detail', async () => {
-      if (!token) throw new Error('Token topilmadi');
+      if (!token) throw new Error(t('profile.noToken'));
       await updateProfileDetail({ name: name.trim(), surname: surname.trim() }, token);
       setProfile((prev) => (prev ? { ...prev, name: name.trim(), surname: surname.trim() } : prev));
     });
 
   const handleUpdateUsername = () =>
     run('username', async () => {
-      if (!token) throw new Error('Token topilmadi');
+      if (!token) throw new Error(t('profile.noToken'));
       const clean = username.trim();
-      if (!clean) throw new Error('Username kiriting');
+      if (!clean) throw new Error(t('profile.enterUsername'));
       await updateProfileUsername({ username: clean }, token);
       setPendingUsername(clean);
       setConfirmCode('');
@@ -137,9 +140,9 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleConfirmUsername = () =>
     run('usernameConfirm', async () => {
-      if (!token) throw new Error('Token topilmadi');
+      if (!token) throw new Error(t('profile.noToken'));
       const code = confirmCode.trim();
-      if (!code) throw new Error('Kod kiriting');
+      if (!code) throw new Error(t('profile.enterCode'));
       await confirmProfileUsername({ code }, token);
       if (pendingUsername) {
         setProfile((prev) => (prev ? { ...prev, username: pendingUsername } : prev));
@@ -150,12 +153,12 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleUpdatePassword = () =>
     run('password', async () => {
-      if (!token) throw new Error('Token topilmadi');
+      if (!token) throw new Error(t('profile.noToken'));
       if (!oldPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim()) {
-        throw new Error('Parollarni kiriting');
+        throw new Error(t('profile.enterPasswords'));
       }
       if (newPassword.trim() !== confirmNewPassword.trim()) {
-        throw new Error('Yangi parollar mos emas');
+        throw new Error(t('profile.passwordMismatch'));
       }
       await updateProfilePassword({ oldPassword: oldPassword.trim(), newPassword: newPassword.trim() }, token);
       setOldPassword('');
@@ -165,11 +168,11 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handlePickPhoto = () =>
     run('photo', async () => {
-      if (!token) throw new Error('Token topilmadi');
+      if (!token) throw new Error(t('profile.noToken'));
       if (Platform.OS !== 'web') {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permission.granted) {
-          throw new Error('Galereyaga ruxsat berilmadi');
+          throw new Error(t('profile.galleryDenied'));
         }
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -188,7 +191,7 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         const type = asset.type === 'image' ? 'image/jpeg' : 'application/octet-stream';
         uploaded = await uploadAttach({ uri: asset.uri, name, type }, token);
       }
-      if (!uploaded.id) throw new Error('Photo id topilmadi');
+      if (!uploaded.id) throw new Error(t('profile.photoIdMissing'));
       await updateProfilePhoto({ photoId: uploaded.id }, token);
       // Use the returned URL for preview when available.
       const resolvedUrl =
@@ -209,7 +212,7 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <WorkspaceSwitcher />
-      <Text style={styles.title}>Profil sozlamalari</Text>
+      <Text style={styles.title}>{t('profile.settingsTitle')}</Text>
       {profile ? (
         <View style={styles.avatarBlock}>
           {photoUri ? (
@@ -244,17 +247,22 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           {profile.status ? <Text style={styles.infoText}>{profile.status}</Text> : null}
         </Card>
       ) : (
-        <Text style={styles.infoText}>Tizimga kirmagansiz</Text>
+        <Text style={styles.infoText}>{t('profile.notLoggedIn')}</Text>
       )}
+
+      <Card style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
+        <LanguageSwitcher variant="list" />
+      </Card>
 
       {profile ? (
         <>
           <Card style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Ism va familiya</Text>
-            <AppTextInput label="Ism" value={name} onChangeText={setName} containerStyle={styles.compactField} />
+            <Text style={styles.sectionTitle}>{t('profile.nameSection')}</Text>
+            <AppTextInput label={t('profile.name')} value={name} onChangeText={setName} containerStyle={styles.compactField} />
             <View style={styles.inputRow}>
               <AppTextInput
-                label="Familiya"
+                label={t('profile.surname')}
                 value={surname}
                 onChangeText={setSurname}
                 containerStyle={[styles.compactField, styles.flexOne]}
@@ -270,10 +278,10 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </Card>
 
           <Card style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Telefon (username)</Text>
+            <Text style={styles.sectionTitle}>{t('profile.phoneSection')}</Text>
             <View style={styles.inputRow}>
               <AppTextInput
-                label="Username"
+                label={t('profile.username')}
                 value={username}
                 onChangeText={setUsername}
                 containerStyle={[styles.compactField, styles.flexOne]}
@@ -290,7 +298,7 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <>
                 <View style={styles.inputRow}>
                   <AppTextInput
-                    label="Tasdiqlash kodi"
+                    label={t('profile.confirmCode')}
                     value={confirmCode}
                     onChangeText={setConfirmCode}
                     containerStyle={[styles.compactField, styles.flexOne]}
@@ -303,22 +311,22 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     <Ionicons name="checkmark-outline" size={18} color={colors.primary} />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.helperText}>Yangi username: {pendingUsername}</Text>
+                <Text style={styles.helperText}>{t('profile.newUsername')}: {pendingUsername}</Text>
               </>
             ) : null}
           </Card>
 
           <Card style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Parolni o'zgartirish</Text>
+            <Text style={styles.sectionTitle}>{t('profile.changePassword')}</Text>
             <AppTextInput
-              label="Eski parol"
+              label={t('profile.oldPasswordLabel')}
               value={oldPassword}
               onChangeText={setOldPassword}
               secureTextEntry
               containerStyle={styles.compactField}
             />
             <AppTextInput
-              label="Yangi parol"
+              label={t('profile.newPassword')}
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
@@ -326,7 +334,7 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             />
             <View style={styles.inputRow}>
               <AppTextInput
-                label="Yangi parol (tasdiq)"
+                label={t('profile.newPasswordConfirm')}
                 value={confirmNewPassword}
                 onChangeText={setConfirmNewPassword}
                 secureTextEntry
@@ -349,16 +357,16 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               style={styles.secondaryBtn}
               onPress={() => navigation.navigate(ROUTES.MY_BUSINESSES)}
             >
-              <Text style={styles.secondaryBtnText}>My businesses</Text>
+              <Text style={styles.secondaryBtnText}>{t('profile.myBusinesses')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.actionsRow}>
             <TouchableOpacity style={styles.secondaryBtn} onPress={handleLogout}>
-              <Text style={styles.secondaryBtnText}>Chiqish</Text>
+              <Text style={styles.secondaryBtnText}>{t('profile.logout')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.dangerBtn} onPress={handleDelete} disabled={loadingKey === 'delete'}>
-              <Text style={styles.dangerBtnText}>Profilni o'chirish</Text>
+              <Text style={styles.dangerBtnText}>{t('profile.deleteProfile')}</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -380,12 +388,12 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 <Image
                   source={{ uri: photoUri }}
                   style={styles.photoModalImage}
-                  onError={() => setPhotoModalError('Rasm yuklanmadi')}
+                  onError={() => setPhotoModalError(t('profile.imageLoadFailed'))}
                 />
               </TouchableOpacity>
             </View>
           ) : (
-            <Text style={styles.photoModalText}>Rasm topilmadi</Text>
+            <Text style={styles.photoModalText}>{t('profile.imageNotFound')}</Text>
           )}
           {photoModalError ? <Text style={styles.photoModalText}>{photoModalError}</Text> : null}
         </View>

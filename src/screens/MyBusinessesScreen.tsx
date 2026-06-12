@@ -16,8 +16,10 @@ import { BusinessDTO } from '../types/business';
 import CreateBusinessModal from '../components/business/CreateBusinessModal';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import { ROUTES } from '../navigation/routes';
+import { useI18n } from '../i18n';
 
 const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useI18n();
   const { profile } = useContext(AuthContext);
   const { workspace, setBusinessWorkspace } = useContext(WorkspaceContext);
   const [loading, setLoading] = useState(false);
@@ -37,7 +39,7 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       const response = await getMyBusinesses(profile.jwt);
       setBusinesses(response);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Businesslar yuklanmadi');
+      setError(e instanceof Error ? e.message : t('workspace.loadFailed'));
     } finally {
       if (showSpinner) setLoading(false);
     }
@@ -63,9 +65,9 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       >
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
-          <Text style={styles.title}>My Businesses</Text>
+          <Text style={styles.title}>{t('business.myBusinesses')}</Text>
           <TouchableOpacity style={styles.createBtn} onPress={() => setCreateModalVisible(true)}>
-            <Text style={styles.createBtnText}>Create</Text>
+            <Text style={styles.createBtnText}>{t('business.createBtn')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -74,7 +76,7 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <ActivityIndicator />
           </View>
         ) : businesses.length === 0 ? (
-          <Text style={styles.empty}>Business topilmadi</Text>
+          <Text style={styles.empty}>{t('workspace.noBusiness')}</Text>
         ) : (
           businesses.map((business) => {
             const isActive = workspace.mode === 'business' && workspace.activeBusinessId === business.id;
@@ -86,8 +88,8 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     <Text style={styles.roleText}>{business.currentRole}</Text>
                   </View>
                 </View>
-                <Text style={styles.metaText}>{business.address || 'Address yo‘q'}</Text>
-                <Text style={styles.metaText}>Owner: {business.ownerName || '--'}</Text>
+                <Text style={styles.metaText}>{business.address || t('business.noAddress')}</Text>
+                <Text style={styles.metaText}>{t('business.ownerLabel')}: {business.ownerName || '--'}</Text>
                 <View style={styles.cardActions}>
                   <TouchableOpacity
                     style={styles.openBtn}
@@ -99,7 +101,7 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                       })
                     }
                   >
-                    <Text style={styles.openBtnText}>{isActive ? 'Opened' : 'Open'}</Text>
+                    <Text style={styles.openBtnText}>{isActive ? t('business.opened') : t('business.open')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.membersBtn}
@@ -110,7 +112,7 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                       })
                     }
                   >
-                    <Text style={styles.membersBtnText}>Members</Text>
+                    <Text style={styles.membersBtnText}>{t('business.members')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

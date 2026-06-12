@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { API_BASE } from './baseUrl';
 import { BUSINESS_HEADER_KEY, getActiveBusinessId } from './workspaceHeaders';
+import { getApiLanguage } from '../i18n';
 
 export class ApiClientError extends Error {
   status?: number;
@@ -102,9 +103,10 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
+  config.headers = config.headers || {};
+  config.headers['Accept-Language'] = getApiLanguage();
   const businessId = getActiveBusinessId();
   if (businessId) {
-    config.headers = config.headers || {};
     config.headers[BUSINESS_HEADER_KEY] = businessId;
   } else if (config.headers && BUSINESS_HEADER_KEY in config.headers) {
     delete config.headers[BUSINESS_HEADER_KEY];

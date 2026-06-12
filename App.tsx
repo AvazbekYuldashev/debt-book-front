@@ -7,6 +7,7 @@ import { ContactsProvider } from './src/context/ContactsContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { WorkspaceProvider } from './src/context/WorkspaceContext';
 import { AppThemeProvider, useAppTheme } from './src/theme';
+import { LanguageProvider } from './src/i18n';
 
 const AppShell: React.FC = () => {
   const { activeTheme, colors } = useAppTheme();
@@ -75,10 +76,12 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AppThemeProvider>
-        <AppShell />
-        <StatusBar style="auto" />
-      </AppThemeProvider>
+      <LanguageProvider>
+        <AppThemeProvider>
+          <AppShell />
+          <StatusBar style="auto" />
+        </AppThemeProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

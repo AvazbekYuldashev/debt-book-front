@@ -5,8 +5,10 @@ import colors from '../styles/colors';
 import { confirmReset } from '../api/auth';
 import AuthShell from '../components/auth/AuthShell';
 import { authStyles as s } from '../components/auth/authStyles';
+import { useI18n } from '../i18n';
 
 const ResetConfirmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useI18n();
   const [username, setUsername] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
   const [password, setPassword] = useState('');
@@ -23,17 +25,17 @@ const ResetConfirmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setError('');
     try {
       await confirmReset({ username: username.trim(), confirmCode: confirmCode.trim(), password });
-      Alert.alert('Muvaffaqiyatli', 'Parol yangilandi');
+      Alert.alert(t('resetConfirm.successTitle'), t('resetConfirm.successBody'));
       navigation.navigate('Login');
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Parolni tiklab bo'lmadi");
+      setError(e instanceof Error ? e.message : t('resetConfirm.failed'));
     }
   };
 
   return (
-    <AuthShell emoji="🔑" title="Yangi parol" subtitle="Kod va yangi parolingizni kiriting" onBack={() => navigation.goBack()}>
+    <AuthShell emoji="🔑" title={t('resetConfirm.title')} subtitle={t('resetConfirm.subtitle')} onBack={() => navigation.goBack()}>
       <View style={s.field}>
-        <Text style={s.fieldLabel}>Telefon raqam</Text>
+        <Text style={s.fieldLabel}>{t('resetConfirm.phone')}</Text>
         <View style={s.inputRow}>
           <Text style={s.phonePrefix}>+998</Text>
           <TextInput
@@ -48,11 +50,11 @@ const ResetConfirmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       </View>
 
       <View style={s.field}>
-        <Text style={s.fieldLabel}>Tasdiqlash kodi</Text>
+        <Text style={s.fieldLabel}>{t('resetConfirm.code')}</Text>
         <View style={s.inputRow}>
           <TextInput
             style={s.input}
-            placeholder="Kod"
+            placeholder={t('resetConfirm.codePlaceholder')}
             placeholderTextColor={colors.textSecondary}
             value={confirmCode}
             onChangeText={(v) => setConfirmCode(v.replace(/\D/g, '').slice(0, 6))}
@@ -62,7 +64,7 @@ const ResetConfirmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       </View>
 
       <View style={s.field}>
-        <Text style={s.fieldLabel}>Yangi parol</Text>
+        <Text style={s.fieldLabel}>{t('resetConfirm.newPassword')}</Text>
         <View style={s.inputRow}>
           <TextInput
             style={s.input}
@@ -81,11 +83,11 @@ const ResetConfirmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       {error ? <Text style={s.errorText}>{error}</Text> : null}
 
       <TouchableOpacity style={s.button} onPress={handleConfirm} activeOpacity={0.9}>
-        <Text style={s.buttonText}>Yangilash</Text>
+        <Text style={s.buttonText}>{t('resetConfirm.submit')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={s.linkCenter}>Kirishga qaytish</Text>
+        <Text style={s.linkCenter}>{t('reset.backToLogin')}</Text>
       </TouchableOpacity>
     </AuthShell>
   );

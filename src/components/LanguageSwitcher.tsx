@@ -1,0 +1,117 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { useI18n } from '../i18n';
+
+interface Props {
+  /** 'pills' (default) — uchta kichik tugma; 'list' — profil sozlamalari uchun keng qatorlar. */
+  variant?: 'pills' | 'list';
+  style?: ViewStyle;
+}
+
+const LanguageSwitcher: React.FC<Props> = ({ variant = 'pills', style }) => {
+  const { lang, setLang, langs } = useI18n();
+
+  if (variant === 'list') {
+    return (
+      <View style={[styles.listWrap, style]}>
+        {langs.map((item) => {
+          const active = item.code === lang;
+          return (
+            <TouchableOpacity
+              key={item.code}
+              style={[styles.listRow, active && styles.listRowActive]}
+              onPress={() => setLang(item.code)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.listLabel, active && styles.listLabelActive]}>{item.label}</Text>
+              {active ? <View style={styles.dot} /> : null}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.pillsWrap, style]}>
+      {langs.map((item) => {
+        const active = item.code === lang;
+        return (
+          <TouchableOpacity
+            key={item.code}
+            style={[styles.pill, active && styles.pillActive]}
+            onPress={() => setLang(item.code)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.pillText, active && styles.pillTextActive]}>{item.short}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  pillsWrap: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    padding: 3,
+    gap: 2,
+  },
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 9,
+  },
+  pillActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1E293B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  pillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  pillTextActive: {
+    color: '#2563EB',
+  },
+  listWrap: {
+    gap: 8,
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  listRowActive: {
+    borderColor: '#2563EB',
+    backgroundColor: '#EFF6FF',
+  },
+  listLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  listLabelActive: {
+    color: '#2563EB',
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#2563EB',
+  },
+});
+
+export default LanguageSwitcher;

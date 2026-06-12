@@ -25,6 +25,8 @@ import { getExpenseSumByCategory } from '../services/expenseService';
 import { ROUTES } from '../navigation/routes';
 import { formatMoney } from '../utils/money';
 import { canManageCategories } from '../utils/permissions';
+import { useI18n } from '../i18n';
+import { resolveDateRange, isValidDateInput } from '../utils/date';
 
 const DateTimePicker = Platform.OS !== 'web'
   ? require('@react-native-community/datetimepicker').default
@@ -35,6 +37,7 @@ type CategoryMode = 'create' | 'edit';
 type QuickFilterKey = 'today' | 'currentWeek' | 'currentMonth' | 'customRange';
 
 const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useI18n();
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const [categories, setCategories] = useState<CategoryResponseDTO[]>([]);
@@ -106,7 +109,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         await loadCategorySums(next, dateRange.fromDate, dateRange.endDate);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ma'lumotlarni yuklab bo'lmadi");
+      setError(e instanceof Error ? e.message : t('expenses.loadFailed'));
     } finally {
       if (showSpinner) setLoading(false);
     }
@@ -153,11 +156,11 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleSaveCategory = async () => {
     if (!profile?.jwt) {
-      setError('Token topilmadi. Qayta login qiling');
+      setError(t('expenses.noToken'));
       return;
     }
     if (!categoryName.trim()) {
-      setError('Kategoriya nomini kiriting');
+      setError(t('expenses.enterCategoryName'));
       return;
     }
 
@@ -172,7 +175,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       closeCategoryModal();
       await loadCategories(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Saqlab bo'lmadi");
+      setError(e instanceof Error ? e.message : t('expenses.saveFailed'));
     } finally {
       setSavingCategory(false);
     }
@@ -180,7 +183,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleDeleteCategory = async (id: string) => {
     if (!profile?.jwt) {
-      setError('Token topilmadi. Qayta login qiling');
+      setError(t('expenses.noToken'));
       return;
     }
     setDeletingCategory(id);
@@ -189,7 +192,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       await deleteCategory(id, profile.jwt);
       await loadCategories(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "O'chirib bo'lmadi");
+      setError(e instanceof Error ? e.message : t('expenses.deleteFailed'));
     } finally {
       setDeletingCategory('');
     }
@@ -197,7 +200,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleTogglePinCategory = async (category: CategoryResponseDTO) => {
     if (!profile?.jwt) {
-      setError('Token topilmadi. Qayta login qiling');
+      setError(t('expenses.noToken'));
       return;
     }
     setPinningCategoryId(category.id);
@@ -209,7 +212,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         prev.map((item) => (item.id === category.id ? { ...item, pin: nextPin } : item))
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Pin holatini o'zgartirib bo'lmadi");
+      setError(e instanceof Error ? e.message : t('expenses.pinFailed'));
     } finally {
       setPinningCategoryId('');
     }
@@ -306,14 +309,14 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const hasActiveDateFilter = Boolean(fromDate || endDate);
   const dateFilterSummary = useMemo(() => {
-    if (!hasActiveDateFilter) return 'Filtr o‘rnatilmagan';
+    if (!hasActiveDateFilter) return t('expenses.noFilter');
     return `${fromDate || '---'} → ${endDate || '---'}`;
   }, [endDate, fromDate, hasActiveDateFilter]);
 
   const totalLabelText = useMemo(() => {
     const duration = buildDurationLabel(fromDate, endDate);
-    return duration ? `Jami ${duration} xarajat:` : 'Jami xarajat:';
-  }, [endDate, fromDate]);
+    return duration ? `${t('expenses.totalLabel')} (${duration}):` : `${t('expenses.totalLabel')}:`;
+  }, [endDate, fromDate, t]);
 
   // Kategoriya boshqaruvi (yaratish/tahrirlash/o'chirish/pin) faqat OWNER (yoki shaxsiy hisob) uchun.
   const allowCategoryManage = canManageCategories(workspace.activeBusinessRole);
@@ -329,11 +332,11 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       >
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
-          <Text style={styles.title}>Kunlik xarajatlar</Text>
+          <Text style={styles.title}>{t('expenses.dailyTitle')}</Text>
           {allowCategoryManage ? (
             <TouchableOpacity style={styles.headerAction} onPress={openCreateCategory}>
               <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-              <Text style={styles.headerActionText}>Kategoriya</Text>
+              <Text style={styles.headerActionText}>{t('expenses.categoryBtn')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -352,7 +355,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <TouchableOpacity style={styles.filterTitleRow} onPress={() => setFilterPanelOpen((prev) => !prev)}>
             <View style={styles.filterTitleGroup}>
               <Text numberOfLines={1} style={styles.filterInlineText}>
-                <Text style={styles.filterTitle}>Sana oralig'i</Text>
+                <Text style={styles.filterTitle}>{t('expenses.dateRange')}</Text>
                 <Text style={styles.filterTitle}>: </Text>
                 <Text style={[styles.filterSummaryText, hasActiveDateFilter ? styles.filterSummaryActive : null]}>
                   {dateFilterSummary}
@@ -371,14 +374,14 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               {Platform.OS === 'web' ? (
                 <View style={styles.segmentedWrapper}>
                   <View style={styles.segmentGroup}>
-                    <Text style={styles.segmentLabel}>Boshlanish</Text>
+                    <Text style={styles.segmentLabel}>{t('expenses.start')}</Text>
                     <View style={styles.segmentRow}>
                       <select
                         style={styles.segmentSelect as any}
                         value={splitDateParts(fromDate).year}
                         onChange={(e: any) => setFromDate(updateDatePart(fromDate, 'year', e.target.value))}
                       >
-                        <option value="">Yil</option>
+                        <option value="">{t('expenses.year')}</option>
                         {yearOptions.map((year) => (
                           <option key={`from-year-${year}`} value={year}>{year}</option>
                         ))}
@@ -388,7 +391,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         value={splitDateParts(fromDate).month}
                         onChange={(e: any) => setFromDate(updateDatePart(fromDate, 'month', e.target.value))}
                       >
-                        <option value="">Oy</option>
+                        <option value="">{t('expenses.month')}</option>
                         {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((month) => (
                           <option key={`from-month-${month}`} value={month}>{month}</option>
                         ))}
@@ -398,7 +401,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         value={splitDateParts(fromDate).day}
                         onChange={(e: any) => setFromDate(updateDatePart(fromDate, 'day', e.target.value))}
                       >
-                        <option value="">Kun</option>
+                        <option value="">{t('expenses.day')}</option>
                         {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map((day) => (
                           <option key={`from-day-${day}`} value={day}>{day}</option>
                         ))}
@@ -407,14 +410,14 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   </View>
 
                   <View style={styles.segmentGroup}>
-                    <Text style={styles.segmentLabel}>Tugash</Text>
+                    <Text style={styles.segmentLabel}>{t('expenses.end')}</Text>
                     <View style={styles.segmentRow}>
                       <select
                         style={styles.segmentSelect as any}
                         value={splitDateParts(endDate).year}
                         onChange={(e: any) => setEndDate(updateDatePart(endDate, 'year', e.target.value))}
                       >
-                        <option value="">Yil</option>
+                        <option value="">{t('expenses.year')}</option>
                         {yearOptions.map((year) => (
                           <option key={`end-year-${year}`} value={year}>{year}</option>
                         ))}
@@ -424,7 +427,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         value={splitDateParts(endDate).month}
                         onChange={(e: any) => setEndDate(updateDatePart(endDate, 'month', e.target.value))}
                       >
-                        <option value="">Oy</option>
+                        <option value="">{t('expenses.month')}</option>
                         {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((month) => (
                           <option key={`end-month-${month}`} value={month}>{month}</option>
                         ))}
@@ -434,7 +437,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         value={splitDateParts(endDate).day}
                         onChange={(e: any) => setEndDate(updateDatePart(endDate, 'day', e.target.value))}
                       >
-                        <option value="">Kun</option>
+                        <option value="">{t('expenses.day')}</option>
                         {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map((day) => (
                           <option key={`end-day-${day}`} value={day}>{day}</option>
                         ))}
@@ -446,7 +449,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 <View style={styles.mobileDateRange}>
                   <View style={styles.mobileDateInput}>
                     <AppTextInput
-                      label="Boshlanish sana"
+                      label={t('expenses.startDate')}
                       value={fromDate}
                       onChangeText={(value) => setFromDate(formatDateInputValue(value))}
                       placeholder="YYYY-MM-DD"
@@ -459,7 +462,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   </View>
                   <View style={styles.mobileDateInput}>
                     <AppTextInput
-                      label="Tugash sana"
+                      label={t('expenses.endDate')}
                       value={endDate}
                       onChangeText={(value) => setEndDate(formatDateInputValue(value))}
                       placeholder="YYYY-MM-DD"
@@ -497,7 +500,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               ) : null}
 
               <View style={styles.filterActionRow}>
-                <PrimaryButton title="Filtrlash" onPress={handleApplyFilter} style={styles.filterButton} />
+                <PrimaryButton title={t('expenses.applyFilter')} onPress={handleApplyFilter} style={styles.filterButton} />
               </View>
 
               {filterError ? (
@@ -515,13 +518,13 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </View>
         ) : null}
 
-        <Text style={styles.sectionTitle}>Kategoriyalar</Text>
+        <Text style={styles.sectionTitle}>{t('expenses.categories')}</Text>
 
         <View style={styles.listCard}>
           {loading ? (
             <SkeletonCardList count={5} containerStyle={styles.listSkeleton} />
           ) : sortedCategories.length === 0 ? (
-            <Text style={styles.emptyText}>Kategoriya topilmadi</Text>
+            <Text style={styles.emptyText}>{t('expenses.noCategories')}</Text>
           ) : (
             sortedCategories.map((item, index) => (
               <View
@@ -598,23 +601,23 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
-              {categoryMode === 'create' ? "Kategoriya qo'shish" : 'Kategoriyani tahrirlash'}
+              {categoryMode === 'create' ? t('expenses.addCategory') : t('expenses.editCategory')}
             </Text>
             <AppTextInput
-              label="Kategoriya nomi"
+              label={t('expenses.categoryName')}
               value={categoryName}
               onChangeText={setCategoryName}
-              placeholder="Masalan: Ovqat"
+              placeholder={t('expenses.categoryPlaceholder')}
             />
             <View style={styles.modalActions}>
               <PrimaryButton
-                title="Bekor qilish"
+                title={t('common.cancel')}
                 variant="secondary"
                 onPress={closeCategoryModal}
                 style={styles.modalActionBtn}
               />
               <PrimaryButton
-                title={categoryMode === 'create' ? "Qo'shish" : 'Saqlash'}
+                title={categoryMode === 'create' ? t('common.add') : t('common.save')}
                 onPress={handleSaveCategory}
                 loading={savingCategory}
                 style={styles.modalActionBtn}
@@ -632,19 +635,19 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Kategoriyani o‘chirish</Text>
+            <Text style={styles.modalTitle}>{t('expenses.deleteCategory')}</Text>
             <Text style={styles.deleteConfirmText}>
-              {`"${pendingDeleteCategory?.name || 'Ushbu kategoriya'}" ni rostdan ham o‘chirmoqchimisiz?`}
+              {t('expenses.deleteConfirm', { name: pendingDeleteCategory?.name || t('expenses.thisCategory') })}
             </Text>
             <View style={styles.modalActions}>
               <PrimaryButton
-                title="Bekor qilish"
+                title={t('common.cancel')}
                 variant="secondary"
                 onPress={cancelDeleteCategory}
                 style={styles.modalActionBtn}
               />
               <PrimaryButton
-                title="O‘chirish"
+                title={t('common.delete')}
                 onPress={confirmDeleteCategory}
                 loading={Boolean(pendingDeleteCategory && deletingCategory === pendingDeleteCategory.id)}
                 style={[styles.modalActionBtn, styles.deleteConfirmBtn]}
@@ -662,18 +665,18 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       >
         <TouchableOpacity style={styles.quickFilterBackdrop} onPress={() => setQuickFilterVisible(false)} activeOpacity={1}>
           <View style={styles.quickFilterCard}>
-            <Text style={styles.quickFilterTitle}>Filter tanlang</Text>
+            <Text style={styles.quickFilterTitle}>{t('expenses.chooseFilter')}</Text>
             <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('today')}>
-              <Text style={styles.quickFilterItemText}>Bugun</Text>
+              <Text style={styles.quickFilterItemText}>{t('expenses.today')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('currentWeek')}>
-              <Text style={styles.quickFilterItemText}>Joriy hafta</Text>
+              <Text style={styles.quickFilterItemText}>{t('expenses.thisWeek')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('currentMonth')}>
-              <Text style={styles.quickFilterItemText}>Joriy oy</Text>
+              <Text style={styles.quickFilterItemText}>{t('expenses.thisMonth')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('customRange')}>
-              <Text style={styles.quickFilterItemText}>Sana bo'yicha</Text>
+              <Text style={styles.quickFilterItemText}>{t('expenses.byDate')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -1001,39 +1004,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-
-function resolveDateRange(fromDate: string, endDate: string) {
-  const normalizedFrom = fromDate?.trim() || '';
-  const normalizedEnd = endDate?.trim() || '';
-  if (normalizedFrom && !isValidDateInput(normalizedFrom)) {
-    return { ok: false as const, error: "Boshlanish sana formati noto'g'ri. YYYY-MM-DD kiriting." };
-  }
-  if (normalizedEnd && !isValidDateInput(normalizedEnd)) {
-    return { ok: false as const, error: "Tugash sana formati noto'g'ri. YYYY-MM-DD kiriting." };
-  }
-  if (normalizedFrom && normalizedEnd) {
-    const fromValue = new Date(normalizedFrom);
-    const endValue = new Date(normalizedEnd);
-    if (Number.isNaN(fromValue.getTime()) || Number.isNaN(endValue.getTime())) {
-      return { ok: false as const, error: "Sana noto'g'ri kiritilgan." };
-    }
-    if (endValue < fromValue) {
-      return { ok: false as const, error: "Tugash sana boshlanish sanasidan oldin bo'lishi mumkin emas." };
-    }
-  }
-  return {
-    ok: true as const,
-    fromDate: normalizedFrom || undefined,
-    endDate: normalizedEnd || undefined,
-  };
-}
-
-function isValidDateInput(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [y, m, d] = value.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
-}
 
 function formatDateInputValue(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 8);

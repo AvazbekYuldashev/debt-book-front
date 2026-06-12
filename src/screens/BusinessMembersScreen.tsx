@@ -23,19 +23,13 @@ import {
   updateBusinessMemberRole,
 } from '../services/businessService';
 import { BusinessMemberRole, BusinessProfileDTO } from '../types/business';
-import { normalizePhone } from '../utils/phone';
+import { normalizePhone, sanitizeLocalPhone, LOCAL_PHONE_DIGITS } from '../utils/phone';
 import { canManageMembers, isBusinessOwner } from '../utils/permissions';
 import { confirmAction } from '../utils/confirm';
-
-const PHONE_DIGITS = 9;
-
-const sanitizeLocalPhone = (value: string): string => {
-  let digits = value.replace(/\D/g, '');
-  if (digits.startsWith('998')) digits = digits.slice(3);
-  return digits.slice(0, PHONE_DIGITS);
-};
+import { useI18n } from '../i18n';
 
 const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
+  const { t } = useI18n();
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const routeBusinessId = String(route.params?.businessId || '');
@@ -55,7 +49,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
   const [busyMemberId, setBusyMemberId] = useState('');
 
   const canLoad = useMemo(() => Boolean(profile?.jwt && businessId), [profile?.jwt, businessId]);
-  const phoneValid = phone.length === PHONE_DIGITS;
+  const phoneValid = phone.length === LOCAL_PHONE_DIGITS;
 
   const loadMembers = useCallback(async (showSpinner = true) => {
     if (!profile?.jwt || !businessId) {
@@ -68,7 +62,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
       const result = await getBusinessMembers(businessId, profile.jwt);
       setMembers(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Members yuklanmadi');
+      setError(e instanceof Error ? e.message : t('members.loadFailed'));
     } finally {
       if (showSpinner) setLoading(false);
     }
@@ -96,7 +90,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
         await updateBusinessMemberRole(businessId, member.profileId, nextRole, profile.jwt);
         await loadMembers(false);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Rolni o'zgartirib bo'lmadi");
+        setError(e instanceof Error ? e.message : t('members.roleChangeFailed'));
       } finally {
         setBusyMemberId('');
       }
@@ -108,15 +102,15 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
   const handleRemoveMember = useCallback(
     (member: BusinessProfileDTO) => {
       if (!profile?.jwt || !businessId) return;
-      const label = member.profileName || member.phoneNumber || "Ushbu a'zo";
-      confirmAction(`${label} ni biznesdan o'chirasizmi?`, async () => {
+      const label = member.profileName || member.phoneNumber || t('members.thisMember');
+      confirmAction(t('members.removeConfirm', { name: label }), async () => {
         setBusyMemberId(member.profileId);
         setError('');
         try {
           await removeBusinessMember(businessId, member.profileId, profile.jwt);
           await loadMembers(false);
         } catch (e) {
-          setError(e instanceof Error ? e.message : "A'zoni o'chirib bo'lmadi");
+          setError(e instanceof Error ? e.message : t('members.removeFailed'));
         } finally {
           setBusyMemberId('');
         }
@@ -142,15 +136,15 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
 
   const submitMember = async () => {
     if (!profile?.jwt) {
-      setFormError('Token topilmadi. Qayta login qiling.');
+      setFormError(t('business.noToken'));
       return;
     }
     if (!businessId) {
-      setFormError('Business tanlanmagan.');
+      setFormError(t('members.noBusiness'));
       return;
     }
     if (!phoneValid) {
-      setFormError("Telefon raqami 9 ta raqamdan iborat bo'lishi kerak");
+      setFormError(t('members.phone9'));
       return;
     }
 
@@ -172,7 +166,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
             e.code === 'ALREADY_MEMBER'
         );
       } else {
-        setFormError(e instanceof Error ? e.message : "A'zo qo'shib bo'lmadi");
+        setFormError(e instanceof Error ? e.message : t('members.addFailed'));
       }
     } finally {
       setSaving(false);
@@ -190,12 +184,12 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <View style={styles.titleWrap}>
-            <Text style={styles.title}>Business Members</Text>
+            <Text style={styles.title}>{t('members.title')}</Text>
             <Text style={styles.subtitle}>{businessName}</Text>
           </View>
           {canManageMembers(workspace.activeBusinessRole) ? (
             <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)} disabled={!canLoad}>
-              <Text style={styles.addBtnText}>Add member</Text>
+              <Text style={styles.addBtnText}>{t('members.add')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -214,9 +208,9 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={closeModal}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Add Member</Text>
+            <Text style={styles.modalTitle}>{t('members.add')}</Text>
 
-            <Text style={styles.fieldLabel}>Telefon raqam</Text>
+            <Text style={styles.fieldLabel}>{t('members.phone')}</Text>
             <View style={styles.phoneInputRow}>
               <Text style={styles.phonePrefix}>+998</Text>
               <TextInput
@@ -230,7 +224,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
               />
             </View>
 
-            <Text style={styles.roleLabel}>Role</Text>
+            <Text style={styles.roleLabel}>{t('members.role')}</Text>
             <View style={styles.roleRow}>
               <TouchableOpacity
                 style={[styles.roleBtn, role === 'ADMIN' ? styles.roleBtnActive : null]}
@@ -249,9 +243,9 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
             {formError ? <Text style={styles.formError}>{formError}</Text> : null}
 
             <View style={styles.modalActions}>
-              <PrimaryButton title="Cancel" variant="secondary" onPress={closeModal} style={styles.actionBtn} />
+              <PrimaryButton title={t('common.cancel')} variant="secondary" onPress={closeModal} style={styles.actionBtn} />
               <PrimaryButton
-                title="Save"
+                title={t('common.save')}
                 onPress={submitMember}
                 loading={saving}
                 disabled={submitDisabled}

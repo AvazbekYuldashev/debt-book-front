@@ -8,8 +8,10 @@ import { getMyBusinesses } from '../../services/businessService';
 import { BusinessDTO } from '../../types/business';
 import CreateBusinessModal from './CreateBusinessModal';
 import { ROUTES } from '../../navigation/routes';
+import { useI18n } from '../../i18n';
 
 const WorkspaceSwitcher: React.FC = () => {
+  const { t } = useI18n();
   const navigation = useNavigation<any>();
   const { profile } = useContext(AuthContext);
   const { workspace, setPersonalWorkspace, setBusinessWorkspace } = useContext(WorkspaceContext);
@@ -30,7 +32,7 @@ const WorkspaceSwitcher: React.FC = () => {
       const result = await getMyBusinesses(profile.jwt);
       setBusinesses(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Businesslar yuklanmadi');
+      setError(e instanceof Error ? e.message : t('workspace.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -53,8 +55,8 @@ const WorkspaceSwitcher: React.FC = () => {
 
   const contextLabel =
     workspace.mode === 'business' && workspace.activeBusinessName
-      ? `${workspace.activeBusinessName} workspace`
-      : 'Personal Workspace';
+      ? workspace.activeBusinessName
+      : t('workspace.personal');
 
   return (
     <View style={styles.wrapper}>
@@ -75,7 +77,7 @@ const WorkspaceSwitcher: React.FC = () => {
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
         <TouchableOpacity style={styles.backdrop} onPress={() => setVisible(false)} activeOpacity={1}>
           <View style={styles.card}>
-            <Text style={styles.title}>Workspace</Text>
+            <Text style={styles.title}>{t('workspace.title')}</Text>
             <TouchableOpacity
               style={[
                 styles.optionRow,
@@ -86,19 +88,19 @@ const WorkspaceSwitcher: React.FC = () => {
                 setVisible(false);
               }}
             >
-              <Text style={styles.optionText}>Personal</Text>
+              <Text style={styles.optionText}>{t('workspace.personal')}</Text>
               {workspace.mode === 'personal' ? <Ionicons name="checkmark" size={16} color="#2563EB" /> : null}
             </TouchableOpacity>
 
             <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>My businesses</Text>
+              <Text style={styles.sectionTitle}>{t('business.myBusinesses')}</Text>
               <TouchableOpacity
                 onPress={() => {
                   setVisible(false);
                   navigation.navigate(ROUTES.PROFILE, { screen: ROUTES.MY_BUSINESSES });
                 }}
               >
-                <Text style={styles.linkText}>Manage</Text>
+                <Text style={styles.linkText}>{t('workspace.manage')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -107,7 +109,7 @@ const WorkspaceSwitcher: React.FC = () => {
                 <ActivityIndicator />
               </View>
             ) : businesses.length === 0 ? (
-              <Text style={styles.emptyText}>Business topilmadi</Text>
+              <Text style={styles.emptyText}>{t('workspace.noBusiness')}</Text>
             ) : (
               businesses.map((business) => {
                 const isActive = workspace.mode === 'business' && workspace.activeBusinessId === business.id;
@@ -136,7 +138,7 @@ const WorkspaceSwitcher: React.FC = () => {
               }}
             >
               <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.createBtnText}>Create business</Text>
+              <Text style={styles.createBtnText}>{t('business.createTitle')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

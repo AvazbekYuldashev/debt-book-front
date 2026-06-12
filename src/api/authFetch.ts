@@ -1,6 +1,7 @@
 import { API_BASE } from './baseUrl';
 import { BUSINESS_HEADER_KEY, getActiveBusinessId } from './workspaceHeaders';
 import { notifyBusinessAccessDeniedIfNeeded } from './apiClient';
+import { getApiLanguage } from '../i18n';
 
 export class ApiFetchError extends Error {
   status: number;
@@ -41,7 +42,7 @@ export async function authFetch(path: string, jwt: string, init: RequestInit = {
   const headers = new Headers(init.headers || {});
   headers.set('Accept', 'application/json');
   headers.set('Authorization', `Bearer ${jwt}`);
-  headers.set('Accept-Language', 'UZ');
+  headers.set('Accept-Language', getApiLanguage());
 
   const businessId = getActiveBusinessId();
   if (businessId) {

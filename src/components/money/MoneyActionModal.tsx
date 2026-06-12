@@ -6,6 +6,7 @@ import { AccountType, ACCOUNT_TYPE, MoneyActionType, MoneyFlowType, MONEY_FLOW_T
 import colors from '../../styles/colors';
 import { getSelectableBusinessMembers } from '../../services/businessService';
 import { BusinessProfileDTO } from '../../types/business';
+import { useI18n } from '../../i18n';
 
 interface ContactOption {
   id: string;
@@ -46,6 +47,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const { t } = useI18n();
   const [amount, setAmount] = useState('');
   const [counterpartyId, setCounterpartyId] = useState('');
   const [targetType, setTargetType] = useState<PartyType>('PROFILE');
@@ -87,16 +89,16 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     () =>
       actionType === 'GIVE'
         ? {
-            title: 'Qarz berish',
-            idLabel: 'Qarz oluvchi ID',
-            save: 'Qarz berish',
+            title: t('money.give'),
+            idLabel: t('money.giveReceiverId'),
+            save: t('money.give'),
           }
         : {
-            title: 'Qarz olish',
-            idLabel: 'Qarz beruvchi ID',
-            save: 'Qarz olish',
+            title: t('money.take'),
+            idLabel: t('money.takeGiverId'),
+            save: t('money.take'),
           },
-    [actionType]
+    [actionType, t]
   );
 
   const targetAccountType = (fixedCounterpartyType || targetType) === 'BUSINESS_ACCOUNT'
@@ -121,18 +123,18 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   const handleSubmit = async () => {
     const parsedAmount = Number(amount.replace(/\s/g, '').replace(',', '.'));
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setError("Miqdor to'g'ri kiritilmagan");
+      setError(t('money.amountInvalid'));
       return;
     }
     const targetCounterpartyId = fixedCounterpartyId || counterpartyId.trim();
     if (!targetCounterpartyId) {
-      setError((fixedCounterpartyType || targetType) === 'BUSINESS_ACCOUNT' ? 'Target business ID majburiy' : 'Counterparty ID majburiy');
+      setError((fixedCounterpartyType || targetType) === 'BUSINESS_ACCOUNT' ? t('money.targetBusinessRequired') : t('money.counterpartyRequired'));
       return;
     }
 
     // Counterparty business bo'lsa — pul kimga (qaysi xodimga) berilgani MAJBURIY.
     if (effectiveType === 'BUSINESS_ACCOUNT' && !selectedMemberId) {
-      setError('Biznes xodimini (pul kimga berilganini) tanlang');
+      setError(t('money.selectMember'));
       return;
     }
 
@@ -170,7 +172,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
         <View style={styles.modal}>
           <Text style={styles.title}>{labels.title}</Text>
           <AppTextInput
-            label="Miqdor"
+            label={t('money.amount')}
             value={amount}
             keyboardType="decimal-pad"
             onChangeText={setAmount}
@@ -183,7 +185,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
                 onPress={() => setTargetType('PROFILE')}
               >
                 <Text style={[styles.targetChipText, targetType === 'PROFILE' && styles.targetChipTextActive]}>
-                  Profile
+                  {t('money.profile')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -193,14 +195,14 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
                 <Text
                   style={[styles.targetChipText, targetType === 'BUSINESS_ACCOUNT' && styles.targetChipTextActive]}
                 >
-                  Business
+                  {t('money.business')}
                 </Text>
               </TouchableOpacity>
             </View>
           ) : null}
           {!fixedCounterpartyId ? (
             <AppTextInput
-              label={targetType === 'BUSINESS_ACCOUNT' ? 'Target business ID' : labels.idLabel}
+              label={targetType === 'BUSINESS_ACCOUNT' ? t('money.targetBusinessId') : labels.idLabel}
               value={counterpartyId}
               onChangeText={setCounterpartyId}
               placeholder={targetType === 'BUSINESS_ACCOUNT' ? 'business-id' : 'profile-id'}
@@ -224,11 +226,11 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
           ) : null}
           {effectiveType === 'BUSINESS_ACCOUNT' && businessIdForMembers ? (
             <View style={styles.memberWrap}>
-              <Text style={styles.memberLabel}>Biznes xodimi (pul kimga berildi) *</Text>
+              <Text style={styles.memberLabel}>{t('money.memberLabel')}</Text>
               {membersLoading ? (
-                <Text style={styles.memberHint}>Yuklanmoqda...</Text>
+                <Text style={styles.memberHint}>{t('common.loading')}</Text>
               ) : members.length === 0 ? (
-                <Text style={styles.memberHint}>A'zolar topilmadi</Text>
+                <Text style={styles.memberHint}>{t('money.membersEmpty')}</Text>
               ) : (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.contactRow}>
                   {members.map((m) => (
@@ -249,16 +251,16 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
             </View>
           ) : null}
           <AppTextInput
-            label="Izoh"
+            label={t('money.comment')}
             value={description}
             onChangeText={setDescription}
-            placeholder="Ixtiyoriy izoh"
+            placeholder={t('money.commentPlaceholder')}
             multiline
             numberOfLines={3}
           />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <View style={styles.actions}>
-            <PrimaryButton title="Bekor qilish" variant="secondary" onPress={handleClose} style={styles.actionBtn} />
+            <PrimaryButton title={t('common.cancel')} variant="secondary" onPress={handleClose} style={styles.actionBtn} />
             <PrimaryButton title={labels.save} onPress={handleSubmit} loading={loading} style={styles.actionBtn} />
           </View>
         </View>

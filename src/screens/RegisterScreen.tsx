@@ -5,8 +5,10 @@ import colors from '../styles/colors';
 import { ApiRequestError, register } from '../api/auth';
 import AuthShell from '../components/auth/AuthShell';
 import { authStyles as s } from '../components/auth/authStyles';
+import { useI18n } from '../i18n';
 
 const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [username, setUsername] = useState('');
@@ -25,11 +27,11 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const payload = { name: name.trim(), surname: surname.trim(), username: username.trim(), password };
 
     if (!payload.name || !payload.surname || !payload.username || !payload.password) {
-      setErrorMessage("Barcha maydonlarni to'ldiring");
+      setErrorMessage(t('register.fillAll'));
       return;
     }
     if (payload.password.length < 8) {
-      setErrorMessage("Parol kamida 8 ta belgidan iborat bo'lishi kerak");
+      setErrorMessage(t('register.passwordMin'));
       return;
     }
 
@@ -37,7 +39,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       await register(payload);
       navigation.navigate('SmsVerification', { username: `998${payload.username}` });
     } catch (e) {
-      let message = e instanceof Error ? e.message : 'Qayta urinib ko\'ring';
+      let message = e instanceof Error ? e.message : t('common.tryAgain');
       if (e instanceof ApiRequestError) {
         const raw = typeof e.responseBody === 'string' ? e.responseBody : JSON.stringify(e.responseBody);
         message = e.message || raw || message;
@@ -47,23 +49,23 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <AuthShell emoji="📝" title="Ro'yxatdan o'tish" subtitle="Yangi hisob yarating" onBack={() => navigation.goBack()}>
+    <AuthShell emoji="📝" title={t('register.title')} subtitle={t('register.subtitle')} onBack={() => navigation.goBack()}>
       <View style={s.field}>
-        <Text style={s.fieldLabel}>Ism</Text>
+        <Text style={s.fieldLabel}>{t('register.name')}</Text>
         <View style={s.inputRow}>
-          <TextInput style={s.input} placeholder="Ism" placeholderTextColor={colors.textSecondary} value={name} onChangeText={setName} />
+          <TextInput style={s.input} placeholder={t('register.name')} placeholderTextColor={colors.textSecondary} value={name} onChangeText={setName} />
         </View>
       </View>
 
       <View style={s.field}>
-        <Text style={s.fieldLabel}>Familiya</Text>
+        <Text style={s.fieldLabel}>{t('register.surname')}</Text>
         <View style={s.inputRow}>
-          <TextInput style={s.input} placeholder="Familiya" placeholderTextColor={colors.textSecondary} value={surname} onChangeText={setSurname} />
+          <TextInput style={s.input} placeholder={t('register.surname')} placeholderTextColor={colors.textSecondary} value={surname} onChangeText={setSurname} />
         </View>
       </View>
 
       <View style={s.field}>
-        <Text style={s.fieldLabel}>Telefon raqam</Text>
+        <Text style={s.fieldLabel}>{t('register.phone')}</Text>
         <View style={s.inputRow}>
           <Text style={s.phonePrefix}>+998</Text>
           <TextInput
@@ -78,7 +80,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       </View>
 
       <View style={s.field}>
-        <Text style={s.fieldLabel}>Parol</Text>
+        <Text style={s.fieldLabel}>{t('register.password')}</Text>
         <View style={s.inputRow}>
           <TextInput
             style={s.input}
@@ -97,11 +99,11 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       {errorMessage ? <Text style={s.errorText}>{errorMessage}</Text> : null}
 
       <TouchableOpacity style={s.button} onPress={handleRegister} activeOpacity={0.9}>
-        <Text style={s.buttonText}>Ro'yxatdan o'tish</Text>
+        <Text style={s.buttonText}>{t('register.submit')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={s.linkCenter}>Hisobingiz bormi? Kirish</Text>
+        <Text style={s.linkCenter}>{t('register.haveAccount')}</Text>
       </TouchableOpacity>
     </AuthShell>
   );

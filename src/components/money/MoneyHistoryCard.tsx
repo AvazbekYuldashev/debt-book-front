@@ -4,6 +4,7 @@ import Card from '../Card';
 import { MoneyResponseDTO } from '../../types/money';
 import { formatDateTime, formatMoney } from '../../utils/money';
 import colors from '../../styles/colors';
+import { useI18n } from '../../i18n';
 
 interface MoneyHistoryCardProps {
   item: MoneyResponseDTO;
@@ -24,6 +25,7 @@ const MoneyHistoryCard: React.FC<MoneyHistoryCardProps> = ({
   counterpartyName,
   counterpartyPhone,
 }) => {
+  const { t } = useI18n();
   let isCreditor = idsEqual(item.creditorId, ownerId);
   let isDebtor = idsEqual(item.debtorId, ownerId);
 
@@ -38,9 +40,9 @@ const MoneyHistoryCard: React.FC<MoneyHistoryCardProps> = ({
 
   const isHaq = isCreditor;
   const isUnknown = !isCreditor && !isDebtor;
-  const badgeText = isUnknown ? 'Aniq emas' : isHaq ? 'Haq' : 'Qarz';
-  const directionText = isUnknown ? 'Tomon aniqlanmadi' : isHaq ? 'Siz berdingiz' : 'Siz oldingiz';
-  const counterpartyTitle = isUnknown ? 'Ikkinchi tomon' : isHaq ? 'Kimga berildi' : 'Kimdan olindi';
+  const badgeText = isUnknown ? t('money.badgeUnknown') : isHaq ? t('money.badgeCredit') : t('money.badgeDebt');
+  const directionText = isUnknown ? t('money.dirUnknown') : isHaq ? t('money.dirGave') : t('money.dirTook');
+  const counterpartyTitle = isUnknown ? t('money.otherParty') : isHaq ? t('money.toWhom') : t('money.fromWhom');
   const fallbackCounterpartyId = isHaq ? item.debtorId : item.creditorId;
   const counterpartyLabel = counterpartyName
     ? `${counterpartyName}${counterpartyPhone ? ` (${counterpartyPhone})` : ''}`
@@ -67,11 +69,7 @@ const MoneyHistoryCard: React.FC<MoneyHistoryCardProps> = ({
       <Text style={styles.counterparty}>
         {counterpartyTitle}: {counterpartyLabel}
       </Text>
-      <Text style={styles.meta}>ID: {item.id}</Text>
-      <Text style={styles.meta}>Visible: {String(item.visible)}</Text>
-      <Text style={styles.meta}>Debtor ID: {item.debtorId}</Text>
-      <Text style={styles.meta}>Creditor ID: {item.creditorId}</Text>
-      <Text style={styles.description}>{item.description || "Ta'rif kiritilmagan"}</Text>
+      <Text style={styles.description}>{item.description || t('money.noDescription')}</Text>
       <Text style={styles.date}>{formatDateTime(item.createdDate)}</Text>
     </Card>
   );
@@ -140,11 +138,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: colors.textPrimary,
-  },
-  meta: {
-    marginTop: 4,
-    fontSize: 12,
-    color: colors.textSecondary,
   },
   date: {
     marginTop: 6,

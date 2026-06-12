@@ -4,8 +4,10 @@ import colors from '../styles/colors';
 import { resetPassword } from '../api/auth';
 import AuthShell from '../components/auth/AuthShell';
 import { authStyles as s } from '../components/auth/authStyles';
+import { useI18n } from '../i18n';
 
 const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useI18n();
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
 
@@ -19,17 +21,17 @@ const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setError('');
     try {
       await resetPassword({ username: username.trim() });
-      Alert.alert('Yuborildi', "Tasdiqlash kodi SMS orqali yuborildi");
+      Alert.alert(t('reset.sentTitle'), t('reset.sentBody'));
       navigation.navigate('ResetConfirm');
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Tiklashni boshlab bo'lmadi");
+      setError(e instanceof Error ? e.message : t('reset.failed'));
     }
   };
 
   return (
-    <AuthShell emoji="🔒" title="Parolni tiklash" subtitle="Raqamingizga tasdiqlash kodi yuboramiz" onBack={() => navigation.goBack()}>
+    <AuthShell emoji="🔒" title={t('reset.title')} subtitle={t('reset.subtitle')} onBack={() => navigation.goBack()}>
       <View style={s.field}>
-        <Text style={s.fieldLabel}>Telefon raqam</Text>
+        <Text style={s.fieldLabel}>{t('reset.phone')}</Text>
         <View style={s.inputRow}>
           <Text style={s.phonePrefix}>+998</Text>
           <TextInput
@@ -46,11 +48,11 @@ const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       {error ? <Text style={s.errorText}>{error}</Text> : null}
 
       <TouchableOpacity style={s.button} onPress={handleReset} activeOpacity={0.9}>
-        <Text style={s.buttonText}>Yuborish</Text>
+        <Text style={s.buttonText}>{t('reset.submit')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={s.linkCenter}>Kirishga qaytish</Text>
+        <Text style={s.linkCenter}>{t('reset.backToLogin')}</Text>
       </TouchableOpacity>
     </AuthShell>
   );

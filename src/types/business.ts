@@ -17,7 +17,8 @@ export interface BusinessProfileDTO {
   id: string;
   businessId: string;
   profileId: string;
-  role: BusinessMemberRole;
+  // A'zolar ro'yxatiga egasi (OWNER) ham kiradi, shuning uchun to'liq BusinessRole.
+  role: BusinessRole;
   profileName: string;
   profileUsername: string;
   phoneNumber: string;
