@@ -26,6 +26,7 @@ import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 import { canWrite, canDelete } from '../utils/permissions';
 import { confirmDelete } from '../utils/confirm';
 import { useI18n } from '../i18n';
+import PartyTypeSelector from '../components/form/PartyTypeSelector';
 
 type Mode = 'create' | 'edit';
 
@@ -466,26 +467,12 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             </Text>
             <AppTextInput label={t('debts.fullName')} value={name} onChangeText={setName} placeholder="Ali Valiyev" />
             {mode === 'create' ? (
-              <View style={styles.targetTypeWrap}>
-                <TouchableOpacity
-                  style={[styles.targetChip, targetType === 'PROFILE' && styles.targetChipActive]}
-                  onPress={() => setTargetType('PROFILE')}
-                >
-                  <Text style={[styles.targetChipText, targetType === 'PROFILE' && styles.targetChipTextActive]}>
-                    {t('debts.profileTarget')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.targetChip, targetType === 'BUSINESS_ACCOUNT' && styles.targetChipActive]}
-                  onPress={() => setTargetType('BUSINESS_ACCOUNT')}
-                >
-                  <Text
-                    style={[styles.targetChipText, targetType === 'BUSINESS_ACCOUNT' && styles.targetChipTextActive]}
-                  >
-                    {t('debts.businessTarget')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <PartyTypeSelector
+                value={targetType}
+                onChange={setTargetType}
+                profileLabel={t('debts.profileTarget')}
+                businessLabel={t('debts.businessTarget')}
+              />
             ) : null}
             {mode === 'create' && targetType === 'PROFILE' ? (
               <AppTextInput

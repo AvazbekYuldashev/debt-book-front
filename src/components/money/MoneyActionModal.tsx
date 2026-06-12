@@ -7,6 +7,7 @@ import colors from '../../styles/colors';
 import { getSelectableBusinessMembers } from '../../services/businessService';
 import { BusinessProfileDTO } from '../../types/business';
 import { useI18n } from '../../i18n';
+import PartyTypeSelector from '../form/PartyTypeSelector';
 
 interface ContactOption {
   id: string;
@@ -179,26 +180,12 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
             placeholder="100000"
           />
           {!fixedCounterpartyId ? (
-            <View style={styles.targetTypeWrap}>
-              <TouchableOpacity
-                style={[styles.targetChip, targetType === 'PROFILE' && styles.targetChipActive]}
-                onPress={() => setTargetType('PROFILE')}
-              >
-                <Text style={[styles.targetChipText, targetType === 'PROFILE' && styles.targetChipTextActive]}>
-                  {t('money.profile')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.targetChip, targetType === 'BUSINESS_ACCOUNT' && styles.targetChipActive]}
-                onPress={() => setTargetType('BUSINESS_ACCOUNT')}
-              >
-                <Text
-                  style={[styles.targetChipText, targetType === 'BUSINESS_ACCOUNT' && styles.targetChipTextActive]}
-                >
-                  {t('money.business')}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <PartyTypeSelector
+              value={targetType}
+              onChange={setTargetType}
+              profileLabel={t('money.profile')}
+              businessLabel={t('money.business')}
+            />
           ) : null}
           {!fixedCounterpartyId ? (
             <AppTextInput
