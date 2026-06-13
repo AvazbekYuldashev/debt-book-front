@@ -145,6 +145,23 @@ const toContact = (input: ClientDTO, actorType: PartyType, actorId?: string | nu
   };
 };
 
+// Bir munosabat uchun (A va B bir-birini qo'shsa) ikkita mirror client yozuvi bo'lishi mumkin.
+// Ro'yxatda bir qarama-qarshi tomon (partyId) FAQAT BIR marta ko'rinishi kerak — aks holda
+// balans har kontakt bo'yicha alohida sanalib, summa ikkilanadi. Birinchi (eng yangi) yozuv saqlanadi.
+const dedupeByCounterparty = (list: Contact[]): Contact[] => {
+  const seen = new Set<string>();
+  const result: Contact[] = [];
+  for (const contact of list) {
+    const key = contact.partyId
+      ? `${contact.partyType}:${normalized(contact.partyId)}`
+      : `id:${contact.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(contact);
+  }
+  return result;
+};
+
 const mapNameToContact = (contact: Contact, name: string): Contact => {
   const cleanName = name.trim();
   const parts = cleanName.split(/\s+/).filter(Boolean);
@@ -207,7 +224,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
     setError('');
     try {
       const clients = await getMyClients(profile.jwt, 0, 100, { accountType });
-      setContacts(clients.map((client) => toContact(client, actorType, actorId)));
+      setContacts(dedupeByCounterparty(clients.map((client) => toContact(client, actorType, actorId))));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Kontaktlar yuklanmadi');
     } finally {
@@ -229,7 +246,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
       };
 
       const filtered = await filterClients(profile.jwt, dto, 0, 100, { accountType });
-      return filtered.map((client) => toContact(client, actorType, actorId));
+      return dedupeByCounterparty(filtered.map((client) => toContact(client, actorType, actorId)));
     },
     [accountType, actorId, actorType, contacts, isWorkspaceReady, profile?.jwt]
   );
@@ -265,7 +282,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
               },
           { accountType }
         );
-        setContacts((prev) => [toContact(created, actorType, actorId), ...prev]);
+        setContacts((prev) => dedupeByCounterparty([toContact(created, actorType, actorId), ...prev]));
         return true;
       } catch (e) {
         setError(e instanceof Error ? e.message : "Kontakt qo'shilmadi");
