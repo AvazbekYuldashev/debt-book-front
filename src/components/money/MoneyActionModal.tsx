@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import AppTextInput from '../form/AppTextInput';
 import PrimaryButton from '../ui/PrimaryButton';
 import { AccountType, ACCOUNT_TYPE, MoneyActionType, MoneyFlowType, MONEY_FLOW_TYPE, PartyType } from '../../types/money';
@@ -14,6 +23,13 @@ interface ContactOption {
   id: string;
   label: string;
 }
+
+// Kiritilgan summani "100 000" ko'rinishida (har 3 raqamda bo'sh joy) formatlaydi.
+const formatAmountInput = (raw: string): string => {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+};
 
 interface MoneyActionModalProps {
   visible: boolean;
@@ -172,15 +188,23 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={handleClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.modal}>
-          <Text style={styles.title}>{labels.title}</Text>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.modal}>
+            <Text style={styles.title}>{labels.title}</Text>
           <AppTextInput
             label={t('money.amount')}
             value={amount}
-            keyboardType="decimal-pad"
-            onChangeText={setAmount}
-            placeholder="100000"
+            keyboardType="number-pad"
+            onChangeText={(value) => setAmount(formatAmountInput(value))}
+            placeholder="100 000"
           />
           {!fixedCounterpartyId ? (
             <PartyTypeSelector
@@ -253,8 +277,9 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
             <PrimaryButton title={t('common.cancel')} variant="secondary" onPress={handleClose} style={styles.actionBtn} />
             <PrimaryButton title={labels.save} onPress={handleSubmit} loading={loading} style={styles.actionBtn} />
           </View>
-        </View>
-      </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -262,9 +287,14 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
 const createStyles = (colors: ColorTokens) => StyleSheet.create({
   backdrop: {
     flex: 1,
-    justifyContent: 'center',
     backgroundColor: colors.overlay,
-    padding: 16,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 24,
   },
   modal: {
     borderRadius: 12,

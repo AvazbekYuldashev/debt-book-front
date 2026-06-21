@@ -64,6 +64,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [targetBusinessId, setTargetBusinessId] = useState('');
   const [filterName, setFilterName] = useState('');
   const [filterPhone, setFilterPhone] = useState('');
+  const [activeSearch, setActiveSearch] = useState<'name' | 'phone' | null>(null);
   const [searchResults, setSearchResults] = useState<typeof contacts>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [localError, setLocalError] = useState('');
@@ -299,6 +300,22 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setLocalError('');
   };
 
+  const toggleNameSearch = () => {
+    setActiveSearch((prev) => {
+      if (prev === 'name') return null;
+      setFilterPhone('');
+      return 'name';
+    });
+  };
+
+  const togglePhoneSearch = () => {
+    setActiveSearch((prev) => {
+      if (prev === 'phone') return null;
+      setFilterName('');
+      return 'phone';
+    });
+  };
+
   const handleSave = async () => {
     if (!name.trim()) {
       setLocalError(t('debts.enterName'));
@@ -370,29 +387,59 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t('debts.clientsTitle')}</Text>
-          {canWrite(workspace.activeBusinessRole) ? (
-            <TouchableOpacity style={styles.headerAction} onPress={openCreate}>
-              <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-              <Text style={styles.headerActionText}>{t('common.add')}</Text>
+          <View style={styles.headerTools}>
+            <TouchableOpacity
+              style={[styles.searchToggle, activeSearch === 'name' && styles.searchToggleActive]}
+              onPress={toggleNameSearch}
+            >
+              <Ionicons
+                name="search"
+                size={16}
+                color={activeSearch === 'name' ? colors.primary : colors.textSecondary}
+              />
+              <Text style={[styles.searchToggleText, activeSearch === 'name' && styles.searchToggleTextActive]}>
+                ABC
+              </Text>
             </TouchableOpacity>
-          ) : null}
+            <TouchableOpacity
+              style={[styles.searchToggle, activeSearch === 'phone' && styles.searchToggleActive]}
+              onPress={togglePhoneSearch}
+            >
+              <Ionicons
+                name="search"
+                size={16}
+                color={activeSearch === 'phone' ? colors.primary : colors.textSecondary}
+              />
+              <Text style={[styles.searchToggleText, activeSearch === 'phone' && styles.searchToggleTextActive]}>
+                123
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <AppTextInput
-          label={t('debts.filterName')}
-          value={filterName}
-          onChangeText={setFilterName}
-          placeholder={t('debts.min3letters')}
-          containerStyle={styles.searchInput}
-        />
-        <AppTextInput
-          label={t('debts.filterPhone')}
-          value={filterPhone}
-          onChangeText={(value) => setFilterPhone(value.replace(/\D/g, '').slice(0, 12))}
-          keyboardType="phone-pad"
-          placeholder={t('debts.min3digits')}
-          containerStyle={styles.searchInput}
-        />
+        {activeSearch === 'name' ? (
+          <AppTextInput
+            label={t('debts.filterName')}
+            value={filterName}
+            onChangeText={setFilterName}
+            placeholder={t('debts.min3letters')}
+            containerStyle={styles.searchInput}
+            style={styles.searchInputField}
+            autoFocus
+          />
+        ) : null}
+        {activeSearch === 'phone' ? (
+          <AppTextInput
+            label={t('debts.filterPhone')}
+            value={filterPhone}
+            onChangeText={(value) => setFilterPhone(value.replace(/\D/g, '').slice(0, 12))}
+            keyboardType="phone-pad"
+            placeholder={t('debts.min3digits')}
+            containerStyle={styles.searchInput}
+            style={styles.searchInputField}
+            autoFocus
+          />
+        ) : null}
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryCol}>
@@ -462,6 +509,12 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </View>
       </ScrollView>
 
+      {canWrite(workspace.activeBusinessRole) ? (
+        <TouchableOpacity style={styles.fab} onPress={openCreate} activeOpacity={0.85}>
+          <Ionicons name="add" size={30} color={colors.textOnPrimary} />
+        </TouchableOpacity>
+      ) : null}
+
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={closeModal}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -526,7 +579,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 96,
   },
   headerRow: {
     flexDirection: 'row',
@@ -538,6 +591,34 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: colors.textPrimary,
+  },
+  headerTools: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  searchToggleActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  searchToggleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  searchToggleTextActive: {
+    color: colors.primary,
   },
   headerAction: {
     flexDirection: 'row',
@@ -555,6 +636,26 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   searchInput: {
     marginBottom: 14,
+  },
+  searchInputField: {
+    fontSize: 18,
+    paddingVertical: 16,
+  },
+  fab: {
+    position: 'absolute',
+    right: 18,
+    bottom: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
   summaryCard: {
     flexDirection: 'row',

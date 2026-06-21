@@ -62,20 +62,36 @@ const WorkspaceSwitcher: React.FC = () => {
       ? workspace.activeBusinessName
       : t('workspace.personal');
 
+  const isBusiness = workspace.mode === 'business';
+
   return (
     <View style={styles.wrapper}>
-      <TouchableOpacity style={styles.trigger} onPress={() => setVisible(true)}>
-        <View style={styles.labelWrap}>
-          <Text numberOfLines={1} style={styles.label}>
-            {contextLabel}
-          </Text>
-          {workspace.mode === 'business' && workspace.activeBusinessRole ? (
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>{workspace.activeBusinessRole}</Text>
-            </View>
-          ) : null}
+      <TouchableOpacity
+        style={[styles.trigger, isBusiness ? styles.triggerBusiness : styles.triggerPersonal]}
+        onPress={() => setVisible(true)}
+        activeOpacity={0.85}
+      >
+        <View style={styles.iconBadge}>
+          <Ionicons
+            name={isBusiness ? 'business' : 'person'}
+            size={20}
+            color={isBusiness ? colors.primary : colors.textOnPrimary}
+          />
         </View>
-        <Ionicons name="chevron-down-outline" size={18} color={colors.textSecondary} />
+        <View style={styles.labelWrap}>
+          <Text style={styles.contextHint}>{t('workspace.title')}</Text>
+          <View style={styles.labelRow}>
+            <Text numberOfLines={1} style={styles.label}>
+              {contextLabel}
+            </Text>
+            {isBusiness && workspace.activeBusinessRole ? (
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleBadgeText}>{workspace.activeBusinessRole}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+        <Ionicons name="chevron-down" size={22} color={colors.textOnPrimary} />
       </TouchableOpacity>
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
@@ -163,8 +179,8 @@ const WorkspaceSwitcher: React.FC = () => {
 const createStyles = (colors: ColorTokens) => StyleSheet.create({
   wrapper: {
     paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 6,
+    paddingTop: 10,
+    paddingBottom: 8,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -172,37 +188,62 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 34,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    backgroundColor: colors.surfaceMuted,
+    gap: 12,
+    minHeight: 58,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  triggerPersonal: {
+    backgroundColor: colors.primary,
+  },
+  triggerBusiness: {
+    backgroundColor: colors.primaryPressed,
+  },
+  iconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.22)',
   },
   labelWrap: {
+    flex: 1,
+    paddingRight: 6,
+  },
+  labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    flex: 1,
-    paddingRight: 8,
+    gap: 8,
+  },
+  contextHint: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.75)',
+    marginBottom: 1,
   },
   label: {
-    fontSize: 13,
-    color: colors.textPrimary,
-    fontWeight: '600',
+    fontSize: 17,
+    color: colors.textOnPrimary,
+    fontWeight: '800',
     flexShrink: 1,
   },
   roleBadge: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     borderRadius: 10,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 2,
   },
   roleBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.primaryPressed,
+    color: colors.textOnPrimary,
   },
   backdrop: {
     flex: 1,

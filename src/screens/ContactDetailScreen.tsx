@@ -135,11 +135,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadScreenData} tintColor={colors.primary} />}
-      >
+      <View style={styles.fixedHeader}>
         <View style={styles.topBar}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
@@ -154,7 +150,14 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
             {formatMoney(netBalance)}
           </Text>
         </View>
+      </View>
 
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadScreenData} tintColor={colors.primary} />}
+      >
         {error ? (
           <TouchableOpacity style={styles.errorBox} onPress={loadScreenData}>
             <Text style={styles.errorText}>{error}</Text>
@@ -185,7 +188,14 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
                   </View>
                   <Text style={styles.txDate}>{formatDateShort(item.createdDate)}</Text>
                 </View>
-                <Text style={styles.txLabel}>{item.label}</Text>
+                <View style={styles.txLabelWrap}>
+                  <Text style={styles.txLabel} numberOfLines={2}>
+                    {item.description?.trim() || item.label}
+                  </Text>
+                  {item.description?.trim() ? (
+                    <Text style={styles.txLabelSub}>{item.label}</Text>
+                  ) : null}
+                </View>
                 <Text style={[styles.txAmount, item.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative]}>
                   {formatMoney(item.amount)}
                 </Text>
@@ -193,25 +203,25 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
             ))
           )}
         </View>
-
-        {allowWrite ? (
-          <View style={styles.bottomActions}>
-            <PrimaryButton
-              title={t('contact.took')}
-              variant="primary"
-              onPress={() => openModal('TAKE')}
-              style={[styles.actionBtn, styles.takeActionBtn]}
-            />
-            <PrimaryButton
-              title={t('contact.gave')}
-              onPress={() => openModal('GIVE')}
-              style={[styles.actionBtn, styles.giveActionBtn]}
-            />
-          </View>
-        ) : (
-          <Text style={styles.readOnlyNote}>{t('contact.readOnly')}</Text>
-        )}
       </ScrollView>
+
+      {allowWrite ? (
+        <View style={styles.bottomActions}>
+          <PrimaryButton
+            title={t('contact.took')}
+            variant="primary"
+            onPress={() => openModal('TAKE')}
+            style={[styles.actionBtn, styles.takeActionBtn]}
+          />
+          <PrimaryButton
+            title={t('contact.gave')}
+            onPress={() => openModal('GIVE')}
+            style={[styles.actionBtn, styles.giveActionBtn]}
+          />
+        </View>
+      ) : (
+        <Text style={styles.readOnlyNote}>{t('contact.readOnly')}</Text>
+      )}
 
       <MoneyActionModal
         visible={modalVisible}
@@ -341,9 +351,17 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  fixedHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  scroll: {
+    flex: 1,
+  },
   content: {
-    padding: 16,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 16,
   },
   topBar: {
     marginBottom: 10,
@@ -457,11 +475,18 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
-  txLabel: {
+  txLabelWrap: {
     flex: 1,
+  },
+  txLabel: {
     fontSize: 14,
     color: colors.textPrimary,
     fontWeight: '500',
+  },
+  txLabelSub: {
+    marginTop: 2,
+    fontSize: 11,
+    color: colors.textSecondary,
   },
   txAmount: {
     fontSize: 14,
@@ -476,7 +501,12 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   bottomActions: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   actionBtn: {
     flex: 1,
