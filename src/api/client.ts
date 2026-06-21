@@ -1,6 +1,9 @@
-import { ApiFetchError, authFetch } from './authFetch';
+import apiClient, { ApiClientError } from './apiClient';
 
 import { AccountType, PartyType } from '../types/money';
+
+// Token har bir so'rovga aniq biriktiriladi (global default'ga tayanmaymiz).
+const authConfig = (jwt: string) => ({ headers: { Authorization: `Bearer ${jwt}` } });
 
 export interface ClientDTO {
   id: string;
@@ -78,7 +81,7 @@ const DEFAULT_PAGE: PaginatedResponse<ClientDTO> = {
 };
 
 const isRecoverableError = (error: unknown): boolean =>
-  error instanceof ApiFetchError && (error.status === 400 || error.status === 404);
+  error instanceof ApiClientError && (error.status === 400 || error.status === 404);
 
 const normalizePage = (parsed: unknown): PaginatedResponse<ClientDTO> => {
   if (Array.isArray(parsed)) {
@@ -119,8 +122,8 @@ async function fetchClientsPage(
 
     for (const path of attempts) {
       try {
-        const parsed = await authFetch(path, jwt, { method: 'GET' });
-        return normalizePage(parsed);
+        const res = await apiClient.get(path, authConfig(jwt));
+        return normalizePage(res.data);
       } catch (e) {
         lastError = e;
         if (!isRecoverableError(e)) throw e;
@@ -148,14 +151,8 @@ async function fetchFilteredClientsPage(
 
     for (const path of attempts) {
       try {
-        const parsed = await authFetch(path, jwt, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(dto),
-        });
-        return normalizePage(parsed);
+        const res = await apiClient.post(path, dto, authConfig(jwt));
+        return normalizePage(res.data);
       } catch (e) {
         lastError = e;
         if (!isRecoverableError(e)) throw e;
@@ -217,13 +214,8 @@ export async function createClient(jwt: string, dto: ClientCreatedDTO, options?:
 
   for (const base of CLIENT_BASE_PATHS) {
     try {
-      const parsed = await authFetch(withQuery(base, { accountType: options?.accountType }), jwt, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dto),
-      });
+      const res = await apiClient.post(withQuery(base, { accountType: options?.accountType }), dto, authConfig(jwt));
+      const parsed = res.data;
 
       if (parsed && typeof parsed === 'object' && 'data' in (parsed as Record<string, unknown>)) {
         const data = (parsed as { data?: ClientDTO }).data;
@@ -249,13 +241,11 @@ export async function updateClient(
   let lastError: unknown;
   for (const base of CLIENT_BASE_PATHS) {
     try {
-      await authFetch(withQuery(`${base}/`, { accountType: options?.accountType }), jwt, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ...dto, id }),
-      });
+      await apiClient.patch(
+        withQuery(`${base}/`, { accountType: options?.accountType }),
+        { ...dto, id },
+        authConfig(jwt)
+      );
       return;
     } catch (e) {
       lastError = e;
@@ -269,9 +259,7 @@ export async function deleteClient(jwt: string, id: string, options?: ClientRequ
   let lastError: unknown;
   for (const base of CLIENT_BASE_PATHS) {
     try {
-      await authFetch(withQuery(`${base}/${id}`, { accountType: options?.accountType }), jwt, {
-        method: 'DELETE',
-      });
+      await apiClient.delete(withQuery(`${base}/${id}`, { accountType: options?.accountType }), authConfig(jwt));
       return;
     } catch (e) {
       lastError = e;
