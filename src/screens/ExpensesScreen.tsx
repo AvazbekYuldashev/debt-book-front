@@ -337,12 +337,6 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t('expenses.dailyTitle')}</Text>
-          {allowCategoryManage ? (
-            <TouchableOpacity style={styles.headerAction} onPress={openCreateCategory}>
-              <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-              <Text style={styles.headerActionText}>{t('expenses.categoryBtn')}</Text>
-            </TouchableOpacity>
-          ) : null}
         </View>
 
         <View style={styles.totalCard}>
@@ -601,6 +595,12 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </View>
       </ScrollView>
 
+      {allowCategoryManage ? (
+        <TouchableOpacity style={styles.fab} onPress={openCreateCategory} activeOpacity={0.85}>
+          <Ionicons name="add" size={30} color={colors.textOnPrimary} />
+        </TouchableOpacity>
+      ) : null}
+
       <Modal visible={categoryModalVisible} animationType="slide" transparent onRequestClose={closeCategoryModal}>
         <KeyboardAvoidingView
           style={styles.addModalBackdrop}
@@ -718,19 +718,21 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  headerAction: {
-    flexDirection: 'row',
+  fab: {
+    position: 'absolute',
+    right: 18,
+    bottom: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: colors.primarySoft,
-  },
-  headerActionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
   totalCard: {
     backgroundColor: colors.surface,
