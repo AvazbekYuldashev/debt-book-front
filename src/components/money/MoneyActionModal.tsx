@@ -291,9 +291,10 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    // Modal yuqoriroqda ochilsin — telefon klaviaturasi maydonlarni to'smasligi uchun.
+    justifyContent: 'flex-start',
     paddingHorizontal: 16,
-    paddingTop: 48,
+    paddingTop: 24,
     paddingBottom: 24,
   },
   modal: {

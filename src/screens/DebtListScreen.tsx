@@ -1,6 +1,8 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -72,6 +74,8 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [totalsByContact, setTotalsByContact] = useState<
     Record<string, { totalDebt: number; totalCredit: number; balance: number }>
   >({});
+  // Har bir kontaktning eng oxirgi amal (oldi-berdi) vaqti — ro'yxatni saralash uchun.
+  const [latestDateByContact, setLatestDateByContact] = useState<Record<string, number>>({});
   const [totalsLoading, setTotalsLoading] = useState(false);
 
   const selectedContact = useMemo(
@@ -85,6 +89,16 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     if (nameQuery.length < 3 && phoneQuery.length < 3) return contacts;
     return searchResults;
   }, [contacts, filterName, filterPhone, searchResults]);
+
+  // Eng oxirgi amal bajarilgan kontakt birinchi chiqsin. Vaqti aniqlanmaganlar
+  // (hali amal bo'lmagan) o'z tartibida pastda qoladi.
+  const sortedContacts = useMemo(() => {
+    return [...filteredContacts].sort((a, b) => {
+      const dateA = latestDateByContact[a.id] ?? 0;
+      const dateB = latestDateByContact[b.id] ?? 0;
+      return dateB - dateA;
+    });
+  }, [filteredContacts, latestDateByContact]);
 
   const aggregateTotals = useMemo(() => {
     let totalDebt = 0;
@@ -160,8 +174,39 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
       setTotalsLoading(true);
       const next: Record<string, { totalDebt: number; totalCredit: number; balance: number }> = {};
+      const nextDates: Record<string, number> = {};
       const queue = [...contacts];
       const workerCount = Math.min(5, queue.length);
+
+      const maxCreatedDate = (items: MoneyResponseDTO[]): number => {
+        let max = 0;
+        for (const item of items) {
+          const ts = new Date(item.createdDate).getTime();
+          if (!Number.isNaN(ts) && ts > max) max = ts;
+        }
+        return max;
+      };
+
+      const loadAllHistory = async (id: string, partyType: PartyType): Promise<MoneyResponseDTO[]> => {
+        const all: MoneyResponseDTO[] = [];
+        let page = 0;
+        let safety = 0;
+        while (safety < 20) {
+          const historyPage = await getMoneyHistory({
+            id,
+            partyType,
+            page,
+            size: 100,
+            token: profile.jwt,
+            accountType,
+          });
+          all.push(...(historyPage.content ?? []));
+          if (historyPage.last || page >= historyPage.totalPages - 1) break;
+          page += 1;
+          safety += 1;
+        }
+        return all;
+      };
 
       const runWorker = async () => {
         while (queue.length && !cancelled) {
@@ -174,50 +219,36 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
             const price = (await getTotalPriceByPartyId(counterpartyId, counterpartyType, profile.jwt, accountType)) as MoneyPriceDTO;
             let totals = extractMoneyTotals(price ?? null);
+            let latestTs = 0;
 
             if (totals.totalDebt === 0 && totals.totalCredit === 0) {
-              const all: MoneyResponseDTO[] = [];
-              let page = 0;
-              let safety = 0;
-              while (safety < 20) {
-                const historyPage = await getMoneyHistory({
-                  id: counterpartyId,
-                  partyType: counterpartyType,
-                  page,
-                  size: 100,
-                  token: profile.jwt,
-                  accountType,
-                });
-                all.push(...(historyPage.content ?? []));
-                if (historyPage.last || page >= historyPage.totalPages - 1) break;
-                page += 1;
-                safety += 1;
-              }
+              const all = await loadAllHistory(counterpartyId, counterpartyType);
               totals = computeTotalsFromHistory(all, counterpartyId, counterpartyType);
+              latestTs = maxCreatedDate(all);
             }
 
             if (totals.totalDebt === 0 && totals.totalCredit === 0 && contact.id) {
-              const all: MoneyResponseDTO[] = [];
-              let page = 0;
-              let safety = 0;
-              while (safety < 20) {
-                const historyPage = await getMoneyHistory({
-                  id: contact.id,
-                  partyType: 'PROFILE',
-                  page,
-                  size: 100,
-                  token: profile.jwt,
-                  accountType,
-                });
-                all.push(...(historyPage.content ?? []));
-                if (historyPage.last || page >= historyPage.totalPages - 1) break;
-                page += 1;
-                safety += 1;
-              }
+              const all = await loadAllHistory(contact.id, 'PROFILE');
               totals = computeTotalsFromHistory(all, contact.id, 'PROFILE');
+              latestTs = maxCreatedDate(all);
+            }
+
+            // Totals tezkor yo'l (price) orqali kelgan bo'lsa, tarix yuklanmagan —
+            // saralash uchun eng oxirgi yozuvning sanasini alohida olamiz.
+            if (!latestTs) {
+              const head = await getMoneyHistory({
+                id: counterpartyId,
+                partyType: counterpartyType,
+                page: 0,
+                size: 1,
+                token: profile.jwt,
+                accountType,
+              });
+              latestTs = maxCreatedDate(head.content ?? []);
             }
 
             next[contact.id] = totals;
+            if (latestTs) nextDates[contact.id] = latestTs;
           } catch {
             // ignore per-contact failure
           }
@@ -226,7 +257,10 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
       try {
         await Promise.all(Array.from({ length: workerCount }, () => runWorker()));
-        if (!cancelled) setTotalsByContact(next);
+        if (!cancelled) {
+          setTotalsByContact(next);
+          setLatestDateByContact(nextDates);
+        }
       } finally {
         if (!cancelled) setTotalsLoading(false);
       }
@@ -462,16 +496,16 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <View style={styles.listCard}>
           {loading || searchLoading ? (
             <SkeletonCardList count={5} containerStyle={styles.listSkeleton} />
-          ) : filteredContacts.length === 0 ? (
+          ) : sortedContacts.length === 0 ? (
             <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
           ) : (
-            filteredContacts.map((item, index) => {
+            sortedContacts.map((item, index) => {
               const balance = totalsByContact[item.id]?.balance;
               const balanceColor = balance && balance > 0 ? POSITIVE : balance && balance < 0 ? NEGATIVE : colors.textSecondary;
               return (
                 <View
                   key={item.id || `contact-${index}`}
-                  style={[styles.row, index !== filteredContacts.length - 1 && styles.rowBorder]}
+                  style={[styles.row, index !== sortedContacts.length - 1 && styles.rowBorder]}
                 >
                   <TouchableOpacity
                     style={styles.rowMain}
@@ -516,7 +550,15 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       ) : null}
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={closeModal}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
               {mode === 'create' ? t('debts.addClient') : t('debts.editClient')}
@@ -566,7 +608,8 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Text style={styles.editHint}>{t('debts.updatingContact')}</Text>
             ) : null}
           </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -762,8 +805,14 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    padding: 16,
+  },
+  // Modal yuqoriroqda ochilsin — telefon klaviaturasi maydonlarni to'smasligi uchun.
+  modalScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   modalCard: {
     backgroundColor: colors.surface,
