@@ -3,5 +3,6 @@ node_modules/
 .expo-shared/
 build/
 web-build/
+coverage/
 .DS_Store
 .env
