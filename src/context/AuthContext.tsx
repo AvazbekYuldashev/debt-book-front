@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useEffect, useState, ReactNode, SetStateAction } from 'react';
 import { ProfileDTO } from '../types';
 import { setUnauthorizedHandler } from '../api/apiClient';
-import { storage } from '../utils/storage';
+import { secureStorage } from '../utils/secureStorage';
 
 interface AuthContextValue {
   profile: ProfileDTO | null;
@@ -25,7 +25,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let cancelled = false;
     (async () => {
       try {
-        const raw = await storage.get(AUTH_PROFILE_STORAGE_KEY);
+        const raw = await secureStorage.get(AUTH_PROFILE_STORAGE_KEY);
         if (!raw || cancelled) return;
         const parsed = JSON.parse(raw) as ProfileDTO | null;
         if (parsed && typeof parsed === 'object' && typeof parsed.jwt === 'string' && parsed.jwt) {
@@ -51,9 +51,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // fire-and-forget (cross-platform AsyncStorage)
       if (nextProfile) {
-        storage.set(AUTH_PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
+        secureStorage.set(AUTH_PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
       } else {
-        storage.remove(AUTH_PROFILE_STORAGE_KEY);
+        secureStorage.remove(AUTH_PROFILE_STORAGE_KEY);
       }
 
       return nextProfile;
