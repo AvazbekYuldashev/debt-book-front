@@ -14,10 +14,13 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "uz.debtbook.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "permissions": ["READ_MEDIA_IMAGES"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
