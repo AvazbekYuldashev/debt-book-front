@@ -8,6 +8,7 @@ import { AuthProvider } from './src/context/AuthContext';
 import { WorkspaceProvider } from './src/context/WorkspaceContext';
 import { AppThemeProvider, useAppTheme } from './src/theme';
 import { LanguageProvider } from './src/i18n';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 const AppShell: React.FC = () => {
   const { activeTheme, colors } = useAppTheme();
@@ -75,13 +76,15 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <LanguageProvider>
-        <AppThemeProvider>
-          <AppShell />
-          <StatusBar style="auto" />
-        </AppThemeProvider>
-      </LanguageProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <LanguageProvider>
+          <AppThemeProvider>
+            <AppShell />
+            <StatusBar style="auto" />
+          </AppThemeProvider>
+        </LanguageProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
