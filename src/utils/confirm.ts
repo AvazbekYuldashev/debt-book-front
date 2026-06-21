@@ -19,8 +19,8 @@ export function confirmAction(
     if (typeof confirmFn === 'function') {
       if (confirmFn(message)) onConfirm();
     } else {
-      // confirm mavjud bo'lmasa, xavfsizlik uchun amalni bajarmaymiz
-      onConfirm();
+      // Tasdiq olib bo'lmadi -> qaytarib bo'lmaydigan amalni BAJARMAYMIZ (fail-safe).
+      if (__DEV__) console.warn('confirmAction: confirm() mavjud emas, amal bekor qilindi');
     }
     return;
   }
