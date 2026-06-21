@@ -26,9 +26,6 @@ import { useI18n, translate } from '../i18n';
 import { useAppTheme } from '../theme';
 import { ColorTokens } from '../theme/colors';
 
-const POSITIVE = '#0D9488';
-const NEGATIVE = '#EF4444';
-
 const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const { t } = useI18n();
   const { colors } = useAppTheme();
@@ -183,7 +180,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
                     <Ionicons
                       name={item.kind === 'credit' ? 'arrow-up-outline' : 'arrow-down-outline'}
                       size={14}
-                      color={item.kind === 'credit' ? POSITIVE : NEGATIVE}
+                      color={item.kind === 'credit' ? colors.positive : colors.negative}
                     />
                   </View>
                   <Text style={styles.txDate}>{formatDateShort(item.createdDate)}</Text>
@@ -408,10 +405,10 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontWeight: '700',
   },
   balancePositive: {
-    color: POSITIVE,
+    color: colors.positive,
   },
   balanceNegative: {
-    color: NEGATIVE,
+    color: colors.negative,
   },
   errorBox: {
     borderWidth: 1,
@@ -422,7 +419,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     marginBottom: 12,
   },
   errorText: {
-    color: NEGATIVE,
+    color: colors.negative,
     fontSize: 13,
   },
   retryText: {
@@ -493,10 +490,10 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontWeight: '700',
   },
   txAmountPositive: {
-    color: POSITIVE,
+    color: colors.positive,
   },
   txAmountNegative: {
-    color: NEGATIVE,
+    color: colors.negative,
   },
   bottomActions: {
     flexDirection: 'row',

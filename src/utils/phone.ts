@@ -11,6 +11,18 @@ export const normalizePhone = (value: string): string => {
   return digits || (value || '').trim();
 };
 
+// Telefon raqam qoidasi (9 yoki 12 xona, 12 xona 998 bilan) BITTA joyda.
+// Har bir chaqiruvchi qaytgan kodni o'zining xabari (i18n yoki matn)ga bog'laydi.
+export type PhoneValidationError = 'empty' | 'length' | 'prefix' | null;
+
+export const getPhoneValidationError = (value: string): PhoneValidationError => {
+  const digits = (value || '').replace(/\D/g, '');
+  if (!digits) return 'empty';
+  if (digits.length !== 9 && digits.length !== 12) return 'length';
+  if (digits.length === 12 && !digits.startsWith('998')) return 'prefix';
+  return null;
+};
+
 /** Mahalliy (998siz) 9 xonali ko'rinishga keltiradi: input filterlash uchun. */
 export const LOCAL_PHONE_DIGITS = 9;
 export const sanitizeLocalPhone = (value: string): string => {

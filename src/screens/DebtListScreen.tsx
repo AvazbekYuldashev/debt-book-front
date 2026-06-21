@@ -28,13 +28,11 @@ import { extractMoneyTotals, formatMoney } from '../utils/money';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 import { canWrite, canDelete } from '../utils/permissions';
 import { confirmDelete } from '../utils/confirm';
+import { getPhoneValidationError } from '../utils/phone';
 import { useI18n } from '../i18n';
 import PartyTypeSelector from '../components/form/PartyTypeSelector';
 
 type Mode = 'create' | 'edit';
-
-const POSITIVE = '#0D9488';
-const NEGATIVE = '#EF4444';
 
 const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t } = useI18n();
@@ -373,18 +371,16 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         return;
       }
 
-      if (!phone.trim()) {
-        setLocalError(t('debts.enterPhone'));
-        return;
-      }
       const digits = phone.replace(/\D/g, '');
-      if (digits.length !== 9 && digits.length !== 12) {
-        setLocalError(t('debts.phoneLength'));
-        return;
-      }
-
-      if (digits.length === 12 && !digits.startsWith('998')) {
-        setLocalError(t('debts.phone998'));
+      const phoneError = getPhoneValidationError(phone);
+      if (phoneError) {
+        setLocalError(
+          phoneError === 'empty'
+            ? t('debts.enterPhone')
+            : phoneError === 'prefix'
+              ? t('debts.phone998')
+              : t('debts.phoneLength')
+        );
         return;
       }
 
@@ -478,12 +474,12 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryCol}>
             <Text style={styles.summaryLabel}>{t('debts.currentDebt')}</Text>
-            <Text style={[styles.summaryValue, { color: NEGATIVE }]}>{formatMoney(aggregateTotals.totalDebt)}</Text>
+            <Text style={[styles.summaryValue, { color: colors.negative }]}>{formatMoney(aggregateTotals.totalDebt)}</Text>
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryCol}>
             <Text style={styles.summaryLabel}>{t('debts.currentCredit')}</Text>
-            <Text style={[styles.summaryValue, { color: POSITIVE }]}>{formatMoney(aggregateTotals.totalCredit)}</Text>
+            <Text style={[styles.summaryValue, { color: colors.positive }]}>{formatMoney(aggregateTotals.totalCredit)}</Text>
           </View>
         </View>
 
@@ -501,7 +497,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           ) : (
             sortedContacts.map((item, index) => {
               const balance = totalsByContact[item.id]?.balance;
-              const balanceColor = balance && balance > 0 ? POSITIVE : balance && balance < 0 ? NEGATIVE : colors.textSecondary;
+              const balanceColor = balance && balance > 0 ? colors.positive : balance && balance < 0 ? colors.negative : colors.textSecondary;
               return (
                 <View
                   key={item.id || `contact-${index}`}
@@ -531,7 +527,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                       ) : null}
                       {canDelete(workspace.activeBusinessRole) ? (
                         <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(item.id)} disabled={deleting}>
-                          <Ionicons name="trash-outline" size={16} color={NEGATIVE} />
+                          <Ionicons name="trash-outline" size={16} color={colors.negative} />
                         </TouchableOpacity>
                       ) : null}
                     </View>
@@ -738,7 +734,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     marginBottom: 16,
   },
   errorText: {
-    color: NEGATIVE,
+    color: colors.negative,
     fontSize: 13,
   },
   listCard: {
@@ -826,7 +822,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     marginBottom: 12,
   },
   localError: {
-    color: NEGATIVE,
+    color: colors.negative,
     marginBottom: 10,
     fontSize: 12,
   },

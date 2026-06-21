@@ -4,7 +4,7 @@ import { AuthContext } from './AuthContext';
 import { WorkspaceContext } from './WorkspaceContext';
 import { ACCOUNT_TYPE, PartyType } from '../types/money';
 import { useAccountContext } from '../hooks/useAccountContext';
-import { normalizePhone } from '../utils/phone';
+import { getPhoneValidationError, normalizePhone } from '../utils/phone';
 
 export interface Contact {
   id: string;
@@ -184,10 +184,10 @@ const validateContactInput = (input: ContactFormInput): string => {
     return '';
   }
 
-  const digits = (input.phone || '').replace(/\D/g, '');
-  if (!digits) return 'Telefon majburiy';
-  if (digits.length !== 9 && digits.length !== 12) return "Telefon 9 yoki 12 xonali bo'lishi kerak";
-  if (digits.length === 12 && !digits.startsWith('998')) return "12 xonali telefon 998 bilan boshlanishi kerak";
+  const phoneError = getPhoneValidationError(input.phone || '');
+  if (phoneError === 'empty') return 'Telefon majburiy';
+  if (phoneError === 'length') return "Telefon 9 yoki 12 xonali bo'lishi kerak";
+  if (phoneError === 'prefix') return "12 xonali telefon 998 bilan boshlanishi kerak";
   return '';
 };
 

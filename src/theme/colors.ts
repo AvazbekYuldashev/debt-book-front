@@ -20,6 +20,12 @@ export interface ColorTokens {
   success: string;
   warning: string;
   overlay: string;
+  // Moliyaviy balans semantikasi: "haq/kredit" (musbat) va "qarz" (manfiy).
+  // Brand 'primary' dan ATAYIN ajratilgan — ma'no boshqacha bo'lsa mustaqil o'zgaradi.
+  positive: string;
+  positiveSoft: string;
+  negative: string;
+  negativeSoft: string;
 }
 
 export const lightColors: ColorTokens = {
@@ -44,6 +50,10 @@ export const lightColors: ColorTokens = {
   success: '#10B981',
   warning: '#F59E0B',
   overlay: 'rgba(15, 23, 42, 0.45)',
+  positive: '#0D9488',
+  positiveSoft: '#CCFBF1',
+  negative: '#EF4444',
+  negativeSoft: '#FEF2F2',
 };
 
 export const darkColors: ColorTokens = {
@@ -68,4 +78,8 @@ export const darkColors: ColorTokens = {
   success: '#34D399',
   warning: '#FBBF24',
   overlay: 'rgba(2, 6, 23, 0.70)',
+  positive: '#2DD4BF',
+  positiveSoft: '#134E4A',
+  negative: '#F87171',
+  negativeSoft: '#3A2121',
 };

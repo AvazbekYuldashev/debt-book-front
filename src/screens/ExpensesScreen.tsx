@@ -34,7 +34,7 @@ const DateTimePicker = Platform.OS !== 'web'
   ? require('@react-native-community/datetimepicker').default
   : null;
 
-const TOTAL_ACCENT = '#0D9488';
+
 type CategoryMode = 'create' | 'edit';
 type QuickFilterKey = 'today' | 'currentWeek' | 'currentMonth' | 'customRange';
 
@@ -768,7 +768,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   totalValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: TOTAL_ACCENT,
+    color: colors.primary,
   },
   filterCard: {
     backgroundColor: colors.surface,
