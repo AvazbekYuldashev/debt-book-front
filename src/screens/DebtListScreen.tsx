@@ -24,6 +24,7 @@ import { useAppTheme } from '../theme';
 import { ColorTokens } from '../theme/colors';
 import { ROUTES } from '../navigation/routes';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
+import { computeTotalsFromHistory as computeTotals } from '../application/usecases/computeContactBalance';
 import { extractMoneyTotals, formatMoney } from '../utils/money';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 import { canWrite, canDelete } from '../utils/permissions';
@@ -122,41 +123,10 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const computeTotalsFromHistory = useCallback(
     (history: MoneyResponseDTO[], counterpartyId: string, counterpartyType: PartyType) => {
-      let totalDebt = 0;
-      let totalCredit = 0;
       const actorType: PartyType =
         workspace.mode === 'business' && workspace.activeBusinessId ? 'BUSINESS_ACCOUNT' : 'PROFILE';
       const actorId = actorType === 'BUSINESS_ACCOUNT' ? workspace.activeBusinessId || '' : profile?.id || '';
-
-      for (const item of history) {
-        let isCreditor = false;
-        let isDebtor = false;
-
-        if (actorType === 'BUSINESS_ACCOUNT') {
-          isCreditor = (item.creditorType === 'BUSINESS_ACCOUNT' || !!item.creditorBusinessId)
-            && item.creditorBusinessId === actorId;
-          isDebtor = (item.debtorType === 'BUSINESS_ACCOUNT' || !!item.debtorBusinessId)
-            && item.debtorBusinessId === actorId;
-        } else {
-          isCreditor = (!item.creditorType || item.creditorType === 'PROFILE') && item.creditorId === actorId;
-          isDebtor = (!item.debtorType || item.debtorType === 'PROFILE') && item.debtorId === actorId;
-        }
-
-        if (!isCreditor && !isDebtor && counterpartyId) {
-          if (counterpartyType === 'BUSINESS_ACCOUNT') {
-            if (item.debtorBusinessId === counterpartyId) isCreditor = true;
-            if (item.creditorBusinessId === counterpartyId) isDebtor = true;
-          } else {
-            if (item.debtorId === counterpartyId) isCreditor = true;
-            if (item.creditorId === counterpartyId) isDebtor = true;
-          }
-        }
-
-        if (isCreditor) totalCredit += item.amount;
-        if (isDebtor) totalDebt += item.amount;
-      }
-
-      return { totalDebt, totalCredit, balance: totalCredit - totalDebt };
+      return computeTotals(history, { type: actorType, id: actorId }, counterpartyId, counterpartyType);
     },
     [profile?.id, workspace.activeBusinessId, workspace.mode]
   );

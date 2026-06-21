@@ -2,16 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getProfileByPhone } from '../services/profileService';
 import { createCredit, createDebt, getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import {
-  ACCOUNT_TYPE,
   MoneyActionType,
-  MoneyFlowType,
-  MONEY_FLOW_TYPE,
   MoneyPriceDTO,
   MoneyResponseDTO,
   PartyType,
 } from '../types/money';
 import { extractMoneyTotals } from '../utils/money';
 import { useAccountContext } from './useAccountContext';
+import { accountTypeFromParty, flowFor } from '../application/usecases/resolveMoneyFlow';
 
 interface FetchMoneyInput {
   partyType: PartyType;
@@ -31,17 +29,6 @@ interface CreateMoneyInput {
 
 interface UseAccountScopedTransactionsParams {
   token?: string;
-}
-
-function flowFor(source: PartyType, target: PartyType): MoneyFlowType {
-  if (source === 'BUSINESS_ACCOUNT' && target === 'PROFILE') return MONEY_FLOW_TYPE.BUSINESS_TO_PERSONAL;
-  if (source === 'PROFILE' && target === 'BUSINESS_ACCOUNT') return MONEY_FLOW_TYPE.PERSONAL_TO_BUSINESS;
-  if (source === 'BUSINESS_ACCOUNT' && target === 'BUSINESS_ACCOUNT') return MONEY_FLOW_TYPE.BUSINESS_TO_BUSINESS;
-  return MONEY_FLOW_TYPE.PERSONAL_TO_PERSONAL;
-}
-
-function accountTypeFromParty(partyType: PartyType) {
-  return partyType === 'BUSINESS_ACCOUNT' ? ACCOUNT_TYPE.BUSINESS : ACCOUNT_TYPE.PERSONAL;
 }
 
 export function useAccountScopedTransactions({ token }: UseAccountScopedTransactionsParams) {
