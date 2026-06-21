@@ -35,6 +35,30 @@ import PartyTypeSelector from '../components/form/PartyTypeSelector';
 
 type Mode = 'create' | 'edit';
 
+// Avatar (initial doiracha) uchun yumshoq rang palitrasi — ismdan deterministik tanlanadi.
+const AVATAR_COLORS: { bg: string; fg: string }[] = [
+  { bg: '#E0F2FE', fg: '#0369A1' },
+  { bg: '#DCFCE7', fg: '#15803D' },
+  { bg: '#FEF9C3', fg: '#A16207' },
+  { bg: '#FCE7F3', fg: '#BE185D' },
+  { bg: '#EDE9FE', fg: '#6D28D9' },
+  { bg: '#FFEDD5', fg: '#C2410C' },
+  { bg: '#CCFBF1', fg: '#0F766E' },
+];
+
+const getInitials = (name: string): string => {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+};
+
+const pickAvatarColor = (seed: string): { bg: string; fg: string } => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+};
+
 const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t } = useI18n();
   const { colors } = useAppTheme();
@@ -442,14 +466,28 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         ) : null}
 
         <View style={styles.summaryCard}>
-          <View style={styles.summaryCol}>
-            <Text style={styles.summaryLabel}>{t('debts.currentDebt')}</Text>
-            <Text style={[styles.summaryValue, { color: colors.negative }]}>{formatMoney(aggregateTotals.totalDebt)}</Text>
+          <View style={styles.summaryTile}>
+            <View style={[styles.summaryIcon, { backgroundColor: colors.negativeSoft }]}>
+              <Ionicons name="arrow-down" size={18} color={colors.negative} />
+            </View>
+            <View style={styles.summaryTextWrap}>
+              <Text style={styles.summaryLabel}>{t('debts.currentDebt')}</Text>
+              <Text style={[styles.summaryValue, { color: colors.negative }]} numberOfLines={1} adjustsFontSizeToFit>
+                {formatMoney(aggregateTotals.totalDebt)}
+              </Text>
+            </View>
           </View>
           <View style={styles.summaryDivider} />
-          <View style={styles.summaryCol}>
-            <Text style={styles.summaryLabel}>{t('debts.currentCredit')}</Text>
-            <Text style={[styles.summaryValue, { color: colors.positive }]}>{formatMoney(aggregateTotals.totalCredit)}</Text>
+          <View style={styles.summaryTile}>
+            <View style={[styles.summaryIcon, { backgroundColor: colors.positiveSoft }]}>
+              <Ionicons name="arrow-up" size={18} color={colors.positive} />
+            </View>
+            <View style={styles.summaryTextWrap}>
+              <Text style={styles.summaryLabel}>{t('debts.currentCredit')}</Text>
+              <Text style={[styles.summaryValue, { color: colors.positive }]} numberOfLines={1} adjustsFontSizeToFit>
+                {formatMoney(aggregateTotals.totalCredit)}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -467,7 +505,10 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           ) : (
             sortedContacts.map((item, index) => {
               const balance = totalsByContact[item.id]?.balance;
+              const hasBalance = typeof balance === 'number' && balance !== 0;
               const balanceColor = balance && balance > 0 ? colors.positive : balance && balance < 0 ? colors.negative : colors.textSecondary;
+              const pillBg = balance && balance > 0 ? colors.positiveSoft : balance && balance < 0 ? colors.negativeSoft : colors.surfaceMuted;
+              const avatar = pickAvatarColor(item.fullName || item.id);
               return (
                 <View
                   key={item.id || `contact-${index}`}
@@ -475,28 +516,47 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 >
                   <TouchableOpacity
                     style={styles.rowMain}
+                    activeOpacity={0.7}
                     onPress={() => navigation.navigate(ROUTES.CONTACT_DETAIL, { id: item.id })}
                   >
-                    <Text style={styles.name}>{item.fullName}</Text>
-                    <Text style={styles.phone}>
-                      {item.partyType === 'BUSINESS_ACCOUNT'
-                        ? `${t('debts.businessLabel')}: ${item.partyId || '--'}`
-                        : item.phone || item.partyId || '--'}
-                    </Text>
+                    <View style={[styles.avatar, { backgroundColor: avatar.bg }]}>
+                      <Text style={[styles.avatarText, { color: avatar.fg }]}>{getInitials(item.fullName)}</Text>
+                    </View>
+                    <View style={styles.rowInfo}>
+                      <Text style={styles.name} numberOfLines={1}>{item.fullName}</Text>
+                      <Text style={styles.phone} numberOfLines={1}>
+                        {item.partyType === 'BUSINESS_ACCOUNT'
+                          ? `${t('debts.businessLabel')}: ${item.partyId || '--'}`
+                          : item.phone || item.partyId || '--'}
+                      </Text>
+                    </View>
                   </TouchableOpacity>
 
                   <View style={styles.rowRight}>
-                    <Text style={[styles.balanceText, { color: balanceColor }]}>
-                      {typeof balance === 'number' ? formatMoney(balance) : totalsLoading ? '...' : '--'}
-                    </Text>
+                    <View style={[styles.balancePill, { backgroundColor: hasBalance ? pillBg : 'transparent' }]}>
+                      <Text style={[styles.balancePillText, { color: balanceColor }]}>
+                        {typeof balance === 'number' ? formatMoney(balance) : totalsLoading ? '...' : '--'}
+                      </Text>
+                    </View>
                     <View style={styles.actions}>
                       {canWrite(workspace.activeBusinessRole) ? (
-                        <TouchableOpacity style={styles.iconBtn} onPress={() => openEdit(item.id)}>
+                        <TouchableOpacity
+                          style={styles.iconBtn}
+                          onPress={() => openEdit(item.id)}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('common.edit')}
+                        >
                           <Ionicons name="create-outline" size={16} color={colors.textSecondary} />
                         </TouchableOpacity>
                       ) : null}
                       {canDelete(workspace.activeBusinessRole) ? (
-                        <TouchableOpacity style={styles.iconBtn} onPress={() => handleDelete(item.id)} disabled={deleting}>
+                        <TouchableOpacity
+                          style={styles.iconBtn}
+                          onPress={() => handleDelete(item.id)}
+                          disabled={deleting}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('common.delete')}
+                        >
                           <Ionicons name="trash-outline" size={16} color={colors.negative} />
                         </TouchableOpacity>
                       ) : null}
@@ -668,32 +728,47 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   summaryCard: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
-  summaryCol: {
+  summaryTile: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  summaryIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryTextWrap: {
     flex: 1,
   },
   summaryLabel: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   summaryValue: {
-    fontSize: 26,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
   },
   summaryDivider: {
     width: 1,
+    alignSelf: 'stretch',
     backgroundColor: colors.border,
-    marginHorizontal: 12,
+    marginHorizontal: 14,
   },
   errorRow: {
     padding: 10,
@@ -709,9 +784,13 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   listCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 20,
+    paddingVertical: 4,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
     overflow: 'hidden',
   },
   listSkeleton: {
@@ -722,7 +801,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     gap: 10,
   },
   rowBorder: {
@@ -731,6 +810,23 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   rowMain: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  rowInfo: {
+    flex: 1,
   },
   name: {
     fontSize: 16,
@@ -738,27 +834,32 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     color: colors.textPrimary,
   },
   phone: {
-    marginTop: 4,
+    marginTop: 3,
     fontSize: 13,
     color: colors.textSecondary,
   },
   rowRight: {
     alignItems: 'flex-end',
-    gap: 6,
+    gap: 8,
   },
-  balanceText: {
+  balancePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  balancePillText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   iconBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceMuted,
@@ -766,7 +867,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     color: colors.textSecondary,
-    paddingVertical: 24,
+    paddingVertical: 28,
   },
   modalBackdrop: {
     flex: 1,
