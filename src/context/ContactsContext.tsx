@@ -1,4 +1,5 @@
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClientDTO, ClientFilterDTO, createClient, deleteClient, filterClients, getMyClients, updateClient } from '../api/client';
 import { AuthContext } from './AuthContext';
 import { WorkspaceContext } from './WorkspaceContext';
@@ -204,33 +205,42 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { profile } = useContext(AuthContext);
   const { workspace, isWorkspaceReady } = useContext(WorkspaceContext);
   const { accountType, accountKey } = useAccountContext();
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState('');
+  const [mutationError, setMutationError] = useState('');
+
   const actorType: PartyType = accountType === ACCOUNT_TYPE.BUSINESS ? 'BUSINESS_ACCOUNT' : 'PROFILE';
   const actorId = actorType === 'BUSINESS_ACCOUNT' ? workspace.activeBusinessId : profile?.id;
 
+  // Server-state React Query qo'lida: cache + dedup + retry. Kalit accountKey ga bog'liq —
+  // workspace almashganda avtomatik qayta yuklanadi (avvalgi qo'lda useEffect o'rniga).
+  const contactsQuery = useQuery<Contact[]>({
+    queryKey: ['contacts', accountKey],
+    enabled: Boolean(profile?.jwt) && isWorkspaceReady,
+    staleTime: 30_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const clients = await getMyClients(profile!.jwt!, 0, 100, { accountType });
+      return dedupeByCounterparty(clients.map((client) => toContact(client, actorType, actorId)));
+    },
+  });
+
+  const contacts = contactsQuery.data ?? [];
+  const loading = contactsQuery.isLoading || contactsQuery.isRefetching;
+  const queryErrorMsg = contactsQuery.isError
+    ? contactsQuery.error instanceof Error
+      ? contactsQuery.error.message
+      : 'Kontaktlar yuklanmadi'
+    : '';
+  const error = mutationError || queryErrorMsg;
+
   const refreshContacts = useCallback(async () => {
-    if (!profile?.jwt) {
-      setContacts([]);
-      setError('');
-      return;
-    }
-    if (!isWorkspaceReady) return;
-    setLoading(true);
-    setError('');
-    try {
-      const clients = await getMyClients(profile.jwt, 0, 100, { accountType });
-      setContacts(dedupeByCounterparty(clients.map((client) => toContact(client, actorType, actorId))));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Kontaktlar yuklanmadi');
-    } finally {
-      setLoading(false);
-    }
-  }, [accountType, actorId, actorType, isWorkspaceReady, profile?.jwt]);
+    await queryClient.invalidateQueries({ queryKey: ['contacts', accountKey] });
+  }, [queryClient, accountKey]);
 
   const filterContacts = useCallback(
     async (input: ContactFilterInput): Promise<Contact[]> => {
@@ -254,17 +264,17 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const addContact = useCallback(
     async (input: ContactFormInput): Promise<boolean> => {
       if (!profile?.jwt) {
-        setError('Avval tizimga kiring');
+        setMutationError('Avval tizimga kiring');
         return false;
       }
       const validationError = validateContactInput(input);
       if (validationError) {
-        setError(validationError);
+        setMutationError(validationError);
         return false;
       }
 
       setCreating(true);
-      setError('');
+      setMutationError('');
       try {
         const created = await createClient(
           profile.jwt,
@@ -282,37 +292,39 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
               },
           { accountType }
         );
-        setContacts((prev) => dedupeByCounterparty([toContact(created, actorType, actorId), ...prev]));
+        queryClient.setQueryData<Contact[]>(['contacts', accountKey], (prev) =>
+          dedupeByCounterparty([toContact(created, actorType, actorId), ...(prev ?? [])])
+        );
         return true;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Kontakt qo'shilmadi");
+        setMutationError(e instanceof Error ? e.message : "Kontakt qo'shilmadi");
         return false;
       } finally {
         setCreating(false);
       }
     },
-    [accountType, actorId, actorType, profile?.jwt]
+    [accountKey, accountType, actorId, actorType, profile?.jwt, queryClient]
   );
 
   const updateContact = useCallback(
     async (id: string, input: ContactUpdateInput): Promise<boolean> => {
       if (!profile?.jwt) {
-        setError('Avval tizimga kiring');
+        setMutationError('Avval tizimga kiring');
         return false;
       }
       if (!isWorkspaceReady) {
-        setError('Workspace hali tayyor emas');
+        setMutationError('Workspace hali tayyor emas');
         return false;
       }
 
       const validationError = validateContactUpdateInput(input);
       if (validationError) {
-        setError(validationError);
+        setMutationError(validationError);
         return false;
       }
 
       setUpdating(true);
-      setError('');
+      setMutationError('');
       try {
         await updateClient(
           profile.jwt,
@@ -323,52 +335,48 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
           },
           { accountType }
         );
-        setContacts((prev) =>
-          prev.map((contact) => (contact.id === id ? mapNameToContact(contact, input.name) : contact))
+        queryClient.setQueryData<Contact[]>(['contacts', accountKey], (prev) =>
+          (prev ?? []).map((contact) => (contact.id === id ? mapNameToContact(contact, input.name) : contact))
         );
         return true;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Kontakt o'zgartirilmadi");
+        setMutationError(e instanceof Error ? e.message : "Kontakt o'zgartirilmadi");
         return false;
       } finally {
         setUpdating(false);
       }
     },
-    [accountType, isWorkspaceReady, profile?.jwt]
+    [accountKey, accountType, isWorkspaceReady, profile?.jwt, queryClient]
   );
 
   const deleteContactHandler = useCallback(
     async (id: string): Promise<boolean> => {
       if (!profile?.jwt) {
-        setError('Avval tizimga kiring');
+        setMutationError('Avval tizimga kiring');
         return false;
       }
       if (!isWorkspaceReady) {
-        setError('Workspace hali tayyor emas');
+        setMutationError('Workspace hali tayyor emas');
         return false;
       }
 
       setDeleting(true);
-      setError('');
+      setMutationError('');
       try {
         await deleteClient(profile.jwt, id, { accountType });
-        setContacts((prev) => prev.filter((contact) => contact.id !== id));
+        queryClient.setQueryData<Contact[]>(['contacts', accountKey], (prev) =>
+          (prev ?? []).filter((contact) => contact.id !== id)
+        );
         return true;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Kontakt o'chirilmadi");
+        setMutationError(e instanceof Error ? e.message : "Kontakt o'chirilmadi");
         return false;
       } finally {
         setDeleting(false);
       }
     },
-    [accountType, isWorkspaceReady, profile?.jwt]
+    [accountKey, accountType, isWorkspaceReady, profile?.jwt, queryClient]
   );
-
-  useEffect(() => {
-    setContacts([]);
-    setError('');
-    refreshContacts();
-  }, [accountKey, refreshContacts, workspace.activeBusinessId, workspace.mode]);
 
   return (
     <ContactsContext.Provider

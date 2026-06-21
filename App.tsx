@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import RootNavigator from './src/navigation/RootNavigator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,6 +10,13 @@ import { WorkspaceProvider } from './src/context/WorkspaceContext';
 import { AppThemeProvider, useAppTheme } from './src/theme';
 import { LanguageProvider } from './src/i18n';
 import ErrorBoundary from './src/components/ErrorBoundary';
+
+// Server-state uchun yagona QueryClient (cache + retry + dedup). Modul darajasida — bitta nusxa.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 },
+  },
+});
 
 const AppShell: React.FC = () => {
   const { activeTheme, colors } = useAppTheme();
@@ -77,14 +85,16 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <SafeAreaProvider>
-        <LanguageProvider>
-          <AppThemeProvider>
-            <AppShell />
-            <StatusBar style="auto" />
-          </AppThemeProvider>
-        </LanguageProvider>
-      </SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <LanguageProvider>
+            <AppThemeProvider>
+              <AppShell />
+              <StatusBar style="auto" />
+            </AppThemeProvider>
+          </LanguageProvider>
+        </SafeAreaProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }
