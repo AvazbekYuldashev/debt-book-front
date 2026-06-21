@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   RefreshControl,
@@ -601,7 +602,15 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       </ScrollView>
 
       <Modal visible={categoryModalVisible} animationType="slide" transparent onRequestClose={closeCategoryModal}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          style={styles.addModalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
               {categoryMode === 'create' ? t('expenses.addCategory') : t('expenses.editCategory')}
@@ -627,7 +636,8 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               />
             </View>
           </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
@@ -946,6 +956,18 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     backgroundColor: colors.overlay,
     justifyContent: 'center',
     padding: 16,
+  },
+  // Kategoriya qo'shish oynasi yuqoriroqda ochilsin — klaviatura to'smasligi uchun.
+  addModalBackdrop: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+  },
+  modalScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   modalCard: {
     backgroundColor: colors.surface,

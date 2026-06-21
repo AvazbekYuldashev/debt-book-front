@@ -2,8 +2,11 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -266,7 +269,15 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
       />
 
       <Modal visible={expenseModalVisible} animationType="slide" transparent onRequestClose={closeExpenseModal}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{t('expenses.addExpense')}</Text>
             <Text style={styles.modalHint}>
@@ -300,7 +311,8 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
               />
             </View>
           </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -406,8 +418,14 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    padding: 16,
+  },
+  // Oyna yuqoriroqda ochilsin — telefon klaviaturasi maydonlarni to'smasligi uchun.
+  modalScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   modalCard: {
     backgroundColor: colors.surface,
