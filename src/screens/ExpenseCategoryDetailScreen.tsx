@@ -32,6 +32,13 @@ import { useI18n } from '../i18n';
 import { resolveDateRange } from '../utils/date';
 import { formatPhoneDisplay } from '../utils/phone';
 
+// Kiritilgan summani "12 331 323" ko'rinishida (har 3 raqamda bo'sh joy) formatlaydi.
+const formatAmountInput = (raw: string): string => {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+};
+
 const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
   const { t } = useI18n();
   const { colors } = useAppTheme();
@@ -122,7 +129,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
       setError(t('expenses.noCategories'));
       return;
     }
-    const normalizedAmount = Number(amount.replace(',', '.'));
+    const normalizedAmount = Number(amount.replace(/\s/g, '').replace(',', '.'));
     if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
       setError(t('expenses.amountInvalid'));
       return;
@@ -286,7 +293,7 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
             <AppTextInput
               label={t('expenses.amountLabel')}
               value={amount}
-              onChangeText={(value) => setAmount(value.replace(/[^0-9.,]/g, ''))}
+              onChangeText={(value) => setAmount(formatAmountInput(value))}
               placeholder={t('expenses.amountExample')}
               keyboardType="numeric"
             />
