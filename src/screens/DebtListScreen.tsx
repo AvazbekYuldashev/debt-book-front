@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -26,6 +27,7 @@ import { ROUTES } from '../navigation/routes';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import { computeTotalsFromHistory as computeTotals } from '../application/usecases/computeContactBalance';
 import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
+import { pickContactImage, useContactAvatars } from '../shared/contactAvatars';
 import { extractMoneyTotals, formatMoney } from '../utils/money';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 import { canWrite, canDelete } from '../utils/permissions';
@@ -56,6 +58,15 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     updateContact,
     deleteContact,
   } = useContext(ContactsContext);
+  const { avatars, setAvatar } = useContactAvatars();
+
+  const changeContactPhoto = useCallback(
+    async (key: string) => {
+      const uri = await pickContactImage();
+      if (uri) setAvatar(key, uri);
+    },
+    [setAvatar]
+  );
 
   const [modalVisible, setModalVisible] = useState(false);
   const [mode, setMode] = useState<Mode>('create');
@@ -486,6 +497,8 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               const balanceColor = balance && balance > 0 ? colors.positive : balance && balance < 0 ? colors.negative : colors.textSecondary;
               const pillBg = balance && balance > 0 ? colors.positiveSoft : balance && balance < 0 ? colors.negativeSoft : colors.surfaceMuted;
               const avatar = pickAvatarColor(item.fullName || item.id);
+              const avatarKey = item.partyId || item.id;
+              const localPhoto = avatars[avatarKey];
               return (
                 <View
                   key={item.id || `contact-${index}`}
@@ -496,9 +509,20 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     activeOpacity={0.7}
                     onPress={() => navigation.navigate(ROUTES.CONTACT_DETAIL, { id: item.id })}
                   >
-                    <View style={[styles.avatar, { backgroundColor: avatar.bg }]}>
-                      <Text style={[styles.avatarText, { color: avatar.fg }]}>{getInitials(item.fullName)}</Text>
-                    </View>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => changeContactPhoto(avatarKey)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('contact.changePhoto')}
+                    >
+                      {localPhoto ? (
+                        <Image source={{ uri: localPhoto }} style={styles.avatarImg} />
+                      ) : (
+                        <View style={[styles.avatar, { backgroundColor: avatar.bg }]}>
+                          <Text style={[styles.avatarText, { color: avatar.fg }]}>{getInitials(item.fullName)}</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
                     <View style={styles.rowInfo}>
                       <Text style={styles.name} numberOfLines={1}>{item.fullName}</Text>
                       <Text style={styles.phone} numberOfLines={1}>
@@ -803,6 +827,12 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   avatarText: {
     fontSize: 15,
     fontWeight: '800',
+  },
+  avatarImg: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.surfaceMuted,
   },
   rowInfo: {
     flex: 1,

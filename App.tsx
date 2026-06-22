@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ContactsProvider } from './src/context/ContactsContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { WorkspaceProvider } from './src/context/WorkspaceContext';
+import { ContactAvatarsProvider } from './src/shared/contactAvatars';
 import { AppThemeProvider, useAppTheme } from './src/theme';
 import { LanguageProvider } from './src/i18n';
 import ErrorBoundary from './src/components/ErrorBoundary';
@@ -61,9 +62,11 @@ const AppShell: React.FC = () => {
     <AuthProvider>
       <WorkspaceProvider>
         <ContactsProvider>
-          <NavigationContainer theme={navigationTheme}>
-            <RootNavigator />
-          </NavigationContainer>
+          <ContactAvatarsProvider>
+            <NavigationContainer theme={navigationTheme}>
+              <RootNavigator />
+            </NavigationContainer>
+          </ContactAvatarsProvider>
         </ContactsProvider>
       </WorkspaceProvider>
     </AuthProvider>

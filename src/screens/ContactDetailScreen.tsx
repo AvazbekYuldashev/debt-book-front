@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import {
+  Image,
   Modal,
   RefreshControl,
   ScrollView,
@@ -26,6 +27,7 @@ import { useI18n, translate } from '../i18n';
 import { useAppTheme } from '../theme';
 import { ColorTokens } from '../theme/colors';
 import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
+import { pickContactImage, useContactAvatars } from '../shared/contactAvatars';
 
 const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const { t } = useI18n();
@@ -36,6 +38,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const { workspace } = useContext(WorkspaceContext);
   const { accountType } = useAccountContext();
   const { contacts } = useContext(ContactsContext);
+  const { avatars, setAvatar } = useContactAvatars();
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
   const [selectedTransaction, setSelectedTransaction] = useState<ReturnType<typeof mapTransaction> | null>(null);
@@ -142,11 +145,25 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
 
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <View style={[styles.avatar, { backgroundColor: pickAvatarColor(contact.fullName || contact.id).bg }]}>
-              <Text style={[styles.avatarText, { color: pickAvatarColor(contact.fullName || contact.id).fg }]}>
-                {getInitials(contact.fullName)}
-              </Text>
-            </View>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={async () => {
+                const uri = await pickContactImage();
+                if (uri) setAvatar(contact.partyId || contact.id, uri);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t('contact.changePhoto')}
+            >
+              {avatars[contact.partyId || contact.id] ? (
+                <Image source={{ uri: avatars[contact.partyId || contact.id] }} style={styles.avatarImg} />
+              ) : (
+                <View style={[styles.avatar, { backgroundColor: pickAvatarColor(contact.fullName || contact.id).bg }]}>
+                  <Text style={[styles.avatarText, { color: pickAvatarColor(contact.fullName || contact.id).fg }]}>
+                    {getInitials(contact.fullName)}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
             <View style={styles.balanceHeaderInfo}>
               <Text style={styles.contactName} numberOfLines={1}>{contact.fullName}</Text>
               <Text style={styles.contactPhone} numberOfLines={1}>{contact.phone}</Text>
@@ -415,6 +432,12 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   avatarText: {
     fontSize: 18,
     fontWeight: '800',
+  },
+  avatarImg: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.surfaceMuted,
   },
   contactName: {
     fontSize: 18,
