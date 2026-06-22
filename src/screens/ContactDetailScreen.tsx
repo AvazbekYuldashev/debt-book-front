@@ -417,8 +417,9 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontWeight: '800',
   },
   contactName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
+    letterSpacing: -0.2,
     color: colors.textPrimary,
   },
   contactPhone: {
@@ -433,8 +434,9 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   balanceValue: {
     marginTop: 4,
-    fontSize: 34,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   balancePositive: {
     color: colors.positive,
@@ -527,7 +529,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     borderRadius: 999,
   },
   txAmount: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   txAmountPositive: {

@@ -731,8 +731,9 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
+    letterSpacing: -0.3,
     color: colors.textPrimary,
   },
   fab: {
@@ -791,8 +792,9 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
   },
   totalValue: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
+    letterSpacing: -0.2,
     color: colors.primary,
   },
   filterCard: {
@@ -963,7 +965,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.textPrimary,
   },

@@ -634,8 +634,9 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
+    letterSpacing: -0.3,
     color: colors.textPrimary,
   },
   headerTools: {
@@ -738,8 +739,9 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     marginBottom: 4,
   },
   summaryValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
+    letterSpacing: -0.2,
   },
   summaryDivider: {
     width: 1,
@@ -799,14 +801,14 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
   },
   rowInfo: {
     flex: 1,
   },
   name: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.textPrimary,
   },
@@ -825,7 +827,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     borderRadius: 999,
   },
   balancePillText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
   },
   actions: {
