@@ -30,8 +30,7 @@ import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
 import { pickContactImage, useContactAvatars } from '../shared/contactAvatars';
 import { extractMoneyTotals, formatMoney } from '../utils/money';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
-import { canWrite, canDelete } from '../utils/permissions';
-import { confirmDelete } from '../utils/confirm';
+import { canWrite } from '../utils/permissions';
 import { getPhoneValidationError } from '../utils/phone';
 import { useI18n } from '../i18n';
 import PartyTypeSelector from '../components/form/PartyTypeSelector';
@@ -50,13 +49,11 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     loading,
     creating,
     updating,
-    deleting,
     error,
     refreshContacts,
     filterContacts,
     addContact,
     updateContact,
-    deleteContact,
   } = useContext(ContactsContext);
   const { avatars, setAvatar } = useContactAvatars();
 
@@ -382,13 +379,6 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     if (ok) closeModal();
   };
 
-  const handleDelete = (id: string) => {
-    const target = contacts.find((c) => c.id === id);
-    confirmDelete(target?.fullName || t('debts.thisContact'), async () => {
-      await deleteContact(id);
-    });
-  };
-
   return (
     <View style={styles.container}>
       <ScrollView
@@ -548,17 +538,6 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                           accessibilityLabel={t('common.edit')}
                         >
                           <Ionicons name="create-outline" size={16} color={colors.textSecondary} />
-                        </TouchableOpacity>
-                      ) : null}
-                      {canDelete(workspace.activeBusinessRole) ? (
-                        <TouchableOpacity
-                          style={styles.iconBtn}
-                          onPress={() => handleDelete(item.id)}
-                          disabled={deleting}
-                          accessibilityRole="button"
-                          accessibilityLabel={t('common.delete')}
-                        >
-                          <Ionicons name="trash-outline" size={16} color={colors.negative} />
                         </TouchableOpacity>
                       ) : null}
                     </View>
