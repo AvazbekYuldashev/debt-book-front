@@ -25,6 +25,7 @@ import { ColorTokens } from '../theme/colors';
 import { ROUTES } from '../navigation/routes';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import { computeTotalsFromHistory as computeTotals } from '../application/usecases/computeContactBalance';
+import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
 import { extractMoneyTotals, formatMoney } from '../utils/money';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 import { canWrite, canDelete } from '../utils/permissions';
@@ -34,30 +35,6 @@ import { useI18n } from '../i18n';
 import PartyTypeSelector from '../components/form/PartyTypeSelector';
 
 type Mode = 'create' | 'edit';
-
-// Avatar (initial doiracha) uchun yumshoq rang palitrasi — ismdan deterministik tanlanadi.
-const AVATAR_COLORS: { bg: string; fg: string }[] = [
-  { bg: '#E0F2FE', fg: '#0369A1' },
-  { bg: '#DCFCE7', fg: '#15803D' },
-  { bg: '#FEF9C3', fg: '#A16207' },
-  { bg: '#FCE7F3', fg: '#BE185D' },
-  { bg: '#EDE9FE', fg: '#6D28D9' },
-  { bg: '#FFEDD5', fg: '#C2410C' },
-  { bg: '#CCFBF1', fg: '#0F766E' },
-];
-
-const getInitials = (name: string): string => {
-  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
-};
-
-const pickAvatarColor = (seed: string): { bg: string; fg: string } => {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
-};
 
 const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t } = useI18n();

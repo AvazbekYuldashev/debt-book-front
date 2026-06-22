@@ -25,6 +25,7 @@ import { canWrite } from '../utils/permissions';
 import { useI18n, translate } from '../i18n';
 import { useAppTheme } from '../theme';
 import { ColorTokens } from '../theme/colors';
+import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
 
 const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const { t } = useI18n();
@@ -140,8 +141,17 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         </View>
 
         <View style={styles.balanceCard}>
-          <Text style={styles.contactName}>{contact.fullName}</Text>
-          <Text style={styles.contactPhone}>{contact.phone}</Text>
+          <View style={styles.balanceHeader}>
+            <View style={[styles.avatar, { backgroundColor: pickAvatarColor(contact.fullName || contact.id).bg }]}>
+              <Text style={[styles.avatarText, { color: pickAvatarColor(contact.fullName || contact.id).fg }]}>
+                {getInitials(contact.fullName)}
+              </Text>
+            </View>
+            <View style={styles.balanceHeaderInfo}>
+              <Text style={styles.contactName} numberOfLines={1}>{contact.fullName}</Text>
+              <Text style={styles.contactPhone} numberOfLines={1}>{contact.phone}</Text>
+            </View>
+          </View>
           <Text style={styles.balanceLabel}>{t('contact.currentBalance')}</Text>
           <Text style={[styles.balanceValue, netBalance >= 0 ? styles.balancePositive : styles.balanceNegative]}>
             {formatMoney(netBalance)}
@@ -193,9 +203,11 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
                     <Text style={styles.txLabelSub}>{item.label}</Text>
                   ) : null}
                 </View>
-                <Text style={[styles.txAmount, item.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative]}>
-                  {formatMoney(item.amount)}
-                </Text>
+                <View style={[styles.txAmountPill, { backgroundColor: item.kind === 'credit' ? colors.positiveSoft : colors.negativeSoft }]}>
+                  <Text style={[styles.txAmount, item.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative]}>
+                    {formatMoney(item.amount)}
+                  </Text>
+                </View>
               </TouchableOpacity>
             ))
           )}
@@ -375,22 +387,42 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   balanceCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 18,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  balanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  balanceHeaderInfo: {
+    flex: 1,
+  },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '800',
   },
   contactName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.textPrimary,
   },
   contactPhone: {
-    marginTop: 4,
+    marginTop: 3,
     fontSize: 13,
     color: colors.textSecondary,
   },
@@ -430,9 +462,13 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   listCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 20,
+    paddingVertical: 4,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
     overflow: 'hidden',
   },
   listSkeleton: {
@@ -485,9 +521,14 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
   },
+  txAmountPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
   txAmount: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   txAmountPositive: {
     color: colors.positive,
