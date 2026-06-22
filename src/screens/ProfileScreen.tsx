@@ -35,6 +35,7 @@ import {
 } from '../api/profile';
 import { uploadAttach, uploadAttachFile } from '../api/attach';
 import { API_BASE } from '../api/baseUrl';
+import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
 import { ROUTES } from '../navigation/routes';
 
 const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -68,6 +69,9 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     normalizeBackendPhotoUrl(photoPreview) ||
     normalizeBackendPhotoUrl(profile?.photo?.url) ||
     buildProfilePhotoUrl(profile?.photo?.id);
+  // Rasm yo'q bo'lsa ko'rsatiladigan default avatar: foydalanuvchi ismidan rangli initial.
+  const displayName = `${profile?.name ?? ''} ${profile?.surname ?? ''}`.trim() || profile?.username || '';
+  const avatarColor = pickAvatarColor(displayName || 'user');
   const windowSize = Dimensions.get('window');
   const modalImageSize = {
     width: windowSize.width,
@@ -261,6 +265,10 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             >
               <Image source={{ uri: photoUri }} style={styles.avatar} />
             </TouchableOpacity>
+          ) : displayName ? (
+            <View style={[styles.avatarPlaceholder, { backgroundColor: avatarColor.bg, borderColor: avatarColor.bg }]}>
+              <Text style={[styles.avatarInitials, { color: avatarColor.fg }]}>{getInitials(displayName)}</Text>
+            </View>
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Ionicons name="person-outline" size={36} color={colors.textSecondary} />
@@ -544,6 +552,11 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarInitials: {
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   avatarEdit: {
     marginTop: 8,
