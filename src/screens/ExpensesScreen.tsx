@@ -29,6 +29,7 @@ import { formatMoney } from '../utils/money';
 import { canManageCategories } from '../utils/permissions';
 import { useI18n } from '../i18n';
 import { resolveDateRange, isValidDateInput } from '../utils/date';
+import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
 
 const DateTimePicker = Platform.OS !== 'web'
   ? require('@react-native-community/datetimepicker').default
@@ -340,13 +341,21 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </View>
 
         <View style={styles.totalCard}>
-          <View style={styles.totalHeaderRow}>
-            <Text style={styles.totalInlineLabel}>{totalLabelText}</Text>
-            <Text style={styles.totalValue}>{formatMoney(totalExpenseAmount)}</Text>
-            <TouchableOpacity style={styles.totalMenuBtn} onPress={() => setQuickFilterVisible(true)}>
-              <Ionicons name="ellipsis-horizontal" size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
+          <View style={styles.totalIcon}>
+            <Ionicons name="wallet-outline" size={22} color={colors.primary} />
           </View>
+          <View style={styles.totalTextWrap}>
+            <Text style={styles.totalInlineLabel} numberOfLines={1}>{totalLabelText}</Text>
+            <Text style={styles.totalValue} numberOfLines={1} adjustsFontSizeToFit>{formatMoney(totalExpenseAmount)}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.totalMenuBtn}
+            onPress={() => setQuickFilterVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('expenses.chooseFilter')}
+          >
+            <Ionicons name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.filterCard}>
@@ -529,9 +538,17 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 key={item.id}
                 style={[styles.categoryRow, index !== sortedCategories.length - 1 && styles.categoryRowBorder]}
               >
-                <TouchableOpacity style={styles.rowMain} onPress={() => handleOpenCategory(item)}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.sumText}>{formatMoney(categorySums[item.id] ?? 0)}</Text>
+                <TouchableOpacity style={styles.rowMain} onPress={() => handleOpenCategory(item)} activeOpacity={0.7}>
+                  <View style={[styles.catAvatar, { backgroundColor: pickAvatarColor(item.name || item.id).bg }]}>
+                    <Text style={[styles.catAvatarText, { color: pickAvatarColor(item.name || item.id).fg }]}>
+                      {getInitials(item.name)}
+                    </Text>
+                  </View>
+                  <View style={styles.catInfo}>
+                    <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.sumText}>{formatMoney(categorySums[item.id] ?? 0)}</Text>
+                  </View>
+                  {item.pin ? <Ionicons name="bookmark" size={14} color={colors.primary} /> : null}
                 </TouchableOpacity>
                 {allowCategoryManage ? (
                   expandedCategoryActionsId === item.id ? (
@@ -735,39 +752,47 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     elevation: 6,
   },
   totalCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  totalHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
+    gap: 14,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
-  totalInlineLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  totalMenuBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 8,
+  totalIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.border,
+    backgroundColor: colors.primarySoft,
+  },
+  totalTextWrap: {
+    flex: 1,
+  },
+  totalInlineLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  totalMenuBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceMuted,
   },
   totalValue: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.primary,
   },
   filterCard: {
@@ -893,9 +918,13 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   listCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 20,
+    paddingVertical: 4,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
     overflow: 'hidden',
   },
   listSkeleton: {
@@ -906,7 +935,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     gap: 12,
   },
   categoryRowBorder: {
@@ -914,6 +943,23 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     borderBottomColor: colors.border,
   },
   rowMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  catAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  catAvatarText: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  catInfo: {
     flex: 1,
   },
   name: {
