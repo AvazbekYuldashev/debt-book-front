@@ -35,7 +35,7 @@ const ResetConfirmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <AuthShell emoji="🔑" title={t('resetConfirm.title')} subtitle={t('resetConfirm.subtitle')} onBack={() => navigation.goBack()}>
+    <AuthShell icon="key-outline" title={t('resetConfirm.title')} subtitle={t('resetConfirm.subtitle')} onBack={() => navigation.goBack()}>
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('resetConfirm.phone')}</Text>
         <View style={s.inputRow}>

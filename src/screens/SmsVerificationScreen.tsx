@@ -49,7 +49,7 @@ const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ navi
   };
 
   return (
-    <AuthShell emoji="✉️" title={t('sms.title')} subtitle={t('sms.subtitle')} onBack={() => navigation.goBack()}>
+    <AuthShell icon="mail-outline" title={t('sms.title')} subtitle={t('sms.subtitle')} onBack={() => navigation.goBack()}>
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('sms.code')}</Text>
         <View style={s.inputRow}>

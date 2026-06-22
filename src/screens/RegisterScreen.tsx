@@ -51,7 +51,7 @@ const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <AuthShell emoji="📝" title={t('register.title')} subtitle={t('register.subtitle')} onBack={() => navigation.goBack()}>
+    <AuthShell icon="person-add-outline" title={t('register.title')} subtitle={t('register.subtitle')} onBack={() => navigation.goBack()}>
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('register.name')}</Text>
         <View style={s.inputRow}>

@@ -31,7 +31,7 @@ const ResetPasswordScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <AuthShell emoji="🔒" title={t('reset.title')} subtitle={t('reset.subtitle')} onBack={() => navigation.goBack()}>
+    <AuthShell icon="lock-closed-outline" title={t('reset.title')} subtitle={t('reset.subtitle')} onBack={() => navigation.goBack()}>
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('reset.phone')}</Text>
         <View style={s.inputRow}>

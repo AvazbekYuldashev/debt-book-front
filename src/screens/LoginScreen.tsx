@@ -47,7 +47,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <AuthShell emoji="👋" title={t('login.title')} subtitle={t('login.subtitle')}>
+    <AuthShell icon="log-in-outline" title={t('login.title')} subtitle={t('login.subtitle')}>
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('login.phone')}</Text>
         <View style={s.inputRow}>

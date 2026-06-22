@@ -6,14 +6,15 @@ import { ColorTokens } from '../../theme/colors';
 import LanguageSwitcher from '../LanguageSwitcher';
 
 interface AuthShellProps {
-  emoji: string;
+  emoji?: string;
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
   title: string;
   subtitle?: string;
   onBack?: () => void;
   children: ReactNode;
 }
 
-const AuthShell: React.FC<AuthShellProps> = ({ emoji, title, subtitle, onBack, children }) => {
+const AuthShell: React.FC<AuthShellProps> = ({ emoji, icon, title, subtitle, onBack, children }) => {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -38,7 +39,11 @@ const AuthShell: React.FC<AuthShellProps> = ({ emoji, title, subtitle, onBack, c
           <LanguageSwitcher />
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconEmoji}>{emoji}</Text>
+          {icon ? (
+            <Ionicons name={icon} size={30} color={colors.primary} />
+          ) : (
+            <Text style={styles.iconEmoji}>{emoji}</Text>
+          )}
         </View>
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
