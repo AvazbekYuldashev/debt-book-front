@@ -222,9 +222,9 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       }
       if (!uploaded.id) throw new Error(t('profile.photoIdMissing'));
       await updateProfilePhoto({ photoId: uploaded.id }, token);
-      // Use the returned URL for preview when available.
+      // ID asosidagi kanonik URL eng ishonchli (har doim ochiladi) — birinchi o'sha.
       const resolvedUrl =
-        normalizeBackendPhotoUrl(uploaded.url) || buildProfilePhotoUrl(uploaded.id) || asset.uri;
+        buildProfilePhotoUrl(uploaded.id) || normalizeBackendPhotoUrl(uploaded.url) || asset.uri;
       setPhotoPreview(resolvedUrl);
       setProfile((prev) =>
         prev ? { ...prev, photo: { id: uploaded.id, url: resolvedUrl } } : prev
@@ -637,27 +637,22 @@ function buildProfilePhotoUrl(photoId?: string): string {
 function normalizeBackendPhotoUrl(url?: string): string {
   const raw = (url || '').trim();
   if (!raw) return '';
-  const apiOrigin = getApiOrigin();
-  if (!apiOrigin) return raw;
 
-  try {
-    const parsed = new URL(raw);
-    const attachOpenMarker = '/api/v1/attach/open/';
-    if (parsed.pathname.includes(attachOpenMarker)) {
-      const fileName = parsed.pathname.split(attachOpenMarker)[1];
-      if (fileName) {
-        return `${apiOrigin}${attachOpenMarker}${fileName}${parsed.search}`;
-      }
-    }
-    const isLocalHost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
-    if (isLocalHost) {
-      return `${apiOrigin}${parsed.pathname}${parsed.search}`;
-    }
-    return raw;
-  } catch {
-    if (raw.startsWith('/')) return `${apiOrigin}${raw}`;
-    return raw;
+  // Backend ba'zan ichki host (localhost:8080 / 127.0.0.1 / internal IP) bilan URL qaytaradi —
+  // bu foydalanuvchi brauzeridan ochilmaydi. Attach-rasm URL'ini HAR DOIM app'ning kanonik
+  // manziliga (API_BASE) keltiramiz: web'da nisbiy (Apache /api proxy), mobil'da to'liq URL.
+  const marker = '/attach/open/';
+  const markerIdx = raw.indexOf(marker);
+  if (markerIdx !== -1) {
+    const after = raw.slice(markerIdx + marker.length);
+    const fileId = after.split('?')[0].split('#')[0];
+    if (fileId) return buildProfilePhotoUrl(fileId);
   }
+
+  // Attach-open bo'lmagan nisbiy yo'l bo'lsa, apiOrigin bilan to'ldiramiz (mavjud bo'lsa).
+  const apiOrigin = getApiOrigin();
+  if (apiOrigin && raw.startsWith('/')) return `${apiOrigin}${raw}`;
+  return raw;
 }
 
 function getApiOrigin(): string {
