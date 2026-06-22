@@ -35,7 +35,7 @@ import {
 } from '../api/profile';
 import { uploadAttach, uploadAttachFile } from '../api/attach';
 import { API_BASE } from '../api/baseUrl';
-import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
+import UserAvatar from '../shared/ui/UserAvatar';
 import { ROUTES } from '../navigation/routes';
 
 const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -69,9 +69,6 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     normalizeBackendPhotoUrl(photoPreview) ||
     normalizeBackendPhotoUrl(profile?.photo?.url) ||
     buildProfilePhotoUrl(profile?.photo?.id);
-  // Rasm yo'q bo'lsa ko'rsatiladigan default avatar: foydalanuvchi ismidan rangli initial.
-  const displayName = `${profile?.name ?? ''} ${profile?.surname ?? ''}`.trim() || profile?.username || '';
-  const avatarColor = pickAvatarColor(displayName || 'user');
   const windowSize = Dimensions.get('window');
   const modalImageSize = {
     width: windowSize.width,
@@ -254,26 +251,17 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <Text style={styles.title}>{t('profile.settingsTitle')}</Text>
       {profile ? (
         <View style={styles.avatarBlock}>
-          {photoUri ? (
-            <TouchableOpacity
-              onPress={() => {
-                if (photoUri) {
-                  setPhotoModalError('');
-                  setPhotoModalVisible(true);
-                }
-              }}
-            >
-              <Image source={{ uri: photoUri }} style={styles.avatar} />
-            </TouchableOpacity>
-          ) : displayName ? (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: avatarColor.bg, borderColor: avatarColor.bg }]}>
-              <Text style={[styles.avatarInitials, { color: avatarColor.fg }]}>{getInitials(displayName)}</Text>
-            </View>
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person-outline" size={36} color={colors.textSecondary} />
-            </View>
-          )}
+          <TouchableOpacity
+            activeOpacity={photoUri ? 0.8 : 1}
+            onPress={() => {
+              if (photoUri) {
+                setPhotoModalError('');
+                setPhotoModalVisible(true);
+              }
+            }}
+          >
+            <UserAvatar uri={photoUri} size={84} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.avatarEdit}
             onPress={handlePickPhoto}

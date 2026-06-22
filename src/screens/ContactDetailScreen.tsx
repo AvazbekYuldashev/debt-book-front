@@ -1,6 +1,5 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import {
-  Image,
   Modal,
   RefreshControl,
   ScrollView,
@@ -26,7 +25,7 @@ import { canWrite } from '../utils/permissions';
 import { useI18n, translate } from '../i18n';
 import { useAppTheme } from '../theme';
 import { ColorTokens } from '../theme/colors';
-import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
+import UserAvatar from '../shared/ui/UserAvatar';
 import { pickContactImage, useContactAvatars } from '../shared/contactAvatars';
 
 const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
@@ -154,15 +153,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
               accessibilityRole="button"
               accessibilityLabel={t('contact.changePhoto')}
             >
-              {avatars[contact.partyId || contact.id] ? (
-                <Image source={{ uri: avatars[contact.partyId || contact.id] }} style={styles.avatarImg} />
-              ) : (
-                <View style={[styles.avatar, { backgroundColor: pickAvatarColor(contact.fullName || contact.id).bg }]}>
-                  <Text style={[styles.avatarText, { color: pickAvatarColor(contact.fullName || contact.id).fg }]}>
-                    {getInitials(contact.fullName)}
-                  </Text>
-                </View>
-              )}
+              <UserAvatar uri={avatars[contact.partyId || contact.id]} size={52} />
             </TouchableOpacity>
             <View style={styles.balanceHeaderInfo}>
               <Text style={styles.contactName} numberOfLines={1}>{contact.fullName}</Text>

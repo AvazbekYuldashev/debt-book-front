@@ -1,6 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
-  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -26,7 +25,7 @@ import { ColorTokens } from '../theme/colors';
 import { ROUTES } from '../navigation/routes';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import { computeTotalsFromHistory as computeTotals } from '../application/usecases/computeContactBalance';
-import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
+import UserAvatar from '../shared/ui/UserAvatar';
 import { pickContactImage, useContactAvatars } from '../shared/contactAvatars';
 import { extractMoneyTotals, formatMoney } from '../utils/money';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
@@ -486,7 +485,6 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               const hasBalance = typeof balance === 'number' && balance !== 0;
               const balanceColor = balance && balance > 0 ? colors.positive : balance && balance < 0 ? colors.negative : colors.textSecondary;
               const pillBg = balance && balance > 0 ? colors.positiveSoft : balance && balance < 0 ? colors.negativeSoft : colors.surfaceMuted;
-              const avatar = pickAvatarColor(item.fullName || item.id);
               const avatarKey = item.partyId || item.id;
               const localPhoto = avatars[avatarKey];
               return (
@@ -505,13 +503,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                       accessibilityRole="button"
                       accessibilityLabel={t('contact.changePhoto')}
                     >
-                      {localPhoto ? (
-                        <Image source={{ uri: localPhoto }} style={styles.avatarImg} />
-                      ) : (
-                        <View style={[styles.avatar, { backgroundColor: avatar.bg }]}>
-                          <Text style={[styles.avatarText, { color: avatar.fg }]}>{getInitials(item.fullName)}</Text>
-                        </View>
-                      )}
+                      <UserAvatar uri={localPhoto} size={46} />
                     </TouchableOpacity>
                     <View style={styles.rowInfo}>
                       <Text style={styles.name} numberOfLines={1}>{item.fullName}</Text>
