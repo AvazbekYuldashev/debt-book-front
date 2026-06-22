@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Appearance, ColorSchemeName, useColorScheme } from 'react-native';
 import { ColorTokens, darkColors, lightColors } from './colors';
-import { loadInterFonts } from './fonts';
+import { loadAppFonts } from './fonts';
 import { radius, spacing } from './spacing';
 import { typography } from './typography';
 import { storage } from '../utils/storage';
@@ -56,7 +56,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     let mounted = true;
-    loadInterFonts()
+    loadAppFonts()
       .catch(() => undefined)
       .finally(() => {
         if (mounted) setFontsLoaded(true);
