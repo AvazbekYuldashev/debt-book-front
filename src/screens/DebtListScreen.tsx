@@ -380,11 +380,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />}
-      >
+      <View style={styles.fixedHeader}>
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t('debts.clientsTitle')}</Text>
@@ -467,7 +463,14 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             </View>
           </View>
         </View>
+      </View>
 
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />}
+      >
         {error ? (
           <View style={styles.errorRow}>
             <Text style={styles.errorText}>{error}</Text>
@@ -618,6 +621,12 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  fixedHeader: {
+    backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
+  },
   content: {
     padding: 16,
     paddingBottom: 96,
@@ -627,6 +636,8 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   title: {
     fontSize: 24,
@@ -678,6 +689,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   searchInput: {
     marginBottom: 14,
+    marginHorizontal: 16,
   },
   searchInputField: {
     fontSize: 18,
@@ -705,7 +717,8 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 8,
+    marginHorizontal: 16,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
