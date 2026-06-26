@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import {
+  Image,
   Modal,
   RefreshControl,
   ScrollView,
@@ -26,7 +27,7 @@ import { useI18n, translate } from '../i18n';
 import { useAppTheme } from '../theme';
 import { ColorTokens } from '../theme/colors';
 import UserAvatar from '../shared/ui/UserAvatar';
-import { pickContactImage, useContactAvatars } from '../shared/contactAvatars';
+import { useContactAvatars } from '../shared/contactAvatars';
 
 const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const { t } = useI18n();
@@ -41,6 +42,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
   const [selectedTransaction, setSelectedTransaction] = useState<ReturnType<typeof mapTransaction> | null>(null);
+  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
 
   const { history, totals, selectedCounterparty, loading, creating, error, fetchData, createMoney } = useMoney({
     token: profile?.jwt,
@@ -146,9 +148,9 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
           <View style={styles.balanceHeader}>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={async () => {
-                const uri = await pickContactImage();
-                if (uri) setAvatar(contact.partyId || contact.id, uri);
+              onPress={() => {
+                const uri = avatars[contact.partyId || contact.id];
+                if (uri) setAvatarPreviewVisible(true);
               }}
               accessibilityRole="button"
               accessibilityLabel={t('contact.changePhoto')}
@@ -251,6 +253,27 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         onClose={() => setModalVisible(false)}
         onSubmit={handleCreate}
       />
+
+      <Modal
+        visible={avatarPreviewVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAvatarPreviewVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.avatarPreviewBackdrop}
+          activeOpacity={1}
+          onPress={() => setAvatarPreviewVisible(false)}
+        >
+          {avatars[contact.partyId || contact.id] ? (
+            <Image
+              source={{ uri: avatars[contact.partyId || contact.id] }}
+              style={styles.avatarPreviewImage}
+              resizeMode="contain"
+            />
+          ) : null}
+        </TouchableOpacity>
+      </Modal>
 
       <Modal
         visible={Boolean(selectedTransaction)}
@@ -592,6 +615,17 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
+  },
+  avatarPreviewBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarPreviewImage: {
+    width: '90%',
+    height: '70%',
+    borderRadius: 16,
   },
   detailBackdrop: {
     flex: 1,
