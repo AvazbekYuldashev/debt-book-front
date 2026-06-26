@@ -328,13 +328,7 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
-        }
-      >
+      <View style={styles.fixedHeader}>
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t('expenses.dailyTitle')}</Text>
@@ -518,7 +512,16 @@ const ExpensesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             </>
           ) : null}
         </View>
+      </View>
 
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+        }
+      >
         {error ? (
           <View style={styles.errorRow}>
             <Text style={styles.errorText}>{error}</Text>
@@ -720,6 +723,12 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  fixedHeader: {
+    backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
+  },
   content: {
     padding: 16,
     paddingBottom: 24,
@@ -729,6 +738,8 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   title: {
     fontSize: 24,
@@ -761,6 +772,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 18,
     marginBottom: 16,
+    marginHorizontal: 16,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
@@ -801,7 +813,8 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 8,
+    marginHorizontal: 16,
     borderWidth: 1,
     borderColor: colors.border,
   },

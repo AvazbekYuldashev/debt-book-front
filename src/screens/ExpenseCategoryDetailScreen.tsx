@@ -197,37 +197,34 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
   const allowWrite = canWrite(role);
   const allowDelete = canDelete(role);
 
-  const renderHeader = () => (
-    <View>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>{categoryName || t('expenses.title')}</Text>
-        {allowWrite ? <PrimaryButton title={t('expenses.addExpense')} onPress={openCreateExpense} /> : null}
-      </View>
-      <View style={styles.searchRow}>
-        <Ionicons name="search-outline" size={17} color={colors.textSecondary} />
-        <TextInput
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder={t('expenses.searchExpense')}
-          placeholderTextColor={colors.textSecondary}
-        />
-      </View>
-
-      {error ? (
-        <View style={styles.errorRow}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-
   return (
     <View style={styles.container}>
+      <View style={styles.fixedHeader}>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>{categoryName || t('expenses.title')}</Text>
+          {allowWrite ? <PrimaryButton title={t('expenses.addExpense')} onPress={openCreateExpense} /> : null}
+        </View>
+        <View style={styles.searchRow}>
+          <Ionicons name="search-outline" size={17} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t('expenses.searchExpense')}
+            placeholderTextColor={colors.textSecondary}
+          />
+        </View>
+
+        {error ? (
+          <View style={styles.errorRow}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+      </View>
+
       <FlatList
         data={filteredExpenses}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
@@ -328,7 +325,11 @@ const ExpenseCategoryDetailScreen: React.FC<any> = ({ route }) => {
 const createStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  fixedHeader: {
     padding: 16,
+    paddingBottom: 8,
     backgroundColor: colors.background,
   },
   headerRow: {
