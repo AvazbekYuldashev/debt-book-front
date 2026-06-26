@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
@@ -70,9 +71,6 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t('business.myBusinesses')}</Text>
-          <TouchableOpacity style={styles.createBtn} onPress={() => setCreateModalVisible(true)}>
-            <Text style={styles.createBtnText}>{t('business.createBtn')}</Text>
-          </TouchableOpacity>
         </View>
 
         {loading ? (
@@ -126,6 +124,10 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </ScrollView>
 
+      <TouchableOpacity style={styles.fab} onPress={() => setCreateModalVisible(true)} activeOpacity={0.85}>
+        <Ionicons name="add" size={30} color="#fff" />
+      </TouchableOpacity>
+
       <CreateBusinessModal
         visible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
@@ -158,18 +160,21 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: '700',
   },
-  createBtn: {
-    minHeight: 34,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
+  fab: {
+    position: 'absolute',
+    right: 18,
+    bottom: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  createBtnText: {
-    color: colors.textOnPrimary,
-    fontSize: 13,
-    fontWeight: '700',
+    backgroundColor: colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
   loadingWrap: {
     minHeight: 120,

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import BusinessMembersTable from '../components/business/BusinessMembersTable';
@@ -191,11 +192,6 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
             <Text style={styles.title}>{t('members.title')}</Text>
             <Text style={styles.subtitle}>{businessName}</Text>
           </View>
-          {canManageMembers(workspace.activeBusinessRole) ? (
-            <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)} disabled={!canLoad}>
-              <Text style={styles.addBtnText}>{t('members.add')}</Text>
-            </TouchableOpacity>
-          ) : null}
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -208,6 +204,12 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
           onToggleRole={handleToggleRole}
         />
       </ScrollView>
+
+      {canManageMembers(workspace.activeBusinessRole) ? (
+        <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)} disabled={!canLoad} activeOpacity={0.85}>
+          <Ionicons name="add" size={30} color="#fff" />
+        </TouchableOpacity>
+      ) : null}
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={closeModal}>
         <View style={styles.modalBackdrop}>
@@ -292,18 +294,21 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
-  addBtn: {
-    minHeight: 34,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
+  fab: {
+    position: 'absolute',
+    right: 18,
+    bottom: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  addBtnText: {
-    color: colors.textOnPrimary,
-    fontSize: 12,
-    fontWeight: '700',
+    backgroundColor: colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
   error: {
     color: colors.danger,
