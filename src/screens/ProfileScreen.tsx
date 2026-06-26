@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../theme';
 import { ColorTokens } from '../theme/colors';
 import { AuthContext } from '../context/AuthContext';
+import { WorkspaceContext } from '../context/WorkspaceContext';
 import Card from '../components/Card';
 import AppTextInput from '../components/form/AppTextInput';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
@@ -33,6 +34,8 @@ import {
   updateProfilePhoto,
   updateProfileUsername,
 } from '../api/profile';
+import { getMyBusinesses } from '../services/businessService';
+import { BusinessDTO } from '../types/business';
 import { uploadAttach, uploadAttachFile } from '../api/attach';
 import { API_BASE } from '../api/baseUrl';
 import UserAvatar from '../shared/ui/UserAvatar';
@@ -43,6 +46,9 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { colors } = useAppTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { profile, setProfile } = useContext(AuthContext);
+  const { workspace } = useContext(WorkspaceContext);
+  const isBusiness = workspace.mode === 'business';
+  const [activeBusiness, setActiveBusiness] = useState<BusinessDTO | null>(null);
   const [name, setName] = useState(profile?.name ?? '');
   const [surname, setSurname] = useState(profile?.surname ?? '');
   const [username, setUsername] = useState(profile?.username ?? '');
@@ -147,6 +153,19 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
     loadProfile();
   }, [token, setProfile]);
+
+  useEffect(() => {
+    if (!token || !isBusiness || !workspace.activeBusinessId) {
+      setActiveBusiness(null);
+      return;
+    }
+    getMyBusinesses(token)
+      .then((list) => {
+        const found = list.find((b) => b.id === workspace.activeBusinessId) || null;
+        setActiveBusiness(found);
+      })
+      .catch(() => {});
+  }, [token, isBusiness, workspace.activeBusinessId]);
 
   const handleUpdateDetail = () =>
     run('detail', async () => {
@@ -277,9 +296,27 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       ) : null}
       {profile ? (
         <Card style={styles.infoCard}>
-          <Text style={styles.infoText}>{profile.name} {profile.surname}</Text>
-          <Text style={styles.infoText}>{profile.username}</Text>
-          {profile.status ? <Text style={styles.infoText}>{profile.status}</Text> : null}
+          {isBusiness && activeBusiness ? (
+            <>
+              <Text style={styles.infoLabel}>{t('business.myBusinesses')}</Text>
+              <Text style={styles.infoText}>{activeBusiness.name}</Text>
+              {activeBusiness.address ? (
+                <Text style={styles.infoSubText}>{activeBusiness.address}</Text>
+              ) : null}
+              <Text style={styles.infoSubText}>{t('business.ownerLabel')}: {activeBusiness.ownerName || '--'}</Text>
+              {workspace.activeBusinessRole ? (
+                <View style={styles.roleBadgeWrap}>
+                  <Text style={styles.roleBadgeText}>{workspace.activeBusinessRole}</Text>
+                </View>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Text style={styles.infoText}>{profile.name} {profile.surname}</Text>
+              <Text style={styles.infoText}>{profile.username}</Text>
+              {profile.status ? <Text style={styles.infoText}>{profile.status}</Text> : null}
+            </>
+          )}
         </Card>
       ) : (
         <Text style={styles.infoText}>{t('profile.notLoggedIn')}</Text>
@@ -479,10 +516,36 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   infoCard: {
     marginBottom: 24,
   },
+  infoLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   infoText: {
     fontSize: 16,
     color: colors.textPrimary,
     marginBottom: 4,
+  },
+  infoSubText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  roleBadgeWrap: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: colors.primarySoft,
+  },
+  roleBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primaryPressed,
   },
   sectionCard: {
     marginBottom: 10,
