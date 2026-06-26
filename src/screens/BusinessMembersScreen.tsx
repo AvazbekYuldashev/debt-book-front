@@ -182,10 +182,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
+      <View style={styles.fixedHeader}>
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <View style={styles.titleWrap}>
@@ -193,8 +190,14 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
             <Text style={styles.subtitle}>{businessName}</Text>
           </View>
         </View>
-
         {error ? <Text style={styles.error}>{error}</Text> : null}
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <BusinessMembersTable
           members={members}
           loading={loading}
@@ -270,16 +273,24 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  fixedHeader: {
+    backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
+  },
   content: {
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 96,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
     gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   titleWrap: {
     flex: 1,
@@ -314,6 +325,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     color: colors.danger,
     fontSize: 12,
     marginBottom: 8,
+    paddingHorizontal: 16,
   },
   modalBackdrop: {
     flex: 1,

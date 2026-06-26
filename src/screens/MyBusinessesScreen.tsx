@@ -64,15 +64,18 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
+      <View style={styles.fixedHeader}>
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t('business.myBusinesses')}</Text>
         </View>
+      </View>
 
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         {loading ? (
           <View style={styles.loadingWrap}>
             <ActivityIndicator />
@@ -124,6 +127,7 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </ScrollView>
 
+
       <TouchableOpacity style={styles.fab} onPress={() => setCreateModalVisible(true)} activeOpacity={0.85}>
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
@@ -145,15 +149,23 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  fixedHeader: {
+    backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
+  },
   content: {
     padding: 16,
-    paddingBottom: 26,
+    paddingBottom: 96,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   title: {
     fontSize: 24,
