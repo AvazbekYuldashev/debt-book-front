@@ -11,6 +11,8 @@ import { ROUTES } from '../../navigation/routes';
 import { useI18n } from '../../i18n';
 import { useAppTheme } from '../../theme';
 import { ColorTokens } from '../../theme/colors';
+import UserAvatar from '../../shared/ui/UserAvatar';
+import { API_BASE } from '../../api/baseUrl';
 
 const WorkspaceSwitcher: React.FC = () => {
   const { t } = useI18n();
@@ -64,6 +66,23 @@ const WorkspaceSwitcher: React.FC = () => {
 
   const isBusiness = workspace.mode === 'business';
 
+  const profilePhotoUri = useMemo(() => {
+    const photo = profile?.photo;
+    if (!photo) return undefined;
+    const marker = '/attach/open/';
+    const raw = (photo.url || '').trim();
+    if (raw) {
+      const idx = raw.indexOf(marker);
+      if (idx !== -1) {
+        const fileId = raw.slice(idx + marker.length).split('?')[0].split('#')[0];
+        if (fileId) return `${API_BASE}/attach/open/${fileId}`;
+      }
+      if (raw.startsWith('http')) return raw;
+    }
+    if (photo.id) return `${API_BASE}/attach/open/${photo.id}`;
+    return undefined;
+  }, [profile?.photo]);
+
   return (
     <View style={styles.wrapper}>
       <TouchableOpacity
@@ -72,11 +91,15 @@ const WorkspaceSwitcher: React.FC = () => {
         activeOpacity={0.85}
       >
         <View style={styles.iconBadge}>
-          <Ionicons
-            name={isBusiness ? 'business' : 'person'}
-            size={20}
-            color={isBusiness ? colors.primary : colors.textOnPrimary}
-          />
+          {!isBusiness && profilePhotoUri ? (
+            <UserAvatar uri={profilePhotoUri} size={38} />
+          ) : (
+            <Ionicons
+              name={isBusiness ? 'business' : 'person'}
+              size={20}
+              color={isBusiness ? colors.primary : colors.textOnPrimary}
+            />
+          )}
         </View>
         <View style={styles.labelWrap}>
           <Text style={styles.contextHint}>{t('workspace.title')}</Text>
@@ -212,6 +235,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.22)',
+    overflow: 'hidden',
   },
   labelWrap: {
     flex: 1,
