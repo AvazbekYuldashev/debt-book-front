@@ -91,7 +91,7 @@ const WorkspaceSwitcher: React.FC = () => {
         activeOpacity={0.85}
       >
         <View style={styles.iconBadge}>
-          {!isBusiness && profilePhotoUri ? (
+          {profilePhotoUri ? (
             <UserAvatar uri={profilePhotoUri} size={38} />
           ) : (
             <Ionicons
