@@ -332,7 +332,7 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <ThemeSwitcher />
       </Card>
 
-      {profile ? (
+      {profile && !isBusiness ? (
         <>
           <Card style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>{t('profile.nameSection')}</Text>
