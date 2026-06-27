@@ -445,7 +445,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             </View>
             <View style={styles.summaryTextWrap}>
               <Text style={styles.summaryLabel}>{t('debts.currentDebt')}</Text>
-              <Text style={[styles.summaryValue, { color: colors.negative }]} numberOfLines={1} adjustsFontSizeToFit>
+              <Text style={[styles.summaryValue, { color: colors.negative }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
                 {formatMoney(aggregateTotals.totalDebt)}
               </Text>
             </View>
@@ -457,7 +457,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             </View>
             <View style={styles.summaryTextWrap}>
               <Text style={styles.summaryLabel}>{t('debts.currentCredit')}</Text>
-              <Text style={[styles.summaryValue, { color: colors.positive }]} numberOfLines={1} adjustsFontSizeToFit>
+              <Text style={[styles.summaryValue, { color: colors.positive }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
                 {formatMoney(aggregateTotals.totalCredit)}
               </Text>
             </View>
@@ -747,9 +747,10 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     marginBottom: 4,
   },
   summaryValue: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '800',
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
+    flexShrink: 1,
   },
   summaryDivider: {
     width: 1,
