@@ -446,7 +446,11 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           {status ? (
             <Text style={[styles.statusText, statusError && styles.statusError]}>{status}</Text>
           ) : null}
+        </>
+      ) : null}
 
+      {profile ? (
+        <>
           <View style={styles.actionsRow}>
             <TouchableOpacity
               style={styles.secondaryBtn}
