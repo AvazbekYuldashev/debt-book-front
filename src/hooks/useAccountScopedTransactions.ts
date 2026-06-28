@@ -78,18 +78,45 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
     setError('');
     setSelectedCounterparty({ id: resolvedCounterpartyId, partyType: input.partyType });
     try {
+      const baseParams = {
+        id: resolvedCounterpartyId,
+        partyType: input.partyType,
+        page: 0,
+        size: 50,
+        token,
+        accountType,
+      };
+
       const [historyPage, totals] = await Promise.all([
-        getMoneyHistory({
-          id: resolvedCounterpartyId,
-          partyType: input.partyType,
-          page: 0,
-          size: 30,
-          token,
-          accountType,
-        }),
+        getMoneyHistory(baseParams),
         getTotalPriceByPartyId(resolvedCounterpartyId, input.partyType, token, accountType),
       ]);
-      setHistory(historyPage.content ?? []);
+
+      let content = historyPage.content ?? [];
+
+      // Backend ba'zan accountType=business bilan faqat biznes CREDITOR bo'lgan
+      // tranzaksiyalarni qaytaradi — mijoz bergan (biznes debtor) yo'nalishini o'tkazib
+      // yuboradi. accountType ko'rsatmasdan yana bir so'rov yuborib, ikki tomonni merge
+      // qilamiz va id bo'yicha dedup qilamiz.
+      if (accountType) {
+        try {
+          const reverseHistoryPage = await getMoneyHistory({ ...baseParams, accountType: undefined });
+          const reverseContent = reverseHistoryPage.content ?? [];
+          if (reverseContent.length > 0) {
+            const seen = new Set(content.map((item) => item.id));
+            const extra = reverseContent.filter((item) => !seen.has(item.id));
+            if (extra.length > 0) {
+              content = [...content, ...extra].sort(
+                (a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
+              );
+            }
+          }
+        } catch {
+          // Reverse so'rov muvaffaqiyatsiz bo'lsa asosiy natija saqlanadi.
+        }
+      }
+
+      setHistory(content);
       setTotalPrice(totals ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ma'lumotlarni yuklab bo'lmadi");

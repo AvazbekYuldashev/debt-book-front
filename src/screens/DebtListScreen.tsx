@@ -189,24 +189,45 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       };
 
       const loadAllHistory = async (id: string, partyType: PartyType): Promise<MoneyResponseDTO[]> => {
-        const all: MoneyResponseDTO[] = [];
-        let page = 0;
-        let safety = 0;
-        while (safety < 20) {
-          const historyPage = await getMoneyHistory({
-            id,
-            partyType,
-            page,
-            size: 100,
-            token: profile.jwt,
-            accountType,
-          });
-          all.push(...(historyPage.content ?? []));
-          if (historyPage.last || page >= historyPage.totalPages - 1) break;
-          page += 1;
-          safety += 1;
+        const fetchPages = async (overrideAccountType?: typeof accountType | undefined) => {
+          const items: MoneyResponseDTO[] = [];
+          let page = 0;
+          let safety = 0;
+          while (safety < 20) {
+            const historyPage = await getMoneyHistory({
+              id,
+              partyType,
+              page,
+              size: 100,
+              token: profile.jwt,
+              accountType: overrideAccountType,
+            });
+            items.push(...(historyPage.content ?? []));
+            if (historyPage.last || page >= historyPage.totalPages - 1) break;
+            page += 1;
+            safety += 1;
+          }
+          return items;
+        };
+
+        const primary = await fetchPages(accountType);
+
+        // accountType bilan so'rovda backend faqat bir tomoni ko'rsatishi mumkin.
+        // accountType siz ham so'rab, natijalarni merge qilamiz.
+        if (accountType) {
+          try {
+            const reverse = await fetchPages(undefined);
+            if (reverse.length > 0) {
+              const seen = new Set(primary.map((item) => item.id));
+              const extra = reverse.filter((item) => !seen.has(item.id));
+              if (extra.length > 0) return [...primary, ...extra];
+            }
+          } catch {
+            // ignore
+          }
         }
-        return all;
+
+        return primary;
       };
 
       const runWorker = async () => {
