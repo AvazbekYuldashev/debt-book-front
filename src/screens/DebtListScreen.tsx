@@ -1,5 +1,7 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -10,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import FadeInView from '../components/animations/FadeInView';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import AppTextInput from '../components/form/AppTextInput';
@@ -84,6 +87,28 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   // Har bir kontaktning eng oxirgi amal (oldi-berdi) vaqti — ro'yxatni saralash uchun.
   const [latestDateByContact, setLatestDateByContact] = useState<Record<string, number>>({});
   const [totalsLoading, setTotalsLoading] = useState(false);
+
+  const fabScale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fabScale, {
+          toValue: 1.10,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fabScale, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [fabScale]);
 
   const selectedContact = useMemo(
     () => contacts.find((contact) => contact.id === selectedId),
@@ -491,8 +516,13 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               const avatarKey = item.partyId || item.id;
               const localPhoto = avatars[avatarKey];
               return (
-                <View
+                <FadeInView
                   key={item.id || `contact-${index}`}
+                  delay={Math.min(index * 55, 420)}
+                  duration={320}
+                  fromY={12}
+                >
+                <View
                   style={[styles.row, index !== sortedContacts.length - 1 && styles.rowBorder]}
                 >
                   <TouchableOpacity
@@ -538,6 +568,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     </View>
                   </View>
                 </View>
+                </FadeInView>
               );
             })
           )}
@@ -545,9 +576,11 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       </ScrollView>
 
       {canWrite(workspace.activeBusinessRole) ? (
-        <TouchableOpacity style={styles.fab} onPress={openCreate} activeOpacity={0.85}>
-          <Ionicons name="add" size={30} color={colors.textOnPrimary} />
-        </TouchableOpacity>
+        <Animated.View style={[styles.fabWrap, { transform: [{ scale: fabScale }] }]}>
+          <TouchableOpacity style={styles.fab} onPress={openCreate} activeOpacity={0.85}>
+            <Ionicons name="add" size={30} color={colors.textOnPrimary} />
+          </TouchableOpacity>
+        </Animated.View>
       ) : null}
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={closeModal}>
@@ -695,21 +728,23 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontSize: 18,
     paddingVertical: 16,
   },
-  fab: {
+  fabWrap: {
     position: 'absolute',
     right: 18,
     bottom: 24,
+  },
+  fab: {
     width: 60,
     height: 60,
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.50,
+    shadowRadius: 14,
+    elevation: 10,
   },
   summaryCard: {
     flexDirection: 'row',
@@ -720,10 +755,10 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     marginBottom: 8,
     marginHorizontal: 16,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 6,
   },
   summaryTile: {
     flex: 1,
@@ -775,10 +810,10 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 4,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 6,
     overflow: 'hidden',
   },
   listSkeleton: {

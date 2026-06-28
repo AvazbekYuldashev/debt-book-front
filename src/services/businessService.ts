@@ -46,6 +46,12 @@ const classifyAddMemberError = (e: ApiClientError): AddMemberErrorCode => {
   return 'UNKNOWN';
 };
 
+export const updateBusinessPhoto = async (businessId: string, photoId: string, token?: string): Promise<BusinessDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.put<BusinessDTO>(`/business/${businessId}/photo`, { photoId });
+  return response.data;
+};
+
 export const getMyBusinesses = async (token?: string): Promise<BusinessDTO[]> => {
   setApiAuthToken(token);
   const response = await apiClient.get<BusinessDTO[]>('/business/my');

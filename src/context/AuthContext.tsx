@@ -1,6 +1,11 @@
 import React, { createContext, useCallback, useEffect, useState, ReactNode, SetStateAction } from 'react';
+import { Alert } from 'react-native';
 import { ProfileDTO } from '../types';
-import { setUnauthorizedHandler } from '../api/apiClient';
+import {
+  setUnauthorizedHandler,
+  setRefreshTokenGetter,
+  setTokenRefreshedHandler,
+} from '../api/apiClient';
 import { secureStorage } from '../utils/secureStorage';
 
 interface AuthContextValue {
@@ -49,7 +54,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           ? (nextProfileOrUpdater as (prevState: ProfileDTO | null) => ProfileDTO | null)(prev)
           : nextProfileOrUpdater;
 
-      // fire-and-forget (cross-platform AsyncStorage)
       if (nextProfile) {
         secureStorage.set(AUTH_PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
       } else {
@@ -63,9 +67,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     setUnauthorizedHandler(() => {
       persistProfile(null);
+      Alert.alert('Sessiya tugadi', 'Iltimos qayta kiring.');
     });
     return () => {
       setUnauthorizedHandler(null);
+    };
+  }, [persistProfile]);
+
+  // Interceptor refresh token getter ni ulash
+  useEffect(() => {
+    setRefreshTokenGetter(() => profile?.refreshToken);
+    return () => {
+      setRefreshTokenGetter(null);
+    };
+  }, [profile?.refreshToken]);
+
+  // Yangi tokenlar kelganda profilni yangilash
+  useEffect(() => {
+    setTokenRefreshedHandler((jwt: string, refreshToken: string) => {
+      persistProfile((prev) => prev ? { ...prev, jwt, refreshToken } : prev);
+    });
+    return () => {
+      setTokenRefreshedHandler(null);
     };
   }, [persistProfile]);
 

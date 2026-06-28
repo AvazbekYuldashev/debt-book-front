@@ -54,9 +54,7 @@ const FadeInView: React.FC<FadeInViewProps> = ({
           {
             opacity: visible ? 1 : 0,
             transform: [{ translateY: visible ? 0 : fromY }],
-            transitionDuration: `${duration}ms`,
-            transitionProperty: 'opacity, transform',
-            transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            transition: `opacity ${duration}ms cubic-bezier(0.22,1,0.36,1), transform ${duration}ms cubic-bezier(0.22,1,0.36,1)`,
           } as unknown as ViewStyle,
         ]}
       >

@@ -47,8 +47,8 @@ const Button: React.FC<ButtonProps> = ({
   const animateScale = useCallback((toValue: number) => {
     Animated.spring(scale, {
       toValue,
-      speed: 22,
-      bounciness: 0,
+      speed: 24,
+      bounciness: toValue < 1 ? 0 : 7,
       useNativeDriver,
     }).start();
   }, [scale, useNativeDriver]);

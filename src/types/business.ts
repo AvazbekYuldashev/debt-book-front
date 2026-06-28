@@ -9,6 +9,8 @@ export interface BusinessDTO {
   visible: boolean;
   createdDate: string;
   currentRole: BusinessRole;
+  photoId?: string;
+  photoUrl?: string;
 }
 
 export type BusinessMemberRole = Exclude<BusinessRole, 'OWNER'>;

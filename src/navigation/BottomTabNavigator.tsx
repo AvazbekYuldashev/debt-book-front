@@ -32,6 +32,11 @@ const BottomTabNavigator: React.FC = () => {
           paddingBottom: 8,
           paddingTop: 6,
           backgroundColor: colors.surface,
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.10,
+          shadowRadius: 12,
+          elevation: 16,
         },
         tabBarLabelStyle: {
           fontSize: 12,

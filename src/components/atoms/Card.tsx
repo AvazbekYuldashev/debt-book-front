@@ -39,10 +39,10 @@ const Card: React.FC<CardProps> = ({ children, style, variant = 'primary', ...pr
 
 const styles = StyleSheet.create({
   card: {
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 14,
+    elevation: 5,
   },
 });
 

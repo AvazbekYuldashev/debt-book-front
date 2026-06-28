@@ -8,6 +8,7 @@ export interface ProfileDTO {
     url?: string;
   };
   jwt?: string;
+  refreshToken?: string;
   status?: string;
 }
 

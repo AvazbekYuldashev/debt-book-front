@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import FadeInView from '../components/animations/FadeInView';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import MoneyActionModal from '../components/money/MoneyActionModal';
@@ -189,8 +190,13 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
             <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
           ) : (
             mappedHistory.map((item, index) => (
-              <TouchableOpacity
+              <FadeInView
                 key={item.id}
+                delay={Math.min(index * 50, 380)}
+                duration={300}
+                fromY={10}
+              >
+              <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => setSelectedTransaction(item)}
                 style={[styles.txRow, index !== mappedHistory.length - 1 && styles.txBorder]}
@@ -219,6 +225,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
                   </Text>
                 </View>
               </TouchableOpacity>
+              </FadeInView>
             ))
           )}
         </View>
@@ -422,10 +429,10 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     padding: 18,
     marginBottom: 16,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.14,
+    shadowRadius: 22,
+    elevation: 8,
   },
   balanceHeader: {
     flexDirection: 'row',
@@ -470,10 +477,10 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     color: colors.textSecondary,
   },
   balanceValue: {
-    marginTop: 4,
-    fontSize: 28,
+    marginTop: 6,
+    fontSize: 36,
     fontWeight: '800',
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   balancePositive: {
     color: colors.positive,
@@ -504,10 +511,10 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 4,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 6,
     overflow: 'hidden',
   },
   listSkeleton: {

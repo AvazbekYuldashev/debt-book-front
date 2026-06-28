@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { Animated, Easing, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useAppTheme } from '../../theme';
 
 interface SkeletonShimmerProps {
@@ -18,7 +18,6 @@ const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
   const { colors } = useAppTheme();
   const progress = useRef(new Animated.Value(0)).current;
   const [layoutWidth, setLayoutWidth] = useState(0);
-  const useNativeDriver = Platform.OS !== 'web';
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -26,12 +25,12 @@ const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
         toValue: 1,
         duration: 1150,
         easing: Easing.linear,
-        useNativeDriver,
+        useNativeDriver: false,
       })
     );
     loop.start();
     return () => loop.stop();
-  }, [progress, useNativeDriver]);
+  }, [progress]);
 
   const shimmerTranslate = useMemo(() => {
     const travel = Math.max(layoutWidth, 160);
@@ -49,21 +48,14 @@ const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
       }}
       style={[
         styles.base,
-        {
-          height,
-          width,
-          borderRadius,
-          backgroundColor: colors.gray100,
-        },
+        { height, width, borderRadius, backgroundColor: colors.gray100 },
         style,
       ]}
     >
       <Animated.View
         style={[
           styles.shimmerBar,
-          {
-            transform: [{ translateX: shimmerTranslate }],
-          },
+          { transform: [{ translateX: shimmerTranslate }] },
         ]}
       />
     </View>

@@ -12,6 +12,7 @@ import { useI18n } from '../../i18n';
 import { useAppTheme } from '../../theme';
 import { ColorTokens } from '../../theme/colors';
 import UserAvatar from '../../shared/ui/UserAvatar';
+import { getInitials, pickAvatarColor } from '../../shared/ui/avatar';
 import { API_BASE } from '../../api/baseUrl';
 
 const WorkspaceSwitcher: React.FC = () => {
@@ -91,14 +92,26 @@ const WorkspaceSwitcher: React.FC = () => {
         activeOpacity={0.85}
       >
         <View style={styles.iconBadge}>
-          {profilePhotoUri ? (
+          {isBusiness ? (
+            (() => {
+              const activeBiz = businesses.find((b) => b.id === workspace.activeBusinessId);
+              if (activeBiz?.photoId) {
+                return <UserAvatar uri={`${API_BASE}/attach/open/${activeBiz.photoId}`} size={38} />;
+              }
+              if (activeBiz) {
+                const { bg, fg } = pickAvatarColor(activeBiz.name);
+                return (
+                  <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: fg, fontWeight: '700', fontSize: 13 }}>{getInitials(activeBiz.name)}</Text>
+                  </View>
+                );
+              }
+              return <Ionicons name="business" size={20} color={colors.textOnPrimary} />;
+            })()
+          ) : profilePhotoUri ? (
             <UserAvatar uri={profilePhotoUri} size={38} />
           ) : (
-            <Ionicons
-              name={isBusiness ? 'business' : 'person'}
-              size={20}
-              color={isBusiness ? colors.primary : colors.textOnPrimary}
-            />
+            <Ionicons name="person" size={20} color={colors.textOnPrimary} />
           )}
         </View>
         <View style={styles.labelWrap}>

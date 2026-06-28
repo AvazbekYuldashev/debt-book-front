@@ -34,11 +34,12 @@ import {
   updateProfilePhoto,
   updateProfileUsername,
 } from '../api/profile';
-import { getMyBusinesses } from '../services/businessService';
+import { getMyBusinesses, updateBusinessPhoto } from '../services/businessService';
 import { BusinessDTO } from '../types/business';
 import { uploadAttach, uploadAttachFile } from '../api/attach';
 import { API_BASE } from '../api/baseUrl';
 import UserAvatar from '../shared/ui/UserAvatar';
+import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
 import { ROUTES } from '../navigation/routes';
 
 const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -251,6 +252,34 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       );
     });
 
+  const handlePickBusinessPhoto = () =>
+    run('photo', async () => {
+      if (!token || !workspace.activeBusinessId) throw new Error(t('profile.noToken'));
+      if (Platform.OS !== 'web') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) throw new Error(t('profile.galleryDenied'));
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+      let uploaded;
+      if (Platform.OS === 'web' && (asset as unknown as { file?: Blob }).file) {
+        const file = (asset as unknown as { file: Blob }).file;
+        uploaded = await uploadAttachFile(file, token);
+      } else {
+        const assetName = asset.fileName || `photo-${Date.now()}.jpg`;
+        const type = asset.type === 'image' ? 'image/jpeg' : 'application/octet-stream';
+        uploaded = await uploadAttach({ uri: asset.uri, name: assetName, type }, token);
+      }
+      if (!uploaded.id) throw new Error(t('profile.photoIdMissing'));
+      const updated = await updateBusinessPhoto(workspace.activeBusinessId, uploaded.id, token);
+      setActiveBusiness((prev) => prev ? { ...prev, photoId: updated.photoId } : prev);
+    });
+
   const handleDelete = () => {
     confirmAction(
       t('profile.deleteConfirm'),
@@ -270,28 +299,62 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <Text style={styles.title}>{t('profile.settingsTitle')}</Text>
       {profile ? (
         <View style={styles.avatarBlock}>
-          <TouchableOpacity
-            activeOpacity={photoUri ? 0.8 : 1}
-            onPress={() => {
-              if (photoUri) {
-                setPhotoModalError('');
-                setPhotoModalVisible(true);
-              }
-            }}
-          >
-            <UserAvatar uri={photoUri} size={84} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.avatarEdit}
-            onPress={handlePickPhoto}
-            disabled={loadingKey === 'photo'}
-          >
-            {loadingKey === 'photo' ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+          {isBusiness ? (
+            /* Business mode — hech qachon personal foto ko'rsatmasin */
+            activeBusiness ? (
+              <>
+                {activeBusiness.photoId ? (
+                  <UserAvatar uri={`${API_BASE}/attach/open/${activeBusiness.photoId}`} size={84} />
+                ) : (
+                  <View style={[styles.businessInitialsAvatar, { backgroundColor: pickAvatarColor(activeBusiness.name).bg }]}>
+                    <Text style={[styles.businessInitialsText, { color: pickAvatarColor(activeBusiness.name).fg }]}>
+                      {getInitials(activeBusiness.name)}
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.avatarEdit}
+                  onPress={handlePickBusinessPhoto}
+                  disabled={loadingKey === 'photo'}
+                >
+                  {loadingKey === 'photo' ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Ionicons name="create-outline" size={16} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              </>
             ) : (
-              <Ionicons name="create-outline" size={16} color={colors.primary} />
-            )}
-          </TouchableOpacity>
+              /* activeBusiness yuklanguncha — bo'sh doiracha */
+              <View style={[styles.businessInitialsAvatar, { backgroundColor: colors.surfaceMuted }]} />
+            )
+          ) : (
+            /* Personal mode */
+            <>
+              <TouchableOpacity
+                activeOpacity={photoUri ? 0.8 : 1}
+                onPress={() => {
+                  if (photoUri) {
+                    setPhotoModalError('');
+                    setPhotoModalVisible(true);
+                  }
+                }}
+              >
+                <UserAvatar uri={photoUri} size={84} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.avatarEdit}
+                onPress={handlePickPhoto}
+                disabled={loadingKey === 'photo'}
+              >
+                {loadingKey === 'photo' ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="create-outline" size={16} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       ) : null}
       {profile ? (
@@ -511,14 +574,15 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     backgroundColor: colors.background,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: colors.primary,
+    fontSize: 30,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.6,
     marginBottom: 16,
     textAlign: 'center',
   },
   infoCard: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   infoLabel: {
     fontSize: 11,
@@ -611,6 +675,18 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   avatarInitials: {
     fontSize: 30,
     fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  businessInitialsAvatar: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  businessInitialsText: {
+    fontSize: 30,
+    fontWeight: '700',
     letterSpacing: -0.5,
   },
   avatarEdit: {
