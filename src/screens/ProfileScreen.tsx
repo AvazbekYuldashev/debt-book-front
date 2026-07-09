@@ -1,31 +1,17 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../theme';
-import { ColorTokens } from '../theme/colors';
+import type { ThemeValue } from '../theme/ThemeProvider';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
-import Card from '../components/Card';
-import AppTextInput from '../components/form/AppTextInput';
+import Card from '../components/atoms/Card';
+import Input from '../components/atoms/Input';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import CurrencySwitcher from '../components/CurrencySwitcher';
 import { useI18n } from '../i18n';
 import { confirmAction } from '../utils/confirm';
-import * as ImagePicker from 'expo-image-picker';
 import {
   confirmProfileUsername,
   deleteProfile,
@@ -37,19 +23,23 @@ import {
 } from '../api/profile';
 import { getMyBusinesses, updateBusinessPhoto } from '../services/businessService';
 import { BusinessDTO } from '../types/business';
-import { uploadAttach, uploadAttachFile } from '../api/attach';
-import { API_BASE } from '../api/baseUrl';
-import UserAvatar from '../shared/ui/UserAvatar';
-import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
 import { ROUTES } from '../navigation/routes';
+import type { ProfileNavigation } from '../navigation/types';
+import FieldWithAction from './profile/FieldWithAction';
+import ProfileAvatar from './profile/ProfileAvatar';
+import ProfilePhotoModal from './profile/ProfilePhotoModal';
+import { pickAndUploadImage } from './profile/pickImage';
+import { buildProfilePhotoUrl, normalizeBackendPhotoUrl } from './profile/profilePhoto';
 
-const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation }) => {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { profile, setProfile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const isBusiness = workspace.mode === 'business';
+
   const [activeBusiness, setActiveBusiness] = useState<BusinessDTO | null>(null);
   const [name, setName] = useState(profile?.name ?? '');
   const [surname, setSurname] = useState(profile?.surname ?? '');
@@ -66,22 +56,12 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [status, setStatus] = useState('');
   const [statusError, setStatusError] = useState(false);
 
-  // Tasdiq dialoglari uchun tarjima qilingan tugma matnlari.
-  const confirmLabels = useMemo(
-    () => ({ cancelLabel: t('common.cancel') }),
-    [t]
-  );
-
-  const token = useMemo(() => profile?.jwt, [profile?.jwt]);
+  const confirmLabels = useMemo(() => ({ cancelLabel: t('common.cancel') }), [t]);
+  const token = profile?.jwt;
   const photoUri =
     normalizeBackendPhotoUrl(photoPreview) ||
     normalizeBackendPhotoUrl(profile?.photo?.url) ||
     buildProfilePhotoUrl(profile?.photo?.id);
-  const windowSize = Dimensions.get('window');
-  const modalImageSize = {
-    width: windowSize.width,
-    height: windowSize.height * 0.4,
-  };
 
   useEffect(() => {
     if (profile?.photo?.url) {
@@ -92,16 +72,6 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       setPhotoPreview(buildProfilePhotoUrl(profile.photo.id));
     }
   }, [profile?.photo?.id, profile?.photo?.url]);
-
-
-
-  const handleLogout = () => {
-    confirmAction(
-      t('profile.logoutConfirm'),
-      () => setProfile(null),
-      { title: t('profile.logout'), confirmLabel: t('profile.logout'), ...confirmLabels }
-    );
-  };
 
   const run = async (key: string, action: () => Promise<void>) => {
     setLoadingKey(key);
@@ -162,12 +132,17 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       return;
     }
     getMyBusinesses(token)
-      .then((list) => {
-        const found = list.find((b) => b.id === workspace.activeBusinessId) || null;
-        setActiveBusiness(found);
-      })
+      .then((list) => setActiveBusiness(list.find((b) => b.id === workspace.activeBusinessId) || null))
       .catch(() => {});
   }, [token, isBusiness, workspace.activeBusinessId]);
+
+  const handleLogout = () => {
+    confirmAction(t('profile.logoutConfirm'), () => setProfile(null), {
+      title: t('profile.logout'),
+      confirmLabel: t('profile.logout'),
+      ...confirmLabels,
+    });
+  };
 
   const handleUpdateDetail = () =>
     run('detail', async () => {
@@ -220,65 +195,28 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const handlePickPhoto = () =>
     run('photo', async () => {
       if (!token) throw new Error(t('profile.noToken'));
-      if (Platform.OS !== 'web') {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permission.granted) {
-          throw new Error(t('profile.galleryDenied'));
-        }
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.8,
-      });
-      if (result.canceled) return;
-      const asset = result.assets?.[0];
-      if (!asset?.uri) return;
-      let uploaded;
-      if (Platform.OS === 'web' && (asset as unknown as { file?: Blob }).file) {
-        const file = (asset as unknown as { file: Blob }).file;
-        uploaded = await uploadAttachFile(file, token);
-      } else {
-        const name = asset.fileName || `photo-${Date.now()}.jpg`;
-        const type = asset.type === 'image' ? 'image/jpeg' : 'application/octet-stream';
-        uploaded = await uploadAttach({ uri: asset.uri, name, type }, token);
-      }
-      if (!uploaded.id) throw new Error(t('profile.photoIdMissing'));
-      await updateProfilePhoto({ photoId: uploaded.id }, token);
+      const picked = await pickAndUploadImage(token);
+      if (picked.status === 'canceled') return;
+      if (picked.status === 'denied') throw new Error(t('profile.galleryDenied'));
+      if (picked.status === 'error') throw new Error(t('profile.photoIdMissing'));
+
+      await updateProfilePhoto({ photoId: picked.id }, token);
       // ID asosidagi kanonik URL eng ishonchli (har doim ochiladi) — birinchi o'sha.
-      const resolvedUrl =
-        buildProfilePhotoUrl(uploaded.id) || normalizeBackendPhotoUrl(uploaded.url) || asset.uri;
+      const resolvedUrl = buildProfilePhotoUrl(picked.id) || normalizeBackendPhotoUrl(picked.url);
       setPhotoPreview(resolvedUrl);
-      setProfile((prev) =>
-        prev ? { ...prev, photo: { id: uploaded.id, url: resolvedUrl } } : prev
-      );
+      setProfile((prev) => (prev ? { ...prev, photo: { id: picked.id, url: resolvedUrl } } : prev));
     });
 
   const handlePickBusinessPhoto = () =>
     run('photo', async () => {
       if (!token || !workspace.activeBusinessId) throw new Error(t('profile.noToken'));
-      if (Platform.OS !== 'web') {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permission.granted) throw new Error(t('profile.galleryDenied'));
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.8,
-      });
-      if (result.canceled) return;
-      const asset = result.assets?.[0];
-      if (!asset?.uri) return;
-      let uploaded;
-      if (Platform.OS === 'web' && (asset as unknown as { file?: Blob }).file) {
-        const file = (asset as unknown as { file: Blob }).file;
-        uploaded = await uploadAttachFile(file, token);
-      } else {
-        const assetName = asset.fileName || `photo-${Date.now()}.jpg`;
-        const type = asset.type === 'image' ? 'image/jpeg' : 'application/octet-stream';
-        uploaded = await uploadAttach({ uri: asset.uri, name: assetName, type }, token);
-      }
-      if (!uploaded.id) throw new Error(t('profile.photoIdMissing'));
-      const updated = await updateBusinessPhoto(workspace.activeBusinessId, uploaded.id, token);
-      setActiveBusiness((prev) => prev ? { ...prev, photoId: updated.photoId } : prev);
+      const picked = await pickAndUploadImage(token);
+      if (picked.status === 'canceled') return;
+      if (picked.status === 'denied') throw new Error(t('profile.galleryDenied'));
+      if (picked.status === 'error') throw new Error(t('profile.photoIdMissing'));
+
+      const updated = await updateBusinessPhoto(workspace.activeBusinessId, picked.id, token);
+      setActiveBusiness((prev) => (prev ? { ...prev, photoId: updated.photoId } : prev));
     });
 
   const handleDelete = () => {
@@ -294,89 +232,49 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     );
   };
 
+  const openPhotoPreview = () => {
+    if (!photoUri) return;
+    setPhotoModalError('');
+    setPhotoModalVisible(true);
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <WorkspaceSwitcher />
       <Text style={styles.title}>{t('profile.settingsTitle')}</Text>
+
       {profile ? (
-        <View style={styles.avatarBlock}>
-          {isBusiness ? (
-            /* Business mode — hech qachon personal foto ko'rsatmasin */
-            activeBusiness ? (
-              <>
-                {activeBusiness.photoId ? (
-                  <UserAvatar uri={`${API_BASE}/attach/open/${activeBusiness.photoId}`} size={84} />
-                ) : (
-                  <View style={[styles.businessInitialsAvatar, { backgroundColor: pickAvatarColor(activeBusiness.name).bg }]}>
-                    <Text style={[styles.businessInitialsText, { color: pickAvatarColor(activeBusiness.name).fg }]}>
-                      {getInitials(activeBusiness.name)}
-                    </Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={styles.avatarEdit}
-                  onPress={handlePickBusinessPhoto}
-                  disabled={loadingKey === 'photo'}
-                >
-                  {loadingKey === 'photo' ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  ) : (
-                    <Ionicons name="create-outline" size={16} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              </>
-            ) : (
-              /* activeBusiness yuklanguncha — bo'sh doiracha */
-              <View style={[styles.businessInitialsAvatar, { backgroundColor: colors.surfaceMuted }]} />
-            )
-          ) : (
-            /* Personal mode */
-            <>
-              <TouchableOpacity
-                activeOpacity={photoUri ? 0.8 : 1}
-                onPress={() => {
-                  if (photoUri) {
-                    setPhotoModalError('');
-                    setPhotoModalVisible(true);
-                  }
-                }}
-              >
-                <UserAvatar uri={photoUri} size={84} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.avatarEdit}
-                onPress={handlePickPhoto}
-                disabled={loadingKey === 'photo'}
-              >
-                {loadingKey === 'photo' ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Ionicons name="create-outline" size={16} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+        <ProfileAvatar
+          isBusiness={isBusiness}
+          activeBusiness={activeBusiness}
+          personalPhotoUri={photoUri}
+          editing={loadingKey === 'photo'}
+          onEditPhoto={isBusiness ? handlePickBusinessPhoto : handlePickPhoto}
+          onPreview={openPhotoPreview}
+        />
       ) : null}
+
       {profile ? (
         <Card style={styles.infoCard}>
           {isBusiness && activeBusiness ? (
             <>
               <Text style={styles.infoLabel}>{t('business.myBusinesses')}</Text>
               <Text style={styles.infoText}>{activeBusiness.name}</Text>
-              {activeBusiness.address ? (
-                <Text style={styles.infoSubText}>{activeBusiness.address}</Text>
-              ) : null}
-              <Text style={styles.infoSubText}>{t('business.ownerLabel')}: {activeBusiness.ownerName || '--'}</Text>
+              {activeBusiness.address ? <Text style={styles.infoSubText}>{activeBusiness.address}</Text> : null}
+              <Text style={styles.infoSubText}>
+                {t('business.ownerLabel')}: {activeBusiness.ownerName || '--'}
+              </Text>
               {workspace.activeBusinessRole ? (
-                <View style={styles.roleBadgeWrap}>
+                <View style={styles.roleBadge}>
                   <Text style={styles.roleBadgeText}>{workspace.activeBusinessRole}</Text>
                 </View>
               ) : null}
             </>
           ) : (
             <>
-              <Text style={styles.infoText}>{profile.name} {profile.surname}</Text>
+              <Text style={styles.infoText}>
+                {profile.name} {profile.surname}
+              </Text>
               <Text style={styles.infoText}>{profile.username}</Text>
               {profile.status ? <Text style={styles.infoText}>{profile.status}</Text> : null}
             </>
@@ -405,410 +303,239 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <>
           <Card style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>{t('profile.nameSection')}</Text>
-            <AppTextInput label={t('profile.name')} value={name} onChangeText={setName} containerStyle={styles.compactField} />
-            <View style={styles.inputRow}>
-              <AppTextInput
-                label={t('profile.surname')}
-                value={surname}
-                onChangeText={setSurname}
-                containerStyle={[styles.compactField, styles.flexOne]}
-              />
-              <TouchableOpacity
-                style={styles.iconAction}
-                onPress={handleUpdateDetail}
-                disabled={loadingKey === 'detail'}
-              >
-                {loadingKey === 'detail' ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Ionicons name="create-outline" size={18} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            </View>
+            <Input label={t('profile.name')} value={name} onChangeText={setName} containerStyle={styles.compactField} />
+            <FieldWithAction
+              label={t('profile.surname')}
+              value={surname}
+              onChangeText={setSurname}
+              iconName="create-outline"
+              onAction={handleUpdateDetail}
+              loading={loadingKey === 'detail'}
+            />
           </Card>
 
           <Card style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>{t('profile.phoneSection')}</Text>
-            <View style={styles.inputRow}>
-              <AppTextInput
-                label={t('profile.username')}
-                value={username}
-                onChangeText={setUsername}
-                containerStyle={[styles.compactField, styles.flexOne]}
-              />
-              <TouchableOpacity
-                style={styles.iconAction}
-                onPress={handleUpdateUsername}
-                disabled={loadingKey === 'username'}
-              >
-                {loadingKey === 'username' ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Ionicons name="create-outline" size={18} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            </View>
+            <FieldWithAction
+              label={t('profile.username')}
+              value={username}
+              onChangeText={setUsername}
+              iconName="create-outline"
+              onAction={handleUpdateUsername}
+              loading={loadingKey === 'username'}
+            />
             {pendingUsername ? (
               <>
-                <View style={styles.inputRow}>
-                  <AppTextInput
-                    label={t('profile.confirmCode')}
-                    value={confirmCode}
-                    onChangeText={setConfirmCode}
-                    containerStyle={[styles.compactField, styles.flexOne]}
-                  />
-                  <TouchableOpacity
-                    style={styles.iconAction}
-                    onPress={handleConfirmUsername}
-                    disabled={loadingKey === 'usernameConfirm'}
-                  >
-                    {loadingKey === 'usernameConfirm' ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <Ionicons name="checkmark-outline" size={18} color={colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.helperText}>{t('profile.newUsername')}: {pendingUsername}</Text>
+                <FieldWithAction
+                  label={t('profile.confirmCode')}
+                  value={confirmCode}
+                  onChangeText={setConfirmCode}
+                  iconName="checkmark-outline"
+                  onAction={handleConfirmUsername}
+                  loading={loadingKey === 'usernameConfirm'}
+                />
+                <Text style={styles.helperText}>
+                  {t('profile.newUsername')}: {pendingUsername}
+                </Text>
               </>
             ) : null}
           </Card>
 
           <Card style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>{t('profile.changePassword')}</Text>
-            <AppTextInput
+            <Input
               label={t('profile.oldPasswordLabel')}
               value={oldPassword}
               onChangeText={setOldPassword}
               secureTextEntry
               containerStyle={styles.compactField}
             />
-            <AppTextInput
+            <Input
               label={t('profile.newPassword')}
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
               containerStyle={styles.compactField}
             />
-            <View style={styles.inputRow}>
-              <AppTextInput
-                label={t('profile.newPasswordConfirm')}
-                value={confirmNewPassword}
-                onChangeText={setConfirmNewPassword}
-                secureTextEntry
-                containerStyle={[styles.compactField, styles.flexOne]}
-              />
-              <TouchableOpacity
-                style={styles.iconAction}
-                onPress={handleUpdatePassword}
-                disabled={loadingKey === 'password'}
-              >
-                {loadingKey === 'password' ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Ionicons name="create-outline" size={18} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            </View>
+            <FieldWithAction
+              label={t('profile.newPasswordConfirm')}
+              value={confirmNewPassword}
+              onChangeText={setConfirmNewPassword}
+              secureTextEntry
+              iconName="create-outline"
+              onAction={handleUpdatePassword}
+              loading={loadingKey === 'password'}
+            />
           </Card>
 
-          {status ? (
-            <Text style={[styles.statusText, statusError && styles.statusError]}>{status}</Text>
-          ) : null}
+          {status ? <Text style={[styles.statusText, statusError && styles.statusError]}>{status}</Text> : null}
         </>
       ) : null}
 
       {profile ? (
         <>
           <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={styles.secondaryBtn}
+            <Pressable
+              style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
               onPress={() => navigation.navigate(ROUTES.MY_BUSINESSES)}
+              accessibilityRole="button"
             >
               <Text style={styles.secondaryBtnText}>{t('profile.myBusinesses')}</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.secondaryBtn} onPress={handleLogout}>
+            <Pressable
+              style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
+              onPress={handleLogout}
+              accessibilityRole="button"
+            >
               <Text style={styles.secondaryBtnText}>{t('profile.logout')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.dangerBtn} onPress={handleDelete} disabled={loadingKey === 'delete'}>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.dangerBtn, pressed && styles.pressed]}
+              onPress={handleDelete}
+              disabled={loadingKey === 'delete'}
+              accessibilityRole="button"
+            >
               {loadingKey === 'delete' ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.textOnPrimary} />
               ) : (
                 <Text style={styles.dangerBtnText}>{t('profile.deleteProfile')}</Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </>
       ) : null}
-      <Modal
+
+      <ProfilePhotoModal
         visible={photoModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPhotoModalVisible(false)}
-      >
-        <View style={styles.photoModalBackdrop}>
-          <Pressable style={styles.photoModalOverlay} onPress={() => setPhotoModalVisible(false)} />
-          {photoUri ? (
-            <View style={styles.photoModalCenter} pointerEvents="box-none">
-              <TouchableOpacity
-                activeOpacity={1}
-                style={[styles.photoModalImageWrap, modalImageSize]}
-              >
-                <Image
-                  source={{ uri: photoUri }}
-                  style={styles.photoModalImage}
-                  onError={() => setPhotoModalError(t('profile.imageLoadFailed'))}
-                />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <Text style={styles.photoModalText}>{t('profile.imageNotFound')}</Text>
-          )}
-          {photoModalError ? <Text style={styles.photoModalText}>{photoModalError}</Text> : null}
-        </View>
-      </Modal>
+        photoUri={photoUri}
+        error={photoModalError}
+        onClose={() => setPhotoModalVisible(false)}
+        onImageError={() => setPhotoModalError(t('profile.imageLoadFailed'))}
+      />
     </ScrollView>
   );
 };
 
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
-  container: {
-    padding: 12,
-    backgroundColor: colors.background,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    letterSpacing: -0.6,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  infoCard: {
-    marginBottom: 20,
-  },
-  infoLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  infoText: {
-    fontSize: 16,
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  infoSubText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  roleBadgeWrap: {
-    alignSelf: 'flex-start',
-    marginTop: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 999,
-    backgroundColor: colors.primarySoft,
-  },
-  roleBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primaryPressed,
-  },
-  sectionCard: {
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 10,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  compactField: {
-    marginBottom: 6,
-  },
-  flexOne: {
-    flex: 1,
-  },
-  iconAction: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  helperText: {
-    marginTop: 8,
-    color: colors.textSecondary,
-    fontSize: 12,
-  },
-  avatarBlock: {
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceMuted,
-  },
-  avatarPlaceholder: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitials: {
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  businessInitialsAvatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  businessInitialsText: {
-    fontSize: 30,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  avatarEdit: {
-    marginTop: 8,
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  photoModalBackdrop: {
-    flex: 1,
-    position: 'relative',
-  },
-  photoModalOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-  },
-  photoModalCenter: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-  },
-  photoModalImageWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoModalImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
-  },
-  photoModalText: {
-    color: '#fff',
-    marginTop: 10,
-  },
-  statusText: {
-    color: colors.primary,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  statusError: {
-    color: colors.danger,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 24,
-  },
-  secondaryBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    backgroundColor: colors.surface,
-  },
-  secondaryBtnText: {
-    color: colors.textPrimary,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  dangerBtn: {
-    flex: 1,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    backgroundColor: colors.danger,
-  },
-  dangerBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-});
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+  StyleSheet.create({
+    container: {
+      padding: spacing.sm,
+      backgroundColor: colors.background,
+    },
+    title: {
+      ...typography.heading1,
+      fontSize: 30,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      letterSpacing: -0.6,
+      marginBottom: spacing.md,
+      textAlign: 'center',
+    },
+    infoCard: {
+      marginBottom: spacing.lg,
+    },
+    infoLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.textSecondary,
+      marginBottom: spacing.xxs,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    infoText: {
+      ...typography.body,
+      color: colors.textPrimary,
+      marginBottom: spacing.xxs,
+    },
+    infoSubText: {
+      ...typography.caption,
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: spacing.xxs / 2,
+    },
+    roleBadge: {
+      alignSelf: 'flex-start',
+      marginTop: spacing.xxs + 2,
+      paddingHorizontal: spacing.xs + 2,
+      paddingVertical: spacing.xxs / 1.3,
+      borderRadius: radius.pill,
+      backgroundColor: colors.primarySoft,
+    },
+    roleBadgeText: {
+      ...typography.caption,
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.primaryPressed,
+    },
+    sectionCard: {
+      marginBottom: spacing.sm,
+    },
+    sectionTitle: {
+      ...typography.button,
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    compactField: {
+      marginBottom: spacing.xxs + 2,
+    },
+    helperText: {
+      ...typography.caption,
+      marginTop: spacing.xs,
+      color: colors.textSecondary,
+    },
+    statusText: {
+      ...typography.bodySmall,
+      color: colors.primary,
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
+    statusError: {
+      color: colors.danger,
+    },
+    actionsRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    secondaryBtn: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.surface,
+    },
+    secondaryBtnText: {
+      ...typography.label,
+      color: colors.textPrimary,
+      fontWeight: '700',
+      fontSize: 13,
+    },
+    dangerBtn: {
+      flex: 1,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.danger,
+    },
+    dangerBtnText: {
+      ...typography.label,
+      color: colors.textOnPrimary,
+      fontWeight: '700',
+      fontSize: 13,
+    },
+    pressed: {
+      opacity: 0.7,
+    },
+  });
 
 export default ProfileScreen;
-
-function buildProfilePhotoUrl(photoId?: string): string {
-  const normalized = (photoId || '').trim();
-  if (!normalized) return '';
-  return `${API_BASE}/attach/open/${normalized}`;
-}
-
-function normalizeBackendPhotoUrl(url?: string): string {
-  const raw = (url || '').trim();
-  if (!raw) return '';
-
-  // Backend ba'zan ichki host (localhost:8080 / 127.0.0.1 / internal IP) bilan URL qaytaradi —
-  // bu foydalanuvchi brauzeridan ochilmaydi. Attach-rasm URL'ini HAR DOIM app'ning kanonik
-  // manziliga (API_BASE) keltiramiz: web'da nisbiy (Apache /api proxy), mobil'da to'liq URL.
-  const marker = '/attach/open/';
-  const markerIdx = raw.indexOf(marker);
-  if (markerIdx !== -1) {
-    const after = raw.slice(markerIdx + marker.length);
-    const fileId = after.split('?')[0].split('#')[0];
-    if (fileId) return buildProfilePhotoUrl(fileId);
-  }
-
-  // Attach-open bo'lmagan nisbiy yo'l bo'lsa, apiOrigin bilan to'ldiramiz (mavjud bo'lsa).
-  const apiOrigin = getApiOrigin();
-  if (apiOrigin && raw.startsWith('/')) return `${apiOrigin}${raw}`;
-  return raw;
-}
-
-function getApiOrigin(): string {
-  try {
-    return new URL(API_BASE).origin;
-  } catch {
-    return '';
-  }
-}
