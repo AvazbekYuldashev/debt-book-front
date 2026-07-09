@@ -20,6 +20,7 @@ import { ContactsContext } from '../context/ContactsContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useContactBalances } from '../hooks/useContactBalances';
+import { useUnreadNotificationCount } from '../hooks/useNotifications';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import { ROUTES } from '../navigation/routes';
@@ -72,6 +73,9 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   } = useContactBalances(contacts);
 
   const canEdit = canWrite(workspace.activeBusinessRole);
+
+  const unreadQuery = useUnreadNotificationCount();
+  const unreadCount = unreadQuery.data ?? 0;
 
   // ---- Modal / forma holati ----
   const [modalVisible, setModalVisible] = useState(false);
@@ -271,6 +275,19 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t('debts.clientsTitle')}</Text>
           <View style={styles.headerTools}>
+            <Pressable
+              style={({ pressed }) => [styles.bellBtn, pressed && styles.searchTogglePressed]}
+              onPress={() => navigation.navigate(ROUTES.NOTIFICATIONS)}
+              accessibilityRole="button"
+              accessibilityLabel={t('notifications.title')}
+            >
+              <Ionicons name="notifications-outline" size={18} color={colors.textSecondary} />
+              {unreadCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                </View>
+              ) : null}
+            </Pressable>
             <SearchToggle
               label="ABC"
               active={activeSearch === 'name'}
@@ -464,6 +481,36 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
+    },
+    bellBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    badge: {
+      position: 'absolute',
+      top: -5,
+      right: -5,
+      minWidth: 18,
+      height: 18,
+      borderRadius: radius.pill,
+      paddingHorizontal: 4,
+      backgroundColor: colors.danger,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1.5,
+      borderColor: colors.background,
+    },
+    badgeText: {
+      ...typography.caption,
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textOnPrimary,
     },
     searchToggle: {
       flexDirection: 'row',

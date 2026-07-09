@@ -9,6 +9,7 @@ import type { ROUTES } from './routes';
 export type DebtsStackParamList = {
   [ROUTES.DEBT_LIST]: undefined;
   [ROUTES.CONTACT_DETAIL]: { id: string };
+  [ROUTES.NOTIFICATIONS]: undefined;
 };
 
 export type DebtsNavigation = NativeStackNavigationProp<DebtsStackParamList>;

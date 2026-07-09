@@ -15,6 +15,10 @@ export const LANGS: { code: Lang; label: string; short: string }[] = [
 type Dict = Record<string, string>;
 
 const uz: Dict = {
+  // notifications
+  'notifications.title': 'Bildirishnomalar',
+  'notifications.empty': "Hozircha bildirishnoma yo'q",
+  'notifications.markAllRead': "Hammasini o'qilgan deb belgilash",
   // common
   'common.appName': 'Qarz Daftari',
   'common.save': 'Saqlash',
@@ -360,6 +364,9 @@ const uz: Dict = {
 };
 
 const ru: Dict = {
+  'notifications.title': 'Уведомления',
+  'notifications.empty': 'Пока нет уведомлений',
+  'notifications.markAllRead': 'Отметить все как прочитанные',
   'common.appName': 'Долговая книга',
   'common.save': 'Сохранить',
   'common.cancel': 'Отмена',
@@ -692,6 +699,9 @@ const ru: Dict = {
 };
 
 const en: Dict = {
+  'notifications.title': 'Notifications',
+  'notifications.empty': 'No notifications yet',
+  'notifications.markAllRead': 'Mark all as read',
   'common.appName': 'Debt Book',
   'common.save': 'Save',
   'common.cancel': 'Cancel',

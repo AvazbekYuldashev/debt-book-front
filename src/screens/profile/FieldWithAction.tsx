@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, TextInputProps, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../theme';
 import type { ThemeValue } from '../../theme/ThemeProvider';
@@ -13,6 +13,7 @@ interface FieldWithActionProps {
   onAction: () => void;
   loading: boolean;
   secureTextEntry?: boolean;
+  autoComplete?: TextInputProps['autoComplete'];
 }
 
 /**
@@ -27,6 +28,7 @@ const FieldWithAction: React.FC<FieldWithActionProps> = ({
   onAction,
   loading,
   secureTextEntry,
+  autoComplete,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -39,6 +41,7 @@ const FieldWithAction: React.FC<FieldWithActionProps> = ({
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
+        autoComplete={autoComplete}
         containerStyle={styles.field}
       />
       <Pressable

@@ -348,6 +348,8 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
               value={oldPassword}
               onChangeText={setOldPassword}
               secureTextEntry
+              autoComplete="off"
+              importantForAutofill="no"
               containerStyle={styles.compactField}
             />
             <Input
@@ -355,6 +357,8 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
+              autoComplete="off"
+              importantForAutofill="no"
               containerStyle={styles.compactField}
             />
             <FieldWithAction
@@ -362,6 +366,7 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
               value={confirmNewPassword}
               onChangeText={setConfirmNewPassword}
               secureTextEntry
+              autoComplete="off"
               iconName="create-outline"
               onAction={handleUpdatePassword}
               loading={loadingKey === 'password'}

@@ -7,6 +7,7 @@ export const ROUTES = {
   PROFILE_HOME: 'ProfileHome',
   DEBT_LIST: 'DebtList',
   CONTACT_DETAIL: 'ContactDetail',
+  NOTIFICATIONS: 'Notifications',
   EXPENSE_CATEGORIES: 'ExpenseCategories',
   EXPENSE_CATEGORY_DETAIL: 'ExpenseCategoryDetail',
   MY_BUSINESSES: 'MyBusinesses',
