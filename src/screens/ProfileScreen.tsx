@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import { AuthContext } from '../context/AuthContext';
@@ -21,7 +22,8 @@ import {
   updateProfilePhoto,
   updateProfileUsername,
 } from '../api/profile';
-import { getMyBusinesses, updateBusinessPhoto } from '../services/businessService';
+import { updateBusinessPhoto } from '../services/businessService';
+import { useMyBusinesses, myBusinessesQueryKey } from '../hooks/useMyBusinesses';
 import { BusinessDTO } from '../types/business';
 import { ROUTES } from '../navigation/routes';
 import type { ProfileNavigation } from '../navigation/types';
@@ -29,7 +31,7 @@ import FieldWithAction from './profile/FieldWithAction';
 import ProfileAvatar from './profile/ProfileAvatar';
 import ProfilePhotoModal from './profile/ProfilePhotoModal';
 import { pickAndUploadImage } from './profile/pickImage';
-import { buildProfilePhotoUrl, normalizeBackendPhotoUrl } from './profile/profilePhoto';
+import { buildAttachUrl, normalizeAttachUrl } from '../shared/attachUrl';
 
 const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation }) => {
   const { t } = useI18n();
@@ -38,9 +40,16 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { profile, setProfile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
+  const queryClient = useQueryClient();
   const isBusiness = workspace.mode === 'business';
 
-  const [activeBusiness, setActiveBusiness] = useState<BusinessDTO | null>(null);
+  // Faol biznes umumiy query keshidan hosilaviy — alohida so'rov/holat kerak emas.
+  const { data: businesses } = useMyBusinesses(isBusiness);
+  const activeBusiness = useMemo(
+    () => (isBusiness ? businesses?.find((b) => b.id === workspace.activeBusinessId) ?? null : null),
+    [isBusiness, businesses, workspace.activeBusinessId],
+  );
+
   const [name, setName] = useState(profile?.name ?? '');
   const [surname, setSurname] = useState(profile?.surname ?? '');
   const [username, setUsername] = useState(profile?.username ?? '');
@@ -59,17 +68,17 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
   const confirmLabels = useMemo(() => ({ cancelLabel: t('common.cancel') }), [t]);
   const token = profile?.jwt;
   const photoUri =
-    normalizeBackendPhotoUrl(photoPreview) ||
-    normalizeBackendPhotoUrl(profile?.photo?.url) ||
-    buildProfilePhotoUrl(profile?.photo?.id);
+    normalizeAttachUrl(photoPreview) ||
+    normalizeAttachUrl(profile?.photo?.url) ||
+    buildAttachUrl(profile?.photo?.id);
 
   useEffect(() => {
     if (profile?.photo?.url) {
-      setPhotoPreview(normalizeBackendPhotoUrl(profile.photo.url));
+      setPhotoPreview(normalizeAttachUrl(profile.photo.url));
       return;
     }
     if (profile?.photo?.id) {
-      setPhotoPreview(buildProfilePhotoUrl(profile.photo.id));
+      setPhotoPreview(buildAttachUrl(profile.photo.id));
     }
   }, [profile?.photo?.id, profile?.photo?.url]);
 
@@ -109,9 +118,9 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
             (typeof freshData.photoId === 'string' ? freshData.photoId : undefined) ||
             prev.photo?.id;
           const photoUrl =
-            normalizeBackendPhotoUrl(typeof nestedPhoto?.url === 'string' ? nestedPhoto.url : undefined) ||
+            normalizeAttachUrl(typeof nestedPhoto?.url === 'string' ? nestedPhoto.url : undefined) ||
             prev.photo?.url ||
-            buildProfilePhotoUrl(photoId);
+            buildAttachUrl(photoId);
 
           return {
             ...prev,
@@ -125,16 +134,6 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
     };
     loadProfile();
   }, [token, setProfile]);
-
-  useEffect(() => {
-    if (!token || !isBusiness || !workspace.activeBusinessId) {
-      setActiveBusiness(null);
-      return;
-    }
-    getMyBusinesses(token)
-      .then((list) => setActiveBusiness(list.find((b) => b.id === workspace.activeBusinessId) || null))
-      .catch(() => {});
-  }, [token, isBusiness, workspace.activeBusinessId]);
 
   const handleLogout = () => {
     confirmAction(t('profile.logoutConfirm'), () => setProfile(null), {
@@ -202,7 +201,7 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
 
       await updateProfilePhoto({ photoId: picked.id }, token);
       // ID asosidagi kanonik URL eng ishonchli (har doim ochiladi) — birinchi o'sha.
-      const resolvedUrl = buildProfilePhotoUrl(picked.id) || normalizeBackendPhotoUrl(picked.url);
+      const resolvedUrl = buildAttachUrl(picked.id) || normalizeAttachUrl(picked.url);
       setPhotoPreview(resolvedUrl);
       setProfile((prev) => (prev ? { ...prev, photo: { id: picked.id, url: resolvedUrl } } : prev));
     });
@@ -215,8 +214,12 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
       if (picked.status === 'denied') throw new Error(t('profile.galleryDenied'));
       if (picked.status === 'error') throw new Error(t('profile.photoIdMissing'));
 
-      const updated = await updateBusinessPhoto(workspace.activeBusinessId, picked.id, token);
-      setActiveBusiness((prev) => (prev ? { ...prev, photoId: updated.photoId } : prev));
+      const businessId = workspace.activeBusinessId;
+      const updated = await updateBusinessPhoto(businessId, picked.id, token);
+      // Optimistik kesh yangilash — Profile ham, WorkspaceSwitcher ham darhol yangi rasmni ko'radi.
+      queryClient.setQueryData<BusinessDTO[]>(myBusinessesQueryKey(profile?.id), (prev) =>
+        prev?.map((b) => (b.id === businessId ? { ...b, photoId: updated.photoId } : b)),
+      );
     });
 
   const handleDelete = () => {

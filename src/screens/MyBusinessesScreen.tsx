@@ -1,13 +1,15 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
-import { getMyBusinesses } from '../services/businessService';
+import { useMyBusinesses, myBusinessesQueryKey } from '../hooks/useMyBusinesses';
 import { BusinessDTO } from '../types/business';
 import CreateBusinessModal from '../components/business/CreateBusinessModal';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
+import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import { ROUTES } from '../navigation/routes';
 import type { ProfileNavigation } from '../navigation/types';
 import { useI18n } from '../i18n';
@@ -20,45 +22,27 @@ const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navig
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const queryClient = useQueryClient();
   const { profile } = useContext(AuthContext);
   const { workspace, setBusinessWorkspace } = useContext(WorkspaceContext);
-  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
-  const [businesses, setBusinesses] = useState<BusinessDTO[]>([]);
   const [createModalVisible, setCreateModalVisible] = useState(false);
 
-  const loadBusinesses = useCallback(
-    async (showSpinner = true) => {
-      if (!profile?.jwt) {
-        setBusinesses([]);
-        return;
-      }
-      if (showSpinner) setLoading(true);
-      setError('');
-      try {
-        const response = await getMyBusinesses(profile.jwt);
-        setBusinesses(response);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : t('workspace.loadFailed'));
-      } finally {
-        if (showSpinner) setLoading(false);
-      }
-    },
-    [profile?.jwt, t]
-  );
+  const { data: businesses = [], isLoading, error, refetch } = useMyBusinesses();
+  const errorText = error instanceof Error ? error.message : '';
 
   useFocusEffect(
     useCallback(() => {
-      loadBusinesses(true);
-    }, [loadBusinesses])
+      refetch();
+    }, [refetch])
   );
 
+  // Pull-to-refresh spinneri faqat foydalanuvchi tortganda (fon refetch'ida emas).
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadBusinesses(false);
+    await refetch();
     setRefreshing(false);
-  }, [loadBusinesses]);
+  }, [refetch]);
 
   const handleOpen = useCallback(
     (business: BusinessDTO) =>
@@ -91,10 +75,8 @@ const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navig
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {loading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator color={colors.primary} />
-          </View>
+        {isLoading ? (
+          <SkeletonCardList count={3} />
         ) : businesses.length === 0 ? (
           <Text style={styles.empty}>{t('workspace.noBusiness')}</Text>
         ) : (
@@ -108,7 +90,7 @@ const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navig
             />
           ))
         )}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {errorText ? <Text style={styles.error}>{errorText}</Text> : null}
       </ScrollView>
 
       <Pressable
@@ -125,7 +107,7 @@ const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navig
         onClose={() => setCreateModalVisible(false)}
         onCreated={(created) => {
           setBusinessWorkspace({ id: created.id, name: created.name, role: created.currentRole });
-          loadBusinesses(false);
+          queryClient.invalidateQueries({ queryKey: myBusinessesQueryKey(profile?.id) });
         }}
       />
     </View>
@@ -159,11 +141,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     content: {
       padding: spacing.md,
       paddingBottom: 96,
-    },
-    loadingWrap: {
-      minHeight: 120,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     empty: {
       ...typography.body,

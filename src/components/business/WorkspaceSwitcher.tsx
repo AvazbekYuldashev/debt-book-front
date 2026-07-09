@@ -1,118 +1,146 @@
-import React, { useCallback, useContext, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { memo, useCallback, useContext, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../../context/AuthContext';
 import { WorkspaceContext } from '../../context/WorkspaceContext';
-import { getMyBusinesses } from '../../services/businessService';
+import { useMyBusinesses, myBusinessesQueryKey } from '../../hooks/useMyBusinesses';
 import { BusinessDTO } from '../../types/business';
 import CreateBusinessModal from './CreateBusinessModal';
+import WorkspacePickerModal from './WorkspacePickerModal';
 import { ROUTES } from '../../navigation/routes';
+import type { MainTabNavigation } from '../../navigation/types';
 import { useI18n } from '../../i18n';
 import { useAppTheme } from '../../theme';
-import { ColorTokens } from '../../theme/colors';
+import type { ThemeValue } from '../../theme/ThemeProvider';
 import UserAvatar from '../../shared/ui/UserAvatar';
-import { getInitials, pickAvatarColor } from '../../shared/ui/avatar';
-import { API_BASE } from '../../api/baseUrl';
+import InitialsAvatar from '../../shared/ui/InitialsAvatar';
+import { buildAttachUrl, normalizeAttachUrl } from '../../shared/attachUrl';
 
+const BADGE_AVATAR_SIZE = 38;
+
+interface BadgeAvatarProps {
+  isBusiness: boolean;
+  activeBusiness?: BusinessDTO;
+  personalPhotoUri?: string;
+}
+
+/** Trigger'dagi avatar: biznes rasmi → bosh harflar → ikonka; shaxsiyda rasm → ikonka. */
+const BadgeAvatar = memo<BadgeAvatarProps>(({ isBusiness, activeBusiness, personalPhotoUri }) => {
+  const { colors } = useAppTheme();
+  if (isBusiness) {
+    if (activeBusiness?.photoId) {
+      return <UserAvatar uri={buildAttachUrl(activeBusiness.photoId)} size={BADGE_AVATAR_SIZE} />;
+    }
+    if (activeBusiness) {
+      return <InitialsAvatar name={activeBusiness.name} size={BADGE_AVATAR_SIZE} />;
+    }
+    return <Ionicons name="business" size={20} color={colors.textOnPrimary} />;
+  }
+  if (personalPhotoUri) {
+    return <UserAvatar uri={personalPhotoUri} size={BADGE_AVATAR_SIZE} />;
+  }
+  return <Ionicons name="person" size={20} color={colors.textOnPrimary} />;
+});
+BadgeAvatar.displayName = 'BadgeAvatar';
+
+/**
+ * Joriy workspace (shaxsiy/biznes) ko'rsatkichi va almashtirgichi.
+ * Bizneslar useMyBusinesses query'sidan keladi — bir nechta instansiya
+ * (DebtList, Profile) bitta so'rovni ulashadi.
+ */
 const WorkspaceSwitcher: React.FC = () => {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const navigation = useNavigation<any>();
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const navigation = useNavigation<MainTabNavigation>();
+  const queryClient = useQueryClient();
   const { profile } = useContext(AuthContext);
   const { workspace, setPersonalWorkspace, setBusinessWorkspace } = useContext(WorkspaceContext);
-  const [businesses, setBusinesses] = useState<BusinessDTO[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [visible, setVisible] = useState(false);
+
+  const [pickerVisible, setPickerVisible] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
 
-  const loadBusinesses = useCallback(async () => {
-    if (!profile?.jwt) {
-      setBusinesses([]);
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      const result = await getMyBusinesses(profile.jwt);
-      setBusinesses(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('workspace.loadFailed'));
-    } finally {
-      setLoading(false);
-    }
-  }, [profile?.jwt]);
+  const { data: businesses = [], isLoading, error, refetch } = useMyBusinesses();
 
+  // Ekranga qaytilganda ro'yxatni yangilaymiz; keshdagi ma'lumot ko'rinib turadi (flickersiz).
   useFocusEffect(
     useCallback(() => {
-      loadBusinesses();
-    }, [loadBusinesses])
+      refetch();
+    }, [refetch]),
   );
 
-  const openBusiness = (business: BusinessDTO) => {
-    setBusinessWorkspace({
-      id: business.id,
-      name: business.name,
-      role: business.currentRole,
-    });
-    setVisible(false);
-  };
+  const isBusiness = workspace.mode === 'business';
+  const activeBusiness = useMemo(
+    () => (isBusiness ? businesses.find((b) => b.id === workspace.activeBusinessId) : undefined),
+    [isBusiness, businesses, workspace.activeBusinessId],
+  );
 
   const contextLabel =
-    workspace.mode === 'business' && workspace.activeBusinessName
-      ? workspace.activeBusinessName
-      : t('workspace.personal');
-
-  const isBusiness = workspace.mode === 'business';
+    isBusiness && workspace.activeBusinessName ? workspace.activeBusinessName : t('workspace.personal');
 
   const profilePhotoUri = useMemo(() => {
     const photo = profile?.photo;
     if (!photo) return undefined;
-    const marker = '/attach/open/';
-    const raw = (photo.url || '').trim();
-    if (raw) {
-      const idx = raw.indexOf(marker);
-      if (idx !== -1) {
-        const fileId = raw.slice(idx + marker.length).split('?')[0].split('#')[0];
-        if (fileId) return `${API_BASE}/attach/open/${fileId}`;
-      }
-      if (raw.startsWith('http')) return raw;
-    }
-    if (photo.id) return `${API_BASE}/attach/open/${photo.id}`;
-    return undefined;
+    return normalizeAttachUrl(photo.url) || buildAttachUrl(photo.id) || undefined;
   }, [profile?.photo]);
+
+  const invalidateBusinesses = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: myBusinessesQueryKey(profile?.id) }),
+    [queryClient, profile?.id],
+  );
+
+  const handleSelectPersonal = useCallback(() => {
+    setPersonalWorkspace();
+    setPickerVisible(false);
+  }, [setPersonalWorkspace]);
+
+  const handleSelectBusiness = useCallback(
+    (business: BusinessDTO) => {
+      setBusinessWorkspace({ id: business.id, name: business.name, role: business.currentRole });
+      setPickerVisible(false);
+    },
+    [setBusinessWorkspace],
+  );
+
+  const handleManage = useCallback(() => {
+    setPickerVisible(false);
+    navigation.navigate(ROUTES.PROFILE, { screen: ROUTES.MY_BUSINESSES });
+  }, [navigation]);
+
+  const handleOpenCreate = useCallback(() => {
+    setPickerVisible(false);
+    setCreateModalVisible(true);
+  }, []);
+
+  const handleCreated = useCallback(
+    (created: BusinessDTO) => {
+      setBusinessWorkspace({ id: created.id, name: created.name, role: created.currentRole });
+      invalidateBusinesses();
+    },
+    [setBusinessWorkspace, invalidateBusinesses],
+  );
 
   return (
     <View style={styles.wrapper}>
-      <TouchableOpacity
-        style={[styles.trigger, isBusiness ? styles.triggerBusiness : styles.triggerPersonal]}
-        onPress={() => setVisible(true)}
-        activeOpacity={0.85}
+      <Pressable
+        style={({ pressed }) => [
+          styles.trigger,
+          isBusiness ? styles.triggerBusiness : styles.triggerPersonal,
+          pressed && styles.triggerPressed,
+        ]}
+        onPress={() => setPickerVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${t('workspace.title')}: ${contextLabel}`}
       >
         <View style={styles.iconBadge}>
-          {isBusiness ? (
-            (() => {
-              const activeBiz = businesses.find((b) => b.id === workspace.activeBusinessId);
-              if (activeBiz?.photoId) {
-                return <UserAvatar uri={`${API_BASE}/attach/open/${activeBiz.photoId}`} size={38} />;
-              }
-              if (activeBiz) {
-                const { bg, fg } = pickAvatarColor(activeBiz.name);
-                return (
-                  <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: fg, fontWeight: '700', fontSize: 13 }}>{getInitials(activeBiz.name)}</Text>
-                  </View>
-                );
-              }
-              return <Ionicons name="business" size={20} color={colors.textOnPrimary} />;
-            })()
-          ) : profilePhotoUri ? (
-            <UserAvatar uri={profilePhotoUri} size={38} />
-          ) : (
-            <Ionicons name="person" size={20} color={colors.textOnPrimary} />
-          )}
+          <BadgeAvatar
+            isBusiness={isBusiness}
+            activeBusiness={activeBusiness}
+            personalPhotoUri={profilePhotoUri}
+          />
         </View>
         <View style={styles.labelWrap}>
           <Text style={styles.contextHint}>{t('workspace.title')}</Text>
@@ -128,254 +156,109 @@ const WorkspaceSwitcher: React.FC = () => {
           </View>
         </View>
         <Ionicons name="chevron-down" size={22} color={colors.textOnPrimary} />
-      </TouchableOpacity>
+      </Pressable>
 
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
-        <TouchableOpacity style={styles.backdrop} onPress={() => setVisible(false)} activeOpacity={1}>
-          <View style={styles.card}>
-            <Text style={styles.title}>{t('workspace.title')}</Text>
-            <TouchableOpacity
-              style={[
-                styles.optionRow,
-                workspace.mode === 'personal' ? styles.optionActive : null,
-              ]}
-              onPress={() => {
-                setPersonalWorkspace();
-                setVisible(false);
-              }}
-            >
-              <Text style={styles.optionText}>{t('workspace.personal')}</Text>
-              {workspace.mode === 'personal' ? <Ionicons name="checkmark" size={16} color={colors.primary} /> : null}
-            </TouchableOpacity>
-
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>{t('business.myBusinesses')}</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setVisible(false);
-                  navigation.navigate(ROUTES.PROFILE, { screen: ROUTES.MY_BUSINESSES });
-                }}
-              >
-                <Text style={styles.linkText}>{t('workspace.manage')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {loading ? (
-              <View style={styles.loadingWrap}>
-                <ActivityIndicator />
-              </View>
-            ) : businesses.length === 0 ? (
-              <Text style={styles.emptyText}>{t('workspace.noBusiness')}</Text>
-            ) : (
-              businesses.map((business) => {
-                const isActive = workspace.mode === 'business' && workspace.activeBusinessId === business.id;
-                return (
-                  <TouchableOpacity
-                    key={business.id}
-                    style={[styles.optionRow, isActive ? styles.optionActive : null]}
-                    onPress={() => openBusiness(business)}
-                  >
-                    <View style={styles.businessMeta}>
-                      <Text style={styles.optionText}>{business.name}</Text>
-                      <Text style={styles.businessSub}>{business.currentRole}</Text>
-                    </View>
-                    {isActive ? <Ionicons name="checkmark" size={16} color={colors.primary} /> : null}
-                  </TouchableOpacity>
-                );
-              })
-            )}
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <TouchableOpacity
-              style={styles.createBtn}
-              onPress={() => {
-                setVisible(false);
-                setCreateModalVisible(true);
-              }}
-            >
-              <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.createBtnText}>{t('business.createTitle')}</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      <WorkspacePickerModal
+        visible={pickerVisible}
+        businesses={businesses}
+        loading={isLoading}
+        errorText={error instanceof Error ? error.message : undefined}
+        isPersonal={!isBusiness}
+        activeBusinessId={isBusiness ? workspace.activeBusinessId ?? undefined : undefined}
+        onClose={() => setPickerVisible(false)}
+        onSelectPersonal={handleSelectPersonal}
+        onSelectBusiness={handleSelectBusiness}
+        onManage={handleManage}
+        onCreate={handleOpenCreate}
+      />
 
       <CreateBusinessModal
         visible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
-        onCreated={(created) => {
-          setBusinessWorkspace({ id: created.id, name: created.name, role: created.currentRole });
-          loadBusinesses();
-        }}
+        onCreated={handleCreated}
       />
     </View>
   );
 };
 
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
-  wrapper: {
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 8,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  trigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    minHeight: 58,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  triggerPersonal: {
-    backgroundColor: colors.primary,
-  },
-  triggerBusiness: {
-    backgroundColor: colors.primaryPressed,
-  },
-  iconBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    overflow: 'hidden',
-  },
-  labelWrap: {
-    flex: 1,
-    paddingRight: 6,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  contextHint: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: 1,
-  },
-  label: {
-    fontSize: 17,
-    color: colors.textOnPrimary,
-    fontWeight: '800',
-    flexShrink: 1,
-  },
-  roleBadge: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  roleBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.textOnPrimary,
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: 14,
-    maxHeight: '75%',
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  sectionRow: {
-    marginTop: 10,
-    marginBottom: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionTitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  linkText: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  optionRow: {
-    minHeight: 38,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 10,
-    marginBottom: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-  },
-  optionActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  optionText: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  businessMeta: {
-    flexShrink: 1,
-  },
-  businessSub: {
-    marginTop: 2,
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  loadingWrap: {
-    minHeight: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    marginBottom: 8,
-  },
-  error: {
-    color: colors.danger,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  createBtn: {
-    marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    minHeight: 40,
-  },
-  createBtnText: {
-    color: colors.textOnPrimary,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-});
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+  StyleSheet.create({
+    wrapper: {
+      paddingHorizontal: spacing.sm,
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.xs,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    trigger: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      minHeight: 58,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    triggerPersonal: {
+      backgroundColor: colors.primary,
+    },
+    triggerBusiness: {
+      backgroundColor: colors.primaryPressed,
+    },
+    triggerPressed: {
+      opacity: 0.9,
+    },
+    iconBadge: {
+      width: BADGE_AVATAR_SIZE,
+      height: BADGE_AVATAR_SIZE,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.onPrimarySoft,
+      overflow: 'hidden',
+    },
+    labelWrap: {
+      flex: 1,
+      paddingRight: spacing.xxs,
+    },
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    contextHint: {
+      ...typography.caption,
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.textOnPrimary,
+      opacity: 0.75,
+      marginBottom: 1,
+    },
+    label: {
+      ...typography.heading2,
+      fontSize: 17,
+      lineHeight: 22,
+      color: colors.textOnPrimary,
+      flexShrink: 1,
+    },
+    roleBadge: {
+      backgroundColor: colors.onPrimarySoft,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.xs,
+      paddingVertical: 2,
+    },
+    roleBadgeText: {
+      ...typography.caption,
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.textOnPrimary,
+    },
+  });
 
 export default WorkspaceSwitcher;

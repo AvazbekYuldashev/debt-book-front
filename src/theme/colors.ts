@@ -14,6 +14,8 @@ export interface ColorTokens {
   textSecondary: string;
   textOnPrimary: string;
   textOnSecondary: string;
+  // primary fon USTIDAGI yumshoq overlay (badge/chip) — textOnPrimary bilan uyg'un.
+  onPrimarySoft: string;
   border: string;
   danger: string;
   dangerMuted: string;
@@ -44,6 +46,7 @@ export const lightColors: ColorTokens = {
   textSecondary: '#64748B',
   textOnPrimary: '#FFFFFF',
   textOnSecondary: '#FFFFFF',
+  onPrimarySoft: 'rgba(255, 255, 255, 0.22)',
   border: '#E2E8F0',
   danger: '#EF4444',
   dangerMuted: '#FEF2F2',
@@ -72,6 +75,7 @@ export const darkColors: ColorTokens = {
   textSecondary: '#94A3B8',
   textOnPrimary: '#06241F',
   textOnSecondary: '#3A2A06',
+  onPrimarySoft: 'rgba(6, 36, 31, 0.22)',
   border: '#2A3A52',
   danger: '#F87171',
   dangerMuted: '#3A2121',

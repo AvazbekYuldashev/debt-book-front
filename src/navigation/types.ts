@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ROUTES } from './routes';
 
@@ -51,6 +53,15 @@ export type ProfileScreenProps<T extends keyof ProfileStackParamList> = NativeSt
   ProfileStackParamList,
   T
 >;
+
+/** Pastki tab navigatori — stack'lararo (cross-tab) navigatsiya uchun. */
+export type MainTabParamList = {
+  [ROUTES.DEBTS]: NavigatorScreenParams<DebtsStackParamList>;
+  [ROUTES.EXPENSES]: NavigatorScreenParams<ExpensesStackParamList>;
+  [ROUTES.PROFILE]: NavigatorScreenParams<ProfileStackParamList>;
+};
+
+export type MainTabNavigation = BottomTabNavigationProp<MainTabParamList>;
 
 /** Auth stack'i — kirish, ro'yxatdan o'tish, SMS va parolni tiklash ekranlari. */
 export type AuthStackParamList = {

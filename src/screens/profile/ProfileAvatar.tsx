@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../theme';
 import type { ThemeValue } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import UserAvatar from '../../shared/ui/UserAvatar';
-import { getInitials, pickAvatarColor } from '../../shared/ui/avatar';
-import { buildProfilePhotoUrl } from './profilePhoto';
+import InitialsAvatar from '../../shared/ui/InitialsAvatar';
+import { buildAttachUrl } from '../../shared/attachUrl';
 import type { BusinessDTO } from '../../types/business';
 
 const AVATAR_SIZE = 84;
@@ -59,15 +59,12 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
         </View>
       );
     }
-    const color = pickAvatarColor(activeBusiness.name);
     return (
       <View style={styles.block}>
         {activeBusiness.photoId ? (
-          <UserAvatar uri={buildProfilePhotoUrl(activeBusiness.photoId)} size={AVATAR_SIZE} />
+          <UserAvatar uri={buildAttachUrl(activeBusiness.photoId)} size={AVATAR_SIZE} />
         ) : (
-          <View style={[styles.businessAvatar, { backgroundColor: color.bg }]}>
-            <Text style={[styles.businessInitials, { color: color.fg }]}>{getInitials(activeBusiness.name)}</Text>
-          </View>
+          <InitialsAvatar name={activeBusiness.name} size={AVATAR_SIZE} />
         )}
         {editButton}
       </View>
@@ -96,12 +93,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderRadius: AVATAR_SIZE / 2,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    businessInitials: {
-      ...typography.heading1,
-      fontSize: 30,
-      fontWeight: '700',
-      letterSpacing: -0.5,
     },
     editBtn: {
       marginTop: spacing.xs,

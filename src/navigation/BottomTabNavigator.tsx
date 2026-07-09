@@ -5,10 +5,11 @@ import ExpensesStack from './ExpensesStack';
 import ProfileStack from './ProfileStack';
 import { Feather } from '@expo/vector-icons';
 import { ROUTES } from './routes';
+import type { MainTabParamList } from './types';
 import { useI18n } from '../i18n';
 import { useAppTheme } from '../theme';
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const BottomTabNavigator: React.FC = () => {
   const { t } = useI18n();
