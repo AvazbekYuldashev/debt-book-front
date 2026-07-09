@@ -39,9 +39,11 @@ import { netInBase } from '../utils/currency';
 import { useCurrency } from '../context/CurrencyContext';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 import { canWrite } from '../utils/permissions';
-import { getPhoneValidationError } from '../utils/phone';
+import { getPhoneValidationError, normalizePhone } from '../utils/phone';
 import { useI18n } from '../i18n';
 import PartyTypeSelector from '../components/form/PartyTypeSelector';
+import DeviceContactsPickerModal from '../components/contacts/DeviceContactsPickerModal';
+import { deviceContactsSupported, DeviceContact } from '../utils/deviceContacts';
 
 type Mode = 'create' | 'edit';
 
@@ -75,6 +77,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   );
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
   const [mode, setMode] = useState<Mode>('create');
   const [selectedId, setSelectedId] = useState('');
   const [name, setName] = useState('');
@@ -151,10 +154,36 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     return { totalDebt, totalCredit };
   }, [totalsByContact, baseCurrency, rates]);
 
+  // Allaqachon qo'shilgan kontaktlar raqamlari — telefon kontaktlar ro'yxatida belgilash uchun.
+  const existingPhones = useMemo(() => {
+    const set = new Set<string>();
+    for (const contact of contacts) {
+      if (contact.phone) set.add(normalizePhone(contact.phone));
+    }
+    return set;
+  }, [contacts]);
+
   const handleRefresh = useCallback(async () => {
     await refreshContacts();
     setTotalsKey((prev) => prev + 1);
   }, [refreshContacts]);
+
+  // Telefon kontaktlaridan tanlanganlarni ketma-ket qo'shadi (har biri ro'yxatdan
+  // o'tmagan bo'lsa backend avtomatik placeholder profil yaratadi).
+  const handleAddFromDevice = useCallback(
+    async (selected: DeviceContact[]): Promise<{ added: number; failed: number }> => {
+      let added = 0;
+      let failed = 0;
+      for (const contact of selected) {
+        const ok = await addContact({ name: contact.name, targetType: 'PROFILE', phone: contact.phone });
+        if (ok) added += 1;
+        else failed += 1;
+      }
+      if (added > 0) setTotalsKey((prev) => prev + 1);
+      return { added, failed };
+    },
+    [addContact]
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -629,6 +658,19 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Text style={styles.modalTitle}>
               {mode === 'create' ? t('debts.addClient') : t('debts.editClient')}
             </Text>
+            {mode === 'create' && deviceContactsSupported ? (
+              <TouchableOpacity
+                style={styles.devContactsBtn}
+                onPress={() => {
+                  setModalVisible(false);
+                  setPickerVisible(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="people-outline" size={18} color={colors.primary} />
+                <Text style={styles.devContactsBtnText}>{t('debts.fromPhoneContacts')}</Text>
+              </TouchableOpacity>
+            ) : null}
             <AppTextInput label={t('debts.fullName')} value={name} onChangeText={setName} placeholder="Ali Valiyev" />
             {mode === 'create' ? (
               <PartyTypeSelector
@@ -677,6 +719,13 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
+
+      <DeviceContactsPickerModal
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        existingPhones={existingPhones}
+        onSubmit={handleAddFromDevice}
+      />
     </View>
   );
 };
@@ -957,6 +1006,23 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     color: colors.negative,
     marginBottom: 10,
     fontSize: 12,
+  },
+  devContactsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+    marginBottom: 12,
+  },
+  devContactsBtnText: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 14,
   },
   targetTypeWrap: {
     flexDirection: 'row',

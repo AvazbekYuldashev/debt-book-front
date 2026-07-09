@@ -11,7 +11,10 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSContactsUsageDescription": "Ilova telefon kontaktlaringizni mijoz sifatida qo'shish uchun foydalanadi."
+      }
     },
     "android": {
       "package": "uz.debtbook.app",
@@ -20,10 +23,18 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "permissions": ["READ_MEDIA_IMAGES"]
+      "permissions": ["READ_MEDIA_IMAGES", "READ_CONTACTS"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Ilova telefon kontaktlaringizni mijoz sifatida qo'shish uchun foydalanadi."
+        }
+      ]
+    ]
   }
 }
