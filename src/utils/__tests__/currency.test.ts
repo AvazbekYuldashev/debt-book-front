@@ -47,10 +47,25 @@ describe('sumInBase / netInBase', () => {
 });
 
 describe('formatCurrency', () => {
-  it('so‘m belgisi bilan', () => {
-    expect(formatCurrency(1234567, 'UZS').replace(/\s| /g, '')).toBe("1234567so'm");
+  const strip = (s: string) => s.replace(/\s| /g, '');
+
+  it('so‘m — butun son', () => {
+    expect(strip(formatCurrency(1234567, 'UZS'))).toBe("1234567so'm");
   });
-  it('dollar belgisi bilan', () => {
-    expect(formatCurrency(100, 'USD').replace(/\s| /g, '')).toBe('100$');
+  it('so‘m — kasr yaxlitlanadi', () => {
+    expect(strip(formatCurrency(20000.7, 'UZS'))).toBe("20001so'm");
+  });
+  it('dollar — butun', () => {
+    expect(strip(formatCurrency(100, 'USD'))).toBe('100$');
+  });
+  it('dollar — kasr (ortiqcha nol tushadi)', () => {
+    expect(strip(formatCurrency(12.3, 'USD'))).toBe('12.3$');
+    expect(strip(formatCurrency(12.05, 'USD'))).toBe('12.05$');
+  });
+  it('rubl — kasr', () => {
+    expect(strip(formatCurrency(550.3, 'RUB'))).toBe('550.3₽');
+  });
+  it('manfiy qiymat', () => {
+    expect(strip(formatCurrency(-12.5, 'USD'))).toBe('-12.5$');
   });
 });

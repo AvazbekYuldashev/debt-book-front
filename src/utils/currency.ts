@@ -85,8 +85,30 @@ export const netInBase = (
   rates?: CurrencyRatesDTO | null
 ): number => sumInBase(credit, base, rates) - sumInBase(debt, base, rates);
 
-// Summani valyuta belgisi bilan formatlaydi, masalan "1 234 567 so'm", "100 $".
+// Valyuta uchun ko'rsatiladigan kasr xonalari soni.
+// So'm — butun (yirik nominal), dollar/rubl — 2 xonagacha (aniq balans uchun).
+const decimalsFor = (currency: Currency): number => (currency === 'UZS' ? 0 : 2);
+
+// Summani valyuta belgisi bilan formatlaydi: minglar bo'sh joy bilan, kasr nuqta bilan.
+// Masalan "1 234 567 so'm", "100 $", "12.3 $", "550.3 ₽" (ortiqcha nol tushiriladi).
 export const formatCurrency = (value: number, currency: Currency = DEFAULT_CURRENCY): string => {
-  const rounded = Math.round(value);
-  return `${rounded.toLocaleString('ru-RU')} ${CURRENCY_SYMBOL[currency]}`;
+  const safe = Number.isFinite(value) ? value : 0;
+  const sign = safe < 0 ? '-' : '';
+  const abs = Math.abs(safe);
+  const digits = decimalsFor(currency);
+
+  let str: string;
+  if (digits === 0) {
+    str = Math.round(abs).toLocaleString('ru-RU');
+  } else {
+    const factor = 10 ** digits;
+    const rounded = Math.round(abs * factor) / factor;
+    const intPart = Math.floor(rounded);
+    const intStr = intPart.toLocaleString('ru-RU');
+    const decValue = Math.round((rounded - intPart) * factor);
+    let decStr = String(decValue).padStart(digits, '0').replace(/0+$/, '');
+    str = decStr ? `${intStr}.${decStr}` : intStr;
+  }
+
+  return `${sign}${str} ${CURRENCY_SYMBOL[currency]}`;
 };

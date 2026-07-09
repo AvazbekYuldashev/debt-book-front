@@ -50,7 +50,15 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const { history, currencyTotals, selectedCounterparty, loading, creating, error, fetchData, createMoney } = useMoney({
     token: profile?.jwt,
   });
-  const { baseCurrency, rates } = useCurrency();
+  const { baseCurrency, rates, convert } = useCurrency();
+
+  // Tranzaksiya valyutasi asosiy valyutadan farq qilsa va kurs mavjud bo'lsagina
+  // asosiy valyutadagi ekvivalentini ko'rsatamiz (aks holda chalg'ituvchi bo'ladi).
+  const canConvert = useCallback(
+    (from: Currency): boolean =>
+      from !== baseCurrency && !!rates?.rates?.[from] && !!rates?.rates?.[baseCurrency],
+    [baseCurrency, rates]
+  );
 
   const contact = useMemo(
     () => contacts.find((item) => item.id === contactId),
@@ -224,10 +232,17 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
                     <Text style={styles.txLabelSub}>{item.label}</Text>
                   ) : null}
                 </View>
-                <View style={[styles.txAmountPill, { backgroundColor: item.kind === 'credit' ? colors.positiveSoft : colors.negativeSoft }]}>
-                  <Text style={[styles.txAmount, item.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative]}>
-                    {formatMoney(item.amount, normalizeCurrency(item.currency))}
-                  </Text>
+                <View style={styles.txAmountWrap}>
+                  <View style={[styles.txAmountPill, { backgroundColor: item.kind === 'credit' ? colors.positiveSoft : colors.negativeSoft }]}>
+                    <Text style={[styles.txAmount, item.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative]}>
+                      {formatMoney(item.amount, normalizeCurrency(item.currency))}
+                    </Text>
+                  </View>
+                  {canConvert(normalizeCurrency(item.currency)) ? (
+                    <Text style={styles.txConverted}>
+                      ≈ {formatMoney(convert(item.amount, normalizeCurrency(item.currency)), baseCurrency)}
+                    </Text>
+                  ) : null}
                 </View>
               </TouchableOpacity>
               </FadeInView>
@@ -316,14 +331,21 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t('contact.amount')}</Text>
-              <Text
-                style={[
-                  styles.detailValue,
-                  selectedTransaction?.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative,
-                ]}
-              >
-                {selectedTransaction ? formatMoney(selectedTransaction.amount, normalizeCurrency(selectedTransaction.currency)) : '--'}
-              </Text>
+              <View style={styles.detailAmountWrap}>
+                <Text
+                  style={[
+                    styles.detailValue,
+                    selectedTransaction?.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative,
+                  ]}
+                >
+                  {selectedTransaction ? formatMoney(selectedTransaction.amount, normalizeCurrency(selectedTransaction.currency)) : '--'}
+                </Text>
+                {selectedTransaction && canConvert(normalizeCurrency(selectedTransaction.currency)) ? (
+                  <Text style={styles.detailConverted}>
+                    ≈ {formatMoney(convert(selectedTransaction.amount, normalizeCurrency(selectedTransaction.currency)), baseCurrency)}
+                  </Text>
+                ) : null}
+              </View>
             </View>
 
             <View style={styles.detailRow}>
@@ -572,10 +594,19 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
   },
+  txAmountWrap: {
+    alignItems: 'flex-end',
+    gap: 3,
+  },
   txAmountPill: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
+  },
+  txConverted: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
   txAmount: {
     fontSize: 13,
@@ -679,10 +710,19 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
+  detailAmountWrap: {
+    alignItems: 'flex-end',
+  },
   detailValue: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.textPrimary,
+  },
+  detailConverted: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   detailValueMuted: {
     fontSize: 14,
