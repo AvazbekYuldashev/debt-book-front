@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Appearance, ColorSchemeName, useColorScheme } from 'react-native';
 import { ColorTokens, darkColors, lightColors } from './colors';
+import { applyAutofillStyle } from './applyAutofillStyle';
 import { loadAppFonts } from './fonts';
 import { radius, spacing } from './spacing';
 import { typography } from './typography';
@@ -40,6 +41,12 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [hydrated, setHydrated] = useState(false);
   const systemScheme = useColorScheme();
   const activeTheme = resolveActiveTheme(mode, systemScheme);
+  const colors = activeTheme === 'dark' ? darkColors : lightColors;
+
+  // Web'da brauzer autofill fonini joriy theme'ga moslaymiz (native'da noop).
+  useEffect(() => {
+    applyAutofillStyle(colors);
+  }, [colors]);
 
   // Saqlangan mavzu rejimini yuklash (yangilanganda tiklanib qolmasligi uchun).
   useEffect(() => {
@@ -84,14 +91,14 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const value = useMemo<ThemeValue>(() => ({
     mode,
     activeTheme,
-    colors: activeTheme === 'dark' ? darkColors : lightColors,
+    colors,
     spacing,
     radius,
     typography,
     fontsLoaded,
     setMode: applyMode,
     toggleTheme,
-  }), [mode, activeTheme, toggleTheme, applyMode, fontsLoaded]);
+  }), [mode, activeTheme, colors, toggleTheme, applyMode, fontsLoaded]);
 
   // Saqlangan mavzu o'qilmaguncha render qilmaymiz — light->dark "miltillash"ning oldini oladi.
   if (!hydrated) {
