@@ -1,13 +1,5 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
@@ -17,14 +9,17 @@ import { BusinessDTO } from '../types/business';
 import CreateBusinessModal from '../components/business/CreateBusinessModal';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import { ROUTES } from '../navigation/routes';
+import type { ProfileNavigation } from '../navigation/types';
 import { useI18n } from '../i18n';
 import { useAppTheme } from '../theme';
-import { ColorTokens } from '../theme/colors';
+import type { ThemeValue } from '../theme/ThemeProvider';
+import BusinessCard from './businesses/BusinessCard';
 
-const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation }) => {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { profile } = useContext(AuthContext);
   const { workspace, setBusinessWorkspace } = useContext(WorkspaceContext);
   const [loading, setLoading] = useState(false);
@@ -33,22 +28,25 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [businesses, setBusinesses] = useState<BusinessDTO[]>([]);
   const [createModalVisible, setCreateModalVisible] = useState(false);
 
-  const loadBusinesses = useCallback(async (showSpinner = true) => {
-    if (!profile?.jwt) {
-      setBusinesses([]);
-      return;
-    }
-    if (showSpinner) setLoading(true);
-    setError('');
-    try {
-      const response = await getMyBusinesses(profile.jwt);
-      setBusinesses(response);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('workspace.loadFailed'));
-    } finally {
-      if (showSpinner) setLoading(false);
-    }
-  }, [profile?.jwt]);
+  const loadBusinesses = useCallback(
+    async (showSpinner = true) => {
+      if (!profile?.jwt) {
+        setBusinesses([]);
+        return;
+      }
+      if (showSpinner) setLoading(true);
+      setError('');
+      try {
+        const response = await getMyBusinesses(profile.jwt);
+        setBusinesses(response);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : t('workspace.loadFailed'));
+      } finally {
+        if (showSpinner) setLoading(false);
+      }
+    },
+    [profile?.jwt, t]
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -62,9 +60,26 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setRefreshing(false);
   }, [loadBusinesses]);
 
+  const handleOpen = useCallback(
+    (business: BusinessDTO) =>
+      setBusinessWorkspace({ id: business.id, name: business.name, role: business.currentRole }),
+    [setBusinessWorkspace]
+  );
+
+  const handleMembers = useCallback(
+    (business: BusinessDTO) =>
+      navigation.navigate(ROUTES.BUSINESS_MEMBERS, {
+        businessId: business.id,
+        businessName: business.name,
+      }),
+    [navigation]
+  );
+
+  const activeBusinessId = workspace.mode === 'business' ? workspace.activeBusinessId : undefined;
+
   return (
     <View style={styles.container}>
-      <View style={styles.fixedHeader}>
+      <View style={styles.header}>
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t('business.myBusinesses')}</Text>
@@ -74,63 +89,36 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator />
+            <ActivityIndicator color={colors.primary} />
           </View>
         ) : businesses.length === 0 ? (
           <Text style={styles.empty}>{t('workspace.noBusiness')}</Text>
         ) : (
-          businesses.map((business) => {
-            const isActive = workspace.mode === 'business' && workspace.activeBusinessId === business.id;
-            return (
-              <View key={business.id} style={[styles.card, isActive ? styles.cardActive : null]}>
-                <View style={styles.cardTop}>
-                  <Text style={styles.businessName}>{business.name}</Text>
-                  <View style={styles.roleBadge}>
-                    <Text style={styles.roleText}>{business.currentRole}</Text>
-                  </View>
-                </View>
-                <Text style={styles.metaText}>{business.address || t('business.noAddress')}</Text>
-                <Text style={styles.metaText}>{t('business.ownerLabel')}: {business.ownerName || '--'}</Text>
-                <View style={styles.cardActions}>
-                  <TouchableOpacity
-                    style={styles.openBtn}
-                    onPress={() =>
-                      setBusinessWorkspace({
-                        id: business.id,
-                        name: business.name,
-                        role: business.currentRole,
-                      })
-                    }
-                  >
-                    <Text style={styles.openBtnText}>{isActive ? t('business.opened') : t('business.open')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.membersBtn}
-                    onPress={() =>
-                      navigation.navigate(ROUTES.BUSINESS_MEMBERS, {
-                        businessId: business.id,
-                        businessName: business.name,
-                      })
-                    }
-                  >
-                    <Text style={styles.membersBtnText}>{t('business.members')}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })
+          businesses.map((business) => (
+            <BusinessCard
+              key={business.id}
+              business={business}
+              isActive={activeBusinessId === business.id}
+              onOpen={handleOpen}
+              onMembers={handleMembers}
+            />
+          ))
         )}
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </ScrollView>
 
-
-      <TouchableOpacity style={styles.fab} onPress={() => setCreateModalVisible(true)} activeOpacity={0.85}>
-        <Ionicons name="add" size={30} color="#fff" />
-      </TouchableOpacity>
+      <Pressable
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        onPress={() => setCreateModalVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel={t('business.myBusinesses')}
+      >
+        <Ionicons name="add" size={30} color={colors.textOnPrimary} />
+      </Pressable>
 
       <CreateBusinessModal
         visible={createModalVisible}
@@ -144,138 +132,70 @@ const MyBusinessesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  fixedHeader: {
-    backgroundColor: colors.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 96,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  title: {
-    fontSize: 24,
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
-  fab: {
-    position: 'absolute',
-    right: 18,
-    bottom: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  loadingWrap: {
-    minHeight: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  empty: {
-    textAlign: 'center',
-    color: colors.textSecondary,
-    marginTop: 16,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
-  },
-  cardActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  cardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 8,
-  },
-  businessName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  roleBadge: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  roleText: {
-    color: colors.primaryPressed,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  metaText: {
-    marginTop: 4,
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  cardActions: {
-    marginTop: 10,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  openBtn: {
-    flex: 1,
-    minHeight: 34,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  openBtnText: {
-    color: colors.textOnPrimary,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  membersBtn: {
-    flex: 1,
-    minHeight: 34,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.outline,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  membersBtnText: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  error: {
-    marginTop: 6,
-    color: colors.danger,
-    fontSize: 12,
-  },
-});
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      backgroundColor: colors.background,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+    },
+    title: {
+      ...typography.heading2,
+      color: colors.textPrimary,
+    },
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      padding: spacing.md,
+      paddingBottom: 96,
+    },
+    loadingWrap: {
+      minHeight: 120,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    empty: {
+      ...typography.body,
+      textAlign: 'center',
+      color: colors.textSecondary,
+      marginTop: spacing.md,
+    },
+    error: {
+      ...typography.caption,
+      marginTop: spacing.xs,
+      color: colors.danger,
+    },
+    fab: {
+      position: 'absolute',
+      right: spacing.md + 2,
+      bottom: spacing.lg,
+      width: 60,
+      height: 60,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    fabPressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.96 }],
+    },
+  });
 
 export default MyBusinessesScreen;

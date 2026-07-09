@@ -36,3 +36,17 @@ export type ExpensesScreenProps<T extends keyof ExpensesStackParamList> = Native
   ExpensesStackParamList,
   T
 >;
+
+/** Profile stack'i — profil, bizneslar va biznes a'zolari ekranlari. */
+export type ProfileStackParamList = {
+  [ROUTES.PROFILE_HOME]: undefined;
+  [ROUTES.MY_BUSINESSES]: undefined;
+  [ROUTES.BUSINESS_MEMBERS]: { businessId?: string; businessName?: string } | undefined;
+};
+
+export type ProfileNavigation = NativeStackNavigationProp<ProfileStackParamList>;
+
+export type ProfileScreenProps<T extends keyof ProfileStackParamList> = NativeStackScreenProps<
+  ProfileStackParamList,
+  T
+>;
