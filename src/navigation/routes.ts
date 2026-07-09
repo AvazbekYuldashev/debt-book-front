@@ -1,4 +1,5 @@
-// central place for route names to avoid typos
+// central place for route names to avoid typos.
+// `as const` — qiymatlar literal tip bo'lib qoladi (navigation param-list tiplari uchun zarur).
 export const ROUTES = {
   DEBTS: 'HisobKitob',
   EXPENSES: 'Expenses',
@@ -10,4 +11,4 @@ export const ROUTES = {
   EXPENSE_CATEGORY_DETAIL: 'ExpenseCategoryDetail',
   MY_BUSINESSES: 'MyBusinesses',
   BUSINESS_MEMBERS: 'BusinessMembers',
-};
+} as const;

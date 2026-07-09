@@ -25,7 +25,7 @@ export interface Contact {
   interestAmount: number;
 }
 
-interface ContactFormInput {
+export interface ContactFormInput {
   name: string;
   targetType: PartyType;
   phone?: string;

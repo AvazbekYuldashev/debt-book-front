@@ -15,7 +15,7 @@ function isThemeMode(value: unknown): value is ThemeMode {
   return value === 'light' || value === 'dark' || value === 'system';
 }
 
-interface ThemeValue {
+export interface ThemeValue {
   mode: ThemeMode;
   activeTheme: ActiveTheme;
   colors: ColorTokens;
