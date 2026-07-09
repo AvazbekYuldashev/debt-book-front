@@ -5,9 +5,10 @@ import RegisterScreen from '../screens/RegisterScreen';
 import SmsVerificationScreen from '../screens/SmsVerificationScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import ResetConfirmScreen from '../screens/ResetConfirmScreen';
+import type { AuthStackParamList } from './types';
 import { withFadeInScreen } from './withFadeInScreen';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<AuthStackParamList>();
 const LoginScreenWithFade = withFadeInScreen(LoginScreen);
 const RegisterScreenWithFade = withFadeInScreen(RegisterScreen);
 const SmsVerificationScreenWithFade = withFadeInScreen(SmsVerificationScreen);

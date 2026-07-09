@@ -50,3 +50,19 @@ export type ProfileScreenProps<T extends keyof ProfileStackParamList> = NativeSt
   ProfileStackParamList,
   T
 >;
+
+/** Auth stack'i — kirish, ro'yxatdan o'tish, SMS va parolni tiklash ekranlari. */
+export type AuthStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  SmsVerification: { username: string };
+  ResetPassword: undefined;
+  ResetConfirm: undefined;
+};
+
+export type AuthNavigation = NativeStackNavigationProp<AuthStackParamList>;
+
+export type AuthScreenProps<T extends keyof AuthStackParamList> = NativeStackScreenProps<
+  AuthStackParamList,
+  T
+>;
