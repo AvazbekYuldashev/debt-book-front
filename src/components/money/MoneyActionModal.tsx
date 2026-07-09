@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import AppTextInput from '../form/AppTextInput';
 import PrimaryButton from '../ui/PrimaryButton';
-import { AccountType, ACCOUNT_TYPE, MoneyActionType, MoneyFlowType, MONEY_FLOW_TYPE, PartyType } from '../../types/money';
+import { AccountType, ACCOUNT_TYPE, Currency, CURRENCIES, MoneyActionType, MoneyFlowType, MONEY_FLOW_TYPE, PartyType } from '../../types/money';
+import { CURRENCY_LABEL, CURRENCY_SYMBOL } from '../../utils/currency';
+import { useCurrency } from '../../context/CurrencyContext';
 import { useAppTheme } from '../../theme';
 import { ColorTokens } from '../../theme/colors';
 import { getSelectableBusinessMembers } from '../../services/businessService';
@@ -43,6 +45,7 @@ interface MoneyActionModalProps {
   onClose: () => void;
   onSubmit: (payload: {
     amount: number;
+    currency: Currency;
     targetPartyType: PartyType;
     targetPartyId?: string;
     description: string;
@@ -67,8 +70,10 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
 }) => {
   const { t } = useI18n();
   const { colors } = useAppTheme();
+  const { baseCurrency } = useCurrency();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState<Currency>(baseCurrency);
   const [counterpartyId, setCounterpartyId] = useState('');
   const [targetType, setTargetType] = useState<PartyType>('PROFILE');
   const [description, setDescription] = useState('');
@@ -125,8 +130,14 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     ? ACCOUNT_TYPE.BUSINESS
     : ACCOUNT_TYPE.PERSONAL;
 
+  // Modal ochilganda valyuta joriy asosiy valyutaga tenglashtiriladi.
+  useEffect(() => {
+    if (visible) setCurrency(baseCurrency);
+  }, [visible, baseCurrency]);
+
   const resetState = () => {
     setAmount('');
+    setCurrency(baseCurrency);
     setCounterpartyId('');
     setTargetType('PROFILE');
     setDescription('');
@@ -161,6 +172,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     setError('');
     await onSubmit({
       amount: parsedAmount,
+      currency,
       targetPartyType: fixedCounterpartyType || targetType,
       targetPartyId: targetCounterpartyId,
       targetBusinessProfileId: selectedMemberId || undefined,
@@ -206,6 +218,20 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
             onChangeText={(value) => setAmount(formatAmountInput(value))}
             placeholder="100 000"
           />
+          <Text style={styles.currencyLabel}>{t('money.currency')}</Text>
+          <View style={styles.currencyRow}>
+            {CURRENCIES.map((cur) => (
+              <TouchableOpacity
+                key={cur}
+                style={[styles.currencyChip, currency === cur ? styles.currencyChipActive : null]}
+                onPress={() => setCurrency(cur)}
+              >
+                <Text style={[styles.currencyChipText, currency === cur ? styles.currencyChipTextActive : null]}>
+                  {CURRENCY_LABEL[cur]} ({CURRENCY_SYMBOL[cur]})
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
           {!fixedCounterpartyId ? (
             <PartyTypeSelector
               value={targetType}
@@ -311,6 +337,39 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   contactRow: {
     gap: 8,
     paddingBottom: 8,
+  },
+  currencyLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 6,
+  },
+  currencyRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  currencyChip: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  currencyChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  currencyChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  currencyChipTextActive: {
+    color: colors.primary,
   },
   contactChip: {
     borderWidth: 1,

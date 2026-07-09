@@ -27,10 +27,16 @@ import { useAppTheme } from '../theme';
 import { ColorTokens } from '../theme/colors';
 import { ROUTES } from '../navigation/routes';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
-import { computeTotalsFromHistory as computeTotals } from '../application/usecases/computeContactBalance';
+import {
+  computeTotalsFromHistory as computeTotals,
+  CurrencyTotals,
+  isEmptyTotals,
+} from '../application/usecases/computeContactBalance';
 import UserAvatar from '../shared/ui/UserAvatar';
 import { pickContactImage, useContactAvatars } from '../shared/contactAvatars';
-import { extractMoneyTotals, formatMoney } from '../utils/money';
+import { extractCurrencyTotals, formatMoney } from '../utils/money';
+import { netInBase } from '../utils/currency';
+import { useCurrency } from '../context/CurrencyContext';
 import { MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 import { canWrite } from '../utils/permissions';
 import { getPhoneValidationError } from '../utils/phone';
@@ -46,6 +52,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const { accountType } = useAccountContext();
+  const { baseCurrency, rates } = useCurrency();
   const {
     contacts,
     loading,
@@ -81,9 +88,9 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [localError, setLocalError] = useState('');
   const [totalsKey, setTotalsKey] = useState(0);
-  const [totalsByContact, setTotalsByContact] = useState<
-    Record<string, { totalDebt: number; totalCredit: number; balance: number }>
-  >({});
+  // Har kontaktning valyuta bo'yicha credit/debt yig'indilari (asosiy valyutaga
+  // aylantirish render vaqtida joriy kurs bilan qilinadi).
+  const [totalsByContact, setTotalsByContact] = useState<Record<string, CurrencyTotals>>({});
   // Har bir kontaktning eng oxirgi amal (oldi-berdi) vaqti — ro'yxatni saralash uchun.
   const [latestDateByContact, setLatestDateByContact] = useState<Record<string, number>>({});
   const [totalsLoading, setTotalsLoading] = useState(false);
@@ -132,16 +139,17 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     });
   }, [filteredContacts, latestDateByContact]);
 
+  // Har kontaktning sof balansi asosiy valyutaga aylantiriladi va yig'iladi.
   const aggregateTotals = useMemo(() => {
     let totalDebt = 0;
     let totalCredit = 0;
     for (const item of Object.values(totalsByContact)) {
-      const balance = item.balance || 0;
+      const balance = netInBase(item.credit, item.debt, baseCurrency, rates);
       if (balance > 0) totalCredit += balance;
       if (balance < 0) totalDebt += Math.abs(balance);
     }
     return { totalDebt, totalCredit };
-  }, [totalsByContact]);
+  }, [totalsByContact, baseCurrency, rates]);
 
   const handleRefresh = useCallback(async () => {
     await refreshContacts();
@@ -174,7 +182,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       }
 
       setTotalsLoading(true);
-      const next: Record<string, { totalDebt: number; totalCredit: number; balance: number }> = {};
+      const next: Record<string, CurrencyTotals> = {};
       const nextDates: Record<string, number> = {};
       const queue = [...contacts];
       const workerCount = Math.min(5, queue.length);
@@ -240,16 +248,16 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             if (!counterpartyId) continue;
 
             const price = (await getTotalPriceByPartyId(counterpartyId, counterpartyType, profile.jwt, accountType)) as MoneyPriceDTO;
-            let totals = extractMoneyTotals(price ?? null);
+            let totals: CurrencyTotals = extractCurrencyTotals(price ?? null);
             let latestTs = 0;
 
-            if (totals.totalDebt === 0 && totals.totalCredit === 0) {
+            if (isEmptyTotals(totals)) {
               const all = await loadAllHistory(counterpartyId, counterpartyType);
               totals = computeTotalsFromHistory(all, counterpartyId, counterpartyType);
               latestTs = maxCreatedDate(all);
             }
 
-            if (totals.totalDebt === 0 && totals.totalCredit === 0 && contact.id) {
+            if (isEmptyTotals(totals) && contact.id) {
               const all = await loadAllHistory(contact.id, 'PROFILE');
               totals = computeTotalsFromHistory(all, contact.id, 'PROFILE');
               latestTs = maxCreatedDate(all);
@@ -492,7 +500,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <View style={styles.summaryTextWrap}>
               <Text style={styles.summaryLabel}>{t('debts.currentDebt')}</Text>
               <Text style={[styles.summaryValue, { color: colors.negative }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
-                {formatMoney(aggregateTotals.totalDebt)}
+                {formatMoney(aggregateTotals.totalDebt, baseCurrency)}
               </Text>
             </View>
           </View>
@@ -504,7 +512,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <View style={styles.summaryTextWrap}>
               <Text style={styles.summaryLabel}>{t('debts.currentCredit')}</Text>
               <Text style={[styles.summaryValue, { color: colors.positive }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
-                {formatMoney(aggregateTotals.totalCredit)}
+                {formatMoney(aggregateTotals.totalCredit, baseCurrency)}
               </Text>
             </View>
           </View>
@@ -530,7 +538,10 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
           ) : (
             sortedContacts.map((item, index) => {
-              const balance = totalsByContact[item.id]?.balance;
+              const contactTotals = totalsByContact[item.id];
+              const balance = contactTotals
+                ? netInBase(contactTotals.credit, contactTotals.debt, baseCurrency, rates)
+                : undefined;
               const hasBalance = typeof balance === 'number' && balance !== 0;
               const balanceColor = balance && balance > 0 ? colors.positive : balance && balance < 0 ? colors.negative : colors.textSecondary;
               const pillBg = balance && balance > 0 ? colors.positiveSoft : balance && balance < 0 ? colors.negativeSoft : colors.surfaceMuted;
@@ -572,7 +583,7 @@ const DebtListScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   <View style={styles.rowRight}>
                     <View style={[styles.balancePill, { backgroundColor: hasBalance ? pillBg : 'transparent' }]}>
                       <Text style={[styles.balancePillText, { color: balanceColor }]}>
-                        {typeof balance === 'number' ? formatMoney(balance) : totalsLoading ? '...' : '--'}
+                        {typeof balance === 'number' ? formatMoney(balance, baseCurrency) : totalsLoading ? '...' : '--'}
                       </Text>
                     </View>
                     <View style={styles.actions}>

@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ContactsProvider } from './src/context/ContactsContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { WorkspaceProvider } from './src/context/WorkspaceContext';
+import { CurrencyProvider } from './src/context/CurrencyContext';
 import { ContactAvatarsProvider } from './src/shared/contactAvatars';
 import { AppThemeProvider, useAppTheme } from './src/theme';
 import { LanguageProvider } from './src/i18n';
@@ -60,15 +61,17 @@ const AppShell: React.FC = () => {
 
   return (
     <AuthProvider>
-      <WorkspaceProvider>
-        <ContactsProvider>
-          <ContactAvatarsProvider>
-            <NavigationContainer theme={navigationTheme}>
-              <RootNavigator />
-            </NavigationContainer>
-          </ContactAvatarsProvider>
-        </ContactsProvider>
-      </WorkspaceProvider>
+      <CurrencyProvider>
+        <WorkspaceProvider>
+          <ContactsProvider>
+            <ContactAvatarsProvider>
+              <NavigationContainer theme={navigationTheme}>
+                <RootNavigator />
+              </NavigationContainer>
+            </ContactAvatarsProvider>
+          </ContactsProvider>
+        </WorkspaceProvider>
+      </CurrencyProvider>
     </AuthProvider>
   );
 };

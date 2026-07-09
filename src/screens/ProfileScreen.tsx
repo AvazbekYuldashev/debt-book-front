@@ -22,6 +22,7 @@ import AppTextInput from '../components/form/AppTextInput';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import ThemeSwitcher from '../components/ThemeSwitcher';
+import CurrencySwitcher from '../components/CurrencySwitcher';
 import { useI18n } from '../i18n';
 import { confirmAction } from '../utils/confirm';
 import * as ImagePicker from 'expo-image-picker';
@@ -393,6 +394,11 @@ const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <Card style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>{t('profile.theme')}</Text>
         <ThemeSwitcher />
+      </Card>
+
+      <Card style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>{t('profile.currency')}</Text>
+        <CurrencySwitcher />
       </Card>
 
       {profile && !isBusiness ? (

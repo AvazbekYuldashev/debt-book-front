@@ -113,6 +113,7 @@ const uz: Dict = {
   'profile.settings': 'Sozlamalar',
   'profile.language': 'Til',
   'profile.theme': 'Mavzu',
+  'profile.currency': 'Asosiy valyuta',
   'profile.themeLight': 'Yorug‘',
   'profile.themeDark': 'Tungi',
   'profile.themeSystem': 'Tizim',
@@ -320,6 +321,7 @@ const uz: Dict = {
   'money.fromWhom': 'Kimdan olindi',
   'money.otherParty': 'Ikkinchi tomon',
   'money.noDescription': "Ta'rif kiritilmagan",
+  'money.currency': 'Valyuta',
 
   'members.title': "Biznes a'zolari",
   'members.add': "A'zo qo'shish",
@@ -434,6 +436,7 @@ const ru: Dict = {
   'profile.settings': 'Настройки',
   'profile.language': 'Язык',
   'profile.theme': 'Тема',
+  'profile.currency': 'Основная валюта',
   'profile.themeLight': 'Светлая',
   'profile.themeDark': 'Тёмная',
   'profile.themeSystem': 'Системная',
@@ -637,6 +640,7 @@ const ru: Dict = {
   'money.fromWhom': 'От кого получено',
   'money.otherParty': 'Вторая сторона',
   'money.noDescription': 'Описание не указано',
+  'money.currency': 'Валюта',
 
   'members.title': 'Участники бизнеса',
   'members.add': 'Добавить участника',
@@ -751,6 +755,7 @@ const en: Dict = {
   'profile.settings': 'Settings',
   'profile.language': 'Language',
   'profile.theme': 'Theme',
+  'profile.currency': 'Base currency',
   'profile.themeLight': 'Light',
   'profile.themeDark': 'Dark',
   'profile.themeSystem': 'System',
@@ -954,6 +959,7 @@ const en: Dict = {
   'money.fromWhom': 'Received from',
   'money.otherParty': 'Other party',
   'money.noDescription': 'No description provided',
+  'money.currency': 'Currency',
 
   'members.title': 'Business members',
   'members.add': 'Add member',

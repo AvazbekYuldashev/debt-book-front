@@ -1,4 +1,5 @@
-import { MoneyPriceDTO, MoneyResponseDTO, PageResponse } from '../types/money';
+import { Currency, DEFAULT_CURRENCY, MoneyPriceDTO, MoneyResponseDTO, PageResponse } from '../types/money';
+import { CurrencyAmounts, formatCurrency, parseCurrencyAmounts } from './currency';
 
 const toNumber = (value: unknown): number => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -58,7 +59,30 @@ export const extractMoneyTotals = (price: MoneyPriceDTO | null) => {
   };
 };
 
-export const formatMoney = (value: number): string => `${value.toLocaleString('ru-RU')} so'm`;
+// Backend narx javobidan valyuta bo'yicha ajratilgan credit/debt yig'indilarini oladi.
+// creditByCurrency/debtByCurrency bo'lmasa (eski javob), legacy yagona qiymatni UZS deb qaytaradi.
+export const extractCurrencyTotals = (
+  price: MoneyPriceDTO | null
+): { credit: CurrencyAmounts; debt: CurrencyAmounts } => {
+  if (!price) return { credit: {}, debt: {} };
+
+  const hasMaps = price.creditByCurrency != null || price.debtByCurrency != null;
+  if (hasMaps) {
+    return {
+      credit: parseCurrencyAmounts(price.creditByCurrency),
+      debt: parseCurrencyAmounts(price.debtByCurrency),
+    };
+  }
+
+  const legacy = extractMoneyTotals(price);
+  return {
+    credit: legacy.totalCredit ? { [DEFAULT_CURRENCY]: legacy.totalCredit } : {},
+    debt: legacy.totalDebt ? { [DEFAULT_CURRENCY]: legacy.totalDebt } : {},
+  };
+};
+
+export const formatMoney = (value: number, currency: Currency = DEFAULT_CURRENCY): string =>
+  formatCurrency(value, currency);
 
 export const formatDateTime = (value: string): string => {
   const date = new Date(value);

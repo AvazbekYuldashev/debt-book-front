@@ -1,9 +1,10 @@
 import { MoneyResponseDTO, PartyType } from '../../types/money';
+import { CurrencyAmounts, normalizeCurrency } from '../../utils/currency';
 
 // ============================================================
 //  Domain use-case: tranzaksiya tarixidan kontakt balansini hisoblash.
-//  Avval DebtListScreen ichida (UI bilan aralashgan) edi — endi sof funksiya:
-//  test qilinadigan, qayta ishlatiladigan, UI'ga bog'liq emas.
+//  Ko'p valyutali: har bir valyuta bo'yicha alohida credit/debt yig'iladi.
+//  Asosiy valyutaga aylantirish UI qatlamida (kurs bilan) qilinadi.
 // ============================================================
 
 export interface Actor {
@@ -11,20 +12,23 @@ export interface Actor {
   id: string;
 }
 
-export interface MoneyTotals {
-  totalDebt: number;
-  totalCredit: number;
-  balance: number;
+export interface CurrencyTotals {
+  credit: CurrencyAmounts;
+  debt: CurrencyAmounts;
 }
+
+const add = (map: CurrencyAmounts, currency: keyof CurrencyAmounts, amount: number) => {
+  map[currency] = (map[currency] ?? 0) + amount;
+};
 
 export function computeTotalsFromHistory(
   history: MoneyResponseDTO[],
   actor: Actor,
   counterpartyId: string,
   counterpartyType: PartyType
-): MoneyTotals {
-  let totalDebt = 0;
-  let totalCredit = 0;
+): CurrencyTotals {
+  const credit: CurrencyAmounts = {};
+  const debt: CurrencyAmounts = {};
 
   for (const item of history) {
     let isCreditor = false;
@@ -53,9 +57,16 @@ export function computeTotalsFromHistory(
       }
     }
 
-    if (isCreditor) totalCredit += item.amount;
-    if (isDebtor) totalDebt += item.amount;
+    const currency = normalizeCurrency(item.currency);
+    if (isCreditor) add(credit, currency, item.amount);
+    if (isDebtor) add(debt, currency, item.amount);
   }
 
-  return { totalDebt, totalCredit, balance: totalCredit - totalDebt };
+  return { credit, debt };
+}
+
+// Valyuta bo'yicha ajratilgan yig'indi bo'sh (hammasi 0) ekanini tekshiradi.
+export function isEmptyTotals(totals: CurrencyTotals): boolean {
+  const anyPositive = (map: CurrencyAmounts) => Object.values(map).some((v) => (v ?? 0) !== 0);
+  return !anyPositive(totals.credit) && !anyPositive(totals.debt);
 }

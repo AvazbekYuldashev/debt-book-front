@@ -19,8 +19,10 @@ import { AuthContext } from '../context/AuthContext';
 import { ContactsContext } from '../context/ContactsContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { useMoney } from '../hooks/useMoney';
-import { AccountType, MoneyActionType, MoneyFlowType, MoneyResponseDTO, PartyType } from '../types/money';
+import { AccountType, Currency, MoneyActionType, MoneyFlowType, MoneyResponseDTO, PartyType } from '../types/money';
 import { formatMoney } from '../utils/money';
+import { netInBase, normalizeCurrency } from '../utils/currency';
+import { useCurrency } from '../context/CurrencyContext';
 import { formatPhoneDisplay } from '../utils/phone';
 import { useAccountContext } from '../hooks/useAccountContext';
 import { canWrite } from '../utils/permissions';
@@ -45,18 +47,20 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
   const [selectedTransaction, setSelectedTransaction] = useState<ReturnType<typeof mapTransaction> | null>(null);
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
 
-  const { history, totals, selectedCounterparty, loading, creating, error, fetchData, createMoney } = useMoney({
+  const { history, currencyTotals, selectedCounterparty, loading, creating, error, fetchData, createMoney } = useMoney({
     token: profile?.jwt,
   });
+  const { baseCurrency, rates } = useCurrency();
 
   const contact = useMemo(
     () => contacts.find((item) => item.id === contactId),
     [contacts, contactId]
   );
 
+  // Turli valyutalardagi balanslar asosiy valyutaga kurs bo'yicha jamlanadi.
   const netBalance = useMemo(
-    () => totals.totalCredit - totals.totalDebt,
-    [totals.totalCredit, totals.totalDebt]
+    () => netInBase(currencyTotals.credit, currencyTotals.debt, baseCurrency, rates),
+    [currencyTotals, baseCurrency, rates]
   );
 
   // Biznes kontekstida MEMBER (USER) faqat ko'rishi mumkin -> yozish tugmalari yashiriladi.
@@ -110,6 +114,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
 
   const handleCreate = async (payload: {
     amount: number;
+    currency: Currency;
     targetPartyType: PartyType;
     targetPartyId?: string;
     description: string;
@@ -164,8 +169,8 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
             </View>
           </View>
           <Text style={styles.balanceLabel}>{t('contact.currentBalance')}</Text>
-          <Text style={[styles.balanceValue, netBalance >= 0 ? styles.balancePositive : styles.balanceNegative]}>
-            {formatMoney(netBalance)}
+          <Text style={[styles.balanceValue, netBalance >= 0 ? styles.balancePositive : styles.balanceNegative]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+            {formatMoney(netBalance, baseCurrency)}
           </Text>
         </View>
       </View>
@@ -221,7 +226,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
                 </View>
                 <View style={[styles.txAmountPill, { backgroundColor: item.kind === 'credit' ? colors.positiveSoft : colors.negativeSoft }]}>
                   <Text style={[styles.txAmount, item.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative]}>
-                    {formatMoney(item.amount)}
+                    {formatMoney(item.amount, normalizeCurrency(item.currency))}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -317,7 +322,7 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
                   selectedTransaction?.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative,
                 ]}
               >
-                {selectedTransaction ? formatMoney(selectedTransaction.amount) : '--'}
+                {selectedTransaction ? formatMoney(selectedTransaction.amount, normalizeCurrency(selectedTransaction.currency)) : '--'}
               </Text>
             </View>
 

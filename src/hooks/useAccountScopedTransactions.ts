@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getProfileByPhone } from '../services/profileService';
 import { createCredit, createDebt, getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import {
+  Currency,
   MoneyActionType,
   MoneyPriceDTO,
   MoneyResponseDTO,
   PartyType,
 } from '../types/money';
-import { extractMoneyTotals } from '../utils/money';
+import { extractCurrencyTotals, extractMoneyTotals } from '../utils/money';
 import { useAccountContext } from './useAccountContext';
 import { accountTypeFromParty, flowFor } from '../application/usecases/resolveMoneyFlow';
 
@@ -19,6 +20,7 @@ interface FetchMoneyInput {
 
 interface CreateMoneyInput {
   amount: number;
+  currency: Currency;
   targetPartyType: PartyType;
   targetPartyId?: string;
   targetPhone?: string;
@@ -154,6 +156,7 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
 
         const commonPayload = {
           amount: payload.amount,
+          currency: payload.currency,
           description: payload.description || 'Transaction',
           fromAccountType,
           toAccountType,
@@ -207,11 +210,13 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
   );
 
   const totals = useMemo(() => extractMoneyTotals(totalPrice), [totalPrice]);
+  const currencyTotals = useMemo(() => extractCurrencyTotals(totalPrice), [totalPrice]);
 
   return {
     history,
     totalPrice,
     totals,
+    currencyTotals,
     selectedCounterparty,
     loading,
     creating,

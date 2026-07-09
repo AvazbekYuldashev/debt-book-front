@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Card from '../Card';
 import { MoneyResponseDTO } from '../../types/money';
 import { formatDateTime, formatMoney } from '../../utils/money';
+import { normalizeCurrency } from '../../utils/currency';
 import { useI18n } from '../../i18n';
 import { useAppTheme } from '../../theme';
 import { ColorTokens } from '../../theme/colors';
@@ -63,7 +64,7 @@ const MoneyHistoryCard: React.FC<MoneyHistoryCardProps> = ({
           {badgeText}
         </Text>
         <Text style={[styles.amount, isCreditor ? styles.amountGreen : isDebtor ? styles.amountRed : styles.amountMuted]}>
-          {formatMoney(item.amount)}
+          {formatMoney(item.amount, normalizeCurrency(item.currency))}
         </Text>
       </View>
       <Text style={[styles.direction, isCreditor ? styles.directionGreen : isUnknown ? styles.directionMuted : null]}>
