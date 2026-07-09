@@ -1,0 +1,67 @@
+# ============================================================
+#  Debt Book — Apache VirtualHost namunasi (VPS 138.249.7.224)
+#  Lighthouse "Performance" va "Best Practices" uchun kritik:
+#  matn kompressiyasi + hash'langan asset'larga immutable kesh.
+#
+#  Kerakli modullar:
+#    a2enmod deflate headers expires rewrite proxy proxy_http proxy_wstunnel
+#  (brotli bo'lsa: a2enmod brotli — deflate'dan ham yaxshiroq siqadi)
+# ============================================================
+
+<VirtualHost *:80>
+    ServerName 138.249.7.224
+    DocumentRoot /var/www/debt-book
+
+    # ---------- Backend API proxy ----------
+    ProxyPreserveHost On
+    ProxyPass        /api http://localhost:8080/api
+    ProxyPassReverse /api http://localhost:8080/api
+
+    # WebSocket (real-time bildirishnomalar) — docs/realtime-notifications.md
+    ProxyPass        /ws ws://localhost:8080/ws
+    ProxyPassReverse /ws ws://localhost:8080/ws
+
+    # ---------- Matn kompressiyasi (gzip) ----------
+    # Lighthouse: "Enable text compression". JS bundle ~1MB+ -> ~300KB.
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml
+    # Brotli moduli bo'lsa (gzip'dan ~15-20% kichikroq):
+    # AddOutputFilterByType BROTLI_COMPRESS text/html text/css application/javascript application/json image/svg+xml
+
+    # ---------- Kesh siyosati ----------
+    # expo export:web fayl nomlariga content-hash qo'shadi (masalan app.abc123.js)
+    # -> ular hech qachon o'zgarmaydi, 1 yil immutable kesh xavfsiz.
+    # Lighthouse: "Serve static assets with an efficient cache policy".
+    <LocationMatch "\.(js|css|woff2?|ttf|png|jpg|jpeg|webp|avif|ico|svg)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </LocationMatch>
+
+    # index.html va service worker HECH QACHON keshlanmasin — yangi deploy
+    # darhol ko'rinishi uchun (hash'langan chunk'larga yangi havolalar shu yerda).
+    <Files "index.html">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </Files>
+    <Files "service-worker.js">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </Files>
+
+    # ---------- Xavfsizlik sarlavhalari (Best Practices) ----------
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    # HTTPS'ga o'tilganda yoqing:
+    # Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
+
+    # ---------- SPA fallback ----------
+    # Chuqur URL (masalan /notifications) yangilanganda ham index.html berilsin.
+    <Directory /var/www/debt-book>
+        Options -Indexes
+        AllowOverride None
+        Require all granted
+        RewriteEngine On
+        RewriteCond %{REQUEST_URI} !^/(api|ws)/
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^ /index.html [L]
+    </Directory>
+</VirtualHost>

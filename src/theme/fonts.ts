@@ -24,6 +24,9 @@ const GOOGLE_FONTS_URL =
 
 export async function loadAppFonts(): Promise<void> {
   if (isWeb) {
+    // Asosiy yo'l: font <link> web/index.html template'ida (bundle bilan parallel
+    // yuklanadi). Bu yerdagi injektsiya faqat zaxira — masalan, kimdir template'siz
+    // (eski web-build) deploy qilsa ham shrift baribir yuklanadi.
     if (typeof document !== 'undefined' && !document.getElementById('app-inter-font')) {
       const link = document.createElement('link');
       link.id = 'app-inter-font';

@@ -1,12 +1,22 @@
-import React, { useContext, useEffect } from 'react';
+import React, { lazy, Suspense, useContext, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import AuthStack from './AuthStack';
-import BottomTabNavigator from './BottomTabNavigator';
 import NotificationWatcher from '../components/NotificationWatcher';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { getMyProfile } from '../api/profile';
 import { buildAttachUrl } from '../shared/attachUrl';
+
+// Route-darajali code splitting: web'da login sahifasi butun ilova bundle'ini,
+// login qilgan foydalanuvchi esa auth ekranlarini yuklamaydi (alohida chunk'lar,
+// immutable kesh bilan bir marta yuklanadi). Native Metro'da xatti-harakat o'zgarmaydi.
+const AuthStack = lazy(() => import('./AuthStack'));
+const BottomTabNavigator = lazy(() => import('./BottomTabNavigator'));
+
+const CenteredLoader: React.FC = () => (
+  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+    <ActivityIndicator />
+  </View>
+);
 
 const RootNavigator: React.FC = () => {
   const { profile, isAuthReady, setProfile } = useContext(AuthContext);
@@ -33,19 +43,21 @@ const RootNavigator: React.FC = () => {
   }, [profile?.jwt]);
 
   if (!isAuthReady || !isWorkspaceReady) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator />
-      </View>
-    );
+    return <CenteredLoader />;
   }
   if (!profile) {
-    return <AuthStack />;
+    return (
+      <Suspense fallback={<CenteredLoader />}>
+        <AuthStack />
+      </Suspense>
+    );
   }
   return (
     <>
       <NotificationWatcher />
-      <BottomTabNavigator />
+      <Suspense fallback={<CenteredLoader />}>
+        <BottomTabNavigator />
+      </Suspense>
     </>
   );
 };

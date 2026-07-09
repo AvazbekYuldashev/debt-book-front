@@ -1,6 +1,7 @@
 import { useContext, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AuthContext } from '../context/AuthContext';
+import { useRealtimeConnected } from '../realtime/realtimeStatus';
 import { useAccountContext } from './useAccountContext';
 import type { Contact } from '../context/ContactsContext';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
@@ -178,6 +179,7 @@ async function loadContactBalances(
 export function useContactBalances(contacts: Contact[]) {
   const { profile } = useContext(AuthContext);
   const { accountType, partyType, accountId, accountKey } = useAccountContext();
+  const realtimeConnected = useRealtimeConnected();
 
   const actor = useMemo<Actor>(() => ({ type: partyType, id: accountId }), [partyType, accountId]);
 
@@ -191,9 +193,10 @@ export function useContactBalances(contacts: Contact[]) {
     queryKey: ['contact-balances', accountKey, contactsKey],
     enabled: Boolean(profile?.jwt) && contacts.length > 0,
     staleTime: 15_000,
-    // Real-time'ga yaqin: fonda muntazam qayta yuklanadi. Eski ma'lumot saqlangani
-    // uchun spinner miltillamaydi — balanslar o'z-o'zidan yangilanadi.
-    refetchInterval: 20_000,
+    // Bu eng og'ir so'rov to'plami (har kontaktga 1-3 request). WS ulangan bo'lsa
+    // yangilanish push orqali keladi (watcher invalidatsiya qiladi) — polling faqat
+    // siyrak sug'urta. WS'siz esa 20s "real-time'ga yaqin" rejim saqlanadi.
+    refetchInterval: realtimeConnected ? 120_000 : 20_000,
     refetchOnWindowFocus: false,
     queryFn: () => loadContactBalances(contacts, profile!.jwt!, accountType, actor),
   });

@@ -5,6 +5,7 @@ import { AuthContext } from './AuthContext';
 import { WorkspaceContext } from './WorkspaceContext';
 import { ACCOUNT_TYPE, PartyType } from '../types/money';
 import { useAccountContext } from '../hooks/useAccountContext';
+import { useRealtimeConnected } from '../realtime/realtimeStatus';
 import { getPhoneValidationError, normalizePhone } from '../utils/phone';
 
 export interface Contact {
@@ -206,6 +207,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { workspace, isWorkspaceReady } = useContext(WorkspaceContext);
   const { accountType, accountKey } = useAccountContext();
   const queryClient = useQueryClient();
+  const realtimeConnected = useRealtimeConnected();
 
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -221,8 +223,9 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
     queryKey: ['contacts', accountKey],
     enabled: Boolean(profile?.jwt) && isWorkspaceReady,
     staleTime: 15_000,
-    // Real-time'ga yaqin: yangi mijozlar/o'zgarishlar fonda avtomatik ko'rinadi.
-    refetchInterval: 20_000,
+    // WS ulangan bo'lsa yangilanish push orqali (watcher invalidatsiyasi) keladi —
+    // polling siyrak sug'urta. Aks holda 20s "real-time'ga yaqin" rejim.
+    refetchInterval: realtimeConnected ? 120_000 : 20_000,
     retry: 1,
     refetchOnWindowFocus: false,
     queryFn: async () => {

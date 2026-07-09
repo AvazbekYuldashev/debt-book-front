@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!-- Notch'li telefonlar uchun ishlaydigan, global zoom o'chirilgan viewport. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1.00001, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="Debt Book - qarz daftari: mijozlar bilan oldi-berdi, balanslar va xarajatlarni yuritish uchun zamonaviy ilova."
+    />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F1F5F9" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0B1120" />
+    <title>%WEB_TITLE%</title>
+
+    <!--
+      Inter shrifti: preconnect + stylesheet to'g'ridan-to'g'ri HTML'da.
+      Avval JS bundle ijrosidan KEYIN runtime'da qo'shilardi (sekin zanjir:
+      bundle -> parse -> exec -> CSS -> woff2). Endi brauzer fontni bundle
+      bilan PARALLEL yuklaydi. id="app-inter-font" — loadAppFonts shu id'ni
+      ko'rib runtime-injektsiyani o'tkazib yuboradi.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      id="app-inter-font"
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    />
+
+    <style>
+      /**
+       * react-native-web reset kengaytmasi:
+       * https://github.com/necolas/react-native-web/blob/master/packages/react-native-web/src/exports/StyleSheet/initialRules.js
+       */
+      html,
+      body,
+      #root {
+        width: 100%;
+        -webkit-overflow-scrolling: touch;
+        margin: 0px;
+        padding: 0px;
+        min-height: 100%;
+      }
+      #root {
+        flex-shrink: 0;
+        flex-basis: auto;
+        flex-grow: 1;
+        display: flex;
+        flex: 1;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        -webkit-text-size-adjust: 100%;
+        height: calc(100% + env(safe-area-inset-top));
+      }
+
+      body {
+        display: flex;
+        overflow-y: auto;
+        overscroll-behavior-y: none;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        -ms-overflow-style: scrollbar;
+        /* Theme hydratsiyasigacha fon tizim mavzusiga mos — oq "flash" yo'q. */
+        background-color: #f1f5f9;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #0b1120;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>
+      <div
+        style="
+          font-size: 16px;
+          font-family: system-ui, sans-serif;
+          line-height: 24px;
+          margin: 10%;
+          text-align: center;
+        "
+      >
+        <p>Ilova ishlashi uchun brauzerda JavaScript yoqilgan bo'lishi kerak.</p>
+        <p>Please enable JavaScript to use this application.</p>
+      </div>
+    </noscript>
+    <!-- Expo ilovasining ildiz elementi. -->
+    <div id="root"></div>
+  </body>
+</html>

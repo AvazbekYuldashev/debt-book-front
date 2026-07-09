@@ -52,6 +52,10 @@ export function useNotificationWatcher(): void {
       onNotification: () => {
         queryClient.invalidateQueries({ queryKey: notificationsQueryKey(profileId) });
         queryClient.invalidateQueries({ queryKey: unreadCountQueryKey(profileId) });
+        // Tranzaksiya bildirishnomasi = balans o'zgardi: ro'yxat va balanslar ham
+        // darhol yangilanadi (prefiks bo'yicha — barcha account key'lar).
+        queryClient.invalidateQueries({ queryKey: ['contact-balances'] });
+        queryClient.invalidateQueries({ queryKey: ['contacts'] });
       },
       onConnectedChange: (connected) => realtimeStatus.setConnected(connected),
     });

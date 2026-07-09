@@ -26,7 +26,13 @@
       "permissions": ["READ_MEDIA_IMAGES", "READ_CONTACTS"]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "Debt Book",
+      "shortName": "Debt Book",
+      "lang": "uz",
+      "description": "Debt Book - qarz daftari: mijozlar bilan oldi-berdi, balanslar va xarajatlarni yuritish uchun zamonaviy ilova.",
+      "themeColor": "#0D9488",
+      "backgroundColor": "#F1F5F9"
     },
     "plugins": [
       [

@@ -97,28 +97,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     [contacts, selectedId],
   );
 
-  // FAB nafas olib turgandek yengil pulsatsiya — foydalanuvchini asosiy amalga yo'naltiradi.
   const fabScale = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(fabScale, {
-          toValue: 1.1,
-          duration: FAB_PULSE_MS,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(fabScale, {
-          toValue: 1,
-          duration: FAB_PULSE_MS,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [fabScale]);
 
   const filteredContacts = useMemo(() => {
     const nameQuery = filterName.trim();
@@ -277,6 +256,36 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
 
   const isEmpty = sortedContacts.length === 0;
   const isBusy = loading || searchLoading;
+
+  // FAB pulsatsiyasi — faqat ro'yxat bo'sh bo'lganda (birinchi mijozga undov) va
+  // CHEKLI takror bilan. Avval cheksiz loop edi: web'da bu har frame'da style
+  // yozadigan doimiy rAF ishi (batareya + Performance panelida uzluksiz faollik).
+  const shouldPulseFab = canEdit && isEmpty && !isBusy;
+  useEffect(() => {
+    if (!shouldPulseFab) return undefined;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fabScale, {
+          toValue: 1.1,
+          duration: FAB_PULSE_MS,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(fabScale, {
+          toValue: 1,
+          duration: FAB_PULSE_MS,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+      { iterations: 4 },
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      fabScale.setValue(1);
+    };
+  }, [shouldPulseFab, fabScale]);
 
   return (
     <View style={styles.container}>
