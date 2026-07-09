@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useContext, useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../theme';
@@ -8,7 +8,10 @@ import type { DebtsScreenProps } from '../navigation/types';
 import { ROUTES } from '../navigation/routes';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import FadeInView from '../components/animations/FadeInView';
-import { useNotifications, useMarkAllNotificationsRead } from '../hooks/useNotifications';
+import { useNotifications, useMarkNotificationRead } from '../hooks/useNotifications';
+import { ContactsContext } from '../context/ContactsContext';
+import { normalizePhone } from '../utils/phone';
+import type { NotificationDTO } from '../types/notification';
 import NotificationRow from './notifications/NotificationRow';
 
 type Props = DebtsScreenProps<typeof ROUTES.NOTIFICATIONS>;
@@ -23,21 +26,27 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const { data, isLoading, isRefetching, refetch } = useNotifications();
-  const markAllRead = useMarkAllNotificationsRead();
+  const { mutate: markReadMutate } = useMarkNotificationRead();
+  const { contacts } = useContext(ContactsContext);
 
   const items = data?.content ?? [];
-  const hasUnread = items.some((item) => !item.read);
   const isEmpty = items.length === 0;
 
-  // Inbox ochilganda bildirishnomalar avtomatik "o'qilgan" bo'ladi (badge tozalanadi) —
-  // "hammasini o'qish"ni qo'lda bosish shart emas. Faqat bir marta ishga tushadi.
-  const autoMarkedRef = useRef(false);
-  useEffect(() => {
-    if (!isLoading && hasUnread && !autoMarkedRef.current && !markAllRead.isLoading) {
-      autoMarkedRef.current = true;
-      markAllRead.mutate();
-    }
-  }, [isLoading, hasUnread, markAllRead]);
+  // Bildirishnomani bosganda: faqat o'shani o'qilgan qilamiz va (topilsa) o'sha
+  // kontakt/tranzaksiya ekraniga yo'naltiramiz. Inbox ochilishida hech narsa
+  // avtomatik o'qilmaydi.
+  const handlePress = useCallback(
+    (notification: NotificationDTO) => {
+      if (!notification.read) markReadMutate(notification.id);
+      const actorPhone = notification.actorPhone ? normalizePhone(notification.actorPhone) : '';
+      if (!actorPhone) return;
+      const contact = contacts.find((item) => item.phone && normalizePhone(item.phone) === actorPhone);
+      if (contact) {
+        navigation.navigate(ROUTES.CONTACT_DETAIL, { id: contact.id });
+      }
+    },
+    [markReadMutate, contacts, navigation],
+  );
 
   return (
     <View style={styles.container}>
@@ -81,7 +90,11 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
                 duration={300}
                 fromY={10}
               >
-                <NotificationRow notification={item} isLast={index === items.length - 1} />
+                <NotificationRow
+                  notification={item}
+                  isLast={index === items.length - 1}
+                  onPress={handlePress}
+                />
               </FadeInView>
             ))
           )}

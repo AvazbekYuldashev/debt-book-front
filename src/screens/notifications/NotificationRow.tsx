@@ -1,5 +1,5 @@
-import React, { memo, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { memo, useCallback, useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../theme';
 import type { ThemeValue } from '../../theme/ThemeProvider';
@@ -9,17 +9,30 @@ import type { NotificationDTO } from '../../types/notification';
 interface NotificationRowProps {
   notification: NotificationDTO;
   isLast: boolean;
+  onPress: (notification: NotificationDTO) => void;
 }
 
-/** Bitta bildirishnoma qatori: ikonka, matn, sana va o'qilmaganlik belgisi. */
-const NotificationRow: React.FC<NotificationRowProps> = ({ notification, isLast }) => {
+/** Bitta bildirishnoma qatori: ikonka, matn, sana va o'qilmaganlik belgisi. Bosiladigan. */
+const NotificationRow: React.FC<NotificationRowProps> = ({ notification, isLast, onPress }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const unread = !notification.read;
 
+  const handlePress = useCallback(() => onPress(notification), [onPress, notification]);
+
   return (
-    <View style={[styles.row, !isLast && styles.rowBorder, unread && styles.rowUnread]}>
+    <Pressable
+      onPress={handlePress}
+      style={({ pressed }) => [
+        styles.row,
+        !isLast && styles.rowBorder,
+        unread && styles.rowUnread,
+        pressed && styles.rowPressed,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={notification.message}
+    >
       <View style={[styles.iconWrap, { backgroundColor: unread ? colors.primarySoft : colors.surfaceMuted }]}>
         <Ionicons name="swap-horizontal" size={18} color={unread ? colors.primary : colors.textSecondary} />
       </View>
@@ -30,7 +43,7 @@ const NotificationRow: React.FC<NotificationRowProps> = ({ notification, isLast 
         <Text style={styles.date}>{formatDateTime(notification.createdDate)}</Text>
       </View>
       {unread ? <View style={styles.unreadDot} /> : null}
-    </View>
+    </Pressable>
   );
 };
 
@@ -49,6 +62,9 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     rowUnread: {
       backgroundColor: colors.surfaceMuted,
+    },
+    rowPressed: {
+      opacity: 0.6,
     },
     iconWrap: {
       width: 38,
