@@ -7,30 +7,50 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../services/notificationService';
+import { useRealtimeConnected } from '../realtime/realtimeStatus';
 import type { PageResponse } from '../types/money';
 import type { NotificationDTO } from '../types/notification';
 
-/** O'qilmagan bildirishnomalar soni — badge uchun. Fokusda va davriy yangilanadi. */
+const NOTIFICATIONS_PAGE_SIZE = 50;
+
+// WS ulangan bo'lsa polling faqat sug'urta (siyrak); uzilganda tezlashadi.
+export const NOTIFICATION_POLL_REALTIME_MS = 180_000;
+export const NOTIFICATION_POLL_FALLBACK_MS = 25_000;
+const UNREAD_POLL_REALTIME_MS = 180_000;
+const UNREAD_POLL_FALLBACK_MS = 30_000;
+
+export const notificationsQueryKey = (profileId?: string) => ['notifications', profileId] as const;
+export const unreadCountQueryKey = (profileId?: string) => ['notifications-unread', profileId] as const;
+
+/** O'qilmagan bildirishnomalar soni — badge uchun. WS holatiga qarab polling. */
 export function useUnreadNotificationCount() {
   const { profile } = useContext(AuthContext);
+  const realtimeConnected = useRealtimeConnected();
   return useQuery({
-    queryKey: ['notifications-unread', profile?.id],
+    queryKey: unreadCountQueryKey(profile?.id),
     enabled: Boolean(profile?.jwt),
     staleTime: 15_000,
-    refetchInterval: 30_000,
+    refetchInterval: realtimeConnected ? UNREAD_POLL_REALTIME_MS : UNREAD_POLL_FALLBACK_MS,
     refetchOnWindowFocus: true,
     queryFn: () => getUnreadNotificationCount(profile!.jwt),
   });
 }
 
-/** Bildirishnomalar ro'yxati (inbox). */
-export function useNotifications() {
+interface UseNotificationsOptions {
+  refetchInterval?: number | false;
+  refetchOnWindowFocus?: boolean;
+}
+
+/** Bildirishnomalar ro'yxati (inbox). Watcher ham AYNAN shu query'ni ulashadi. */
+export function useNotifications(options: UseNotificationsOptions = {}) {
   const { profile } = useContext(AuthContext);
   return useQuery({
-    queryKey: ['notifications', profile?.id],
+    queryKey: notificationsQueryKey(profile?.id),
     enabled: Boolean(profile?.jwt),
     staleTime: 10_000,
-    queryFn: () => getNotifications(1, 50, profile!.jwt),
+    refetchInterval: options.refetchInterval,
+    refetchOnWindowFocus: options.refetchOnWindowFocus,
+    queryFn: () => getNotifications(1, NOTIFICATIONS_PAGE_SIZE, profile!.jwt),
   });
 }
 
@@ -41,14 +61,14 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: (id: string) => markNotificationRead(id, profile?.jwt),
     onMutate: (id: string) => {
-      queryClient.setQueryData<PageResponse<NotificationDTO>>(['notifications', profile?.id], (prev) =>
+      queryClient.setQueryData<PageResponse<NotificationDTO>>(notificationsQueryKey(profile?.id), (prev) =>
         prev
           ? { ...prev, content: prev.content.map((n) => (n.id === id ? { ...n, read: true } : n)) }
           : prev,
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications-unread', profile?.id] });
+      queryClient.invalidateQueries({ queryKey: unreadCountQueryKey(profile?.id) });
     },
   });
 }
@@ -60,8 +80,8 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: () => markAllNotificationsRead(profile?.jwt),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', profile?.id] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-unread', profile?.id] });
+      queryClient.invalidateQueries({ queryKey: notificationsQueryKey(profile?.id) });
+      queryClient.invalidateQueries({ queryKey: unreadCountQueryKey(profile?.id) });
     },
   });
 }

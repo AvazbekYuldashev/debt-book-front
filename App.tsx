@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { Platform, Text, TextInput } from 'react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AppState, AppStateStatus, Platform, Text, TextInput } from 'react-native';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import RootNavigator from './src/navigation/RootNavigator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -31,6 +31,22 @@ const queryClient = new QueryClient({
     queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 },
   },
 });
+
+/**
+ * Native'da React Query "fokus" tushunchasini AppState'ga bog'laymiz:
+ * ilova fonga o'tsa barcha refetchInterval polling'lar to'xtaydi (batareya/tarmoq),
+ * qaytganda refetchOnWindowFocus'li query'lar darhol yangilanadi. Web'da brauzer
+ * focus/visibility hodisalari buni o'zi qiladi.
+ */
+function useAppStateFocusManager(): void {
+  useEffect(() => {
+    if (Platform.OS === 'web') return undefined;
+    const subscription = AppState.addEventListener('change', (status: AppStateStatus) => {
+      focusManager.setFocused(status === 'active');
+    });
+    return () => subscription.remove();
+  }, []);
+}
 
 const AppShell: React.FC = () => {
   const { activeTheme, colors } = useAppTheme();
@@ -77,6 +93,8 @@ const AppShell: React.FC = () => {
 };
 
 export default function App() {
+  useAppStateFocusManager();
+
   useEffect(() => {
     if (!__DEV__) return;
 

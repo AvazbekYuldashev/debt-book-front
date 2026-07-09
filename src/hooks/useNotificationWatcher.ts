@@ -1,7 +1,15 @@
 import { useContext, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/AuthContext';
-import { getNotifications } from '../services/notificationService';
+import {
+  NOTIFICATION_POLL_FALLBACK_MS,
+  NOTIFICATION_POLL_REALTIME_MS,
+  notificationsQueryKey,
+  unreadCountQueryKey,
+  useNotifications,
+} from './useNotifications';
+import { NotificationsSocket } from '../realtime/notificationsSocket';
+import { realtimeStatus, useRealtimeConnected } from '../realtime/realtimeStatus';
 import { translate } from '../i18n';
 import {
   playNotificationBeep,
@@ -10,12 +18,16 @@ import {
 } from '../utils/webNotify';
 
 /**
- * Yangi bildirishnomalarni kuzatadi va web'da brauzer Notification popup'i ("SMS
- * kelgani kabi" alohida bildirishnoma) ko'rsatadi. Native'da faqat ma'lumotni
- * yangilaydi (popup yo'q). Ilova ildizida (login qilingan) bir marta mount qilinadi.
+ * Yangi bildirishnomalarni kuzatadi: asosiy kanal — WebSocket (real-time),
+ * fallback — polling. WS xabari kelganda inbox va badge query'lari darhol
+ * invalidatsiya qilinadi; ulanish tushsa polling avtomatik tezlashadi.
+ * Web'da yangi bildirishnoma uchun ovoz + brauzer popup'i chiqadi.
+ * Ilova ildizida (login qilingan) bir marta mount qilinadi.
  */
 export function useNotificationWatcher(): void {
   const { profile } = useContext(AuthContext);
+  const queryClient = useQueryClient();
+  const realtimeConnected = useRealtimeConnected();
   const seenRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
 
@@ -30,12 +42,30 @@ export function useNotificationWatcher(): void {
     initializedRef.current = false;
   }, [profile?.id]);
 
-  const { data } = useQuery({
-    queryKey: ['notifications', profile?.id],
-    enabled: Boolean(profile?.jwt),
-    refetchInterval: 25_000,
+  // WebSocket hayot sikli: login bo'lganda ochiladi, chiqishda/token almashganda yopiladi.
+  const profileId = profile?.id;
+  const jwt = profile?.jwt;
+  useEffect(() => {
+    if (!jwt) return undefined;
+    const socket = new NotificationsSocket({
+      token: jwt,
+      onNotification: () => {
+        queryClient.invalidateQueries({ queryKey: notificationsQueryKey(profileId) });
+        queryClient.invalidateQueries({ queryKey: unreadCountQueryKey(profileId) });
+      },
+      onConnectedChange: (connected) => realtimeStatus.setConnected(connected),
+    });
+    socket.start();
+    return () => {
+      socket.stop();
+      realtimeStatus.setConnected(false);
+    };
+  }, [jwt, profileId, queryClient]);
+
+  // Inbox bilan bitta query ulashiladi; WS ulanganida polling siyraklashadi.
+  const { data } = useNotifications({
+    refetchInterval: realtimeConnected ? NOTIFICATION_POLL_REALTIME_MS : NOTIFICATION_POLL_FALLBACK_MS,
     refetchOnWindowFocus: true,
-    queryFn: () => getNotifications(1, 20, profile!.jwt),
   });
 
   useEffect(() => {

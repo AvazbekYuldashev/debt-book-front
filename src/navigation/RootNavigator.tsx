@@ -6,11 +6,7 @@ import NotificationWatcher from '../components/NotificationWatcher';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { getMyProfile } from '../api/profile';
-import { API_BASE } from '../api/baseUrl';
-
-function buildPhotoUrl(id?: string) {
-  return id ? `${API_BASE}/attach/open/${id}` : undefined;
-}
+import { buildAttachUrl } from '../shared/attachUrl';
 
 const RootNavigator: React.FC = () => {
   const { profile, isAuthReady, setProfile } = useContext(AuthContext);
@@ -26,7 +22,7 @@ const RootNavigator: React.FC = () => {
           (nested?.id as string | undefined) ||
           (f.photoId as string | undefined);
         const rawUrl = nested?.url as string | undefined;
-        const photoUrl = buildPhotoUrl(photoId) || rawUrl;
+        const photoUrl = buildAttachUrl(photoId) || rawUrl;
         if (!photoId && !photoUrl) return;
         setProfile((prev) =>
           prev ? { ...prev, photo: { id: photoId, url: photoUrl } } : prev
