@@ -190,7 +190,10 @@ export function useContactBalances(contacts: Contact[]) {
   const query = useQuery<ContactBalances>({
     queryKey: ['contact-balances', accountKey, contactsKey],
     enabled: Boolean(profile?.jwt) && contacts.length > 0,
-    staleTime: 30_000,
+    staleTime: 15_000,
+    // Real-time'ga yaqin: fonda muntazam qayta yuklanadi. Eski ma'lumot saqlangani
+    // uchun spinner miltillamaydi — balanslar o'z-o'zidan yangilanadi.
+    refetchInterval: 20_000,
     refetchOnWindowFocus: false,
     queryFn: () => loadContactBalances(contacts, profile!.jwt!, accountType, actor),
   });
