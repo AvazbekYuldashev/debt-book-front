@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../theme';
@@ -29,6 +29,16 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   const hasUnread = items.some((item) => !item.read);
   const isEmpty = items.length === 0;
 
+  // Inbox ochilganda bildirishnomalar avtomatik "o'qilgan" bo'ladi (badge tozalanadi) —
+  // "hammasini o'qish"ni qo'lda bosish shart emas. Faqat bir marta ishga tushadi.
+  const autoMarkedRef = useRef(false);
+  useEffect(() => {
+    if (!isLoading && hasUnread && !autoMarkedRef.current && !markAllRead.isLoading) {
+      autoMarkedRef.current = true;
+      markAllRead.mutate();
+    }
+  }, [isLoading, hasUnread, markAllRead]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -42,18 +52,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>{t('notifications.title')}</Text>
-        {hasUnread ? (
-          <Pressable
-            style={({ pressed }) => [styles.markAllBtn, pressed && styles.pressed]}
-            onPress={() => markAllRead.mutate()}
-            disabled={markAllRead.isLoading}
-            accessibilityRole="button"
-          >
-            <Ionicons name="checkmark-done" size={18} color={colors.primary} />
-          </Pressable>
-        ) : (
-          <View style={styles.iconBtn} />
-        )}
+        <View style={styles.iconBtn} />
       </View>
 
       <ScrollView
