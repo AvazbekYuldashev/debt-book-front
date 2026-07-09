@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import FadeInView from '../components/animations/FadeInView';
-import MoneyActionModal from '../components/money/MoneyActionModal';
+import MoneyActionModal, { MoneyActionPayload } from '../components/money/MoneyActionModal';
 import Button from '../components/atoms/Button';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import { AuthContext } from '../context/AuthContext';
@@ -25,7 +25,7 @@ import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import type { DebtsScreenProps } from '../navigation/types';
 import { ROUTES } from '../navigation/routes';
-import { AccountType, Currency, MoneyActionType, MoneyFlowType, PartyType } from '../types/money';
+import { Currency, MoneyActionType } from '../types/money';
 import { formatMoney } from '../utils/money';
 import { netInBase, normalizeCurrency } from '../utils/currency';
 import { canWrite } from '../utils/permissions';
@@ -130,17 +130,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   );
 
   const handleCreate = useCallback(
-    async (payload: {
-      amount: number;
-      currency: Currency;
-      targetPartyType: PartyType;
-      targetPartyId?: string;
-      description: string;
-      fromAccountType: AccountType;
-      toAccountType: AccountType;
-      moneyFlowType: MoneyFlowType;
-      targetBusinessProfileId?: string;
-    }) => {
+    async (payload: MoneyActionPayload) => {
       if (!contact) return;
       const ok = await createMoney(actionType, {
         ...payload,
@@ -247,7 +237,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         fixedCounterpartyId={contact.partyId}
         fixedCounterpartyType={contact.partyType}
         ownerAccountType={accountType}
-        token={profile?.jwt}
         onClose={() => setModalVisible(false)}
         onSubmit={handleCreate}
       />

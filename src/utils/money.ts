@@ -84,6 +84,20 @@ export const extractCurrencyTotals = (
 export const formatMoney = (value: number, currency: Currency = DEFAULT_CURRENCY): string =>
   formatCurrency(value, currency);
 
+// Kiritilayotgan summani "100 000" ko'rinishida (har 3 raqamda bo'sh joy) formatlaydi.
+export const formatAmountInput = (raw: string): string => {
+  const digits = raw.replace(/\D/g, '');
+  return digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : '';
+};
+
+// Formatlangan summa matnini musbat songa o'giradi; noto'g'ri qiymatda null.
+export const parseAmountInput = (raw: string): number | null => {
+  const normalized = raw.replace(/\s/g, '').replace(',', '.');
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
 export const formatDateTime = (value: string): string => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;

@@ -1,13 +1,13 @@
-import React, { useContext, useMemo, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
-import AppTextInput from '../form/AppTextInput';
-import PrimaryButton from '../ui/PrimaryButton';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import Input from '../atoms/Input';
+import Button from '../atoms/Button';
 import { AuthContext } from '../../context/AuthContext';
 import { createBusiness } from '../../services/businessService';
 import { BusinessDTO } from '../../types/business';
 import { useI18n } from '../../i18n';
 import { useAppTheme } from '../../theme';
-import { ColorTokens } from '../../theme/colors';
+import type { ThemeValue } from '../../theme/ThemeProvider';
 
 interface CreateBusinessModalProps {
   visible: boolean;
@@ -15,25 +15,41 @@ interface CreateBusinessModalProps {
   onCreated?: (business: BusinessDTO) => void;
 }
 
+/** Yangi biznes yaratish modali: forma holati va xatolik shu yerda inkapsulyatsiya qilingan. */
 const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onClose, onCreated }) => {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { profile } = useContext(AuthContext);
+
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleClose = () => {
-    if (loading) return;
-    setError('');
+  // Har ochilishda toza forma — oldingi urinish qoldiqlari ko'rinmaydi.
+  useEffect(() => {
+    if (!visible) return;
     setName('');
     setAddress('');
-    onClose();
-  };
+    setError('');
+  }, [visible]);
 
-  const handleSubmit = async () => {
+  const handleClose = useCallback(() => {
+    if (loading) return;
+    onClose();
+  }, [loading, onClose]);
+
+  const handleNameChange = useCallback((value: string) => {
+    setError('');
+    setName(value);
+  }, []);
+  const handleAddressChange = useCallback((value: string) => {
+    setError('');
+    setAddress(value);
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
     if (!profile?.jwt) {
       setError(t('business.noToken'));
       return;
@@ -46,83 +62,84 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
     setLoading(true);
     setError('');
     try {
-      const created = await createBusiness(
-        { name: name.trim(), address: address.trim() },
-        profile.jwt
-      );
+      const created = await createBusiness({ name: name.trim(), address: address.trim() }, profile.jwt);
       onCreated?.(created);
-      handleClose();
+      onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : t('business.createFailed'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [profile?.jwt, name, address, onCreated, onClose, t]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <View style={styles.backdrop}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={styles.card}>
-          <Text style={styles.title}>{t('business.createTitle')}</Text>
-          <AppTextInput
+          <Text style={styles.title} accessibilityRole="header">
+            {t('business.createTitle')}
+          </Text>
+          <Input
             label={t('business.name')}
             value={name}
-            onChangeText={setName}
+            onChangeText={handleNameChange}
             placeholder={t('business.namePlaceholder')}
-            containerStyle={styles.field}
           />
-          <AppTextInput
+          <Input
             label={t('business.address')}
             value={address}
-            onChangeText={setAddress}
+            onChangeText={handleAddressChange}
             placeholder={t('business.addressPlaceholder')}
-            containerStyle={styles.field}
           />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <Text style={styles.error} accessibilityLiveRegion="polite">
+              {error}
+            </Text>
+          ) : null}
           <View style={styles.actions}>
-            <PrimaryButton title={t('common.cancel')} variant="secondary" onPress={handleClose} style={styles.actionBtn} />
-            <PrimaryButton title={t('business.createBtn')} onPress={handleSubmit} loading={loading} style={styles.actionBtn} />
+            <Button title={t('common.cancel')} variant="secondary" onPress={handleClose} style={styles.actionBtn} />
+            <Button title={t('business.createBtn')} onPress={handleSubmit} loading={loading} style={styles.actionBtn} />
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
 
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    padding: 16,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: 16,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 12,
-  },
-  field: {
-    marginBottom: 8,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  actionBtn: {
-    flex: 1,
-  },
-  error: {
-    color: colors.danger,
-    fontSize: 12,
-    marginBottom: 8,
-  },
-});
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      padding: spacing.md,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+    },
+    title: {
+      ...typography.heading2,
+      fontSize: 18,
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    error: {
+      ...typography.caption,
+      color: colors.danger,
+      marginBottom: spacing.xs,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: spacing.xs,
+    },
+    actionBtn: {
+      flex: 1,
+    },
+  });
 
 export default CreateBusinessModal;
