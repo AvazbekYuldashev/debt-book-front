@@ -59,6 +59,9 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             value={username}
             onChangeText={handleUsernameChange}
             keyboardType="number-pad"
+            autoComplete="username"
+            textContentType="username"
+            importantForAutofill="yes"
           />
         </View>
       </View>
@@ -73,6 +76,9 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
+            autoComplete="password"
+            textContentType="password"
+            importantForAutofill="yes"
           />
           <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword((p) => !p)}>
             <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
