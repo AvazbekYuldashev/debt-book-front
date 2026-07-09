@@ -2,6 +2,7 @@ import React, { useContext, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import AuthStack from './AuthStack';
 import BottomTabNavigator from './BottomTabNavigator';
+import NotificationWatcher from '../components/NotificationWatcher';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { getMyProfile } from '../api/profile';
@@ -42,7 +43,15 @@ const RootNavigator: React.FC = () => {
       </View>
     );
   }
-  return profile ? <BottomTabNavigator /> : <AuthStack />;
+  if (!profile) {
+    return <AuthStack />;
+  }
+  return (
+    <>
+      <NotificationWatcher />
+      <BottomTabNavigator />
+    </>
+  );
 };
 
 export default RootNavigator;

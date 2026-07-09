@@ -7,8 +7,9 @@ import AuthShell from '../components/auth/AuthShell';
 import { useAuthStyles } from '../components/auth/authStyles';
 import { useI18n } from '../i18n';
 import { useAppTheme } from '../theme';
+import type { AuthScreenProps } from '../navigation/types';
 
-const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
+const SmsVerificationScreen: React.FC<AuthScreenProps<'SmsVerification'>> = ({ navigation, route }) => {
   const { t } = useI18n();
   const s = useAuthStyles();
   const { colors } = useAppTheme();
@@ -67,7 +68,7 @@ const SmsVerificationScreen: React.FC<{ navigation: any; route: any }> = ({ navi
       {error ? <Text style={s.errorText}>{error}</Text> : null}
 
       <TouchableOpacity style={s.button} onPress={handleVerify} disabled={loading} activeOpacity={0.9}>
-        {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.buttonText}>{t('sms.submit')}</Text>}
+        {loading ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={s.buttonText}>{t('sms.submit')}</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={handleResend}>

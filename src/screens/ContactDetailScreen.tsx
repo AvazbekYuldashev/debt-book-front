@@ -2,83 +2,108 @@ import React, { useCallback, useContext, useMemo, useState } from 'react';
 import {
   Image,
   Modal,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import FadeInView from '../components/animations/FadeInView';
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import MoneyActionModal from '../components/money/MoneyActionModal';
-import PrimaryButton from '../components/ui/PrimaryButton';
+import FadeInView from '../components/animations/FadeInView';
+import MoneyActionModal, { MoneyActionPayload } from '../components/money/MoneyActionModal';
+import Button from '../components/atoms/Button';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import { AuthContext } from '../context/AuthContext';
 import { ContactsContext } from '../context/ContactsContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { useMoney } from '../hooks/useMoney';
-import { AccountType, Currency, MoneyActionType, MoneyFlowType, MoneyResponseDTO, PartyType } from '../types/money';
+import { useAccountContext } from '../hooks/useAccountContext';
+import { useContactAvatars } from '../shared/contactAvatars';
+import { useAppTheme } from '../theme';
+import type { ThemeValue } from '../theme/ThemeProvider';
+import type { DebtsScreenProps } from '../navigation/types';
+import { ROUTES } from '../navigation/routes';
+import { Currency, MoneyActionType } from '../types/money';
 import { formatMoney } from '../utils/money';
 import { netInBase, normalizeCurrency } from '../utils/currency';
-import { useCurrency } from '../context/CurrencyContext';
-import { formatPhoneDisplay } from '../utils/phone';
-import { useAccountContext } from '../hooks/useAccountContext';
 import { canWrite } from '../utils/permissions';
-import { useI18n, translate } from '../i18n';
-import { useAppTheme } from '../theme';
-import { ColorTokens } from '../theme/colors';
-import UserAvatar from '../shared/ui/UserAvatar';
-import { useContactAvatars } from '../shared/contactAvatars';
+import { useI18n } from '../i18n';
+import ContactBalanceHeader from './debts/ContactBalanceHeader';
+import TransactionRow from './debts/TransactionRow';
+import TransactionDetailModal from './debts/TransactionDetailModal';
+import { mapTransaction, MappedTransaction } from './debts/transactionMapping';
 
-const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
+const ROW_STAGGER_MS = 50;
+const ROW_STAGGER_CAP_MS = 380;
+
+type ContactDetailProps = DebtsScreenProps<typeof ROUTES.CONTACT_DETAIL>;
+
+const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }) => {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const contactId = route.params?.id || '';
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const contactId = route.params.id;
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const { accountType } = useAccountContext();
   const { contacts } = useContext(ContactsContext);
-  const { avatars, setAvatar } = useContactAvatars();
-  const [modalVisible, setModalVisible] = useState(false);
-  const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
-  const [selectedTransaction, setSelectedTransaction] = useState<ReturnType<typeof mapTransaction> | null>(null);
-  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
-
-  const { history, currencyTotals, selectedCounterparty, loading, creating, error, fetchData, createMoney } = useMoney({
-    token: profile?.jwt,
-  });
+  const { avatars } = useContactAvatars();
   const { baseCurrency, rates, convert } = useCurrency();
 
-  // Tranzaksiya valyutasi asosiy valyutadan farq qilsa va kurs mavjud bo'lsagina
-  // asosiy valyutadagi ekvivalentini ko'rsatamiz (aks holda chalg'ituvchi bo'ladi).
-  const canConvert = useCallback(
-    (from: Currency): boolean =>
-      from !== baseCurrency && !!rates?.rates?.[from] && !!rates?.rates?.[baseCurrency],
-    [baseCurrency, rates]
-  );
+  const [modalVisible, setModalVisible] = useState(false);
+  const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
+  const [selectedTransaction, setSelectedTransaction] = useState<MappedTransaction | null>(null);
+  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
 
-  const contact = useMemo(
-    () => contacts.find((item) => item.id === contactId),
-    [contacts, contactId]
-  );
+  const { history, currencyTotals, selectedCounterparty, loading, creating, error, fetchData, createMoney } =
+    useMoney({ token: profile?.jwt });
+
+  const contact = useMemo(() => contacts.find((item) => item.id === contactId), [contacts, contactId]);
+  const avatarUri = contact ? avatars[contact.partyId || contact.id] : undefined;
 
   // Turli valyutalardagi balanslar asosiy valyutaga kurs bo'yicha jamlanadi.
   const netBalance = useMemo(
     () => netInBase(currencyTotals.credit, currencyTotals.debt, baseCurrency, rates),
-    [currencyTotals, baseCurrency, rates]
+    [currencyTotals, baseCurrency, rates],
   );
 
-  // Biznes kontekstida MEMBER (USER) faqat ko'rishi mumkin -> yozish tugmalari yashiriladi.
+  // Biznes kontekstida MEMBER faqat ko'rishi mumkin — yozish tugmalari yashiriladi.
   const allowWrite = canWrite(workspace.activeBusinessRole);
 
-  // Biznes ishtirok etgan tranzaksiyada: biznesdagi qaysi xodim (personal account) qilgan.
+  // Tranzaksiya valyutasi asosiydan farq qilsa va kurs mavjud bo'lsagina ekvivalentni ko'rsatamiz.
+  const convertedTextFor = useCallback(
+    (amount: number, currency: Currency): string | null => {
+      const canConvert = currency !== baseCurrency && !!rates?.rates?.[currency] && !!rates?.rates?.[baseCurrency];
+      return canConvert ? formatMoney(convert(amount, currency), baseCurrency) : null;
+    },
+    [baseCurrency, rates, convert],
+  );
+
+  const mappedHistory = useMemo(
+    () =>
+      history.map((item) =>
+        mapTransaction(
+          item,
+          {
+            partyType:
+              workspace.mode === 'business' && workspace.activeBusinessId ? 'BUSINESS_ACCOUNT' : 'PROFILE',
+            partyId: workspace.mode === 'business' ? workspace.activeBusinessId || '' : profile?.id || '',
+          },
+          selectedCounterparty || undefined,
+        ),
+      ),
+    [history, profile?.id, selectedCounterparty, workspace.activeBusinessId, workspace.mode],
+  );
+
+  // Biznes ishtirok etgan tranzaksiyada amalni bajargan xodim telefoni.
   const performerPhone = useMemo(() => {
     if (!selectedTransaction) return '';
     const businessInvolved = Boolean(
-      selectedTransaction.creditorBusinessId || selectedTransaction.debtorBusinessId
+      selectedTransaction.creditorBusinessId || selectedTransaction.debtorBusinessId,
     );
     if (!businessInvolved) return '';
     return (
@@ -89,17 +114,6 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
     );
   }, [selectedTransaction]);
 
-  const mappedHistory = useMemo(
-    () =>
-      history.map((item) =>
-        mapTransaction(item, {
-          partyType: workspace.mode === 'business' && workspace.activeBusinessId ? 'BUSINESS_ACCOUNT' : 'PROFILE',
-          partyId: workspace.mode === 'business' ? workspace.activeBusinessId || '' : profile?.id || '',
-        }, selectedCounterparty || undefined)
-      ),
-    [history, profile?.id, selectedCounterparty, workspace.activeBusinessId, workspace.mode]
-  );
-
   const loadScreenData = useCallback(async () => {
     if (!contact?.partyType) return;
     await fetchData({
@@ -107,39 +121,36 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
       partyId: contact.partyId,
       phoneFallback: contact.partyType === 'PROFILE' ? contact.phone : undefined,
     });
-  }, [contact?.partyId, contact?.partyType, contact?.phone, fetchData, workspace.activeBusinessId, workspace.mode]);
+  }, [contact?.partyId, contact?.partyType, contact?.phone, fetchData]);
 
   useFocusEffect(
     useCallback(() => {
       loadScreenData();
-    }, [loadScreenData])
+    }, [loadScreenData]),
   );
 
-  const openModal = (type: MoneyActionType) => {
+  const handleCreate = useCallback(
+    async (payload: MoneyActionPayload) => {
+      if (!contact) return;
+      const ok = await createMoney(actionType, {
+        ...payload,
+        targetPartyType: contact.partyType,
+        targetPartyId: contact.partyId,
+        targetPhone: contact.partyType === 'PROFILE' ? contact.phone : undefined,
+      });
+      if (ok) setModalVisible(false);
+    },
+    [contact, createMoney, actionType],
+  );
+
+  const openModal = useCallback((type: MoneyActionType) => {
     setActionType(type);
     setModalVisible(true);
-  };
+  }, []);
 
-  const handleCreate = async (payload: {
-    amount: number;
-    currency: Currency;
-    targetPartyType: PartyType;
-    targetPartyId?: string;
-    description: string;
-    fromAccountType: AccountType;
-    toAccountType: AccountType;
-    moneyFlowType: MoneyFlowType;
-    targetBusinessProfileId?: string;
-  }) => {
-    if (!contact) return;
-    const ok = await createMoney(actionType, {
-      ...payload,
-      targetPartyType: contact.partyType,
-      targetPartyId: contact.partyId,
-      targetPhone: contact.partyType === 'PROFILE' ? contact.phone : undefined,
-    });
-    if (ok) setModalVisible(false);
-  };
+  const handleAvatarPress = useCallback(() => {
+    if (avatarUri) setAvatarPreviewVisible(true);
+  }, [avatarUri]);
 
   if (!contact) {
     return (
@@ -149,102 +160,53 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
     );
   }
 
+  const isEmpty = mappedHistory.length === 0;
+
   return (
     <View style={styles.container}>
-      <View style={styles.fixedHeader}>
-        <View style={styles.topBar}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                const uri = avatars[contact.partyId || contact.id];
-                if (uri) setAvatarPreviewVisible(true);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={t('contact.changePhoto')}
-            >
-              <UserAvatar uri={avatars[contact.partyId || contact.id]} size={52} />
-            </TouchableOpacity>
-            <View style={styles.balanceHeaderInfo}>
-              <Text style={styles.contactName} numberOfLines={1}>{contact.fullName}</Text>
-              <Text style={styles.contactPhone} numberOfLines={1}>{contact.phone}</Text>
-            </View>
-          </View>
-          <Text style={styles.balanceLabel}>{t('contact.currentBalance')}</Text>
-          <Text style={[styles.balanceValue, netBalance >= 0 ? styles.balancePositive : styles.balanceNegative]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
-            {formatMoney(netBalance, baseCurrency)}
-          </Text>
-        </View>
-      </View>
+      <ContactBalanceHeader
+        contact={contact}
+        netBalance={netBalance}
+        currency={baseCurrency}
+        avatarUri={avatarUri}
+        onBack={navigation.goBack}
+        onAvatarPress={handleAvatarPress}
+      />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadScreenData} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={loadScreenData} tintColor={colors.primary} />
+        }
       >
         {error ? (
-          <TouchableOpacity style={styles.errorBox} onPress={loadScreenData}>
+          <Pressable style={styles.errorBox} onPress={loadScreenData}>
             <Text style={styles.errorText}>{error}</Text>
             <Text style={styles.retryText}>{t('common.retry')}</Text>
-          </TouchableOpacity>
+          </Pressable>
         ) : null}
 
         <View style={styles.listCard}>
-          {loading && mappedHistory.length === 0 ? (
+          {loading && isEmpty ? (
             <SkeletonCardList count={4} containerStyle={styles.listSkeleton} />
-          ) : mappedHistory.length === 0 ? (
+          ) : isEmpty ? (
             <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
           ) : (
             mappedHistory.map((item, index) => (
               <FadeInView
                 key={item.id}
-                delay={Math.min(index * 50, 380)}
+                delay={Math.min(index * ROW_STAGGER_MS, ROW_STAGGER_CAP_MS)}
                 duration={300}
                 fromY={10}
               >
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => setSelectedTransaction(item)}
-                style={[styles.txRow, index !== mappedHistory.length - 1 && styles.txBorder]}
-              >
-                <View style={styles.txLeft}>
-                  <View style={[styles.txIconWrap, item.kind === 'credit' ? styles.txIconCredit : styles.txIconDebt]}>
-                    <Ionicons
-                      name={item.kind === 'credit' ? 'arrow-up-outline' : 'arrow-down-outline'}
-                      size={14}
-                      color={item.kind === 'credit' ? colors.positive : colors.negative}
-                    />
-                  </View>
-                  <Text style={styles.txDate}>{formatDateShort(item.createdDate)}</Text>
-                </View>
-                <View style={styles.txLabelWrap}>
-                  <Text style={styles.txLabel} numberOfLines={2}>
-                    {item.description?.trim() || item.label}
-                  </Text>
-                  {item.description?.trim() ? (
-                    <Text style={styles.txLabelSub}>{item.label}</Text>
-                  ) : null}
-                </View>
-                <View style={styles.txAmountWrap}>
-                  <View style={[styles.txAmountPill, { backgroundColor: item.kind === 'credit' ? colors.positiveSoft : colors.negativeSoft }]}>
-                    <Text style={[styles.txAmount, item.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative]}>
-                      {formatMoney(item.amount, normalizeCurrency(item.currency))}
-                    </Text>
-                  </View>
-                  {canConvert(normalizeCurrency(item.currency)) ? (
-                    <Text style={styles.txConverted}>
-                      ≈ {formatMoney(convert(item.amount, normalizeCurrency(item.currency)), baseCurrency)}
-                    </Text>
-                  ) : null}
-                </View>
-              </TouchableOpacity>
+                <TransactionRow
+                  tx={item}
+                  isLast={index === mappedHistory.length - 1}
+                  convertedText={convertedTextFor(item.amount, normalizeCurrency(item.currency))}
+                  onPress={setSelectedTransaction}
+                />
               </FadeInView>
             ))
           )}
@@ -253,16 +215,15 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
 
       {allowWrite ? (
         <View style={styles.bottomActions}>
-          <PrimaryButton
+          <Button
             title={t('contact.took')}
-            variant="primary"
             onPress={() => openModal('TAKE')}
-            style={[styles.actionBtn, styles.takeActionBtn]}
+            style={[styles.actionBtn, styles.takeBtn]}
           />
-          <PrimaryButton
+          <Button
             title={t('contact.gave')}
             onPress={() => openModal('GIVE')}
-            style={[styles.actionBtn, styles.giveActionBtn]}
+            style={[styles.actionBtn, styles.giveBtn]}
           />
         </View>
       ) : (
@@ -276,7 +237,6 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         fixedCounterpartyId={contact.partyId}
         fixedCounterpartyType={contact.partyType}
         ownerAccountType={accountType}
-        token={profile?.jwt}
         onClose={() => setModalVisible(false)}
         onSubmit={handleCreate}
       />
@@ -287,460 +247,125 @@ const ContactDetailScreen: React.FC<any> = ({ route, navigation }) => {
         animationType="fade"
         onRequestClose={() => setAvatarPreviewVisible(false)}
       >
-        <TouchableOpacity
-          style={styles.avatarPreviewBackdrop}
-          activeOpacity={1}
-          onPress={() => setAvatarPreviewVisible(false)}
-        >
-          {avatars[contact.partyId || contact.id] ? (
-            <Image
-              source={{ uri: avatars[contact.partyId || contact.id] }}
-              style={styles.avatarPreviewImage}
-              resizeMode="contain"
-            />
+        <Pressable style={styles.avatarPreviewBackdrop} onPress={() => setAvatarPreviewVisible(false)}>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarPreviewImage} resizeMode="contain" />
           ) : null}
-        </TouchableOpacity>
+        </Pressable>
       </Modal>
 
-      <Modal
-        visible={Boolean(selectedTransaction)}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSelectedTransaction(null)}
-      >
-        <View style={styles.detailBackdrop}>
-          <View style={styles.detailCard}>
-            <View style={styles.detailHeader}>
-              <Text style={styles.detailTitle}>{t('contact.txDetail')}</Text>
-              <TouchableOpacity style={styles.detailCloseBtn} onPress={() => setSelectedTransaction(null)}>
-                <Ionicons name="close" size={18} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('contact.type')}</Text>
-              <Text
-                style={[
-                  styles.detailValue,
-                  selectedTransaction?.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative,
-                ]}
-              >
-                {selectedTransaction?.kind === 'credit' ? t('contact.creditGiven') : t('contact.debtTaken')}
-              </Text>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('contact.amount')}</Text>
-              <View style={styles.detailAmountWrap}>
-                <Text
-                  style={[
-                    styles.detailValue,
-                    selectedTransaction?.kind === 'credit' ? styles.txAmountPositive : styles.txAmountNegative,
-                  ]}
-                >
-                  {selectedTransaction ? formatMoney(selectedTransaction.amount, normalizeCurrency(selectedTransaction.currency)) : '--'}
-                </Text>
-                {selectedTransaction && canConvert(normalizeCurrency(selectedTransaction.currency)) ? (
-                  <Text style={styles.detailConverted}>
-                    ≈ {formatMoney(convert(selectedTransaction.amount, normalizeCurrency(selectedTransaction.currency)), baseCurrency)}
-                  </Text>
-                ) : null}
-              </View>
-            </View>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('contact.date')}</Text>
-              <Text style={styles.detailValueMuted}>
-                {selectedTransaction ? formatDateLong(selectedTransaction.createdDate) : '--'}
-              </Text>
-            </View>
-
-            {performerPhone ? (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t('contact.employee')}</Text>
-                <Text style={styles.detailValueMuted}>{formatPhoneDisplay(performerPhone)}</Text>
-              </View>
-            ) : null}
-
-            <View style={styles.detailDescriptionBox}>
-              <Text style={styles.detailLabel}>{t('contact.comment')}</Text>
-              <Text style={styles.detailDescription}>
-                {selectedTransaction?.description?.trim() || t('contact.noComment')}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <TransactionDetailModal
+        tx={selectedTransaction}
+        performerPhone={performerPhone}
+        convertedText={
+          selectedTransaction
+            ? convertedTextFor(selectedTransaction.amount, normalizeCurrency(selectedTransaction.currency))
+            : null
+        }
+        onClose={() => setSelectedTransaction(null)}
+      />
     </View>
   );
 };
 
-function mapTransaction(
-  item: MoneyResponseDTO,
-  owner: { partyType: PartyType; partyId: string },
-  counterparty?: { id: string; partyType: PartyType }
-) {
-  let isCredit = false;
-  let isDebt = false;
-
-  if (owner.partyType === 'BUSINESS_ACCOUNT') {
-    isCredit = (item.creditorType === 'BUSINESS_ACCOUNT' || !!item.creditorBusinessId) && item.creditorBusinessId === owner.partyId;
-    isDebt = (item.debtorType === 'BUSINESS_ACCOUNT' || !!item.debtorBusinessId) && item.debtorBusinessId === owner.partyId;
-  } else {
-    isCredit = (!item.creditorType || item.creditorType === 'PROFILE') && item.creditorId === owner.partyId;
-    isDebt = (!item.debtorType || item.debtorType === 'PROFILE') && item.debtorId === owner.partyId;
-  }
-
-  if (!isCredit && !isDebt && counterparty?.id) {
-    if (counterparty.partyType === 'BUSINESS_ACCOUNT') {
-      if (item.debtorBusinessId === counterparty.id) isCredit = true;
-      if (item.creditorBusinessId === counterparty.id) isDebt = true;
-    } else {
-      if (item.debtorId === counterparty.id) isCredit = true;
-      if (item.creditorId === counterparty.id) isDebt = true;
-    }
-  }
-
-  return {
-    ...item,
-    kind: isCredit ? 'credit' as const : 'debt' as const,
-    label: isCredit ? translate('contact.creditGiven') : translate('contact.debtTaken'),
-  };
-}
-
-function formatDateShort(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-}
-
-function formatDateLong(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString();
-}
-
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  fixedHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 16,
-  },
-  topBar: {
-    marginBottom: 10,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  balanceCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.14,
-    shadowRadius: 22,
-    elevation: 8,
-  },
-  balanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
-  },
-  balanceHeaderInfo: {
-    flex: 1,
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  avatarImg: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.surfaceMuted,
-  },
-  contactName: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    color: colors.textPrimary,
-  },
-  contactPhone: {
-    marginTop: 3,
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  balanceLabel: {
-    marginTop: 14,
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  balanceValue: {
-    marginTop: 6,
-    fontSize: 36,
-    fontWeight: '800',
-    letterSpacing: -1,
-  },
-  balancePositive: {
-    color: colors.positive,
-  },
-  balanceNegative: {
-    color: colors.negative,
-  },
-  errorBox: {
-    borderWidth: 1,
-    borderColor: colors.danger,
-    backgroundColor: colors.dangerMuted,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12,
-  },
-  errorText: {
-    color: colors.negative,
-    fontSize: 13,
-  },
-  retryText: {
-    color: colors.primary,
-    marginTop: 4,
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  listCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    paddingVertical: 4,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 6,
-    overflow: 'hidden',
-  },
-  listSkeleton: {
-    padding: 12,
-  },
-  txRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
-  txBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  txLeft: {
-    width: 120,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  txIconWrap: {
-    width: 24,
-    height: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  txIconCredit: {
-    backgroundColor: colors.primarySoft,
-  },
-  txIconDebt: {
-    backgroundColor: colors.dangerMuted,
-  },
-  txDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  txLabelWrap: {
-    flex: 1,
-  },
-  txLabel: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  txLabelSub: {
-    marginTop: 2,
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  txAmountWrap: {
-    alignItems: 'flex-end',
-    gap: 3,
-  },
-  txAmountPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
-  txConverted: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  txAmount: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  txAmountPositive: {
-    color: colors.positive,
-  },
-  txAmountNegative: {
-    color: colors.negative,
-  },
-  bottomActions: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
-    backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  actionBtn: {
-    flex: 1,
-  },
-  takeActionBtn: {
-    backgroundColor: colors.danger,
-    borderColor: colors.danger,
-    borderWidth: 0,
-  },
-  giveActionBtn: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-    borderWidth: 0,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: colors.textSecondary,
-    paddingVertical: 22,
-  },
-  readOnlyNote: {
-    textAlign: 'center',
-    color: colors.textSecondary,
-    fontSize: 13,
-    marginTop: 16,
-    paddingVertical: 12,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-  },
-  avatarPreviewBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarPreviewImage: {
-    width: '90%',
-    height: '70%',
-    borderRadius: 16,
-  },
-  detailBackdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    padding: 16,
-  },
-  detailCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-  },
-  detailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  detailTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  detailCloseBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceMuted,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  detailLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  detailAmountWrap: {
-    alignItems: 'flex-end',
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  detailConverted: {
-    marginTop: 2,
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  detailValueMuted: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textPrimary,
-  },
-  detailDescriptionBox: {
-    marginTop: 6,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: colors.surfaceMuted,
-  },
-  detailDescription: {
-    marginTop: 4,
-    fontSize: 14,
-    color: colors.textPrimary,
-    lineHeight: 20,
-  },
-});
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xxs,
+      paddingBottom: spacing.md,
+    },
+    errorBox: {
+      borderWidth: 1,
+      borderColor: colors.danger,
+      backgroundColor: colors.dangerMuted,
+      borderRadius: radius.sm,
+      padding: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    errorText: {
+      ...typography.caption,
+      fontSize: 13,
+      color: colors.negative,
+    },
+    retryText: {
+      ...typography.caption,
+      marginTop: spacing.xxs,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    listCard: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.xl,
+      paddingVertical: spacing.xxs,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.12,
+      shadowRadius: 20,
+      elevation: 6,
+      overflow: 'hidden',
+    },
+    listSkeleton: {
+      padding: spacing.sm,
+    },
+    emptyText: {
+      ...typography.body,
+      textAlign: 'center',
+      color: colors.textSecondary,
+      paddingVertical: spacing.lg,
+    },
+    bottomActions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.md,
+      backgroundColor: colors.background,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    actionBtn: {
+      flex: 1,
+    },
+    takeBtn: {
+      backgroundColor: colors.danger,
+      borderWidth: 0,
+    },
+    giveBtn: {
+      backgroundColor: colors.primary,
+      borderWidth: 0,
+    },
+    readOnlyNote: {
+      ...typography.bodySmall,
+      textAlign: 'center',
+      color: colors.textSecondary,
+      marginTop: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    centered: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.background,
+    },
+    avatarPreviewBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.85)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarPreviewImage: {
+      width: '90%',
+      height: '70%',
+      borderRadius: radius.lg,
+    },
+  });
 
 export default ContactDetailScreen;

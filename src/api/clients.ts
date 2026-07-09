@@ -1,5 +1,5 @@
+// Mijozlar (clients) resurs API'si — CRUD + filter. HTTP transport uchun ./apiClient'ga qarang.
 import apiClient, { ApiClientError } from './apiClient';
-
 import { AccountType, PartyType } from '../types/money';
 
 // Token har bir so'rovga aniq biriktiriladi (global default'ga tayanmaymiz).

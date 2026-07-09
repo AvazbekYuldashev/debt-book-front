@@ -1,205 +1,190 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Input from '../atoms/Input';
+import Button from '../atoms/Button';
+import ChipSelector, { ChipOption } from '../form/ChipSelector';
+import PartyTypeSelector from '../form/PartyTypeSelector';
+import BusinessMemberPicker from './BusinessMemberPicker';
 import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import AppTextInput from '../form/AppTextInput';
-import PrimaryButton from '../ui/PrimaryButton';
-import { AccountType, ACCOUNT_TYPE, Currency, CURRENCIES, MoneyActionType, MoneyFlowType, MONEY_FLOW_TYPE, PartyType } from '../../types/money';
+  AccountType,
+  CURRENCIES,
+  Currency,
+  MoneyActionType,
+  MoneyFlowType,
+  PartyType,
+} from '../../types/money';
+import { accountTypeFromParty, flowForAccounts } from '../../application/usecases/resolveMoneyFlow';
 import { CURRENCY_LABEL, CURRENCY_SYMBOL } from '../../utils/currency';
+import { formatAmountInput, parseAmountInput } from '../../utils/money';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useAppTheme } from '../../theme';
-import { ColorTokens } from '../../theme/colors';
-import { getSelectableBusinessMembers } from '../../services/businessService';
-import { BusinessProfileDTO } from '../../types/business';
+import type { ThemeValue } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
-import PartyTypeSelector from '../form/PartyTypeSelector';
 
-interface ContactOption {
-  id: string;
-  label: string;
+export interface MoneyActionPayload {
+  amount: number;
+  currency: Currency;
+  targetPartyType: PartyType;
+  targetPartyId?: string;
+  description: string;
+  fromAccountType: AccountType;
+  toAccountType: AccountType;
+  moneyFlowType: MoneyFlowType;
+  targetBusinessProfileId?: string;
 }
-
-// Kiritilgan summani "100 000" ko'rinishida (har 3 raqamda bo'sh joy) formatlaydi.
-const formatAmountInput = (raw: string): string => {
-  const digits = raw.replace(/\D/g, '');
-  if (!digits) return '';
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-};
 
 interface MoneyActionModalProps {
   visible: boolean;
   actionType: MoneyActionType;
   loading?: boolean;
-  contacts?: ContactOption[];
+  /** Berilsa counterparty qat'iy — qo'lda kiritish bloklari yashiriladi. */
   fixedCounterpartyId?: string;
   fixedCounterpartyType?: PartyType;
   ownerAccountType: AccountType;
-  token?: string;
   onClose: () => void;
-  onSubmit: (payload: {
-    amount: number;
-    currency: Currency;
-    targetPartyType: PartyType;
-    targetPartyId?: string;
-    description: string;
-    fromAccountType: AccountType;
-    toAccountType: AccountType;
-    moneyFlowType: MoneyFlowType;
-    targetBusinessProfileId?: string;
-  }) => Promise<void>;
+  onSubmit: (payload: MoneyActionPayload) => Promise<void>;
 }
 
+/**
+ * Pul berish/olish modali. Forma holati, validatsiya va flow hisob-kitobi shu
+ * yerda; a'zolarni yuklash BusinessMemberPicker'ga, domen mantiq
+ * resolveMoneyFlow use-case'iga ajratilgan.
+ */
 const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   visible,
   actionType,
   loading = false,
-  contacts = [],
   fixedCounterpartyId,
   fixedCounterpartyType,
   ownerAccountType,
-  token,
   onClose,
   onSubmit,
 }) => {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
   const { baseCurrency } = useCurrency();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>(baseCurrency);
   const [counterpartyId, setCounterpartyId] = useState('');
   const [targetType, setTargetType] = useState<PartyType>('PROFILE');
   const [description, setDescription] = useState('');
-  const [error, setError] = useState('');
-  const [members, setMembers] = useState<BusinessProfileDTO[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState('');
-  const [membersLoading, setMembersLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const effectiveType = fixedCounterpartyType || targetType;
-  const businessIdForMembers =
-    effectiveType === 'BUSINESS_ACCOUNT' ? (fixedCounterpartyId || counterpartyId).trim() : '';
-
-  // Counterparty business bo'lsa, o'sha biznes a'zolarini yuklab tanlash imkonini beramiz.
+  // Har ochilishda toza forma — yopilish yo'lidan (bekor/hardware back/muvaffaqiyat)
+  // qat'i nazar eski qiymatlar qolib ketmaydi.
   useEffect(() => {
-    let cancelled = false;
-    if (!visible || !businessIdForMembers) {
-      setMembers([]);
-      setSelectedMemberId('');
-      return;
-    }
-    setMembersLoading(true);
-    getSelectableBusinessMembers(businessIdForMembers, token)
-      .then((list) => {
-        if (!cancelled) setMembers(list);
-      })
-      .catch(() => {
-        if (!cancelled) setMembers([]);
-      })
-      .finally(() => {
-        if (!cancelled) setMembersLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [visible, businessIdForMembers, token]);
-
-  const labels = useMemo(
-    () =>
-      actionType === 'GIVE'
-        ? {
-            title: t('money.give'),
-            idLabel: t('money.giveReceiverId'),
-            save: t('money.give'),
-          }
-        : {
-            title: t('money.take'),
-            idLabel: t('money.takeGiverId'),
-            save: t('money.take'),
-          },
-    [actionType, t]
-  );
-
-  const targetAccountType = (fixedCounterpartyType || targetType) === 'BUSINESS_ACCOUNT'
-    ? ACCOUNT_TYPE.BUSINESS
-    : ACCOUNT_TYPE.PERSONAL;
-
-  // Modal ochilganda valyuta joriy asosiy valyutaga tenglashtiriladi.
-  useEffect(() => {
-    if (visible) setCurrency(baseCurrency);
-  }, [visible, baseCurrency]);
-
-  const resetState = () => {
+    if (!visible) return;
     setAmount('');
     setCurrency(baseCurrency);
     setCounterpartyId('');
     setTargetType('PROFILE');
     setDescription('');
-    setError('');
     setSelectedMemberId('');
-    setMembers([]);
-  };
+    setError('');
+  }, [visible, baseCurrency]);
 
-  const handleClose = () => {
-    resetState();
-    onClose();
-  };
+  const effectiveType = fixedCounterpartyType ?? targetType;
+  const effectiveCounterpartyId = (fixedCounterpartyId ?? counterpartyId).trim();
+  const businessIdForMembers = effectiveType === 'BUSINESS_ACCOUNT' ? effectiveCounterpartyId : '';
 
-  const handleSubmit = async () => {
-    const parsedAmount = Number(amount.replace(/\s/g, '').replace(',', '.'));
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+  const title = actionType === 'GIVE' ? t('money.give') : t('money.take');
+  const manualIdLabel =
+    effectiveType === 'BUSINESS_ACCOUNT'
+      ? t('money.targetBusinessId')
+      : actionType === 'GIVE'
+        ? t('money.giveReceiverId')
+        : t('money.takeGiverId');
+
+  const currencyOptions = useMemo<ChipOption<Currency>[]>(
+    () =>
+      CURRENCIES.map((code) => ({
+        value: code,
+        label: `${CURRENCY_LABEL[code]} (${CURRENCY_SYMBOL[code]})`,
+      })),
+    [],
+  );
+
+  // Real-time feedback: foydalanuvchi maydonni o'zgartirishi bilan eski xato yo'qoladi.
+  const handleAmountChange = useCallback((value: string) => {
+    setError('');
+    setAmount(formatAmountInput(value));
+  }, []);
+  const handleCurrencyChange = useCallback((value: Currency) => {
+    setError('');
+    setCurrency(value);
+  }, []);
+  const handleTargetTypeChange = useCallback((value: PartyType) => {
+    setError('');
+    setTargetType(value);
+  }, []);
+  const handleCounterpartyIdChange = useCallback((value: string) => {
+    setError('');
+    setCounterpartyId(value);
+  }, []);
+  const handleMemberSelect = useCallback((value: string) => {
+    setError('');
+    setSelectedMemberId(value);
+  }, []);
+  const handleDescriptionChange = useCallback((value: string) => {
+    setError('');
+    setDescription(value);
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
+    const parsedAmount = parseAmountInput(amount);
+    if (parsedAmount === null) {
       setError(t('money.amountInvalid'));
       return;
     }
-    const targetCounterpartyId = fixedCounterpartyId || counterpartyId.trim();
-    if (!targetCounterpartyId) {
-      setError((fixedCounterpartyType || targetType) === 'BUSINESS_ACCOUNT' ? t('money.targetBusinessRequired') : t('money.counterpartyRequired'));
+    if (!effectiveCounterpartyId) {
+      setError(
+        effectiveType === 'BUSINESS_ACCOUNT' ? t('money.targetBusinessRequired') : t('money.counterpartyRequired'),
+      );
       return;
     }
-
-    // Counterparty business bo'lsa — pul kimga (qaysi xodimga) berilgani MAJBURIY.
     if (effectiveType === 'BUSINESS_ACCOUNT' && !selectedMemberId) {
       setError(t('money.selectMember'));
       return;
     }
 
     setError('');
-    await onSubmit({
-      amount: parsedAmount,
-      currency,
-      targetPartyType: fixedCounterpartyType || targetType,
-      targetPartyId: targetCounterpartyId,
-      targetBusinessProfileId: selectedMemberId || undefined,
-      description: description.trim(),
-      fromAccountType: actionType === 'GIVE' ? ownerAccountType : targetAccountType,
-      toAccountType: actionType === 'GIVE' ? targetAccountType : ownerAccountType,
-      moneyFlowType:
-        actionType === 'GIVE'
-          ? ownerAccountType === ACCOUNT_TYPE.BUSINESS && targetAccountType === ACCOUNT_TYPE.PERSONAL
-            ? MONEY_FLOW_TYPE.BUSINESS_TO_PERSONAL
-            : ownerAccountType === ACCOUNT_TYPE.PERSONAL && targetAccountType === ACCOUNT_TYPE.BUSINESS
-              ? MONEY_FLOW_TYPE.PERSONAL_TO_BUSINESS
-              : ownerAccountType === ACCOUNT_TYPE.BUSINESS
-                ? MONEY_FLOW_TYPE.BUSINESS_TO_BUSINESS
-                : MONEY_FLOW_TYPE.PERSONAL_TO_PERSONAL
-          : targetAccountType === ACCOUNT_TYPE.BUSINESS && ownerAccountType === ACCOUNT_TYPE.PERSONAL
-            ? MONEY_FLOW_TYPE.BUSINESS_TO_PERSONAL
-            : targetAccountType === ACCOUNT_TYPE.PERSONAL && ownerAccountType === ACCOUNT_TYPE.BUSINESS
-              ? MONEY_FLOW_TYPE.PERSONAL_TO_BUSINESS
-              : targetAccountType === ACCOUNT_TYPE.BUSINESS
-                ? MONEY_FLOW_TYPE.BUSINESS_TO_BUSINESS
-                : MONEY_FLOW_TYPE.PERSONAL_TO_PERSONAL,
-    });
-  };
+    const targetAccountType = accountTypeFromParty(effectiveType);
+    const [fromAccountType, toAccountType] =
+      actionType === 'GIVE' ? [ownerAccountType, targetAccountType] : [targetAccountType, ownerAccountType];
+
+    try {
+      await onSubmit({
+        amount: parsedAmount,
+        currency,
+        targetPartyType: effectiveType,
+        targetPartyId: effectiveCounterpartyId,
+        targetBusinessProfileId: selectedMemberId || undefined,
+        description: description.trim(),
+        fromAccountType,
+        toAccountType,
+        moneyFlowType: flowForAccounts(fromAccountType, toAccountType),
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('debts.saveFailed'));
+    }
+  }, [
+    amount,
+    effectiveCounterpartyId,
+    effectiveType,
+    selectedMemberId,
+    actionType,
+    ownerAccountType,
+    currency,
+    description,
+    onSubmit,
+    t,
+  ]);
 
   return (
-    <Modal transparent visible={visible} animationType="slide" onRequestClose={handleClose}>
+    <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.backdrop}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -209,100 +194,74 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.modal}>
-            <Text style={styles.title}>{labels.title}</Text>
-          <AppTextInput
-            label={t('money.amount')}
-            value={amount}
-            keyboardType="number-pad"
-            onChangeText={(value) => setAmount(formatAmountInput(value))}
-            placeholder="100 000"
-          />
-          <Text style={styles.currencyLabel}>{t('money.currency')}</Text>
-          <View style={styles.currencyRow}>
-            {CURRENCIES.map((cur) => (
-              <TouchableOpacity
-                key={cur}
-                style={[styles.currencyChip, currency === cur ? styles.currencyChipActive : null]}
-                onPress={() => setCurrency(cur)}
-              >
-                <Text style={[styles.currencyChipText, currency === cur ? styles.currencyChipTextActive : null]}>
-                  {CURRENCY_LABEL[cur]} ({CURRENCY_SYMBOL[cur]})
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {!fixedCounterpartyId ? (
-            <PartyTypeSelector
-              value={targetType}
-              onChange={setTargetType}
-              profileLabel={t('money.profile')}
-              businessLabel={t('money.business')}
+          <View style={styles.card}>
+            <Text style={styles.title} accessibilityRole="header">
+              {title}
+            </Text>
+
+            <Input
+              label={t('money.amount')}
+              value={amount}
+              keyboardType="number-pad"
+              onChangeText={handleAmountChange}
+              placeholder="100 000"
             />
-          ) : null}
-          {!fixedCounterpartyId ? (
-            <AppTextInput
-              label={targetType === 'BUSINESS_ACCOUNT' ? t('money.targetBusinessId') : labels.idLabel}
-              value={counterpartyId}
-              onChangeText={setCounterpartyId}
-              placeholder={targetType === 'BUSINESS_ACCOUNT' ? 'business-id' : 'profile-id'}
+
+            <ChipSelector
+              options={currencyOptions}
+              value={currency}
+              onChange={handleCurrencyChange}
+              label={t('money.currency')}
+              layout="fluid"
+              style={styles.field}
             />
-          ) : null}
-          {!fixedCounterpartyId && contacts.length > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.contactRow}>
-              {contacts.map((contact) => (
-                <TouchableOpacity
-                  key={contact.id}
-                  style={[
-                    styles.contactChip,
-                    counterpartyId === contact.id ? styles.contactChipActive : null,
-                  ]}
-                  onPress={() => setCounterpartyId(contact.id)}
-                >
-                  <Text style={styles.contactChipText}>{contact.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          ) : null}
-          {effectiveType === 'BUSINESS_ACCOUNT' && businessIdForMembers ? (
-            <View style={styles.memberWrap}>
-              <Text style={styles.memberLabel}>{t('money.memberLabel')}</Text>
-              {membersLoading ? (
-                <Text style={styles.memberHint}>{t('common.loading')}</Text>
-              ) : members.length === 0 ? (
-                <Text style={styles.memberHint}>{t('money.membersEmpty')}</Text>
-              ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.contactRow}>
-                  {members.map((m) => (
-                    <TouchableOpacity
-                      key={m.profileId}
-                      style={[styles.contactChip, selectedMemberId === m.profileId ? styles.contactChipActive : null]}
-                      onPress={() =>
-                        setSelectedMemberId((prev) => (prev === m.profileId ? '' : m.profileId))
-                      }
-                    >
-                      <Text style={styles.contactChipText}>
-                        {m.profileName || m.profileUsername || m.phoneNumber || '--'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
+
+            {!fixedCounterpartyId ? (
+              <>
+                <PartyTypeSelector
+                  value={targetType}
+                  onChange={handleTargetTypeChange}
+                  profileLabel={t('money.profile')}
+                  businessLabel={t('money.business')}
+                />
+                <Input
+                  label={manualIdLabel}
+                  value={counterpartyId}
+                  onChangeText={handleCounterpartyIdChange}
+                  placeholder={effectiveType === 'BUSINESS_ACCOUNT' ? 'business-id' : 'profile-id'}
+                  autoCapitalize="none"
+                />
+              </>
+            ) : null}
+
+            {businessIdForMembers ? (
+              <BusinessMemberPicker
+                businessId={businessIdForMembers}
+                enabled={visible}
+                selectedId={selectedMemberId}
+                onSelect={handleMemberSelect}
+              />
+            ) : null}
+
+            <Input
+              label={t('money.comment')}
+              value={description}
+              onChangeText={handleDescriptionChange}
+              placeholder={t('money.commentPlaceholder')}
+              multiline
+              numberOfLines={3}
+            />
+
+            {error ? (
+              <Text style={styles.error} accessibilityLiveRegion="polite">
+                {error}
+              </Text>
+            ) : null}
+
+            <View style={styles.actions}>
+              <Button title={t('common.cancel')} variant="secondary" onPress={onClose} style={styles.actionBtn} />
+              <Button title={title} onPress={handleSubmit} loading={loading} style={styles.actionBtn} />
             </View>
-          ) : null}
-          <AppTextInput
-            label={t('money.comment')}
-            value={description}
-            onChangeText={setDescription}
-            placeholder={t('money.commentPlaceholder')}
-            multiline
-            numberOfLines={3}
-          />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <View style={styles.actions}>
-            <PrimaryButton title={t('common.cancel')} variant="secondary" onPress={handleClose} style={styles.actionBtn} />
-            <PrimaryButton title={labels.save} onPress={handleSubmit} loading={loading} style={styles.actionBtn} />
-          </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -310,135 +269,46 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   );
 };
 
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-  },
-  scrollContent: {
-    flexGrow: 1,
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+    },
     // Modal yuqoriroqda ochilsin — telefon klaviaturasi maydonlarni to'smasligi uchun.
-    justifyContent: 'flex-start',
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 24,
-  },
-  modal: {
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    padding: 16,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 12,
-  },
-  contactRow: {
-    gap: 8,
-    paddingBottom: 8,
-  },
-  currencyLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 6,
-  },
-  currencyRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  currencyChip: {
-    flex: 1,
-    minHeight: 36,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  currencyChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  currencyChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  currencyChipTextActive: {
-    color: colors.primary,
-  },
-  contactChip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  contactChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  contactChipText: {
-    fontSize: 12,
-    color: colors.textPrimary,
-  },
-  memberWrap: {
-    marginBottom: 8,
-  },
-  memberLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 6,
-  },
-  memberHint: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  error: {
-    marginTop: 6,
-    marginBottom: 8,
-    color: colors.danger,
-    fontSize: 12,
-  },
-  targetTypeWrap: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  targetChip: {
-    flex: 1,
-    minHeight: 34,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  targetChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  targetChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  targetChipTextActive: {
-    color: colors.primary,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionBtn: {
-    flex: 1,
-  },
-});
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: 'flex-start',
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+    },
+    title: {
+      ...typography.heading2,
+      fontSize: 18,
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    field: {
+      marginBottom: spacing.sm,
+    },
+    error: {
+      ...typography.caption,
+      color: colors.danger,
+      marginBottom: spacing.xs,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: spacing.xs,
+    },
+    actionBtn: {
+      flex: 1,
+    },
+  });
 
 export default MoneyActionModal;

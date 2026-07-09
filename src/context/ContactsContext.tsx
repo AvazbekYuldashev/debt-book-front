@@ -1,6 +1,6 @@
 import React, { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClientDTO, ClientFilterDTO, createClient, deleteClient, filterClients, getMyClients, updateClient } from '../api/client';
+import { ClientDTO, ClientFilterDTO, createClient, deleteClient, filterClients, getMyClients, updateClient } from '../api/clients';
 import { AuthContext } from './AuthContext';
 import { WorkspaceContext } from './WorkspaceContext';
 import { ACCOUNT_TYPE, PartyType } from '../types/money';
@@ -25,7 +25,7 @@ export interface Contact {
   interestAmount: number;
 }
 
-interface ContactFormInput {
+export interface ContactFormInput {
   name: string;
   targetType: PartyType;
   phone?: string;
@@ -220,7 +220,9 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const contactsQuery = useQuery<Contact[]>({
     queryKey: ['contacts', accountKey],
     enabled: Boolean(profile?.jwt) && isWorkspaceReady,
-    staleTime: 30_000,
+    staleTime: 15_000,
+    // Real-time'ga yaqin: yangi mijozlar/o'zgarishlar fonda avtomatik ko'rinadi.
+    refetchInterval: 20_000,
     retry: 1,
     refetchOnWindowFocus: false,
     queryFn: async () => {
@@ -230,7 +232,9 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
   });
 
   const contacts = contactsQuery.data ?? [];
-  const loading = contactsQuery.isLoading || contactsQuery.isRefetching;
+  // Faqat birinchi yuklovda skeleton ko'rsatamiz. Fon (polling/refetch) uchun
+  // isRefetching'ni QO'SHMAYMIZ — aks holda har 20s'da skeleton miltillaydi.
+  const loading = contactsQuery.isLoading;
   const queryErrorMsg = contactsQuery.isError
     ? contactsQuery.error instanceof Error
       ? contactsQuery.error.message

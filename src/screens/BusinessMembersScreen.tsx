@@ -1,17 +1,7 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
-import {
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import PrimaryButton from '../components/ui/PrimaryButton';
 import BusinessMembersTable from '../components/business/BusinessMembersTable';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import { AuthContext } from '../context/AuthContext';
@@ -24,54 +14,58 @@ import {
   updateBusinessMemberRole,
 } from '../services/businessService';
 import { BusinessMemberRole, BusinessProfileDTO } from '../types/business';
-import { normalizePhone, sanitizeLocalPhone, LOCAL_PHONE_DIGITS } from '../utils/phone';
+import { normalizePhone } from '../utils/phone';
 import { canManageMembers, isBusinessOwner } from '../utils/permissions';
 import { confirmAction } from '../utils/confirm';
 import { useI18n } from '../i18n';
 import { useAppTheme } from '../theme';
-import { ColorTokens } from '../theme/colors';
+import type { ThemeValue } from '../theme/ThemeProvider';
+import type { ProfileScreenProps } from '../navigation/types';
+import { ROUTES } from '../navigation/routes';
+import AddMemberModal, { AddMemberResult } from './businesses/AddMemberModal';
 
-const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
+type Props = ProfileScreenProps<typeof ROUTES.BUSINESS_MEMBERS>;
+
+const BusinessMembersScreen: React.FC<Props> = ({ route }) => {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
-  const routeBusinessId = String(route.params?.businessId || '');
-  const routeBusinessName = String(route.params?.businessName || '');
-  const businessId = routeBusinessId || workspace.activeBusinessId || '';
-  const businessName = routeBusinessName || workspace.activeBusinessName || 'Business';
+
+  const businessId = route.params?.businessId || workspace.activeBusinessId || '';
+  const businessName = route.params?.businessName || workspace.activeBusinessName || 'Business';
+
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [members, setMembers] = useState<BusinessProfileDTO[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<BusinessMemberRole>('MEMBER');
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState('');
-  const [phoneBlocked, setPhoneBlocked] = useState(false);
   const [busyMemberId, setBusyMemberId] = useState('');
 
   const canLoad = useMemo(() => Boolean(profile?.jwt && businessId), [profile?.jwt, businessId]);
-  const phoneValid = phone.length === LOCAL_PHONE_DIGITS;
 
-  const loadMembers = useCallback(async (showSpinner = true) => {
-    if (!profile?.jwt || !businessId) {
-      setMembers([]);
-      return;
-    }
-    if (showSpinner) setLoading(true);
-    setError('');
-    try {
-      const result = await getBusinessMembers(businessId, profile.jwt);
-      setMembers(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('members.loadFailed'));
-    } finally {
-      if (showSpinner) setLoading(false);
-    }
-  }, [businessId, profile?.jwt]);
+  const loadMembers = useCallback(
+    async (showSpinner = true) => {
+      if (!profile?.jwt || !businessId) {
+        setMembers([]);
+        return;
+      }
+      if (showSpinner) setLoading(true);
+      setError('');
+      try {
+        const result = await getBusinessMembers(businessId, profile.jwt);
+        setMembers(result);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : t('members.loadFailed'));
+      } finally {
+        if (showSpinner) setLoading(false);
+      }
+    },
+    [businessId, profile?.jwt, t]
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -85,7 +79,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
     setRefreshing(false);
   }, [loadMembers]);
 
-  // Faqat OWNER: a'zoning rolini o'zgartirish (ADMIN <-> MEMBER)
+  // Faqat OWNER: a'zoning rolini o'zgartirish (ADMIN <-> MEMBER).
   const handleToggleRole = useCallback(
     async (member: BusinessProfileDTO, nextRole: BusinessMemberRole) => {
       if (!profile?.jwt || !businessId) return;
@@ -100,10 +94,10 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
         setBusyMemberId('');
       }
     },
-    [businessId, profile?.jwt, loadMembers]
+    [businessId, profile?.jwt, loadMembers, t]
   );
 
-  // Faqat OWNER: a'zoni biznesdan o'chirish
+  // Faqat OWNER: a'zoni biznesdan o'chirish.
   const handleRemoveMember = useCallback(
     (member: BusinessProfileDTO) => {
       if (!profile?.jwt || !businessId) return;
@@ -121,73 +115,49 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
         }
       });
     },
-    [businessId, profile?.jwt, loadMembers]
+    [businessId, profile?.jwt, loadMembers, t]
   );
 
-  const closeModal = () => {
-    if (saving) return;
-    setModalVisible(false);
-    setPhone('');
-    setRole('MEMBER');
-    setFormError('');
-    setPhoneBlocked(false);
-  };
+  const submitMember = useCallback(
+    async (phone: string, role: BusinessMemberRole): Promise<AddMemberResult> => {
+      if (!profile?.jwt) return { ok: false, message: t('business.noToken') };
+      if (!businessId) return { ok: false, message: t('members.noBusiness') };
 
-  const onPhoneChange = (value: string) => {
-    setPhone(sanitizeLocalPhone(value));
-    if (phoneBlocked) setPhoneBlocked(false);
-    if (formError) setFormError('');
-  };
-
-  const submitMember = async () => {
-    if (!profile?.jwt) {
-      setFormError(t('business.noToken'));
-      return;
-    }
-    if (!businessId) {
-      setFormError(t('members.noBusiness'));
-      return;
-    }
-    if (!phoneValid) {
-      setFormError(t('members.phone9'));
-      return;
-    }
-
-    setSaving(true);
-    setFormError('');
-    try {
-      await addBusinessMember(
-        { businessId, phoneNumber: normalizePhone(phone), role },
-        profile.jwt
-      );
-      closeModal();
-      await loadMembers(false);
-    } catch (e) {
-      if (e instanceof AddBusinessMemberError) {
-        setFormError(e.message);
-        setPhoneBlocked(
-          e.code === 'PHONE_NOT_REGISTERED' ||
-            e.code === 'PHONE_NOT_VERIFIED' ||
-            e.code === 'ALREADY_MEMBER'
-        );
-      } else {
-        setFormError(e instanceof Error ? e.message : t('members.addFailed'));
+      setSaving(true);
+      setError('');
+      try {
+        await addBusinessMember({ businessId, phoneNumber: normalizePhone(phone), role }, profile.jwt);
+        await loadMembers(false);
+        return { ok: true };
+      } catch (e) {
+        if (e instanceof AddBusinessMemberError) {
+          return {
+            ok: false,
+            message: e.message,
+            blocked:
+              e.code === 'PHONE_NOT_REGISTERED' ||
+              e.code === 'PHONE_NOT_VERIFIED' ||
+              e.code === 'ALREADY_MEMBER',
+          };
+        }
+        return { ok: false, message: e instanceof Error ? e.message : t('members.addFailed') };
+      } finally {
+        setSaving(false);
       }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const submitDisabled = saving || !phoneValid || phoneBlocked;
+    },
+    [profile?.jwt, businessId, loadMembers, t]
+  );
 
   return (
     <View style={styles.container}>
-      <View style={styles.fixedHeader}>
+      <View style={styles.header}>
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <View style={styles.titleWrap}>
             <Text style={styles.title}>{t('members.title')}</Text>
-            <Text style={styles.subtitle}>{businessName}</Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {businessName}
+            </Text>
           </View>
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -196,7 +166,7 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         <BusinessMembersTable
           members={members}
@@ -209,211 +179,94 @@ const BusinessMembersScreen: React.FC<{ route: any }> = ({ route }) => {
       </ScrollView>
 
       {canManageMembers(workspace.activeBusinessRole) ? (
-        <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)} disabled={!canLoad} activeOpacity={0.85}>
-          <Ionicons name="add" size={30} color="#fff" />
-        </TouchableOpacity>
+        <Pressable
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed, !canLoad && styles.fabDisabled]}
+          onPress={() => setModalVisible(true)}
+          disabled={!canLoad}
+          accessibilityRole="button"
+          accessibilityLabel={t('members.add')}
+        >
+          <Ionicons name="add" size={30} color={colors.textOnPrimary} />
+        </Pressable>
       ) : null}
 
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={closeModal}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('members.add')}</Text>
-
-            <Text style={styles.fieldLabel}>{t('members.phone')}</Text>
-            <View style={styles.phoneInputRow}>
-              <Text style={styles.phonePrefix}>+998</Text>
-              <TextInput
-                style={styles.phoneInput}
-                placeholder="90 123 45 67"
-                placeholderTextColor={colors.textSecondary}
-                value={phone}
-                onChangeText={onPhoneChange}
-                keyboardType="number-pad"
-                editable={!saving}
-              />
-            </View>
-
-            <Text style={styles.roleLabel}>{t('members.role')}</Text>
-            <View style={styles.roleRow}>
-              <TouchableOpacity
-                style={[styles.roleBtn, role === 'ADMIN' ? styles.roleBtnActive : null]}
-                onPress={() => setRole('ADMIN')}
-              >
-                <Text style={[styles.roleBtnText, role === 'ADMIN' ? styles.roleBtnTextActive : null]}>ADMIN</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.roleBtn, role === 'MEMBER' ? styles.roleBtnActive : null]}
-                onPress={() => setRole('MEMBER')}
-              >
-                <Text style={[styles.roleBtnText, role === 'MEMBER' ? styles.roleBtnTextActive : null]}>MEMBER</Text>
-              </TouchableOpacity>
-            </View>
-
-            {formError ? <Text style={styles.formError}>{formError}</Text> : null}
-
-            <View style={styles.modalActions}>
-              <PrimaryButton title={t('common.cancel')} variant="secondary" onPress={closeModal} style={styles.actionBtn} />
-              <PrimaryButton
-                title={t('common.save')}
-                onPress={submitMember}
-                loading={saving}
-                disabled={submitDisabled}
-                style={styles.actionBtn}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <AddMemberModal
+        visible={modalVisible}
+        saving={saving}
+        onClose={() => setModalVisible(false)}
+        onSubmit={submitMember}
+      />
     </View>
   );
 };
 
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  fixedHeader: {
-    backgroundColor: colors.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 96,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  titleWrap: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    marginTop: 2,
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  fab: {
-    position: 'absolute',
-    right: 18,
-    bottom: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  error: {
-    color: colors.danger,
-    fontSize: 12,
-    marginBottom: 8,
-    paddingHorizontal: 16,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  modalCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 10,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 6,
-  },
-  phoneInputRow: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.outline,
-    marginBottom: 10,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  phonePrefix: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginRight: 8,
-    fontWeight: '600',
-  },
-  phoneInput: {
-    flex: 1,
-    paddingVertical: 10,
-    color: colors.textPrimary,
-    fontSize: 14,
-  },
-  roleLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 6,
-  },
-  roleRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  roleBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.outline,
-    borderRadius: 8,
-    minHeight: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  roleBtnActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  roleBtnText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  roleBtnTextActive: {
-    color: colors.primaryPressed,
-  },
-  formError: {
-    color: colors.danger,
-    fontSize: 12,
-    marginBottom: 10,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionBtn: {
-    flex: 1,
-  },
-});
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      backgroundColor: colors.background,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.xs,
+      gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+    },
+    titleWrap: {
+      flex: 1,
+    },
+    title: {
+      ...typography.heading2,
+      fontSize: 22,
+      color: colors.textPrimary,
+    },
+    subtitle: {
+      ...typography.caption,
+      marginTop: spacing.xxs / 2,
+      color: colors.textSecondary,
+    },
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      padding: spacing.md,
+      paddingBottom: 96,
+    },
+    error: {
+      ...typography.caption,
+      color: colors.danger,
+      marginBottom: spacing.xs,
+      paddingHorizontal: spacing.md,
+    },
+    fab: {
+      position: 'absolute',
+      right: spacing.md + 2,
+      bottom: spacing.lg,
+      width: 60,
+      height: 60,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    fabPressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.96 }],
+    },
+    fabDisabled: {
+      opacity: 0.5,
+    },
+  });
 
 export default BusinessMembersScreen;

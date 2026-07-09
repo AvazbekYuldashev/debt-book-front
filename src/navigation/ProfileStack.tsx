@@ -4,9 +4,10 @@ import ProfileScreen from '../screens/ProfileScreen';
 import MyBusinessesScreen from '../screens/MyBusinessesScreen';
 import BusinessMembersScreen from '../screens/BusinessMembersScreen';
 import { ROUTES } from './routes';
+import type { ProfileStackParamList } from './types';
 import { withFadeInScreen } from './withFadeInScreen';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
 const ProfileScreenWithFade = withFadeInScreen(ProfileScreen);
 const MyBusinessesScreenWithFade = withFadeInScreen(MyBusinessesScreen);

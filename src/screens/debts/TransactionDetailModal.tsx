@@ -1,0 +1,171 @@
+import React, { useMemo } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '../../theme';
+import type { ThemeValue } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
+import { formatMoney } from '../../utils/money';
+import { normalizeCurrency } from '../../utils/currency';
+import { formatPhoneDisplay } from '../../utils/phone';
+import { formatDateLong, MappedTransaction } from './transactionMapping';
+
+interface TransactionDetailModalProps {
+  tx: MappedTransaction | null;
+  // Biznes tranzaksiyasida amalni bajargan xodim telefoni (bo'lmasa bo'sh).
+  performerPhone: string;
+  // Asosiy valyutadagi ekvivalent (boshqa valyuta bo'lsa) — aks holda null.
+  convertedText: string | null;
+  onClose: () => void;
+}
+
+/**
+ * Tanlangan tranzaksiyaning to'liq tafsilotlari (tur, summa, sana, xodim, izoh).
+ */
+const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
+  tx,
+  performerPhone,
+  convertedText,
+  onClose,
+}) => {
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const { t } = useI18n();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const isCredit = tx?.kind === 'credit';
+  const amountColor = isCredit ? colors.positive : colors.negative;
+
+  return (
+    <Modal visible={Boolean(tx)} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <Text style={styles.title}>{t('contact.txDetail')}</Text>
+            <Pressable
+              style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.cancel')}
+              hitSlop={6}
+            >
+              <Ionicons name="close" size={18} color={colors.textPrimary} />
+            </Pressable>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>{t('contact.type')}</Text>
+            <Text style={[styles.value, { color: amountColor }]}>
+              {isCredit ? t('contact.creditGiven') : t('contact.debtTaken')}
+            </Text>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>{t('contact.amount')}</Text>
+            <View style={styles.amountWrap}>
+              <Text style={[styles.value, { color: amountColor }]}>
+                {tx ? formatMoney(tx.amount, normalizeCurrency(tx.currency)) : '--'}
+              </Text>
+              {convertedText ? <Text style={styles.converted}>≈ {convertedText}</Text> : null}
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.label}>{t('contact.date')}</Text>
+            <Text style={styles.valueMuted}>{tx ? formatDateLong(tx.createdDate) : '--'}</Text>
+          </View>
+
+          {performerPhone ? (
+            <View style={styles.row}>
+              <Text style={styles.label}>{t('contact.employee')}</Text>
+              <Text style={styles.valueMuted}>{formatPhoneDisplay(performerPhone)}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.descriptionBox}>
+            <Text style={styles.label}>{t('contact.comment')}</Text>
+            <Text style={styles.description}>{tx?.description?.trim() || t('contact.noComment')}</Text>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      padding: spacing.md,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.sm,
+    },
+    title: {
+      ...typography.heading2,
+      fontSize: 18,
+      color: colors.textPrimary,
+    },
+    closeBtn: {
+      width: 28,
+      height: 28,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceMuted,
+    },
+    pressed: {
+      opacity: 0.6,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.xs,
+    },
+    label: {
+      ...typography.bodySmall,
+      color: colors.textSecondary,
+    },
+    amountWrap: {
+      alignItems: 'flex-end',
+    },
+    value: {
+      ...typography.bodySmall,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    converted: {
+      ...typography.caption,
+      marginTop: spacing.xxs / 2,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    valueMuted: {
+      ...typography.bodySmall,
+      fontWeight: '500',
+      color: colors.textPrimary,
+    },
+    descriptionBox: {
+      marginTop: spacing.xxs,
+      padding: spacing.sm,
+      borderRadius: radius.md,
+      backgroundColor: colors.surfaceMuted,
+    },
+    description: {
+      ...typography.bodySmall,
+      marginTop: spacing.xxs,
+      color: colors.textPrimary,
+    },
+  });
+
+export default TransactionDetailModal;

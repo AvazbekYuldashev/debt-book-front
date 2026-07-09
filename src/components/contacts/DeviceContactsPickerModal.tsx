@@ -3,22 +3,23 @@ import {
   ActivityIndicator,
   FlatList,
   Modal,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../../i18n';
 import { useAppTheme } from '../../theme';
-import { ColorTokens } from '../../theme/colors';
-import { getPhoneValidationError, formatPhoneDisplay } from '../../utils/phone';
+import type { ThemeValue } from '../../theme/ThemeProvider';
+import { getPhoneValidationError } from '../../utils/phone';
 import {
   DeviceContact,
   ContactsPermissionError,
   loadDeviceContacts,
 } from '../../utils/deviceContacts';
+import DeviceContactRow from './DeviceContactRow';
 
 interface Props {
   visible: boolean;
@@ -31,10 +32,12 @@ interface Props {
 
 type LoadError = 'permission' | 'generic' | null;
 
+/** Telefon kontaktlaridan ko'plab mijoz tanlab qo'shish bottom-sheet'i. */
 const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existingPhones, onSubmit }) => {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<LoadError>(null);
@@ -61,6 +64,7 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
     }
   }, []);
 
+  // Har ochilishda toza holat + kontaktlarni qayta o'qish.
   useEffect(() => {
     if (!visible) return;
     setSearch('');
@@ -95,13 +99,9 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
 
   const toggleAll = useCallback(() => {
     setSelected((prev) => {
-      if (allSelected) {
-        const next = new Set(prev);
-        selectableFiltered.forEach((c) => next.delete(c.id));
-        return next;
-      }
       const next = new Set(prev);
-      selectableFiltered.forEach((c) => next.add(c.id));
+      if (allSelected) selectableFiltered.forEach((c) => next.delete(c.id));
+      else selectableFiltered.forEach((c) => next.add(c.id));
       return next;
     });
   }, [allSelected, selectableFiltered]);
@@ -123,33 +123,16 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
   const selectedCount = selected.size;
 
   const renderItem = useCallback(
-    ({ item }: { item: DeviceContact }) => {
-      const added = isAdded(item);
-      const valid = isValid(item);
-      const checked = selected.has(item.id);
-      const disabled = added || !valid;
-      return (
-        <TouchableOpacity
-          style={[styles.row, disabled && styles.rowDisabled]}
-          activeOpacity={disabled ? 1 : 0.7}
-          onPress={() => toggle(item)}
-        >
-          <View style={[styles.checkbox, checked && styles.checkboxChecked, disabled && styles.checkboxDisabled]}>
-            {checked ? <Ionicons name="checkmark" size={14} color={colors.textOnPrimary} /> : null}
-          </View>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
-            <Text style={styles.rowPhone} numberOfLines={1}>{formatPhoneDisplay(item.phone) || item.rawPhone}</Text>
-          </View>
-          {added ? (
-            <Text style={styles.badgeAdded}>{t('contactPicker.alreadyAdded')}</Text>
-          ) : !valid ? (
-            <Text style={styles.badgeInvalid}>{t('contactPicker.invalidPhone')}</Text>
-          ) : null}
-        </TouchableOpacity>
-      );
-    },
-    [colors.textOnPrimary, isAdded, isValid, selected, styles, t, toggle]
+    ({ item }: { item: DeviceContact }) => (
+      <DeviceContactRow
+        contact={item}
+        checked={selected.has(item.id)}
+        added={isAdded(item)}
+        valid={isValid(item)}
+        onToggle={toggle}
+      />
+    ),
+    [selected, isAdded, isValid, toggle]
   );
 
   return (
@@ -157,10 +140,18 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.title}>{t('contactPicker.title')}</Text>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+            <Text style={styles.title} accessibilityRole="header">
+              {t('contactPicker.title')}
+            </Text>
+            <Pressable
+              style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.cancel')}
+              hitSlop={6}
+            >
               <Ionicons name="close" size={20} color={colors.textPrimary} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {loading ? (
@@ -168,20 +159,22 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
               <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.centeredText}>{t('contactPicker.loading')}</Text>
             </View>
-          ) : loadError === 'permission' ? (
+          ) : loadError ? (
             <View style={styles.centered}>
-              <Ionicons name="lock-closed-outline" size={28} color={colors.textSecondary} />
-              <Text style={styles.centeredText}>{t('contactPicker.permissionDenied')}</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={load}>
+              {loadError === 'permission' ? (
+                <Ionicons name="lock-closed-outline" size={28} color={colors.textSecondary} />
+              ) : null}
+              <Text style={styles.centeredText}>
+                {loadError === 'permission' ? t('contactPicker.permissionDenied') : t('contactPicker.loadError')}
+              </Text>
+              <Pressable
+                style={({ pressed }) => [styles.retryBtn, pressed && styles.pressed]}
+                onPress={load}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.retry')}
+              >
                 <Text style={styles.retryText}>{t('common.retry')}</Text>
-              </TouchableOpacity>
-            </View>
-          ) : loadError === 'generic' ? (
-            <View style={styles.centered}>
-              <Text style={styles.centeredText}>{t('contactPicker.loadError')}</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={load}>
-                <Text style={styles.retryText}>{t('common.retry')}</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           ) : (
             <>
@@ -193,19 +186,25 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
                   onChangeText={setSearch}
                   placeholder={t('contactPicker.search')}
                   placeholderTextColor={colors.textSecondary}
+                  accessibilityLabel={t('contactPicker.search')}
                 />
               </View>
 
               {selectableFiltered.length > 0 ? (
-                <TouchableOpacity style={styles.selectAllRow} onPress={toggleAll}>
+                <Pressable
+                  style={({ pressed }) => [styles.selectAllRow, pressed && styles.pressed]}
+                  onPress={toggleAll}
+                  accessibilityRole="button"
+                  accessibilityLabel={allSelected ? t('contactPicker.deselectAll') : t('contactPicker.selectAll')}
+                >
                   <Text style={styles.selectAllText}>
                     {allSelected ? t('contactPicker.deselectAll') : t('contactPicker.selectAll')}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               ) : null}
 
               {result ? (
-                <Text style={styles.resultText}>
+                <Text style={styles.resultText} accessibilityLiveRegion="polite">
                   {t('contactPicker.result', { added: result.added, failed: result.failed })}
                 </Text>
               ) : null}
@@ -220,19 +219,27 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
                 initialNumToRender={20}
               />
 
-              <TouchableOpacity
-                style={[styles.addBtn, (selectedCount === 0 || adding) && styles.addBtnDisabled]}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.addBtn,
+                  (selectedCount === 0 || adding) && styles.addBtnDisabled,
+                  pressed && selectedCount > 0 && !adding && styles.addBtnPressed,
+                ]}
                 onPress={handleSubmit}
                 disabled={selectedCount === 0 || adding}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: selectedCount === 0 || adding, busy: adding }}
+                accessibilityLabel={t('contactPicker.add')}
               >
                 {adding ? (
                   <ActivityIndicator size="small" color={colors.textOnPrimary} />
                 ) : (
                   <Text style={styles.addBtnText}>
-                    {t('contactPicker.add')}{selectedCount > 0 ? ` (${selectedCount})` : ''}
+                    {t('contactPicker.add')}
+                    {selectedCount > 0 ? ` (${selectedCount})` : ''}
                   </Text>
                 )}
-              </TouchableOpacity>
+              </Pressable>
             </>
           )}
         </View>
@@ -241,7 +248,7 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
   );
 };
 
-const createStyles = (colors: ColorTokens) =>
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
@@ -250,152 +257,105 @@ const createStyles = (colors: ColorTokens) =>
     },
     sheet: {
       backgroundColor: colors.background,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      paddingHorizontal: 16,
-      paddingTop: 12,
-      paddingBottom: 16,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.md,
       maxHeight: '85%',
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 12,
+      marginBottom: spacing.sm,
     },
     title: {
+      ...typography.heading2,
       fontSize: 18,
-      fontWeight: '700',
       color: colors.textPrimary,
     },
     closeBtn: {
       width: 32,
       height: 32,
-      borderRadius: 10,
+      borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.surfaceMuted,
     },
+    pressed: {
+      opacity: 0.7,
+    },
     centered: {
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 48,
-      gap: 10,
+      paddingVertical: spacing.xxl + spacing.xs,
+      gap: spacing.xs,
     },
     centeredText: {
+      ...typography.bodySmall,
       color: colors.textSecondary,
-      fontSize: 14,
       textAlign: 'center',
     },
     retryBtn: {
-      marginTop: 6,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 10,
+      marginTop: spacing.xxs,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.sm,
       backgroundColor: colors.primarySoft,
     },
     retryText: {
-      color: colors.primary,
-      fontWeight: '700',
+      ...typography.button,
       fontSize: 13,
+      color: colors.primary,
     },
     searchWrap: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: spacing.xs,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: 10,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
       backgroundColor: colors.surface,
-      marginBottom: 8,
+      marginBottom: spacing.xs,
     },
     searchInput: {
-      flex: 1,
+      ...typography.bodySmall,
       fontSize: 15,
+      flex: 1,
       color: colors.textPrimary,
       padding: 0,
     },
     selectAllRow: {
       alignSelf: 'flex-end',
-      paddingVertical: 6,
-      paddingHorizontal: 4,
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.xxs,
     },
     selectAllText: {
-      color: colors.primary,
-      fontWeight: '700',
+      ...typography.button,
       fontSize: 13,
+      color: colors.primary,
     },
     resultText: {
+      ...typography.label,
       color: colors.textSecondary,
-      fontSize: 13,
-      fontWeight: '600',
-      paddingVertical: 6,
+      paddingVertical: spacing.xxs,
     },
     list: {
       flexGrow: 0,
     },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      paddingVertical: 12,
-      paddingHorizontal: 4,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    rowDisabled: {
-      opacity: 0.5,
-    },
-    checkbox: {
-      width: 22,
-      height: 22,
-      borderRadius: 6,
-      borderWidth: 2,
-      borderColor: colors.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    checkboxChecked: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    checkboxDisabled: {
-      borderColor: colors.border,
-    },
-    rowInfo: {
-      flex: 1,
-    },
-    rowName: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.textPrimary,
-    },
-    rowPhone: {
-      marginTop: 2,
-      fontSize: 13,
-      color: colors.textSecondary,
-    },
-    badgeAdded: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.positive,
-    },
-    badgeInvalid: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.negative,
-    },
     emptyText: {
+      ...typography.bodySmall,
       textAlign: 'center',
       color: colors.textSecondary,
-      paddingVertical: 28,
+      paddingVertical: spacing.lg,
     },
     addBtn: {
-      marginTop: 12,
+      marginTop: spacing.sm,
       height: 50,
-      borderRadius: 12,
+      borderRadius: radius.md,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primary,
@@ -403,10 +363,12 @@ const createStyles = (colors: ColorTokens) =>
     addBtnDisabled: {
       opacity: 0.5,
     },
+    addBtnPressed: {
+      backgroundColor: colors.primaryPressed,
+    },
     addBtnText: {
+      ...typography.button,
       color: colors.textOnPrimary,
-      fontWeight: '700',
-      fontSize: 15,
     },
   });
 

@@ -3,9 +3,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ExpensesScreen from '../screens/ExpensesScreen';
 import ExpenseCategoryDetailScreen from '../screens/ExpenseCategoryDetailScreen';
 import { ROUTES } from './routes';
+import type { ExpensesStackParamList } from './types';
 import { withFadeInScreen } from './withFadeInScreen';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<ExpensesStackParamList>();
 const ExpensesScreenWithFade = withFadeInScreen(ExpensesScreen);
 const ExpenseCategoryDetailScreenWithFade = withFadeInScreen(ExpenseCategoryDetailScreen);
 

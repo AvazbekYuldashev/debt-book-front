@@ -1,4 +1,4 @@
-import { flowFor, accountTypeFromParty } from '../resolveMoneyFlow';
+import { flowFor, flowForAccounts, accountTypeFromParty } from '../resolveMoneyFlow';
 import { ACCOUNT_TYPE, MONEY_FLOW_TYPE } from '../../../types/money';
 
 describe('flowFor', () => {
@@ -13,6 +13,21 @@ describe('flowFor', () => {
   });
   it('PROFILE -> PROFILE (default)', () => {
     expect(flowFor('PROFILE', 'PROFILE')).toBe(MONEY_FLOW_TYPE.PERSONAL_TO_PERSONAL);
+  });
+});
+
+describe('flowForAccounts', () => {
+  it('business -> personal', () => {
+    expect(flowForAccounts(ACCOUNT_TYPE.BUSINESS, ACCOUNT_TYPE.PERSONAL)).toBe(MONEY_FLOW_TYPE.BUSINESS_TO_PERSONAL);
+  });
+  it('personal -> business', () => {
+    expect(flowForAccounts(ACCOUNT_TYPE.PERSONAL, ACCOUNT_TYPE.BUSINESS)).toBe(MONEY_FLOW_TYPE.PERSONAL_TO_BUSINESS);
+  });
+  it('business -> business', () => {
+    expect(flowForAccounts(ACCOUNT_TYPE.BUSINESS, ACCOUNT_TYPE.BUSINESS)).toBe(MONEY_FLOW_TYPE.BUSINESS_TO_BUSINESS);
+  });
+  it('personal -> personal (default)', () => {
+    expect(flowForAccounts(ACCOUNT_TYPE.PERSONAL, ACCOUNT_TYPE.PERSONAL)).toBe(MONEY_FLOW_TYPE.PERSONAL_TO_PERSONAL);
   });
 });
 

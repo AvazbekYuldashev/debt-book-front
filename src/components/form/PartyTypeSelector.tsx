@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { StyleProp, ViewStyle } from 'react-native';
+import ChipSelector from './ChipSelector';
 import { useAppTheme } from '../../theme';
-import { ColorTokens } from '../../theme/colors';
 import { PartyType } from '../../types/money';
 
 interface Props {
@@ -9,62 +9,32 @@ interface Props {
   onChange: (next: PartyType) => void;
   profileLabel: string;
   businessLabel: string;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
  * PROFILE / BUSINESS_ACCOUNT tanlash uchun qayta ishlatiladigan ikki-chip selektor.
- * DebtListScreen va MoneyActionModal'da bir xil ishlatiladi (DRY).
+ * DebtListScreen, ContactFormModal va MoneyActionModal'da bir xil ishlatiladi (DRY).
  */
 const PartyTypeSelector: React.FC<Props> = ({ value, onChange, profileLabel, businessLabel, style }) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { spacing } = useAppTheme();
+  const options = useMemo(
+    () => [
+      { value: 'PROFILE' as const, label: profileLabel },
+      { value: 'BUSINESS_ACCOUNT' as const, label: businessLabel },
+    ],
+    [profileLabel, businessLabel],
+  );
+
   return (
-  <View style={[styles.wrap, style]}>
-    <TouchableOpacity
-      style={[styles.chip, value === 'PROFILE' && styles.chipActive]}
-      onPress={() => onChange('PROFILE')}
-    >
-      <Text style={[styles.chipText, value === 'PROFILE' && styles.chipTextActive]}>{profileLabel}</Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      style={[styles.chip, value === 'BUSINESS_ACCOUNT' && styles.chipActive]}
-      onPress={() => onChange('BUSINESS_ACCOUNT')}
-    >
-      <Text style={[styles.chipText, value === 'BUSINESS_ACCOUNT' && styles.chipTextActive]}>{businessLabel}</Text>
-    </TouchableOpacity>
-  </View>
+    <ChipSelector
+      options={options}
+      value={value}
+      onChange={onChange}
+      layout="fluid"
+      style={[{ marginBottom: spacing.sm }, style]}
+    />
   );
 };
-
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  chip: {
-    flex: 1,
-    minHeight: 34,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  chipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  chipTextActive: {
-    color: colors.primary,
-  },
-});
 
 export default PartyTypeSelector;

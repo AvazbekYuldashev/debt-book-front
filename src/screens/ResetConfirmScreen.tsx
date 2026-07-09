@@ -6,8 +6,9 @@ import AuthShell from '../components/auth/AuthShell';
 import { useAuthStyles } from '../components/auth/authStyles';
 import { useI18n } from '../i18n';
 import { useAppTheme } from '../theme';
+import type { AuthNavigation } from '../navigation/types';
 
-const ResetConfirmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+const ResetConfirmScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }) => {
   const { t } = useI18n();
   const s = useAuthStyles();
   const { colors } = useAppTheme();

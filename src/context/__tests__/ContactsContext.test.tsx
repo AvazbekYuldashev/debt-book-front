@@ -2,7 +2,7 @@ import React, { ReactNode, useContext } from 'react';
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-jest.mock('../../api/client', () => ({
+jest.mock('../../api/clients', () => ({
   getMyClients: jest.fn(),
   createClient: jest.fn(),
   updateClient: jest.fn(),
@@ -10,7 +10,7 @@ jest.mock('../../api/client', () => ({
   filterClients: jest.fn(),
 }));
 
-import { getMyClients, createClient } from '../../api/client';
+import { getMyClients, createClient } from '../../api/clients';
 import { ContactsContext, ContactsProvider } from '../ContactsContext';
 import { AuthContext } from '../AuthContext';
 import { WorkspaceContext } from '../WorkspaceContext';
@@ -32,8 +32,15 @@ const wsValue = {
   clearWorkspace: jest.fn(),
 } as any;
 
+// Yaratilgan QueryClient'lar test oxirida tozalanadi — aks holda cacheTime GC
+// timerlari jest worker'ini ushlab turadi ("worker failed to exit" ogohlantirishi).
+const activeQueryClients: QueryClient[] = [];
+
 const createWrapper = () => {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, cacheTime: 0 } },
+  });
+  activeQueryClients.push(queryClient);
   return ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       <AuthContext.Provider value={authValue}>
@@ -47,6 +54,11 @@ const createWrapper = () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+});
+
+afterEach(() => {
+  activeQueryClients.forEach((client) => client.clear());
+  activeQueryClients.length = 0;
 });
 
 describe('ContactsContext (xulq kontrakti)', () => {

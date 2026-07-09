@@ -7,8 +7,9 @@ import AuthShell from '../components/auth/AuthShell';
 import { useAuthStyles } from '../components/auth/authStyles';
 import { useI18n } from '../i18n';
 import { useAppTheme } from '../theme';
+import type { AuthNavigation } from '../navigation/types';
 
-const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+const LoginScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }) => {
   const { t } = useI18n();
   const s = useAuthStyles();
   const { colors } = useAppTheme();
@@ -89,7 +90,7 @@ const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       {error ? <Text style={s.errorText}>{error}</Text> : null}
 
       <TouchableOpacity style={s.button} onPress={handleLogin} disabled={loading} activeOpacity={0.9}>
-        {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.buttonText}>{t('login.submit')}</Text>}
+        {loading ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={s.buttonText}>{t('login.submit')}</Text>}
       </TouchableOpacity>
 
       <View style={s.footerRow}>
