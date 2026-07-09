@@ -28,6 +28,7 @@ import type { DebtsNavigation } from '../navigation/types';
 import { netInBase } from '../utils/currency';
 import { canWrite } from '../utils/permissions';
 import { normalizePhone } from '../utils/phone';
+import { primeNotificationAudio, requestNotificationPermission } from '../utils/webNotify';
 import type { DeviceContact } from '../utils/deviceContacts';
 import { useI18n } from '../i18n';
 import BalanceSummary from './debts/BalanceSummary';
@@ -236,10 +237,19 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   }, []);
 
   const openCreate = useCallback(() => {
+    // Foydalanuvchi ishorasi — bildirishnoma ovozini "ochamiz" (brauzer autoplay bloki uchun).
+    primeNotificationAudio();
+    requestNotificationPermission();
     setMode('create');
     setSelectedId('');
     setModalVisible(true);
   }, []);
+
+  const openNotifications = useCallback(() => {
+    requestNotificationPermission();
+    primeNotificationAudio();
+    navigation.navigate(ROUTES.NOTIFICATIONS);
+  }, [navigation]);
 
   const openEdit = useCallback((id: string) => {
     setMode('edit');
@@ -277,7 +287,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           <View style={styles.headerTools}>
             <Pressable
               style={({ pressed }) => [styles.bellBtn, pressed && styles.searchTogglePressed]}
-              onPress={() => navigation.navigate(ROUTES.NOTIFICATIONS)}
+              onPress={openNotifications}
               accessibilityRole="button"
               accessibilityLabel={t('notifications.title')}
             >

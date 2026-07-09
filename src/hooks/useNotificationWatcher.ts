@@ -1,13 +1,13 @@
 import { useContext, useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { AuthContext } from '../context/AuthContext';
 import { getNotifications } from '../services/notificationService';
 import { translate } from '../i18n';
-
-// Brauzer (web) Notification API mavjudligini tekshiradi.
-const isWebNotificationSupported = (): boolean =>
-  Platform.OS === 'web' && typeof window !== 'undefined' && 'Notification' in window;
+import {
+  playNotificationBeep,
+  requestNotificationPermission,
+  showBrowserNotification,
+} from '../utils/webNotify';
 
 /**
  * Yangi bildirishnomalarni kuzatadi va web'da brauzer Notification popup'i ("SMS
@@ -21,10 +21,7 @@ export function useNotificationWatcher(): void {
 
   // Ruxsat so'rash (bir marta).
   useEffect(() => {
-    if (!isWebNotificationSupported()) return;
-    if (Notification.permission === 'default') {
-      Notification.requestPermission().catch(() => undefined);
-    }
+    requestNotificationPermission();
   }, []);
 
   // Foydalanuvchi almashsa — holatni tozalaymiz.
@@ -57,26 +54,12 @@ export function useNotificationWatcher(): void {
     fresh.forEach((item) => seenRef.current.add(item.id));
     if (fresh.length === 0) return;
 
-    if (!isWebNotificationSupported() || Notification.permission !== 'granted') return;
-
+    // Ovozli signal (ilova ochiq bo'lsa kafolatlangan) + OS bildirishnomasi (ruxsat bo'lsa).
+    playNotificationBeep();
+    const title = translate('common.appName');
     // content DESC (yangi birinchi) — eskidan yangiga qarab ko'rsatamiz.
     [...fresh].reverse().forEach((item) => {
-      try {
-        const popup = new Notification(translate('common.appName'), {
-          body: item.message,
-          tag: item.id,
-        });
-        popup.onclick = () => {
-          try {
-            window.focus();
-          } catch {
-            // ignore
-          }
-          popup.close();
-        };
-      } catch {
-        // ignore
-      }
+      showBrowserNotification(title, item.message, item.id);
     });
   }, [data]);
 }
