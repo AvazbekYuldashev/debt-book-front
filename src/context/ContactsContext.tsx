@@ -1,6 +1,6 @@
 import React, { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClientDTO, ClientFilterDTO, createClient, deleteClient, filterClients, getMyClients, updateClient } from '../api/client';
+import { ClientDTO, ClientFilterDTO, createClient, deleteClient, filterClients, getMyClients, updateClient } from '../api/clients';
 import { AuthContext } from './AuthContext';
 import { WorkspaceContext } from './WorkspaceContext';
 import { ACCOUNT_TYPE, PartyType } from '../types/money';

@@ -57,7 +57,7 @@ const Input: React.FC<InputProps> = ({
         <TextInput
           style={[
             styles.input,
-            typography.BodyRegular,
+            typography.body,
             {
               borderColor,
               borderRadius: 12,
@@ -81,14 +81,14 @@ const Input: React.FC<InputProps> = ({
             style={styles.toggleButton}
             onPress={() => setIsPasswordVisible((prev) => !prev)}
           >
-            <Text style={[typography.Caption, { color: colors.primary }]}>
+            <Text style={[typography.caption, { color: colors.primary }]}>
               {isPasswordVisible ? t('common.hide') : t('common.show')}
             </Text>
           </TouchableOpacity>
         ) : null}
       </View>
       {error ? (
-        <Text style={[typography.Caption, { color: colors.danger, marginTop: spacing.xs }]}>{error}</Text>
+        <Text style={[typography.caption, { color: colors.danger, marginTop: spacing.xs }]}>{error}</Text>
       ) : null}
     </View>
   );

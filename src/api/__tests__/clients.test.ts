@@ -16,7 +16,7 @@ jest.mock('../apiClient', () => {
 });
 
 import apiClient, { ApiClientError } from '../apiClient';
-import { getMyClients, createClient } from '../client';
+import { getMyClients, createClient } from '../clients';
 
 const mockedGet = apiClient.get as jest.Mock;
 const mockedPost = apiClient.post as jest.Mock;

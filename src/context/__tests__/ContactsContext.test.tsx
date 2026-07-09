@@ -2,7 +2,7 @@ import React, { ReactNode, useContext } from 'react';
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-jest.mock('../../api/client', () => ({
+jest.mock('../../api/clients', () => ({
   getMyClients: jest.fn(),
   createClient: jest.fn(),
   updateClient: jest.fn(),
@@ -10,7 +10,7 @@ jest.mock('../../api/client', () => ({
   filterClients: jest.fn(),
 }));
 
-import { getMyClients, createClient } from '../../api/client';
+import { getMyClients, createClient } from '../../api/clients';
 import { ContactsContext, ContactsProvider } from '../ContactsContext';
 import { AuthContext } from '../AuthContext';
 import { WorkspaceContext } from '../WorkspaceContext';

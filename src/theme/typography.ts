@@ -2,11 +2,6 @@ import { TextStyle } from 'react-native';
 import { fontFamily } from './fonts';
 
 export interface TypographyTokens {
-  Heading1: TextStyle;
-  Heading2: TextStyle;
-  BodyRegular: TextStyle;
-  BodyMedium: TextStyle;
-  Caption: TextStyle;
   heading1: TextStyle;
   heading2: TextStyle;
   body: TextStyle;
@@ -17,41 +12,6 @@ export interface TypographyTokens {
 }
 
 export const typography: TypographyTokens = {
-  Heading1: {
-    fontFamily: fontFamily.bold,
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-  },
-  Heading2: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: 24,
-    lineHeight: 32,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  },
-  BodyRegular: {
-    fontFamily: fontFamily.regular,
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '400',
-    letterSpacing: 0,
-  },
-  BodyMedium: {
-    fontFamily: fontFamily.medium,
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '500',
-    letterSpacing: 0,
-  },
-  Caption: {
-    fontFamily: fontFamily.regular,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '400',
-    letterSpacing: 0.2,
-  },
   heading1: {
     fontFamily: fontFamily.bold,
     fontSize: 32,
