@@ -1,24 +1,11 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import AppTextInput from '../components/form/AppTextInput';
-import PrimaryButton from '../components/ui/PrimaryButton';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import { useAppTheme } from '../theme';
-import { ColorTokens } from '../theme/colors';
+import type { ThemeValue } from '../theme/ThemeProvider';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { CategoryResponseDTO } from '../types/category';
@@ -26,7 +13,6 @@ import { createCategory, deleteCategory, getCategories, pinCategory, updateCateg
 import { getExpenseSumByCategory } from '../services/expenseService';
 import { ROUTES } from '../navigation/routes';
 import type { ExpensesNavigation } from '../navigation/types';
-import { formatMoney } from '../utils/money';
 import { canManageCategories } from '../utils/permissions';
 import { useI18n } from '../i18n';
 import {
@@ -34,48 +20,47 @@ import {
   formatDateFromDate,
   getDefaultMonthRange,
   getCurrentWeekRange,
-  formatDateInputValue,
-  getPickerDate,
-  splitDateParts,
-  updateDatePart,
   buildDurationLabel,
 } from '../utils/date';
-import { getInitials, pickAvatarColor } from '../shared/ui/avatar';
-
-const DateTimePicker = Platform.OS !== 'web'
-  ? require('@react-native-community/datetimepicker').default
-  : null;
-
+import ExpenseTotalCard from './expenses/ExpenseTotalCard';
+import DateRangeFilter from './expenses/DateRangeFilter';
+import CategoryRow from './expenses/CategoryRow';
+import CategoryFormModal from './expenses/CategoryFormModal';
+import ConfirmDialog from './expenses/ConfirmDialog';
+import QuickFilterModal, { QuickFilterKey } from './expenses/QuickFilterModal';
 
 type CategoryMode = 'create' | 'edit';
-type QuickFilterKey = 'today' | 'currentWeek' | 'currentMonth' | 'customRange';
 
 const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigation }) => {
   const { t } = useI18n();
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
+
   const [categories, setCategories] = useState<CategoryResponseDTO[]>([]);
+  const [categorySums, setCategorySums] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<string>('');
+  const [pinningCategoryId, setPinningCategoryId] = useState<string>('');
   const [error, setError] = useState('');
+
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [categoryMode, setCategoryMode] = useState<CategoryMode>('create');
-  const [categoryName, setCategoryName] = useState('');
   const [editingCategoryId, setEditingCategoryId] = useState('');
+
   const [fromDate, setFromDate] = useState(() => getDefaultMonthRange().fromDate);
   const [endDate, setEndDate] = useState(() => getDefaultMonthRange().endDate);
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [filterError, setFilterError] = useState('');
-  const [categorySums, setCategorySums] = useState<Record<string, number>>({});
-  const [quickFilterVisible, setQuickFilterVisible] = useState(false);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [quickFilterVisible, setQuickFilterVisible] = useState(false);
+
   const [expandedCategoryActionsId, setExpandedCategoryActionsId] = useState<string | null>(null);
-  const [pinningCategoryId, setPinningCategoryId] = useState<string>('');
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<{ id: string; name: string } | null>(null);
 
@@ -129,7 +114,7 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
     } finally {
       if (showSpinner) setLoading(false);
     }
-  }, [profile?.jwt, fromDate, endDate, loadCategorySums, workspace.activeBusinessId, workspace.mode]);
+  }, [profile?.jwt, fromDate, endDate, loadCategorySums, t]);
 
   useEffect(() => {
     loadCategories(true);
@@ -151,107 +136,108 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
     setRefreshing(false);
   }, [loadCategories]);
 
-  const openCreateCategory = () => {
-    setCategoryMode('create');
-    setCategoryName('');
-    setCategoryModalVisible(true);
-  };
+  const editingName = useMemo(
+    () => categories.find((c) => c.id === editingCategoryId)?.name ?? '',
+    [categories, editingCategoryId]
+  );
 
-  const openEditCategory = (category: CategoryResponseDTO) => {
+  const openCreateCategory = useCallback(() => {
+    setCategoryMode('create');
+    setEditingCategoryId('');
+    setCategoryModalVisible(true);
+  }, []);
+
+  const openEditCategory = useCallback((category: CategoryResponseDTO) => {
     setCategoryMode('edit');
     setEditingCategoryId(category.id);
-    setCategoryName(category.name || '');
     setCategoryModalVisible(true);
-  };
+  }, []);
 
-  const closeCategoryModal = () => {
+  const closeCategoryModal = useCallback(() => {
     setCategoryModalVisible(false);
-    setCategoryName('');
     setEditingCategoryId('');
-  };
+  }, []);
 
-  const handleSaveCategory = async () => {
-    if (!profile?.jwt) {
-      setError(t('expenses.noToken'));
-      return;
-    }
-    if (!categoryName.trim()) {
-      setError(t('expenses.enterCategoryName'));
-      return;
-    }
-
-    setSavingCategory(true);
-    setError('');
-    try {
-      if (categoryMode === 'create') {
-        await createCategory({ name: categoryName.trim() }, profile.jwt);
-      } else {
-        await updateCategory({ id: editingCategoryId, name: categoryName.trim() }, profile.jwt);
+  const submitCategory = useCallback(
+    async (name: string): Promise<boolean> => {
+      if (!profile?.jwt) {
+        setError(t('expenses.noToken'));
+        return false;
       }
-      closeCategoryModal();
-      await loadCategories(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('expenses.saveFailed'));
-    } finally {
-      setSavingCategory(false);
-    }
-  };
+      setSavingCategory(true);
+      setError('');
+      try {
+        if (categoryMode === 'create') {
+          await createCategory({ name }, profile.jwt);
+        } else {
+          await updateCategory({ id: editingCategoryId, name }, profile.jwt);
+        }
+        await loadCategories(true);
+        return true;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : t('expenses.saveFailed'));
+        return false;
+      } finally {
+        setSavingCategory(false);
+      }
+    },
+    [profile?.jwt, categoryMode, editingCategoryId, loadCategories, t]
+  );
 
-  const handleDeleteCategory = async (id: string) => {
-    if (!profile?.jwt) {
-      setError(t('expenses.noToken'));
-      return;
-    }
-    setDeletingCategory(id);
-    setError('');
-    try {
-      await deleteCategory(id, profile.jwt);
-      await loadCategories(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('expenses.deleteFailed'));
-    } finally {
-      setDeletingCategory('');
-    }
-  };
+  const handleDeleteCategory = useCallback(
+    async (id: string) => {
+      if (!profile?.jwt) {
+        setError(t('expenses.noToken'));
+        return;
+      }
+      setDeletingCategory(id);
+      setError('');
+      try {
+        await deleteCategory(id, profile.jwt);
+        await loadCategories(true);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : t('expenses.deleteFailed'));
+      } finally {
+        setDeletingCategory('');
+      }
+    },
+    [profile?.jwt, loadCategories, t]
+  );
 
-  const handleTogglePinCategory = async (category: CategoryResponseDTO) => {
-    if (!profile?.jwt) {
-      setError(t('expenses.noToken'));
-      return;
-    }
-    setPinningCategoryId(category.id);
-    setError('');
-    const nextPin = !Boolean(category.pin);
-    try {
-      await pinCategory({ id: category.id, pin: nextPin }, profile.jwt);
-      setCategories((prev) =>
-        prev.map((item) => (item.id === category.id ? { ...item, pin: nextPin } : item))
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('expenses.pinFailed'));
-    } finally {
-      setPinningCategoryId('');
-    }
-  };
+  const handleTogglePinCategory = useCallback(
+    async (category: CategoryResponseDTO) => {
+      if (!profile?.jwt) {
+        setError(t('expenses.noToken'));
+        return;
+      }
+      setPinningCategoryId(category.id);
+      setError('');
+      const nextPin = !Boolean(category.pin);
+      try {
+        await pinCategory({ id: category.id, pin: nextPin }, profile.jwt);
+        setCategories((prev) => prev.map((item) => (item.id === category.id ? { ...item, pin: nextPin } : item)));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : t('expenses.pinFailed'));
+      } finally {
+        setPinningCategoryId('');
+      }
+    },
+    [profile?.jwt, t]
+  );
 
-  const requestDeleteCategory = (category: CategoryResponseDTO) => {
-    setPendingDeleteCategory({ id: category.id, name: category.name });
-    setDeleteConfirmVisible(true);
-  };
-
-  const cancelDeleteCategory = () => {
+  const cancelDeleteCategory = useCallback(() => {
     setDeleteConfirmVisible(false);
     setPendingDeleteCategory(null);
-  };
+  }, []);
 
-  const confirmDeleteCategory = async () => {
+  const confirmDeleteCategory = useCallback(async () => {
     if (!pendingDeleteCategory) return;
     const targetId = pendingDeleteCategory.id;
     cancelDeleteCategory();
     await handleDeleteCategory(targetId);
-  };
+  }, [pendingDeleteCategory, cancelDeleteCategory, handleDeleteCategory]);
 
-  const handleApplyFilter = async () => {
+  const handleApplyFilter = useCallback(async () => {
     const dateRange = resolveDateRange(fromDate, endDate);
     if (!dateRange.ok) {
       setFilterError(dateRange.error);
@@ -259,52 +245,82 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
     }
     setFilterError('');
     await loadCategorySums(categories, dateRange.fromDate, dateRange.endDate);
-  };
+  }, [fromDate, endDate, loadCategorySums, categories]);
 
-  const handleQuickFilterSelect = async (key: QuickFilterKey) => {
-    setQuickFilterVisible(false);
-    setFilterError('');
+  const handleQuickFilterSelect = useCallback(
+    async (key: QuickFilterKey) => {
+      setQuickFilterVisible(false);
+      setFilterError('');
 
-    if (key === 'customRange') {
-      setFilterPanelOpen(true);
-      if (Platform.OS !== 'web') {
-        setShowFromPicker(true);
+      if (key === 'customRange') {
+        setFilterPanelOpen(true);
+        if (Platform.OS !== 'web') setShowFromPicker(true);
+        return;
       }
-      return;
-    }
 
-    const today = new Date();
-    const endValue = formatDateFromDate(today);
-    let fromValue = endValue;
+      const today = new Date();
+      const endValue = formatDateFromDate(today);
+      let fromValue = endValue;
+      if (key === 'currentWeek') {
+        fromValue = getCurrentWeekRange(today).fromDate;
+      } else if (key === 'currentMonth') {
+        fromValue = formatDateFromDate(new Date(today.getFullYear(), today.getMonth(), 1));
+      }
 
-    if (key === 'currentWeek') {
-      fromValue = getCurrentWeekRange(today).fromDate;
-    } else if (key === 'currentMonth') {
-      fromValue = formatDateFromDate(new Date(today.getFullYear(), today.getMonth(), 1));
-    }
+      setFromDate(fromValue);
+      setEndDate(endValue);
+      setFilterPanelOpen(false);
+      await loadCategorySums(categories, fromValue, endValue);
+    },
+    [loadCategorySums, categories]
+  );
 
-    setFromDate(fromValue);
-    setEndDate(endValue);
-    setFilterPanelOpen(false);
-    await loadCategorySums(categories, fromValue, endValue);
-  };
+  const handleOpenCategory = useCallback(
+    (category: CategoryResponseDTO) => {
+      const dateRange = resolveDateRange(fromDate, endDate);
+      if (!dateRange.ok) {
+        setFilterError(dateRange.error);
+        return;
+      }
+      setFilterError('');
+      navigation.navigate(ROUTES.EXPENSE_CATEGORY_DETAIL, {
+        id: category.id,
+        name: category.name,
+        fromDate: dateRange.fromDate,
+        endDate: dateRange.endDate,
+      });
+    },
+    [fromDate, endDate, navigation]
+  );
 
-  const handleOpenCategory = (category: CategoryResponseDTO) => {
-    const dateRange = resolveDateRange(fromDate, endDate);
-    if (!dateRange.ok) {
-      setFilterError(dateRange.error);
-      return;
-    }
-    setFilterError('');
-    navigation.navigate(ROUTES.EXPENSE_CATEGORY_DETAIL, {
-      id: category.id,
-      name: category.name,
-      fromDate: dateRange.fromDate,
-      endDate: dateRange.endDate,
-    });
-  };
+  const toggleCategoryActions = useCallback(
+    (id: string) => setExpandedCategoryActionsId((prev) => (prev === id ? null : id)),
+    []
+  );
 
-  // pin === true bo'lganlar yuqorida (o'z tartibida), qolganlari (false/null) o'z o'rnida qoladi.
+  const pinFromRow = useCallback(
+    (category: CategoryResponseDTO) => {
+      setExpandedCategoryActionsId(null);
+      handleTogglePinCategory(category);
+    },
+    [handleTogglePinCategory]
+  );
+
+  const editFromRow = useCallback(
+    (category: CategoryResponseDTO) => {
+      setExpandedCategoryActionsId(null);
+      openEditCategory(category);
+    },
+    [openEditCategory]
+  );
+
+  const deleteFromRow = useCallback((category: CategoryResponseDTO) => {
+    setExpandedCategoryActionsId(null);
+    setPendingDeleteCategory({ id: category.id, name: category.name });
+    setDeleteConfirmVisible(true);
+  }, []);
+
+  // pin === true bo'lganlar yuqorida (o'z tartibida), qolganlari o'z o'rnida qoladi.
   const sortedCategories = useMemo(() => {
     const pinned = categories.filter((c) => c.pin === true);
     const others = categories.filter((c) => c.pin !== true);
@@ -324,10 +340,10 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
   }, []);
 
   const hasActiveDateFilter = Boolean(fromDate || endDate);
-  const dateFilterSummary = useMemo(() => {
-    if (!hasActiveDateFilter) return t('expenses.noFilter');
-    return `${fromDate || '---'} → ${endDate || '---'}`;
-  }, [endDate, fromDate, hasActiveDateFilter]);
+  const dateFilterSummary = useMemo(
+    () => (hasActiveDateFilter ? `${fromDate || '---'} → ${endDate || '---'}` : t('expenses.noFilter')),
+    [endDate, fromDate, hasActiveDateFilter, t]
+  );
 
   const totalLabelText = useMemo(() => {
     const duration = buildDurationLabel(fromDate, endDate);
@@ -339,199 +355,42 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
 
   return (
     <View style={styles.container}>
-      <View style={styles.fixedHeader}>
+      <View style={styles.header}>
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
           <Text style={styles.title}>{t('expenses.dailyTitle')}</Text>
         </View>
 
-        <View style={styles.totalCard}>
-          <View style={styles.totalIcon}>
-            <Ionicons name="wallet-outline" size={22} color={colors.primary} />
-          </View>
-          <View style={styles.totalTextWrap}>
-            <Text style={styles.totalInlineLabel} numberOfLines={1}>{totalLabelText}</Text>
-            <Text style={styles.totalValue} numberOfLines={1} adjustsFontSizeToFit>{formatMoney(totalExpenseAmount)}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.totalMenuBtn}
-            onPress={() => setQuickFilterVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel={t('expenses.chooseFilter')}
-          >
-            <Ionicons name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
+        <ExpenseTotalCard
+          label={totalLabelText}
+          amount={totalExpenseAmount}
+          onMenuPress={() => setQuickFilterVisible(true)}
+        />
 
-        <View style={styles.filterCard}>
-          <TouchableOpacity style={styles.filterTitleRow} onPress={() => setFilterPanelOpen((prev) => !prev)}>
-            <View style={styles.filterTitleGroup}>
-              <Text numberOfLines={1} style={styles.filterInlineText}>
-                <Text style={styles.filterTitle}>{t('expenses.dateRange')}</Text>
-                <Text style={styles.filterTitle}>: </Text>
-                <Text style={[styles.filterSummaryText, hasActiveDateFilter ? styles.filterSummaryActive : null]}>
-                  {dateFilterSummary}
-                </Text>
-              </Text>
-            </View>
-            <Ionicons
-              name={filterPanelOpen ? 'chevron-up-outline' : 'chevron-down-outline'}
-              size={18}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
-
-          {filterPanelOpen ? (
-            <>
-              {Platform.OS === 'web' ? (
-                <View style={styles.segmentedWrapper}>
-                  <View style={styles.segmentGroup}>
-                    <Text style={styles.segmentLabel}>{t('expenses.start')}</Text>
-                    <View style={styles.segmentRow}>
-                      <select
-                        style={styles.segmentSelect as any}
-                        value={splitDateParts(fromDate).year}
-                        onChange={(e: any) => setFromDate(updateDatePart(fromDate, 'year', e.target.value))}
-                      >
-                        <option value="">{t('expenses.year')}</option>
-                        {yearOptions.map((year) => (
-                          <option key={`from-year-${year}`} value={year}>{year}</option>
-                        ))}
-                      </select>
-                      <select
-                        style={styles.segmentSelect as any}
-                        value={splitDateParts(fromDate).month}
-                        onChange={(e: any) => setFromDate(updateDatePart(fromDate, 'month', e.target.value))}
-                      >
-                        <option value="">{t('expenses.month')}</option>
-                        {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((month) => (
-                          <option key={`from-month-${month}`} value={month}>{month}</option>
-                        ))}
-                      </select>
-                      <select
-                        style={styles.segmentSelect as any}
-                        value={splitDateParts(fromDate).day}
-                        onChange={(e: any) => setFromDate(updateDatePart(fromDate, 'day', e.target.value))}
-                      >
-                        <option value="">{t('expenses.day')}</option>
-                        {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map((day) => (
-                          <option key={`from-day-${day}`} value={day}>{day}</option>
-                        ))}
-                      </select>
-                    </View>
-                  </View>
-
-                  <View style={styles.segmentGroup}>
-                    <Text style={styles.segmentLabel}>{t('expenses.end')}</Text>
-                    <View style={styles.segmentRow}>
-                      <select
-                        style={styles.segmentSelect as any}
-                        value={splitDateParts(endDate).year}
-                        onChange={(e: any) => setEndDate(updateDatePart(endDate, 'year', e.target.value))}
-                      >
-                        <option value="">{t('expenses.year')}</option>
-                        {yearOptions.map((year) => (
-                          <option key={`end-year-${year}`} value={year}>{year}</option>
-                        ))}
-                      </select>
-                      <select
-                        style={styles.segmentSelect as any}
-                        value={splitDateParts(endDate).month}
-                        onChange={(e: any) => setEndDate(updateDatePart(endDate, 'month', e.target.value))}
-                      >
-                        <option value="">{t('expenses.month')}</option>
-                        {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((month) => (
-                          <option key={`end-month-${month}`} value={month}>{month}</option>
-                        ))}
-                      </select>
-                      <select
-                        style={styles.segmentSelect as any}
-                        value={splitDateParts(endDate).day}
-                        onChange={(e: any) => setEndDate(updateDatePart(endDate, 'day', e.target.value))}
-                      >
-                        <option value="">{t('expenses.day')}</option>
-                        {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map((day) => (
-                          <option key={`end-day-${day}`} value={day}>{day}</option>
-                        ))}
-                      </select>
-                    </View>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.mobileDateRange}>
-                  <View style={styles.mobileDateInput}>
-                    <AppTextInput
-                      label={t('expenses.startDate')}
-                      value={fromDate}
-                      onChangeText={(value) => setFromDate(formatDateInputValue(value))}
-                      placeholder="YYYY-MM-DD"
-                      keyboardType="numeric"
-                      containerStyle={styles.filterInput}
-                    />
-                    <TouchableOpacity style={styles.calendarBtn} onPress={() => setShowFromPicker(true)}>
-                      <Ionicons name="calendar-outline" size={18} color={colors.textPrimary} />
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.mobileDateInput}>
-                    <AppTextInput
-                      label={t('expenses.endDate')}
-                      value={endDate}
-                      onChangeText={(value) => setEndDate(formatDateInputValue(value))}
-                      placeholder="YYYY-MM-DD"
-                      keyboardType="numeric"
-                      containerStyle={styles.filterInput}
-                    />
-                    <TouchableOpacity style={styles.calendarBtn} onPress={() => setShowEndPicker(true)}>
-                      <Ionicons name="calendar-outline" size={18} color={colors.textPrimary} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-
-              {showFromPicker && DateTimePicker ? (
-                <DateTimePicker
-                  value={getPickerDate(fromDate)}
-                  mode="date"
-                  display="default"
-                  onChange={(_event: any, date: Date | undefined) => {
-                    if (Platform.OS !== 'ios') setShowFromPicker(false);
-                    if (date) setFromDate(formatDateFromDate(date));
-                  }}
-                />
-              ) : null}
-              {showEndPicker && DateTimePicker ? (
-                <DateTimePicker
-                  value={getPickerDate(endDate)}
-                  mode="date"
-                  display="default"
-                  onChange={(_event: any, date: Date | undefined) => {
-                    if (Platform.OS !== 'ios') setShowEndPicker(false);
-                    if (date) setEndDate(formatDateFromDate(date));
-                  }}
-                />
-              ) : null}
-
-              <View style={styles.filterActionRow}>
-                <PrimaryButton title={t('expenses.applyFilter')} onPress={handleApplyFilter} style={styles.filterButton} />
-              </View>
-
-              {filterError ? (
-                <View style={styles.filterErrorRow}>
-                  <Text style={styles.filterErrorText}>{filterError}</Text>
-                </View>
-              ) : null}
-            </>
-          ) : null}
-        </View>
+        <DateRangeFilter
+          open={filterPanelOpen}
+          onToggle={() => setFilterPanelOpen((prev) => !prev)}
+          summaryText={dateFilterSummary}
+          hasActiveFilter={hasActiveDateFilter}
+          fromDate={fromDate}
+          endDate={endDate}
+          yearOptions={yearOptions}
+          showFromPicker={showFromPicker}
+          showEndPicker={showEndPicker}
+          error={filterError}
+          onFromDateChange={setFromDate}
+          onEndDateChange={setEndDate}
+          onShowFromPicker={setShowFromPicker}
+          onShowEndPicker={setShowEndPicker}
+          onApply={handleApplyFilter}
+        />
       </View>
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
       >
         {error ? (
           <View style={styles.errorRow}>
@@ -548,561 +407,65 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
             <Text style={styles.emptyText}>{t('expenses.noCategories')}</Text>
           ) : (
             sortedCategories.map((item, index) => (
-              <View
+              <CategoryRow
                 key={item.id}
-                style={[styles.categoryRow, index !== sortedCategories.length - 1 && styles.categoryRowBorder]}
-              >
-                <TouchableOpacity style={styles.rowMain} onPress={() => handleOpenCategory(item)} activeOpacity={0.7}>
-                  <View style={[styles.catAvatar, { backgroundColor: pickAvatarColor(item.name || item.id).bg }]}>
-                    <Text style={[styles.catAvatarText, { color: pickAvatarColor(item.name || item.id).fg }]}>
-                      {getInitials(item.name)}
-                    </Text>
-                  </View>
-                  <View style={styles.catInfo}>
-                    <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.sumText}>{formatMoney(categorySums[item.id] ?? 0)}</Text>
-                  </View>
-                  {item.pin ? <Ionicons name="bookmark" size={14} color={colors.primary} /> : null}
-                </TouchableOpacity>
-                {allowCategoryManage ? (
-                  expandedCategoryActionsId === item.id ? (
-                  <View style={styles.actions}>
-                    <TouchableOpacity
-                      style={styles.iconBtn}
-                      onPress={() => {
-                        setExpandedCategoryActionsId(null);
-                        handleTogglePinCategory(item);
-                      }}
-                      disabled={pinningCategoryId === item.id}
-                    >
-                      {pinningCategoryId === item.id ? (
-                        <ActivityIndicator size="small" color={colors.primary} />
-                      ) : (
-                        <Ionicons
-                          name={item.pin ? 'bookmark' : 'bookmark-outline'}
-                          size={17}
-                          color={item.pin ? colors.primary : colors.textSecondary}
-                        />
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.iconBtn}
-                      onPress={() => {
-                        setExpandedCategoryActionsId(null);
-                        openEditCategory(item);
-                      }}
-                    >
-                      <Ionicons name="create-outline" size={17} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.iconBtn}
-                      onPress={() => {
-                        setExpandedCategoryActionsId(null);
-                        requestDeleteCategory(item);
-                      }}
-                      disabled={deletingCategory === item.id}
-                    >
-                      {deletingCategory === item.id ? (
-                        <ActivityIndicator size="small" color={colors.danger} />
-                      ) : (
-                        <Ionicons name="trash-outline" size={17} color={colors.danger} />
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.ellipsisBtn}
-                    onPress={() =>
-                      setExpandedCategoryActionsId((prev) => (prev === item.id ? null : item.id))
-                    }
-                  >
-                    <Ionicons name="ellipsis-horizontal" size={16} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                )
-                ) : null}
-              </View>
+                category={item}
+                sum={categorySums[item.id] ?? 0}
+                isLast={index === sortedCategories.length - 1}
+                allowManage={allowCategoryManage}
+                expanded={expandedCategoryActionsId === item.id}
+                pinning={pinningCategoryId === item.id}
+                deleting={deletingCategory === item.id}
+                onOpen={handleOpenCategory}
+                onToggleExpand={toggleCategoryActions}
+                onTogglePin={pinFromRow}
+                onEdit={editFromRow}
+                onRequestDelete={deleteFromRow}
+              />
             ))
           )}
         </View>
       </ScrollView>
 
       {allowCategoryManage ? (
-        <TouchableOpacity style={styles.fab} onPress={openCreateCategory} activeOpacity={0.85}>
+        <Pressable
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+          onPress={openCreateCategory}
+          accessibilityRole="button"
+          accessibilityLabel={t('expenses.addCategory')}
+        >
           <Ionicons name="add" size={30} color={colors.textOnPrimary} />
-        </TouchableOpacity>
+        </Pressable>
       ) : null}
 
-      <Modal visible={categoryModalVisible} animationType="slide" transparent onRequestClose={closeCategoryModal}>
-        <KeyboardAvoidingView
-          style={styles.addModalBackdrop}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <ScrollView
-            contentContainerStyle={styles.modalScrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {categoryMode === 'create' ? t('expenses.addCategory') : t('expenses.editCategory')}
-            </Text>
-            <AppTextInput
-              label={t('expenses.categoryName')}
-              value={categoryName}
-              onChangeText={setCategoryName}
-              placeholder={t('expenses.categoryPlaceholder')}
-            />
-            <View style={styles.modalActions}>
-              <PrimaryButton
-                title={t('common.cancel')}
-                variant="secondary"
-                onPress={closeCategoryModal}
-                style={styles.modalActionBtn}
-              />
-              <PrimaryButton
-                title={categoryMode === 'create' ? t('common.add') : t('common.save')}
-                onPress={handleSaveCategory}
-                loading={savingCategory}
-                style={styles.modalActionBtn}
-              />
-            </View>
-          </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Modal>
+      <CategoryFormModal
+        visible={categoryModalVisible}
+        mode={categoryMode}
+        initialName={editingName}
+        submitting={savingCategory}
+        onClose={closeCategoryModal}
+        onSubmit={submitCategory}
+      />
 
-      <Modal
+      <ConfirmDialog
         visible={deleteConfirmVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={cancelDeleteCategory}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('expenses.deleteCategory')}</Text>
-            <Text style={styles.deleteConfirmText}>
-              {t('expenses.deleteConfirm', { name: pendingDeleteCategory?.name || t('expenses.thisCategory') })}
-            </Text>
-            <View style={styles.modalActions}>
-              <PrimaryButton
-                title={t('common.cancel')}
-                variant="secondary"
-                onPress={cancelDeleteCategory}
-                style={styles.modalActionBtn}
-              />
-              <PrimaryButton
-                title={t('common.delete')}
-                onPress={confirmDeleteCategory}
-                loading={Boolean(pendingDeleteCategory && deletingCategory === pendingDeleteCategory.id)}
-                style={[styles.modalActionBtn, styles.deleteConfirmBtn]}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
+        title={t('expenses.deleteCategory')}
+        message={t('expenses.deleteConfirm', { name: pendingDeleteCategory?.name || t('expenses.thisCategory') })}
+        confirmLabel={t('common.delete')}
+        loading={Boolean(pendingDeleteCategory && deletingCategory === pendingDeleteCategory.id)}
+        danger
+        onCancel={cancelDeleteCategory}
+        onConfirm={confirmDeleteCategory}
+      />
 
-      <Modal
+      <QuickFilterModal
         visible={quickFilterVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setQuickFilterVisible(false)}
-      >
-        <TouchableOpacity style={styles.quickFilterBackdrop} onPress={() => setQuickFilterVisible(false)} activeOpacity={1}>
-          <View style={styles.quickFilterCard}>
-            <Text style={styles.quickFilterTitle}>{t('expenses.chooseFilter')}</Text>
-            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('today')}>
-              <Text style={styles.quickFilterItemText}>{t('expenses.today')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('currentWeek')}>
-              <Text style={styles.quickFilterItemText}>{t('expenses.thisWeek')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('currentMonth')}>
-              <Text style={styles.quickFilterItemText}>{t('expenses.thisMonth')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.quickFilterItem} onPress={() => handleQuickFilterSelect('customRange')}>
-              <Text style={styles.quickFilterItemText}>{t('expenses.byDate')}</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setQuickFilterVisible(false)}
+        onSelect={handleQuickFilterSelect}
+      />
     </View>
   );
 };
-
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  fixedHeader: {
-    backgroundColor: colors.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 24,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    color: colors.textPrimary,
-  },
-  fab: {
-    position: 'absolute',
-    right: 18,
-    bottom: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  totalCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    paddingVertical: 18,
-    paddingHorizontal: 18,
-    marginBottom: 16,
-    marginHorizontal: 16,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
-  },
-  totalIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primarySoft,
-  },
-  totalTextWrap: {
-    flex: 1,
-  },
-  totalInlineLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  totalMenuBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceMuted,
-  },
-  totalValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.2,
-    color: colors.primary,
-  },
-  filterCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 8,
-    marginHorizontal: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  filterTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  filterTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  filterTitleGroup: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  filterInlineText: {
-    fontSize: 14,
-  },
-  filterSummaryText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  filterSummaryActive: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  segmentedWrapper: {
-    marginTop: 12,
-    gap: 10,
-  },
-  segmentGroup: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 10,
-    backgroundColor: colors.surfaceMuted,
-  },
-  segmentLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  segmentRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  segmentSelect: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    color: colors.textPrimary,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  mobileDateRange: {
-    marginTop: 12,
-    gap: 10,
-  },
-  mobileDateInput: {
-    position: 'relative',
-  },
-  filterInput: {
-    marginBottom: 0,
-  },
-  calendarBtn: {
-    position: 'absolute',
-    right: 8,
-    top: 34,
-    width: 34,
-    height: 34,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.border,
-  },
-  filterActionRow: {
-    marginTop: 12,
-  },
-  filterButton: {
-    minHeight: 48,
-  },
-  filterErrorRow: {
-    marginTop: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: colors.danger,
-    backgroundColor: colors.dangerMuted,
-    borderRadius: 10,
-  },
-  filterErrorText: {
-    color: colors.danger,
-    fontSize: 12,
-  },
-  errorRow: {
-    padding: 10,
-    borderWidth: 1,
-    borderColor: colors.danger,
-    backgroundColor: colors.dangerMuted,
-    borderRadius: 10,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 13,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  listCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    paddingVertical: 4,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  listSkeleton: {
-    padding: 12,
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  categoryRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  rowMain: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  catAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  catAvatarText: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  catInfo: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  sumText: {
-    marginTop: 4,
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  iconBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceMuted,
-  },
-  ellipsisBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceMuted,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: colors.textSecondary,
-    paddingVertical: 24,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    padding: 16,
-  },
-  // Kategoriya qo'shish oynasi yuqoriroqda ochilsin — klaviatura to'smasligi uchun.
-  addModalBackdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-  },
-  modalScrollContent: {
-    flexGrow: 1,
-    justifyContent: 'flex-start',
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 24,
-  },
-  modalCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 6,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  modalActionBtn: {
-    flex: 1,
-  },
-  deleteConfirmText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 14,
-    lineHeight: 20,
-  },
-  deleteConfirmBtn: {
-    backgroundColor: colors.danger,
-    borderColor: colors.danger,
-    borderWidth: 0,
-  },
-  quickFilterBackdrop: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  quickFilterCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    paddingVertical: 8,
-    overflow: 'hidden',
-  },
-  quickFilterTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  quickFilterItem: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  quickFilterItemText: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-});
 
 function toAmount(value: number | string | null | undefined): number {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -1112,5 +475,95 @@ function toAmount(value: number | string | null | undefined): number {
   }
   return 0;
 }
+
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      backgroundColor: colors.background,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+    },
+    title: {
+      ...typography.heading2,
+      color: colors.textPrimary,
+    },
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      padding: spacing.md,
+      paddingBottom: spacing.lg,
+    },
+    errorRow: {
+      padding: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.danger,
+      backgroundColor: colors.dangerMuted,
+      borderRadius: radius.sm,
+      marginBottom: spacing.md,
+    },
+    errorText: {
+      ...typography.caption,
+      fontSize: 13,
+      color: colors.danger,
+    },
+    sectionTitle: {
+      ...typography.button,
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    listCard: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.xl,
+      paddingVertical: spacing.xxs,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.06,
+      shadowRadius: 16,
+      elevation: 3,
+      overflow: 'hidden',
+    },
+    listSkeleton: {
+      padding: spacing.sm,
+    },
+    emptyText: {
+      ...typography.body,
+      textAlign: 'center',
+      color: colors.textSecondary,
+      paddingVertical: spacing.lg,
+    },
+    fab: {
+      position: 'absolute',
+      right: spacing.md + 2,
+      bottom: spacing.lg,
+      width: 60,
+      height: 60,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    fabPressed: {
+      opacity: 0.9,
+      transform: [{ scale: 0.96 }],
+    },
+  });
 
 export default ExpensesScreen;
