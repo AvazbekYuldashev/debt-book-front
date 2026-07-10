@@ -100,10 +100,15 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
 
   const currencyOptions = useMemo<ChipOption<Currency>[]>(
     () =>
-      CURRENCIES.map((code) => ({
-        value: code,
-        label: `${CURRENCY_LABEL[code]} (${CURRENCY_SYMBOL[code]})`,
-      })),
+      CURRENCIES.map((code) => {
+        const label = CURRENCY_LABEL[code];
+        const symbol = CURRENCY_SYMBOL[code];
+        // "So'm (so'm)" kabi takror bo'lmasin — belgi nomdan farq qilsagina qavsda.
+        return {
+          value: code,
+          label: label.toLowerCase() === symbol.toLowerCase() ? label : `${label} (${symbol})`,
+        };
+      }),
     [],
   );
 

@@ -51,6 +51,17 @@ function useAppStateFocusManager(): void {
 const AppShell: React.FC = () => {
   const { activeTheme, colors } = useAppTheme();
 
+  // Android'da status bar SHAFFOF EMAS — ilova soat/batareya qatori ostiga
+  // kirmaydi (aks holda har ekran tepasi bosilib qoladi). Rang va matn
+  // yorug'ligi joriy mavzuga mos.
+  const statusBar = (
+    <StatusBar
+      style={activeTheme === 'dark' ? 'light' : 'dark'}
+      backgroundColor={colors.background}
+      translucent={false}
+    />
+  );
+
   const navigationTheme = activeTheme === 'dark'
     ? {
       ...DarkTheme,
@@ -81,6 +92,7 @@ const AppShell: React.FC = () => {
         <WorkspaceProvider>
           <ContactsProvider>
             <ContactAvatarsProvider>
+              {statusBar}
               <NavigationContainer theme={navigationTheme}>
                 <RootNavigator />
               </NavigationContainer>
@@ -126,7 +138,6 @@ export default function App() {
           <LanguageProvider>
             <AppThemeProvider>
               <AppShell />
-              <StatusBar style="auto" />
             </AppThemeProvider>
           </LanguageProvider>
         </SafeAreaProvider>
