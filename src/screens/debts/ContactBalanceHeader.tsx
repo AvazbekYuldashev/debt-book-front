@@ -6,15 +6,15 @@ import type { ThemeValue } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import UserAvatar from '../../shared/ui/UserAvatar';
 import { formatMoney } from '../../utils/money';
+import type { CurrencyNet } from '../../utils/currency';
 import type { Contact } from '../../context/ContactsContext';
-import type { Currency } from '../../types/money';
 
 const AVATAR_SIZE = 52;
 
 interface ContactBalanceHeaderProps {
   contact: Contact;
-  netBalance: number;
-  currency: Currency;
+  /** Har valyuta bo'yicha mustaqil sof balanslar (musbat = haq, manfiy = qarz). */
+  balances: CurrencyNet[];
   avatarUri?: string;
   onBack: () => void;
   onAvatarPress: () => void;
@@ -22,12 +22,11 @@ interface ContactBalanceHeaderProps {
 
 /**
  * Kontakt detali ekranining tepasi: orqaga tugma, avatar/ism/telefon va joriy
- * sof balans (musbat = haq, manfiy = qarz).
+ * balanslar — HAR VALYUTA ALOHIDA qatorda (so'm/dollar aralashtirilmaydi).
  */
 const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({
   contact,
-  netBalance,
-  currency,
+  balances,
   avatarUri,
   onBack,
   onAvatarPress,
@@ -71,14 +70,32 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({
         </View>
 
         <Text style={styles.balanceLabel}>{t('contact.currentBalance')}</Text>
-        <Text
-          style={[styles.balanceValue, { color: netBalance >= 0 ? colors.positive : colors.negative }]}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.5}
-        >
-          {formatMoney(netBalance, currency)}
-        </Text>
+        {balances.length === 0 ? (
+          <Text
+            style={[styles.balanceValue, { color: colors.textSecondary }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+          >
+            {formatMoney(0)}
+          </Text>
+        ) : (
+          balances.map(({ currency, amount }) => (
+            <Text
+              key={currency}
+              style={[
+                styles.balanceValue,
+                balances.length > 1 && styles.balanceValueCompact,
+                { color: amount >= 0 ? colors.positive : colors.negative },
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+            >
+              {formatMoney(amount, currency)}
+            </Text>
+          ))
+        )}
       </View>
     </View>
   );
@@ -148,6 +165,12 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontSize: 36,
       fontWeight: '800',
       letterSpacing: -1,
+    },
+    // Ikki va undan ko'p valyuta ko'rsatilganda qatorlar ixchamroq.
+    balanceValueCompact: {
+      fontSize: 28,
+      lineHeight: 34,
+      marginTop: spacing.xxs,
     },
   });
 

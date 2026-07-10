@@ -1,6 +1,7 @@
 import {
   convertAmount,
   formatCurrency,
+  netByCurrency,
   netInBase,
   parseCurrencyAmounts,
   sumInBase,
@@ -43,6 +44,27 @@ describe('sumInBase / netInBase', () => {
   it('credit - debt sof balans (UZS)', () => {
     // credit: 2 USD = 24000; debt: 12000 UZS -> net 12000
     expect(netInBase({ USD: 2 }, { UZS: 12000 }, 'UZS', rates)).toBe(12000);
+  });
+});
+
+describe('netByCurrency', () => {
+  it('har valyuta alohida hisoblanadi, kurs aralashmaydi', () => {
+    const r = netByCurrency({ UZS: 500000, USD: 100 }, { UZS: 200000, USD: 30 });
+    expect(r).toEqual([
+      { currency: 'UZS', amount: 300000 },
+      { currency: 'USD', amount: 70 },
+    ]);
+  });
+  it('bir valyutada haq, boshqasida qarz bo‘lishi mumkin', () => {
+    const r = netByCurrency({ USD: 50 }, { UZS: 100000 });
+    expect(r).toEqual([
+      { currency: 'UZS', amount: -100000 },
+      { currency: 'USD', amount: 50 },
+    ]);
+  });
+  it('nolga teng valyutalar chiqmaydi', () => {
+    expect(netByCurrency({ UZS: 1000 }, { UZS: 1000 })).toEqual([]);
+    expect(netByCurrency({}, {})).toEqual([]);
   });
 });
 

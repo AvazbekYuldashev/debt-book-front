@@ -13,18 +13,16 @@ interface TransactionDetailModalProps {
   tx: MappedTransaction | null;
   // Biznes tranzaksiyasida amalni bajargan xodim telefoni (bo'lmasa bo'sh).
   performerPhone: string;
-  // Asosiy valyutadagi ekvivalent (boshqa valyuta bo'lsa) — aks holda null.
-  convertedText: string | null;
   onClose: () => void;
 }
 
 /**
  * Tanlangan tranzaksiyaning to'liq tafsilotlari (tur, summa, sana, xodim, izoh).
+ * Summa har doim o'z valyutasida — kursga o'girish yo'q.
  */
 const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   tx,
   performerPhone,
-  convertedText,
   onClose,
 }) => {
   const theme = useAppTheme();
@@ -65,7 +63,6 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
               <Text style={[styles.value, { color: amountColor }]}>
                 {tx ? formatMoney(tx.amount, normalizeCurrency(tx.currency)) : '--'}
               </Text>
-              {convertedText ? <Text style={styles.converted}>≈ {convertedText}</Text> : null}
             </View>
           </View>
 
@@ -143,12 +140,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.bodySmall,
       fontWeight: '700',
       color: colors.textPrimary,
-    },
-    converted: {
-      ...typography.caption,
-      marginTop: spacing.xxs / 2,
-      fontWeight: '600',
-      color: colors.textSecondary,
     },
     valueMuted: {
       ...typography.bodySmall,

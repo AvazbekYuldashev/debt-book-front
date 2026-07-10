@@ -10,16 +10,14 @@ import { formatDateShort, MappedTransaction } from './transactionMapping';
 interface TransactionRowProps {
   tx: MappedTransaction;
   isLast: boolean;
-  // Asosiy valyutadagi ekvivalent (agar tranzaksiya boshqa valyutada bo'lsa) — aks holda null.
-  convertedText: string | null;
   onPress: (tx: MappedTransaction) => void;
 }
 
 /**
- * Kontakt tarixidagi bitta tranzaksiya qatori: yo'nalish ikonkasi + sana, izoh,
- * summa "pill"i va (kerak bo'lsa) asosiy valyuta ekvivalenti. `memo`langan.
+ * Kontakt tarixidagi bitta tranzaksiya qatori: yo'nalish ikonkasi + sana, izoh
+ * va summa "pill"i — har doim O'Z valyutasida (kursga o'girish yo'q). `memo`langan.
  */
-const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, convertedText, onPress }) => {
+const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, onPress }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -61,7 +59,6 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, convertedTe
             {formatMoney(tx.amount, currency)}
           </Text>
         </View>
-        {convertedText ? <Text style={styles.converted}>≈ {convertedText}</Text> : null}
       </View>
     </Pressable>
   );
@@ -127,12 +124,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.caption,
       fontSize: 13,
       fontWeight: '800',
-    },
-    converted: {
-      ...typography.caption,
-      fontSize: 11,
-      fontWeight: '600',
-      color: colors.textSecondary,
     },
   });
 

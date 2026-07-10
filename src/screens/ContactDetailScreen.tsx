@@ -17,7 +17,6 @@ import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import { AuthContext } from '../context/AuthContext';
 import { ContactsContext } from '../context/ContactsContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
-import { useCurrency } from '../context/CurrencyContext';
 import { useMoney } from '../hooks/useMoney';
 import { useAccountContext } from '../hooks/useAccountContext';
 import { useContactAvatars } from '../shared/contactAvatars';
@@ -25,9 +24,8 @@ import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import type { DebtsScreenProps } from '../navigation/types';
 import { ROUTES } from '../navigation/routes';
-import { Currency, MoneyActionType } from '../types/money';
-import { formatMoney } from '../utils/money';
-import { netInBase, normalizeCurrency } from '../utils/currency';
+import { MoneyActionType } from '../types/money';
+import { netByCurrency } from '../utils/currency';
 import { canWrite } from '../utils/permissions';
 import { useI18n } from '../i18n';
 import ContactBalanceHeader from './debts/ContactBalanceHeader';
@@ -52,7 +50,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const { accountType } = useAccountContext();
   const { contacts } = useContext(ContactsContext);
   const { avatars } = useContactAvatars();
-  const { baseCurrency, rates, convert } = useCurrency();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
@@ -65,23 +62,14 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const contact = useMemo(() => contacts.find((item) => item.id === contactId), [contacts, contactId]);
   const avatarUri = contact ? avatars[contact.partyId || contact.id] : undefined;
 
-  // Turli valyutalardagi balanslar asosiy valyutaga kurs bo'yicha jamlanadi.
-  const netBalance = useMemo(
-    () => netInBase(currencyTotals.credit, currencyTotals.debt, baseCurrency, rates),
-    [currencyTotals, baseCurrency, rates],
+  // Har valyuta balansi MUSTAQIL — so'm alohida, dollar alohida (kurs aralashmaydi).
+  const balances = useMemo(
+    () => netByCurrency(currencyTotals.credit, currencyTotals.debt),
+    [currencyTotals],
   );
 
   // Biznes kontekstida MEMBER faqat ko'rishi mumkin — yozish tugmalari yashiriladi.
   const allowWrite = canWrite(workspace.activeBusinessRole);
-
-  // Tranzaksiya valyutasi asosiydan farq qilsa va kurs mavjud bo'lsagina ekvivalentni ko'rsatamiz.
-  const convertedTextFor = useCallback(
-    (amount: number, currency: Currency): string | null => {
-      const canConvert = currency !== baseCurrency && !!rates?.rates?.[currency] && !!rates?.rates?.[baseCurrency];
-      return canConvert ? formatMoney(convert(amount, currency), baseCurrency) : null;
-    },
-    [baseCurrency, rates, convert],
-  );
 
   const mappedHistory = useMemo(
     () =>
@@ -166,8 +154,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     <View style={styles.container}>
       <ContactBalanceHeader
         contact={contact}
-        netBalance={netBalance}
-        currency={baseCurrency}
+        balances={balances}
         avatarUri={avatarUri}
         onBack={navigation.goBack}
         onAvatarPress={handleAvatarPress}
@@ -204,7 +191,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
                 <TransactionRow
                   tx={item}
                   isLast={index === mappedHistory.length - 1}
-                  convertedText={convertedTextFor(item.amount, normalizeCurrency(item.currency))}
                   onPress={setSelectedTransaction}
                 />
               </FadeInView>
@@ -257,11 +243,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       <TransactionDetailModal
         tx={selectedTransaction}
         performerPhone={performerPhone}
-        convertedText={
-          selectedTransaction
-            ? convertedTextFor(selectedTransaction.amount, normalizeCurrency(selectedTransaction.currency))
-            : null
-        }
         onClose={() => setSelectedTransaction(null)}
       />
     </View>

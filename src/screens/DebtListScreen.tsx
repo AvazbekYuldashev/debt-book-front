@@ -18,14 +18,13 @@ import FadeInView from '../components/animations/FadeInView';
 import DeviceContactsPickerModal from '../components/contacts/DeviceContactsPickerModal';
 import { ContactsContext } from '../context/ContactsContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
-import { useCurrency } from '../context/CurrencyContext';
 import { useContactBalances } from '../hooks/useContactBalances';
 import { useUnreadNotificationCount } from '../hooks/useNotifications';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import { ROUTES } from '../navigation/routes';
 import type { DebtsNavigation } from '../navigation/types';
-import { netInBase } from '../utils/currency';
+import { CurrencyAmounts, netByCurrency } from '../utils/currency';
 import { canWrite } from '../utils/permissions';
 import { normalizePhone } from '../utils/phone';
 import { primeNotificationAudio, requestNotificationPermission } from '../utils/webNotify';
@@ -52,7 +51,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const { workspace } = useContext(WorkspaceContext);
-  const { baseCurrency, rates } = useCurrency();
   const {
     contacts,
     loading,
@@ -115,17 +113,19 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     [filteredContacts, latestDateByContact],
   );
 
-  // Har kontaktning sof balansi asosiy valyutaga aylantirilib jamlanadi.
+  // Jami balanslar HAR VALYUTA bo'yicha alohida yig'iladi — so'm hisobi so'mda,
+  // dollar hisobi dollarda. Kursda aylantirish YO'Q (foydalanuvchi talabi).
   const aggregateTotals = useMemo(() => {
-    let totalDebt = 0;
-    let totalCredit = 0;
+    const totalDebt: CurrencyAmounts = {};
+    const totalCredit: CurrencyAmounts = {};
     for (const item of Object.values(totalsByContact)) {
-      const balance = netInBase(item.credit, item.debt, baseCurrency, rates);
-      if (balance > 0) totalCredit += balance;
-      else if (balance < 0) totalDebt += Math.abs(balance);
+      for (const { currency, amount } of netByCurrency(item.credit, item.debt)) {
+        if (amount > 0) totalCredit[currency] = (totalCredit[currency] ?? 0) + amount;
+        else totalDebt[currency] = (totalDebt[currency] ?? 0) + Math.abs(amount);
+      }
     }
     return { totalDebt, totalCredit };
-  }, [totalsByContact, baseCurrency, rates]);
+  }, [totalsByContact]);
 
   // Allaqachon qo'shilgan raqamlar — telefon kontaktlar ro'yxatida belgilash uchun.
   const existingPhones = useMemo(() => {
@@ -346,11 +346,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           />
         ) : null}
 
-        <BalanceSummary
-          totalDebt={aggregateTotals.totalDebt}
-          totalCredit={aggregateTotals.totalCredit}
-          currency={baseCurrency}
-        />
+        <BalanceSummary totalDebt={aggregateTotals.totalDebt} totalCredit={aggregateTotals.totalCredit} />
       </View>
 
       <ScrollView
@@ -385,9 +381,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           ) : (
             sortedContacts.map((item, index) => {
               const totals = totalsByContact[item.id];
-              const balance = totals
-                ? netInBase(totals.credit, totals.debt, baseCurrency, rates)
-                : undefined;
+              const balances = totals ? netByCurrency(totals.credit, totals.debt) : undefined;
               return (
                 <FadeInView
                   key={item.id || `contact-${index}`}
@@ -397,8 +391,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
                 >
                   <ContactRow
                     contact={item}
-                    balance={balance}
-                    currency={baseCurrency}
+                    balances={balances}
                     totalsLoading={totalsLoading}
                     localPhoto={avatars[item.partyId || item.id]}
                     canEdit={canEdit}

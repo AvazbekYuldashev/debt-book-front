@@ -6,15 +6,15 @@ import type { ThemeValue } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import UserAvatar from '../../shared/ui/UserAvatar';
 import { formatMoney } from '../../utils/money';
+import type { CurrencyNet } from '../../utils/currency';
 import type { Contact } from '../../context/ContactsContext';
-import type { Currency } from '../../types/money';
 
 const AVATAR_SIZE = 46;
 
 interface ContactRowProps {
   contact: Contact;
-  balance: number | undefined;
-  currency: Currency;
+  /** Har valyuta bo'yicha mustaqil sof balanslar; undefined = hali yuklanmagan. */
+  balances: CurrencyNet[] | undefined;
   totalsLoading: boolean;
   localPhoto?: string;
   canEdit: boolean;
@@ -25,14 +25,13 @@ interface ContactRowProps {
 }
 
 /**
- * Kontaktlar ro'yxatining bitta qatori: avatar, ism/telefon, balans "pill"i va
- * (ruxsat bo'lsa) tahrirlash tugmasi. To'liq prezentatsion va `memo`langan —
- * ota-ekran qayta render bo'lganda faqat proplar o'zgargan qatorlar yangilanadi.
+ * Kontaktlar ro'yxatining bitta qatori: avatar, ism/telefon, HAR VALYUTA uchun
+ * alohida balans "pill"i (so'm va dollar hisobi aralashtirilmaydi) va (ruxsat
+ * bo'lsa) tahrirlash tugmasi. To'liq prezentatsion va `memo`langan.
  */
 const ContactRow: React.FC<ContactRowProps> = ({
   contact,
-  balance,
-  currency,
+  balances,
   totalsLoading,
   localPhoto,
   canEdit,
@@ -47,11 +46,6 @@ const ContactRow: React.FC<ContactRowProps> = ({
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const avatarKey = contact.partyId || contact.id;
-  const hasBalance = typeof balance === 'number' && balance !== 0;
-  const isPositive = typeof balance === 'number' && balance > 0;
-  const isNegative = typeof balance === 'number' && balance < 0;
-  const balanceColor = isPositive ? colors.positive : isNegative ? colors.negative : colors.textSecondary;
-  const pillBg = isPositive ? colors.positiveSoft : isNegative ? colors.negativeSoft : colors.surfaceMuted;
 
   const handlePress = useCallback(() => onPress(contact.id), [onPress, contact.id]);
   const handleEdit = useCallback(() => onEdit(contact.id), [onEdit, contact.id]);
@@ -89,11 +83,35 @@ const ContactRow: React.FC<ContactRowProps> = ({
       </Pressable>
 
       <View style={styles.right}>
-        <View style={[styles.pill, { backgroundColor: hasBalance ? pillBg : 'transparent' }]}>
-          <Text style={[styles.pillText, { color: balanceColor }]}>
-            {typeof balance === 'number' ? formatMoney(balance, currency) : totalsLoading ? '…' : '--'}
-          </Text>
-        </View>
+        {balances === undefined ? (
+          <View style={styles.pill}>
+            <Text style={[styles.pillText, { color: colors.textSecondary }]}>
+              {totalsLoading ? '…' : '--'}
+            </Text>
+          </View>
+        ) : balances.length === 0 ? (
+          <View style={[styles.pill, { backgroundColor: colors.surfaceMuted }]}>
+            <Text style={[styles.pillText, { color: colors.textSecondary }]}>
+              {formatMoney(0)}
+            </Text>
+          </View>
+        ) : (
+          balances.map(({ currency, amount }) => (
+            <View
+              key={currency}
+              style={[
+                styles.pill,
+                { backgroundColor: amount > 0 ? colors.positiveSoft : colors.negativeSoft },
+              ]}
+            >
+              <Text
+                style={[styles.pillText, { color: amount > 0 ? colors.positive : colors.negative }]}
+              >
+                {formatMoney(amount, currency)}
+              </Text>
+            </View>
+          ))
+        )}
         {canEdit ? (
           <Pressable
             style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}

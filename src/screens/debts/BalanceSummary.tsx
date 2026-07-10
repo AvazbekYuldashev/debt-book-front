@@ -5,23 +5,35 @@ import { useAppTheme } from '../../theme';
 import type { ThemeValue } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import { formatMoney } from '../../utils/money';
-import type { Currency } from '../../types/money';
+import { CURRENCIES, CurrencyAmounts, DEFAULT_CURRENCY } from '../../utils/currency';
 
 interface BalanceSummaryProps {
-  totalDebt: number;
-  totalCredit: number;
-  currency: Currency;
+  totalDebt: CurrencyAmounts;
+  totalCredit: CurrencyAmounts;
 }
 
+// Har valyuta o'z qatorida ko'rsatiladi; bo'sh bo'lsa standart valyutada "0".
+const amountLines = (amounts: CurrencyAmounts): string[] => {
+  const lines: string[] = [];
+  for (const cur of CURRENCIES) {
+    const value = amounts[cur];
+    if (value) lines.push(formatMoney(value, cur));
+  }
+  return lines.length > 0 ? lines : [formatMoney(0, DEFAULT_CURRENCY)];
+};
+
 /**
- * Umumiy qarz/haq balansini ikki plitada ko'rsatadigan xulosa kartasi.
- * Faqat prezentatsion — barcha hisob-kitob yuqorida (ekran) qilinadi.
+ * Umumiy qarz/haq xulosasi. Har valyuta hisobi ALOHIDA qatorda — so'm va dollar
+ * bir-biriga aylantirilmaydi (foydalanuvchi talabi: ikki mustaqil hisob).
  */
-const BalanceSummary: React.FC<BalanceSummaryProps> = ({ totalDebt, totalCredit, currency }) => {
+const BalanceSummary: React.FC<BalanceSummaryProps> = ({ totalDebt, totalCredit }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const debtLines = useMemo(() => amountLines(totalDebt), [totalDebt]);
+  const creditLines = useMemo(() => amountLines(totalCredit), [totalCredit]);
 
   return (
     <View style={styles.card}>
@@ -31,14 +43,17 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ totalDebt, totalCredit,
         </View>
         <View style={styles.textWrap}>
           <Text style={styles.label}>{t('debts.currentDebt')}</Text>
-          <Text
-            style={[styles.value, { color: colors.negative }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.6}
-          >
-            {formatMoney(totalDebt, currency)}
-          </Text>
+          {debtLines.map((line) => (
+            <Text
+              key={line}
+              style={[styles.value, { color: colors.negative }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              {line}
+            </Text>
+          ))}
         </View>
       </View>
 
@@ -50,14 +65,17 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ totalDebt, totalCredit,
         </View>
         <View style={styles.textWrap}>
           <Text style={styles.label}>{t('debts.currentCredit')}</Text>
-          <Text
-            style={[styles.value, { color: colors.positive }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.6}
-          >
-            {formatMoney(totalCredit, currency)}
-          </Text>
+          {creditLines.map((line) => (
+            <Text
+              key={line}
+              style={[styles.value, { color: colors.positive }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              {line}
+            </Text>
+          ))}
         </View>
       </View>
     </View>
@@ -68,7 +86,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     card: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       backgroundColor: colors.surface,
       borderRadius: radius.xl,
       padding: spacing.md,
@@ -83,7 +101,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     tile: {
       flex: 1,
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: spacing.sm,
     },
     icon: {

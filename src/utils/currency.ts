@@ -78,12 +78,34 @@ export const sumInBase = (
 };
 
 // credit - debt sof balansini asosiy valyutada qaytaradi.
+// DIQQAT: balans KO'RSATISHDA ishlatilmaydi — har valyuta hisobi alohida yuritiladi
+// (netByCurrency). Kursda jamlash foydalanuvchi talabiga ko'ra taqiqlangan.
 export const netInBase = (
   credit: CurrencyAmounts,
   debt: CurrencyAmounts,
   base: Currency,
   rates?: CurrencyRatesDTO | null
 ): number => sumInBase(credit, base, rates) - sumInBase(debt, base, rates);
+
+// Bitta valyutadagi sof balans yozuvi.
+export interface CurrencyNet {
+  currency: Currency;
+  amount: number;
+}
+
+/**
+ * Har valyuta bo'yicha MUSTAQIL sof (credit - debt) balans. Valyutalar bir-biriga
+ * AYLANTIRILMAYDI: so'm hisobi alohida, dollar hisobi alohida. Faqat nolga teng
+ * bo'lmaganlari, barqaror (CURRENCIES) tartibda qaytadi.
+ */
+export const netByCurrency = (credit: CurrencyAmounts, debt: CurrencyAmounts): CurrencyNet[] => {
+  const result: CurrencyNet[] = [];
+  for (const cur of CURRENCIES) {
+    const net = (credit[cur] ?? 0) - (debt[cur] ?? 0);
+    if (net !== 0) result.push({ currency: cur, amount: net });
+  }
+  return result;
+};
 
 // Valyuta uchun ko'rsatiladigan kasr xonalari soni.
 // So'm — butun (yirik nominal), dollar/rubl — 2 xonagacha (aniq balans uchun).
