@@ -1,5 +1,14 @@
 # Real-time bildirishnomalar (WebSocket) — backend kontrakti
 
+**STATUS (2026-07-10): ISHLAYAPTI.** Backend implementatsiyasi VPS'dagi jonli
+repo'da (`/home/Desktop/backend`, lokal commit `86dfcb3`): `notification/ws/`
+paketi (NotificationWsHandler + NotificationWsConfig), security whitelist'da
+`/ws/**`, `createTransactionNotification` saqlagach push. Apache'da
+`proxy_wstunnel` + `/ws` proxy (project.test-le-ssl.conf). E2E tekshirilgan:
+`wss://pul-hisob.uz/ws/notifications` orqali noto'g'ri token → close 1008,
+to'g'ri token → AUTH_OK + PING/PONG. ⚠️ Backend commit hali GitHub'da EMAS
+(serverda push krediti yo'q) — push krediti bor mashinadan ko'chirish kerak.
+
 Frontend (`src/realtime/notificationsSocket.ts`) shu kontrakt bo'yicha ulanadi.
 Backend WS bermasa hech narsa buzilmaydi: mijoz backoff bilan qayta urinadi,
 bu vaqtda REST polling (25–30s) ishlayveradi. Backend WS'ni qo'shgani zahoti
