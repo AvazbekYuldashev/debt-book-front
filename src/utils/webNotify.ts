@@ -38,12 +38,31 @@ export function initNotificationServiceWorker(): void {
   void getNotificationSw();
 }
 
-/** Brauzer notification ruxsatini so'raydi (foydalanuvchi ishorasidan chaqirilishi afzal). */
-export function requestNotificationPermission(): void {
-  if (!hasNotification()) return;
-  if (Notification.permission === 'default') {
-    Notification.requestPermission().catch(() => undefined);
+export type NotifyPermission = 'granted' | 'denied' | 'default' | 'unsupported';
+
+/** Joriy brauzer bildirishnoma ruxsati (native/qo'llamaydigan muhitda 'unsupported'). */
+export function getNotificationPermission(): NotifyPermission {
+  if (!hasNotification()) return 'unsupported';
+  return Notification.permission as NotifyPermission;
+}
+
+/**
+ * Brauzer notification ruxsatini so'raydi (foydalanuvchi ishorasidan chaqirilishi
+ * afzal). Natija ixtiyoriy callback orqali qaytadi — masalan, ruxsat berilganda
+ * test bildirishnoma ko'rsatish uchun.
+ */
+export function requestNotificationPermission(onResult?: (permission: NotifyPermission) => void): void {
+  if (!hasNotification()) {
+    onResult?.('unsupported');
+    return;
   }
+  if (Notification.permission === 'default') {
+    Notification.requestPermission()
+      .then((permission) => onResult?.(permission as NotifyPermission))
+      .catch(() => onResult?.('default'));
+    return;
+  }
+  onResult?.(Notification.permission as NotifyPermission);
 }
 
 /**

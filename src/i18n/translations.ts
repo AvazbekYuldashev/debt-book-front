@@ -18,6 +18,9 @@ const uz: Dict = {
   // notifications
   'notifications.title': 'Bildirishnomalar',
   'notifications.empty': "Hozircha bildirishnoma yo'q",
+  'notifications.enablePush': "Qurilma bildirishnomalarini yoqish — bosing va ruxsat bering",
+  'notifications.pushBlocked': "Bildirishnomalar brauzerda bloklangan. Manzil qatoridagi qulf belgisi → Bildirishnomalar → Ruxsat berish",
+  'notifications.pushTest': "Bildirishnomalar yoqildi! Endi yangi oldi-berdi haqida shu yerda xabar olasiz.",
   'notifications.markAllRead': "Hammasini o'qilgan deb belgilash",
   // common
   'common.appName': 'Qarz Daftari',
@@ -366,6 +369,9 @@ const uz: Dict = {
 const ru: Dict = {
   'notifications.title': 'Уведомления',
   'notifications.empty': 'Пока нет уведомлений',
+  'notifications.enablePush': 'Включить уведомления устройства — нажмите и разрешите',
+  'notifications.pushBlocked': 'Уведомления заблокированы в браузере. Значок замка в адресной строке → Уведомления → Разрешить',
+  'notifications.pushTest': 'Уведомления включены! Теперь вы будете получать оповещения о новых операциях.',
   'notifications.markAllRead': 'Отметить все как прочитанные',
   'common.appName': 'Долговая книга',
   'common.save': 'Сохранить',
@@ -701,6 +707,9 @@ const ru: Dict = {
 const en: Dict = {
   'notifications.title': 'Notifications',
   'notifications.empty': 'No notifications yet',
+  'notifications.enablePush': 'Enable device notifications — tap and allow',
+  'notifications.pushBlocked': 'Notifications are blocked in the browser. Lock icon in the address bar → Notifications → Allow',
+  'notifications.pushTest': 'Notifications enabled! You will now get alerts about new transactions.',
   'notifications.markAllRead': 'Mark all as read',
   'common.appName': 'Debt Book',
   'common.save': 'Save',

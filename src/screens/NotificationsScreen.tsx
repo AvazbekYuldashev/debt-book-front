@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useMemo } from 'react';
+import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../theme';
@@ -11,6 +11,12 @@ import FadeInView from '../components/animations/FadeInView';
 import { useNotifications, useMarkNotificationRead } from '../hooks/useNotifications';
 import { ContactsContext } from '../context/ContactsContext';
 import { normalizePhone } from '../utils/phone';
+import {
+  getNotificationPermission,
+  requestNotificationPermission,
+  showBrowserNotification,
+  type NotifyPermission,
+} from '../utils/webNotify';
 import type { NotificationDTO } from '../types/notification';
 import NotificationRow from './notifications/NotificationRow';
 
@@ -31,6 +37,19 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
 
   const items = data?.content ?? [];
   const isEmpty = items.length === 0;
+
+  // Qurilma (brauzer) bildirishnomasi ruxsati — 'granted' bo'lmasa banner chiqadi.
+  const [pushPermission, setPushPermission] = useState<NotifyPermission>(getNotificationPermission);
+
+  const handleEnablePush = useCallback(() => {
+    requestNotificationPermission((permission) => {
+      setPushPermission(permission);
+      // Ruxsat berilishi bilan test bildirishnoma — qurilmada ishlayotgani darhol ko'rinadi.
+      if (permission === 'granted') {
+        showBrowserNotification(t('common.appName'), t('notifications.pushTest'), 'push-test');
+      }
+    });
+  }, [t]);
 
   // Bildirishnomani bosganda: faqat o'shani o'qilgan qilamiz va (topilsa) o'sha
   // kontakt/tranzaksiya ekraniga yo'naltiramiz. Inbox ochilishida hech narsa
@@ -72,6 +91,24 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />
         }
       >
+        {pushPermission === 'default' || pushPermission === 'denied' ? (
+          <Pressable
+            style={({ pressed }) => [styles.permissionBanner, pressed && styles.pressed]}
+            onPress={handleEnablePush}
+            accessibilityRole="button"
+            accessibilityLabel={t('notifications.enablePush')}
+          >
+            <Ionicons
+              name={pushPermission === 'denied' ? 'notifications-off-outline' : 'notifications-outline'}
+              size={18}
+              color={pushPermission === 'denied' ? colors.danger : colors.primary}
+            />
+            <Text style={styles.permissionText}>
+              {pushPermission === 'denied' ? t('notifications.pushBlocked') : t('notifications.enablePush')}
+            </Text>
+          </Pressable>
+        ) : null}
+
         <View style={styles.listCard}>
           {isLoading ? (
             <SkeletonCardList count={5} containerStyle={styles.skeleton} />
@@ -152,6 +189,23 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     content: {
       padding: spacing.md,
+    },
+    permissionBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      padding: spacing.sm,
+      marginBottom: spacing.sm,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    permissionText: {
+      ...typography.caption,
+      flex: 1,
+      fontSize: 13,
+      color: colors.textPrimary,
     },
     listCard: {
       backgroundColor: colors.surface,
