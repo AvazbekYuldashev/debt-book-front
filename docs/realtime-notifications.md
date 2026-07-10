@@ -6,8 +6,9 @@ paketi (NotificationWsHandler + NotificationWsConfig), security whitelist'da
 `/ws/**`, `createTransactionNotification` saqlagach push. Apache'da
 `proxy_wstunnel` + `/ws` proxy (project.test-le-ssl.conf). E2E tekshirilgan:
 `wss://pul-hisob.uz/ws/notifications` orqali noto'g'ri token → close 1008,
-to'g'ri token → AUTH_OK + PING/PONG. ⚠️ Backend commit hali GitHub'da EMAS
-(serverda push krediti yo'q) — push krediti bor mashinadan ko'chirish kerak.
+to'g'ri token → AUTH_OK + PING/PONG. Backend commit'lar GitHub'da ham bor
+(`AvazbekYuldashev/Debt-Book` master = 86dfcb3) — server, GitHub va lokal
+klon sinxron.
 
 Frontend (`src/realtime/notificationsSocket.ts`) shu kontrakt bo'yicha ulanadi.
 Backend WS bermasa hech narsa buzilmaydi: mijoz backoff bilan qayta urinadi,
