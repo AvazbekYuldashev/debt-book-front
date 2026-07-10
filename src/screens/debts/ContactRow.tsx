@@ -83,34 +83,20 @@ const ContactRow: React.FC<ContactRowProps> = ({
       </Pressable>
 
       <View style={styles.right}>
-        <View style={styles.pillGroup}>
+        <View style={styles.amounts}>
           {balances === undefined ? (
-            <View style={styles.pill}>
-              <Text style={[styles.pillText, { color: colors.textSecondary }]}>
-                {totalsLoading ? '…' : '--'}
-              </Text>
-            </View>
+            <Text style={styles.amountMuted}>{totalsLoading ? '…' : '--'}</Text>
           ) : balances.length === 0 ? (
-            <View style={[styles.pill, { backgroundColor: colors.surfaceMuted }]}>
-              <Text style={[styles.pillText, { color: colors.textSecondary }]}>
-                {formatMoney(0)}
-              </Text>
-            </View>
+            <Text style={styles.amountMuted}>{formatMoney(0)}</Text>
           ) : (
             balances.map(({ currency, amount }) => (
-              <View
+              <Text
                 key={currency}
-                style={[
-                  styles.pill,
-                  { backgroundColor: amount > 0 ? colors.positiveSoft : colors.negativeSoft },
-                ]}
+                style={[styles.amount, { color: amount > 0 ? colors.positive : colors.negative }]}
               >
-                <Text
-                  style={[styles.pillText, { color: amount > 0 ? colors.positive : colors.negative }]}
-                >
-                  {formatMoney(amount, currency)}
-                </Text>
-              </View>
+                {amount > 0 ? '+' : ''}
+                {formatMoney(amount, currency)}
+              </Text>
             ))
           )}
         </View>
@@ -169,30 +155,33 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontSize: 13,
       color: colors.textSecondary,
     },
-    // Pill'lar (ustun) va tahrir tugmasi YONMA-YON — qator bo'yi avatar
-    // balandligidan oshmaydi (ikki valyutada ham ixcham ko'rinish).
+    // Summalar (fonsiz, o'ngga tekis) va tahrir tugmasi YONMA-YON, vertikal
+    // markazda — qator bo'yi avatar balandligidan oshmaydi, o'ng chet tekis.
     right: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
     },
-    pillGroup: {
+    amounts: {
       alignItems: 'flex-end',
-      gap: 3,
+      gap: 1,
     },
-    pill: {
-      paddingHorizontal: spacing.xs,
-      paddingVertical: 2,
-      borderRadius: radius.pill,
-    },
-    pillText: {
+    amount: {
       ...typography.caption,
-      fontSize: 12,
-      fontWeight: '700',
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: '800',
+      fontVariant: ['tabular-nums'],
+    },
+    amountMuted: {
+      ...typography.caption,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textSecondary,
     },
     iconBtn: {
-      width: 30,
-      height: 30,
+      width: 28,
+      height: 28,
       borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',

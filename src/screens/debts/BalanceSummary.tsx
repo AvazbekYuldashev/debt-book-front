@@ -39,7 +39,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ totalDebt, totalCredit 
     <View style={styles.card}>
       <View style={styles.tile}>
         <View style={[styles.icon, { backgroundColor: colors.negativeSoft }]}>
-          <Ionicons name="arrow-down" size={18} color={colors.negative} />
+          <Ionicons name="arrow-down" size={15} color={colors.negative} />
         </View>
         <View style={styles.textWrap}>
           <Text style={styles.label}>{t('debts.currentDebt')}</Text>
@@ -61,7 +61,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ totalDebt, totalCredit 
 
       <View style={styles.tile}>
         <View style={[styles.icon, { backgroundColor: colors.positiveSoft }]}>
-          <Ionicons name="arrow-up" size={18} color={colors.positive} />
+          <Ionicons name="arrow-up" size={15} color={colors.positive} />
         </View>
         <View style={styles.textWrap}>
           <Text style={styles.label}>{t('debts.currentCredit')}</Text>
@@ -89,7 +89,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       alignItems: 'flex-start',
       backgroundColor: colors.surface,
       borderRadius: radius.xl,
-      padding: spacing.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
       marginBottom: spacing.xs,
       marginHorizontal: spacing.md,
       shadowColor: '#0F172A',
@@ -102,12 +103,12 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flex: 1,
       flexDirection: 'row',
       alignItems: 'flex-start',
-      gap: spacing.sm,
+      gap: spacing.xs,
     },
     icon: {
-      width: 38,
-      height: 38,
-      borderRadius: radius.md,
+      width: 30,
+      height: 30,
+      borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -116,13 +117,17 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     label: {
       ...typography.caption,
+      fontSize: 11,
       color: colors.textSecondary,
-      marginBottom: spacing.xxs,
+      marginBottom: 2,
     },
     value: {
-      ...typography.button,
+      ...typography.caption,
+      fontSize: 14,
+      lineHeight: 18,
       fontWeight: '800',
-      letterSpacing: -0.3,
+      letterSpacing: -0.2,
+      fontVariant: ['tabular-nums'],
       flexShrink: 1,
     },
     divider: {
