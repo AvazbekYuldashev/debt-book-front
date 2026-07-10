@@ -12,6 +12,7 @@ import { NotificationsSocket } from '../realtime/notificationsSocket';
 import { realtimeStatus, useRealtimeConnected } from '../realtime/realtimeStatus';
 import { translate } from '../i18n';
 import {
+  initNotificationServiceWorker,
   playNotificationBeep,
   requestNotificationPermission,
   showBrowserNotification,
@@ -31,9 +32,10 @@ export function useNotificationWatcher(): void {
   const seenRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
 
-  // Ruxsat so'rash (bir marta).
+  // Ruxsat so'rash + bildirishnoma SW'ini tayyorlash (bir marta).
   useEffect(() => {
     requestNotificationPermission();
+    initNotificationServiceWorker();
   }, []);
 
   // Foydalanuvchi almashsa — holatni tozalaymiz.

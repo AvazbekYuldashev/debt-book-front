@@ -17,6 +17,27 @@ const getAudioContext = (): AudioContext | null => {
   return audioCtx;
 };
 
+// Bildirishnoma uchun service worker (bir marta ro'yxatdan o'tkaziladi).
+// Mobil Chromium'da (Android Chrome/Edge) `new Notification()` ishlamaydi —
+// faqat registration.showNotification orqali chiqadi.
+let swRegistrationPromise: Promise<ServiceWorkerRegistration | null> | null = null;
+
+function getNotificationSw(): Promise<ServiceWorkerRegistration | null> {
+  if (!isWeb() || !('serviceWorker' in navigator)) return Promise.resolve(null);
+  if (!swRegistrationPromise) {
+    swRegistrationPromise = navigator.serviceWorker
+      .register('/service-worker.js')
+      .then(() => navigator.serviceWorker.ready)
+      .catch(() => null);
+  }
+  return swRegistrationPromise;
+}
+
+/** SW'ni oldindan ro'yxatdan o'tkazadi — birinchi bildirishnoma kechikmasligi uchun. */
+export function initNotificationServiceWorker(): void {
+  void getNotificationSw();
+}
+
 /** Brauzer notification ruxsatini so'raydi (foydalanuvchi ishorasidan chaqirilishi afzal). */
 export function requestNotificationPermission(): void {
   if (!hasNotification()) return;
@@ -62,20 +83,43 @@ export function playNotificationBeep(): void {
   }
 }
 
-/** OS darajasidagi brauzer bildirishnomasini ko'rsatadi (ruxsat berilgan bo'lsa). */
+// Eski (sahifa-darajali) usul — SW bo'lmagan brauzerlar uchun zaxira.
+function showLegacyNotification(title: string, options: NotificationOptions): void {
+  const popup = new Notification(title, options);
+  popup.onclick = () => {
+    try {
+      window.focus();
+    } catch {
+      // ignore
+    }
+    popup.close();
+  };
+}
+
+/**
+ * OS darajasidagi brauzer bildirishnomasini ko'rsatadi (ruxsat berilgan bo'lsa).
+ * Asosiy yo'l — service worker (desktop + Android'da ishlaydi); SW bo'lmasa
+ * `new Notification` zaxirasi (masalan, eski Safari).
+ */
 export function showBrowserNotification(title: string, body: string, tag: string): void {
   if (!hasNotification() || Notification.permission !== 'granted') return;
-  try {
-    const popup = new Notification(title, { body, tag });
-    popup.onclick = () => {
+  const options: NotificationOptions = {
+    body,
+    tag,
+    icon: '/favicon-32.png',
+    badge: '/favicon-32.png',
+  };
+  getNotificationSw()
+    .then((registration) => {
+      if (registration) return registration.showNotification(title, options);
+      showLegacyNotification(title, options);
+      return undefined;
+    })
+    .catch(() => {
       try {
-        window.focus();
+        showLegacyNotification(title, options);
       } catch {
-        // ignore
+        // mobil Chromium'da legacy konstruktor ishlamaydi — jim o'tamiz
       }
-      popup.close();
-    };
-  } catch {
-    // ignore
-  }
+    });
 }

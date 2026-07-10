@@ -83,35 +83,37 @@ const ContactRow: React.FC<ContactRowProps> = ({
       </Pressable>
 
       <View style={styles.right}>
-        {balances === undefined ? (
-          <View style={styles.pill}>
-            <Text style={[styles.pillText, { color: colors.textSecondary }]}>
-              {totalsLoading ? '…' : '--'}
-            </Text>
-          </View>
-        ) : balances.length === 0 ? (
-          <View style={[styles.pill, { backgroundColor: colors.surfaceMuted }]}>
-            <Text style={[styles.pillText, { color: colors.textSecondary }]}>
-              {formatMoney(0)}
-            </Text>
-          </View>
-        ) : (
-          balances.map(({ currency, amount }) => (
-            <View
-              key={currency}
-              style={[
-                styles.pill,
-                { backgroundColor: amount > 0 ? colors.positiveSoft : colors.negativeSoft },
-              ]}
-            >
-              <Text
-                style={[styles.pillText, { color: amount > 0 ? colors.positive : colors.negative }]}
-              >
-                {formatMoney(amount, currency)}
+        <View style={styles.pillGroup}>
+          {balances === undefined ? (
+            <View style={styles.pill}>
+              <Text style={[styles.pillText, { color: colors.textSecondary }]}>
+                {totalsLoading ? '…' : '--'}
               </Text>
             </View>
-          ))
-        )}
+          ) : balances.length === 0 ? (
+            <View style={[styles.pill, { backgroundColor: colors.surfaceMuted }]}>
+              <Text style={[styles.pillText, { color: colors.textSecondary }]}>
+                {formatMoney(0)}
+              </Text>
+            </View>
+          ) : (
+            balances.map(({ currency, amount }) => (
+              <View
+                key={currency}
+                style={[
+                  styles.pill,
+                  { backgroundColor: amount > 0 ? colors.positiveSoft : colors.negativeSoft },
+                ]}
+              >
+                <Text
+                  style={[styles.pillText, { color: amount > 0 ? colors.positive : colors.negative }]}
+                >
+                  {formatMoney(amount, currency)}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
         {canEdit ? (
           <Pressable
             style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
@@ -167,19 +169,26 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontSize: 13,
       color: colors.textSecondary,
     },
+    // Pill'lar (ustun) va tahrir tugmasi YONMA-YON — qator bo'yi avatar
+    // balandligidan oshmaydi (ikki valyutada ham ixcham ko'rinish).
     right: {
-      alignItems: 'flex-end',
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: spacing.xs,
     },
+    pillGroup: {
+      alignItems: 'flex-end',
+      gap: 3,
+    },
     pill: {
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xxs + 2,
+      paddingHorizontal: spacing.xs,
+      paddingVertical: 2,
       borderRadius: radius.pill,
     },
     pillText: {
       ...typography.caption,
-      fontSize: 13,
-      fontWeight: '800',
+      fontSize: 12,
+      fontWeight: '700',
     },
     iconBtn: {
       width: 30,
