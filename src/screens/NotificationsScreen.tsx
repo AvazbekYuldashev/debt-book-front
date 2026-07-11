@@ -97,7 +97,16 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.title}>{t('notifications.title')}</Text>
-        <View style={styles.iconBtn} />
+        {/* Test tugmasi: qurilma bildirishnomasi yo'lini bir bosishda tekshiradi. */}
+        <Pressable
+          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+          onPress={handleEnablePush}
+          accessibilityRole="button"
+          accessibilityLabel={t('notifications.pushTest')}
+          hitSlop={6}
+        >
+          <Ionicons name="notifications" size={18} color={colors.primary} />
+        </Pressable>
       </View>
 
       <ScrollView

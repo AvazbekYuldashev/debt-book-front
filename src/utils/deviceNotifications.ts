@@ -19,20 +19,28 @@ Notifications.setNotificationHandler({
 });
 
 const CHANNEL_ID = 'transactions';
-let channelReady = false;
+let channelAttempted = false;
+let channelCreated = false;
 
 // Android 8+ da bildirishnoma kanalsiz ko'rinmaydi; MAX importance = heads-up banner.
+// Kanal yaratish yiqilsa ham (ba'zi qurilmalarda SecurityException bo'lishi mumkin)
+// bildirishnoma default kanal orqali baribir chiqadi (trigger: null fallback).
 async function ensureChannel(): Promise<void> {
-  if (channelReady) return;
-  if (Platform.OS === 'android') {
+  if (channelAttempted || Platform.OS !== 'android') {
+    channelAttempted = true;
+    return;
+  }
+  channelAttempted = true;
+  try {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Tranzaksiya bildirishnomalari',
       importance: Notifications.AndroidImportance.MAX,
       sound: 'default',
-      vibrationPattern: [0, 250, 250, 250],
     });
+    channelCreated = true;
+  } catch {
+    channelCreated = false;
   }
-  channelReady = true;
 }
 
 function mapStatus(status: string, canAskAgain: boolean): NotifyPermission {
@@ -58,28 +66,38 @@ export async function getNotificationPermissionAsync(): Promise<NotifyPermission
 /** Ruxsat so'raydi (Android 13+ tizim dialogi); natijani callback bilan qaytaradi. */
 export function requestNotificationPermission(onResult?: (permission: NotifyPermission) => void): void {
   (async () => {
-    await ensureChannel();
+    // Kanal xatosi ruxsat so'rovini to'sib qo'ymasin — alohida oqimlar.
     const current = await Notifications.getPermissionsAsync();
     let mapped = mapStatus(current.status, current.canAskAgain);
     if (mapped === 'default') {
       const requested = await Notifications.requestPermissionsAsync();
       mapped = mapStatus(requested.status, requested.canAskAgain);
     }
+    void ensureChannel();
     onResult?.(mapped);
   })().catch(() => onResult?.('default'));
 }
 
 /** Qurilma bildirishnomasini darhol ko'rsatadi (ovoz kanal orqali keladi). */
 export function showDeviceNotification(title: string, body: string, tag: string): void {
-  void ensureChannel()
-    .then(() =>
-      Notifications.scheduleNotificationAsync({
+  void (async () => {
+    await ensureChannel();
+    const content = { title, body, sound: 'default' as const };
+    try {
+      await Notifications.scheduleNotificationAsync({
         identifier: tag,
-        content: { title, body, sound: 'default' },
-        trigger: Platform.OS === 'android' ? { channelId: CHANNEL_ID } : null,
-      }),
-    )
-    .catch(() => undefined);
+        content,
+        trigger: Platform.OS === 'android' && channelCreated ? { channelId: CHANNEL_ID } : null,
+      });
+    } catch {
+      // Kanal triggeri ishlamasa — default kanal bilan qayta urinamiz.
+      try {
+        await Notifications.scheduleNotificationAsync({ identifier: tag, content, trigger: null });
+      } catch {
+        // oxirgi chora ham yiqildi — jim o'tamiz
+      }
+    }
+  })();
 }
 
 /** Ruxsat butunlay rad etilganda foydalanuvchini ilova sozlamalariga olib boradi. */
