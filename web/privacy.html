@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maxfiylik siyosati — Pul Hisob (Debt Book)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; max-width: 760px; margin: 0 auto; padding: 24px 20px 64px; line-height: 1.65; color: #0F172A; background: #F8FAFC; }
+    h1 { font-size: 28px; color: #0D9488; }
+    h2 { font-size: 20px; margin-top: 32px; }
+    p, li { font-size: 16px; }
+    .muted { color: #64748B; font-size: 14px; }
+    a { color: #0D9488; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    th, td { border: 1px solid #E2E8F0; padding: 8px 10px; text-align: left; font-size: 15px; }
+    th { background: #F1F5F9; }
+  </style>
+</head>
+<body>
+  <h1>Maxfiylik siyosati</h1>
+  <p class="muted">Ilova: <strong>Pul Hisob (Debt Book)</strong> · Kuchga kirgan sana: 2026-yil 11-iyul</p>
+
+  <p>Ushbu hujjat Pul Hisob ilovasi (Android ilova va <a href="https://pul-hisob.uz">pul-hisob.uz</a> veb-versiyasi)
+  foydalanuvchi ma'lumotlarini qanday yig'ishi, ishlatishi va himoya qilishini tushuntiradi.</p>
+
+  <h2>1. Qanday ma'lumotlar yig'iladi</h2>
+  <table>
+    <tr><th>Ma'lumot</th><th>Nima uchun</th></tr>
+    <tr><td>Telefon raqami, ism-familiya, parol (xesh ko'rinishida)</td><td>Akkaunt yaratish va tizimga kirish</td></tr>
+    <tr><td>Siz kiritgan mijoz/kontakt yozuvlari (ism, telefon)</td><td>Qarz daftarini yuritish — ilovaning asosiy vazifasi</td></tr>
+    <tr><td>Oldi-berdi (tranzaksiya) yozuvlari: summa, valyuta, sana, izoh</td><td>Qarz/haq balanslarini hisoblash</td></tr>
+    <tr><td>Ixtiyoriy profil/biznes rasmi</td><td>Faqat siz yuklasangiz, profilingizda ko'rsatish uchun</td></tr>
+    <tr><td>Telefon kontaktlari (READ_CONTACTS)</td><td>Faqat siz "Telefon kontaktlaridan qo'shish"ni tanlaganingizda, tanlangan kontaktlarni mijoz sifatida qo'shish uchun. Kontaktlar ro'yxati fonda yig'ilmaydi va serverga ommaviy yuklanmaydi — faqat siz tanlaganlari saqlanadi.</td></tr>
+  </table>
+
+  <h2>2. Ma'lumotlar qanday himoyalanadi</h2>
+  <ul>
+    <li>Barcha aloqa <strong>HTTPS (TLS)</strong> orqali shifrlangan holda uzatiladi.</li>
+    <li>Parollar faqat xesh (bcrypt) ko'rinishida saqlanadi.</li>
+    <li>Ma'lumotlar bizning serverimizdagi bazada saqlanadi va faqat sizning akkauntingiz orqali ko'rinadi.</li>
+  </ul>
+
+  <h2>3. Uchinchi tomonlar</h2>
+  <ul>
+    <li>Ma'lumotlaringiz uchinchi tomonlarga <strong>sotilmaydi va reklama maqsadida berilmaydi</strong>.</li>
+    <li>Ro'yxatdan o'tishda tasdiqlash kodi yuborish uchun SMS provayderi (Eskiz.uz) ishlatiladi — unga faqat telefon raqami uzatiladi.</li>
+    <li>Ilovada reklama yo'q va analitika/kuzatuv SDK'lari ishlatilmaydi.</li>
+  </ul>
+
+  <h2>4. Ma'lumotni saqlash muddati va o'chirish</h2>
+  <p>Ma'lumotlar akkauntingiz mavjud bo'lgan muddat davomida saqlanadi. Siz istalgan vaqtda
+  akkauntingizni va unga bog'liq barcha ma'lumotlarni o'chirishingiz mumkin:</p>
+  <ul>
+    <li>Ilova ichida: <strong>Profil → Profilni o'chirish</strong>;</li>
+    <li>Batafsil yo'riqnoma: <a href="/delete-account.html">akkauntni o'chirish sahifasi</a>.</li>
+  </ul>
+
+  <h2>5. Bolalar</h2>
+  <p>Ilova moliyaviy hisob-kitob uchun mo'ljallangan bo'lib, 13 yoshgacha bo'lgan bolalarga mo'ljallanmagan.</p>
+
+  <h2>6. Murojaat</h2>
+  <p>Maxfiylik bo'yicha savollar uchun: <a href="mailto:telegram.vzlom@gmail.com">telegram.vzlom@gmail.com</a></p>
+
+  <p class="muted">Siyosat o'zgarsa, ushbu sahifada yangilangan sana bilan e'lon qilinadi.</p>
+</body>
+</html>
