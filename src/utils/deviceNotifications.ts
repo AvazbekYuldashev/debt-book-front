@@ -18,13 +18,16 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const CHANNEL_ID = 'transactions';
+// DIQQAT: Android kanal sozlamalari yaratilgandan keyin O'ZGARMAYDI — ovoz/
+// vibratsiya sozlamasini o'zgartirish uchun YANGI kanal ID kerak (shu sabab v2).
+const CHANNEL_ID = 'transactions-v2';
+const LEGACY_CHANNEL_IDS = ['transactions'];
 let channelAttempted = false;
 let channelCreated = false;
 
 // Android 8+ da bildirishnoma kanalsiz ko'rinmaydi; MAX importance = heads-up banner.
-// Kanal yaratish yiqilsa ham (ba'zi qurilmalarda SecurityException bo'lishi mumkin)
-// bildirishnoma default kanal orqali baribir chiqadi (trigger: null fallback).
+// Kanal yaratish yiqilsa ham bildirishnoma default kanal orqali baribir chiqadi
+// (trigger: null fallback).
 async function ensureChannel(): Promise<void> {
   if (channelAttempted || Platform.OS !== 'android') {
     channelAttempted = true;
@@ -36,8 +39,14 @@ async function ensureChannel(): Promise<void> {
       name: 'Tranzaksiya bildirishnomalari',
       importance: Notifications.AndroidImportance.MAX,
       sound: 'default',
+      enableVibrate: true,
+      vibrationPattern: [0, 250, 250, 250],
     });
     channelCreated = true;
+    // Eski (ovoz/vibratsiyasiz yaratilgan) kanallarni tozalaymiz.
+    for (const legacyId of LEGACY_CHANNEL_IDS) {
+      Notifications.deleteNotificationChannelAsync(legacyId).catch(() => undefined);
+    }
   } catch {
     channelCreated = false;
   }
