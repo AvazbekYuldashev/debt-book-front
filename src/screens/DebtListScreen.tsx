@@ -25,6 +25,7 @@ import type { ThemeValue } from '../theme/ThemeProvider';
 import { ROUTES } from '../navigation/routes';
 import type { DebtsNavigation } from '../navigation/types';
 import { CurrencyAmounts, netByCurrency } from '../utils/currency';
+import { confirmAction } from '../utils/confirm';
 import { canWrite } from '../utils/permissions';
 import { normalizePhone } from '../utils/phone';
 import { primeNotificationAudio } from '../utils/webNotify';
@@ -57,11 +58,13 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     loading,
     creating,
     updating,
+    deleting,
     error,
     refreshContacts,
     filterContacts,
     addContact,
     updateContact,
+    deleteContact,
   } = useContext(ContactsContext);
   const { avatars, setAvatar } = useContactAvatars();
 
@@ -269,6 +272,35 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     [updateContact, selectedId],
   );
 
+  // O'chirish qoidasi: hisob TO'LIQ yopiq bo'lsagina ruxsat — tranzaksiya umuman
+  // bo'lmagan yoki barcha valyutalarda sof balans 0. Aks holda taqiqlanadi.
+  const canDeleteSelected = useMemo(() => {
+    if (!selectedId) return false;
+    const totals = totalsByContact[selectedId];
+    if (!totals) return false; // balans hali aniqlanmagan — ehtiyotkorlik bilan taqiq
+    return netByCurrency(totals.credit, totals.debt).length === 0;
+  }, [selectedId, totalsByContact]);
+
+  const handleDeleteContact = useCallback(() => {
+    const contact = contacts.find((item) => item.id === selectedId);
+    if (!contact) return;
+    confirmAction(
+      t('debts.deleteConfirm', { name: contact.fullName }),
+      async () => {
+        const ok = await deleteContact(contact.id);
+        if (ok) {
+          setModalVisible(false);
+          refetchBalances();
+        }
+      },
+      {
+        title: t('debts.deleteContact'),
+        confirmLabel: t('common.delete'),
+        cancelLabel: t('common.cancel'),
+      },
+    );
+  }, [contacts, selectedId, deleteContact, refetchBalances, t]);
+
   const isEmpty = sortedContacts.length === 0;
   const isBusy = loading || searchLoading;
 
@@ -441,6 +473,9 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         mode={mode}
         initialName={editInitialName}
         submitting={creating || updating}
+        canDelete={canDeleteSelected}
+        deleting={deleting}
+        onDelete={handleDeleteContact}
         onClose={() => setModalVisible(false)}
         onCreate={addContact}
         onUpdate={handleUpdate}

@@ -207,6 +207,10 @@ const uz: Dict = {
   'debts.phoneLength': "Telefon 9 yoki 12 xonali bo'lishi kerak",
   'debts.phone998': '12 xonali telefon 998 bilan boshlanishi kerak',
   'debts.saveFailed': "So'rov yuborilmadi yoki server xatolik qaytardi. Maydonlarni tekshirib qayta urinib ko'ring.",
+  'debts.deleteContact': "Kontaktni o'chirish",
+  'debts.deleteConfirm': "{name} kontakti o'chirilsinmi?",
+  'debts.deleteBlocked': "O'chirib bo'lmaydi: hisob-kitob yopilmagan (qarz yoki haq bor). Balans nolga teng bo'lsagina o'chiriladi.",
+  'debts.deleteFailed': "Kontakt o'chirilmadi",
   'debts.thisContact': 'Ushbu kontakt',
 
   // expenses
@@ -549,6 +553,10 @@ const ru: Dict = {
   'debts.phoneLength': 'Телефон должен содержать 9 или 12 цифр',
   'debts.phone998': '12-значный телефон должен начинаться с 998',
   'debts.saveFailed': 'Запрос не отправлен или сервер вернул ошибку. Проверьте поля и попробуйте снова.',
+  'debts.deleteContact': 'Удалить контакт',
+  'debts.deleteConfirm': 'Удалить контакт {name}?',
+  'debts.deleteBlocked': 'Нельзя удалить: расчёты не закрыты (есть долг или кредит). Удаление возможно только при нулевом балансе.',
+  'debts.deleteFailed': 'Не удалось удалить контакт',
   'debts.thisContact': 'Этот контакт',
 
   'expenses.title': 'Расходы',
@@ -888,6 +896,10 @@ const en: Dict = {
   'debts.phoneLength': 'Phone must be 9 or 12 digits',
   'debts.phone998': '12-digit phone must start with 998',
   'debts.saveFailed': 'The request was not sent or the server returned an error. Check the fields and try again.',
+  'debts.deleteContact': 'Delete contact',
+  'debts.deleteConfirm': 'Delete contact {name}?',
+  'debts.deleteBlocked': 'Cannot delete: the ledger is not settled (there is debt or credit). Deletion is allowed only with a zero balance.',
+  'debts.deleteFailed': 'Failed to delete the contact',
   'debts.thisContact': 'This contact',
 
   'expenses.title': 'Expenses',

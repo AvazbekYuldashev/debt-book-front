@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -28,6 +30,10 @@ interface ContactFormModalProps {
   mode: Mode;
   initialName?: string;
   submitting: boolean;
+  /** O'chirishga ruxsat: hisob to'liq yopiq (hech valyutada qarz/haq yo'q) bo'lsagina true. */
+  canDelete: boolean;
+  deleting: boolean;
+  onDelete: () => void;
   onClose: () => void;
   onCreate: (input: ContactFormInput) => Promise<boolean>;
   onUpdate: (name: string) => Promise<boolean>;
@@ -46,6 +52,9 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
   mode,
   initialName,
   submitting,
+  canDelete,
+  deleting,
+  onDelete,
   onClose,
   onCreate,
   onUpdate,
@@ -178,6 +187,33 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
             </View>
 
             {mode === 'edit' ? <Text style={styles.hint}>{t('debts.updatingContact')}</Text> : null}
+
+            {mode === 'edit' ? (
+              <>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.deleteBtn,
+                    (!canDelete || deleting) && styles.deleteBtnDisabled,
+                    pressed && canDelete && !deleting && styles.deleteBtnPressed,
+                  ]}
+                  onPress={onDelete}
+                  disabled={!canDelete || deleting}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('debts.deleteContact')}
+                  accessibilityState={{ disabled: !canDelete || deleting, busy: deleting }}
+                >
+                  {deleting ? (
+                    <ActivityIndicator size="small" color={colors.danger} />
+                  ) : (
+                    <>
+                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                      <Text style={styles.deleteBtnText}>{t('debts.deleteContact')}</Text>
+                    </>
+                  )}
+                </Pressable>
+                {!canDelete ? <Text style={styles.deleteHint}>{t('debts.deleteBlocked')}</Text> : null}
+              </>
+            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -241,6 +277,32 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     hint: {
       ...typography.caption,
       marginTop: spacing.xs,
+      color: colors.textSecondary,
+    },
+    deleteBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xxs,
+      minHeight: 40,
+      marginTop: spacing.sm,
+      borderRadius: radius.sm,
+      backgroundColor: colors.dangerMuted,
+    },
+    deleteBtnDisabled: {
+      opacity: 0.45,
+    },
+    deleteBtnPressed: {
+      opacity: 0.75,
+    },
+    deleteBtnText: {
+      ...typography.button,
+      fontSize: 13,
+      color: colors.danger,
+    },
+    deleteHint: {
+      ...typography.caption,
+      marginTop: spacing.xxs,
       color: colors.textSecondary,
     },
   });
