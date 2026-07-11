@@ -12,11 +12,11 @@ import { NotificationsSocket } from '../realtime/notificationsSocket';
 import { realtimeStatus, useRealtimeConnected } from '../realtime/realtimeStatus';
 import { translate } from '../i18n';
 import {
-  initNotificationServiceWorker,
-  playNotificationBeep,
+  initDeviceNotifications,
   requestNotificationPermission,
-  showBrowserNotification,
-} from '../utils/webNotify';
+  showDeviceNotification,
+} from '../utils/deviceNotifications';
+import { playNotificationBeep } from '../utils/webNotify';
 
 /**
  * Yangi bildirishnomalarni kuzatadi: asosiy kanal — WebSocket (real-time),
@@ -32,10 +32,11 @@ export function useNotificationWatcher(): void {
   const seenRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
 
-  // Ruxsat so'rash + bildirishnoma SW'ini tayyorlash (bir marta).
+  // Ruxsat so'rash + kanal/SW tayyorlash (bir marta). Native'da bu Android 13+
+  // tizim dialogini chiqaradi — ilova birinchi ochilishida ruxsat so'raladi.
   useEffect(() => {
     requestNotificationPermission();
-    initNotificationServiceWorker();
+    initDeviceNotifications();
   }, []);
 
   // Foydalanuvchi almashsa — holatni tozalaymiz.
@@ -90,12 +91,13 @@ export function useNotificationWatcher(): void {
     fresh.forEach((item) => seenRef.current.add(item.id));
     if (fresh.length === 0) return;
 
-    // Ovozli signal (ilova ochiq bo'lsa kafolatlangan) + OS bildirishnomasi (ruxsat bo'lsa).
+    // Web'da ovozli signal (native'da ovoz bildirishnomaning o'zi bilan keladi)
+    // + qurilma bildirishnomasi (ruxsat bo'lsa).
     playNotificationBeep();
     const title = translate('common.appName');
     // content DESC (yangi birinchi) — eskidan yangiga qarab ko'rsatamiz.
     [...fresh].reverse().forEach((item) => {
-      showBrowserNotification(title, item.message, item.id);
+      showDeviceNotification(title, item.message, item.id);
     });
   }, [data]);
 }

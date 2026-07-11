@@ -1,5 +1,5 @@
-import React, { useCallback, useContext, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
@@ -12,11 +12,12 @@ import { useNotifications, useMarkNotificationRead } from '../hooks/useNotificat
 import { ContactsContext } from '../context/ContactsContext';
 import { normalizePhone } from '../utils/phone';
 import {
-  getNotificationPermission,
+  getNotificationPermissionAsync,
+  openNotificationSettings,
   requestNotificationPermission,
-  showBrowserNotification,
+  showDeviceNotification,
   type NotifyPermission,
-} from '../utils/webNotify';
+} from '../utils/deviceNotifications';
 import type { NotificationDTO } from '../types/notification';
 import NotificationRow from './notifications/NotificationRow';
 
@@ -38,18 +39,34 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   const items = data?.content ?? [];
   const isEmpty = items.length === 0;
 
-  // Qurilma (brauzer) bildirishnomasi ruxsati — 'granted' bo'lmasa banner chiqadi.
-  const [pushPermission, setPushPermission] = useState<NotifyPermission>(getNotificationPermission);
+  // Qurilma bildirishnomasi ruxsati — 'granted' bo'lmasa banner chiqadi.
+  // Boshlang'ich 'granted' (banner miltillamasin), haqiqiy holat async keladi.
+  const [pushPermission, setPushPermission] = useState<NotifyPermission>('granted');
+
+  useEffect(() => {
+    let mounted = true;
+    getNotificationPermissionAsync().then((permission) => {
+      if (mounted) setPushPermission(permission);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleEnablePush = useCallback(() => {
+    // Butunlay rad etilgan: so'rab bo'lmaydi — native'da sozlamalarni ochamiz.
+    if (pushPermission === 'denied' && Platform.OS !== 'web') {
+      openNotificationSettings();
+      return;
+    }
     requestNotificationPermission((permission) => {
       setPushPermission(permission);
       // Ruxsat berilishi bilan test bildirishnoma — qurilmada ishlayotgani darhol ko'rinadi.
       if (permission === 'granted') {
-        showBrowserNotification(t('common.appName'), t('notifications.pushTest'), 'push-test');
+        showDeviceNotification(t('common.appName'), t('notifications.pushTest'), 'push-test');
       }
     });
-  }, [t]);
+  }, [pushPermission, t]);
 
   // Bildirishnomani bosganda: faqat o'shani o'qilgan qilamiz va (topilsa) o'sha
   // kontakt/tranzaksiya ekraniga yo'naltiramiz. Inbox ochilishida hech narsa
@@ -104,7 +121,11 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
               color={pushPermission === 'denied' ? colors.danger : colors.primary}
             />
             <Text style={styles.permissionText}>
-              {pushPermission === 'denied' ? t('notifications.pushBlocked') : t('notifications.enablePush')}
+              {pushPermission === 'denied'
+                ? Platform.OS === 'web'
+                  ? t('notifications.pushBlocked')
+                  : t('notifications.pushBlockedNative')
+                : t('notifications.enablePush')}
             </Text>
           </Pressable>
         ) : null}
