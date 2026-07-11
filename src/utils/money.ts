@@ -1,5 +1,6 @@
 import { Currency, DEFAULT_CURRENCY, MoneyPriceDTO, MoneyResponseDTO, PageResponse } from '../types/money';
 import { CurrencyAmounts, formatCurrency, parseCurrencyAmounts } from './currency';
+import { formatBackendDateTime } from './date';
 
 const toNumber = (value: unknown): number => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -98,14 +99,5 @@ export const parseAmountInput = (raw: string): number | null => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
-export const formatDateTime = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
+// Deterministik (locale'siz) — barcha qurilmalarda bir xil: "11.07.2026 03:22".
+export const formatDateTime = (value: string): string => formatBackendDateTime(value);

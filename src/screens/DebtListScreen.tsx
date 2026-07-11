@@ -19,7 +19,7 @@ import DeviceContactsPickerModal from '../components/contacts/DeviceContactsPick
 import { ContactsContext } from '../context/ContactsContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { useContactBalances } from '../hooks/useContactBalances';
-import { useUnreadNotificationCount } from '../hooks/useNotifications';
+import { useNotifications, useUnreadNotificationCount } from '../hooks/useNotifications';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import { ROUTES } from '../navigation/routes';
@@ -76,6 +76,20 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
 
   const unreadQuery = useUnreadNotificationCount();
   const unreadCount = unreadQuery.data ?? 0;
+
+  // Telegram uslubida: har kontaktning o'zida o'qilmagan xabarlar soni.
+  // Inbox query'si keshdan ulashiladi (watcher baribir yangilab turadi).
+  const { data: notifData } = useNotifications();
+  const unreadByPhone = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const item of notifData?.content ?? []) {
+      if (item.read) continue;
+      const phone = item.actorPhone ? normalizePhone(item.actorPhone) : '';
+      if (!phone) continue;
+      map[phone] = (map[phone] ?? 0) + 1;
+    }
+    return map;
+  }, [notifData]);
 
   // ---- Modal / forma holati ----
   const [modalVisible, setModalVisible] = useState(false);
@@ -393,6 +407,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
                   <ContactRow
                     contact={item}
                     balances={balances}
+                    unreadCount={item.phone ? unreadByPhone[normalizePhone(item.phone)] ?? 0 : 0}
                     totalsLoading={totalsLoading}
                     localPhoto={avatars[item.partyId || item.id]}
                     canEdit={canEdit}

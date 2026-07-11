@@ -1,5 +1,6 @@
 import { MoneyResponseDTO, PartyType } from '../../types/money';
 import { translate } from '../../i18n';
+import { formatBackendDateTime } from '../../utils/date';
 
 // Tranzaksiyaning joriy hisob nuqtai nazaridan turi: haq bergan (credit) yoki qarz olgan (debt).
 export type TransactionKind = 'credit' | 'debt';
@@ -61,14 +62,12 @@ export function mapTransaction(
   };
 }
 
+// Locale'ga bog'liq emas — barcha qurilmalarda bir xil ko'rinadi (sana bug'i:
+// bir telefonda "7-noyabr", boshqasida "11/07" chiqayotgan edi).
 export function formatDateShort(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  return formatBackendDateTime(value);
 }
 
 export function formatDateLong(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString();
+  return formatBackendDateTime(value);
 }

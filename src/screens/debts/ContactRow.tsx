@@ -15,6 +15,8 @@ interface ContactRowProps {
   contact: Contact;
   /** Har valyuta bo'yicha mustaqil sof balanslar; undefined = hali yuklanmagan. */
   balances: CurrencyNet[] | undefined;
+  /** Shu kontaktdan kelgan o'qilmagan bildirishnomalar soni (Telegram uslubidagi badge). */
+  unreadCount: number;
   totalsLoading: boolean;
   localPhoto?: string;
   canEdit: boolean;
@@ -32,6 +34,7 @@ interface ContactRowProps {
 const ContactRow: React.FC<ContactRowProps> = ({
   contact,
   balances,
+  unreadCount,
   totalsLoading,
   localPhoto,
   canEdit,
@@ -71,6 +74,11 @@ const ContactRow: React.FC<ContactRowProps> = ({
           hitSlop={6}
         >
           <UserAvatar uri={localPhoto} size={AVATAR_SIZE} />
+          {unreadCount > 0 ? (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            </View>
+          ) : null}
         </Pressable>
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>
@@ -186,6 +194,27 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.surfaceMuted,
+    },
+    // Telegram uslubidagi o'qilmaganlar soni — avatar burchagida.
+    unreadBadge: {
+      position: 'absolute',
+      top: -3,
+      right: -3,
+      minWidth: 18,
+      height: 18,
+      borderRadius: radius.pill,
+      paddingHorizontal: 4,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      borderWidth: 1.5,
+      borderColor: colors.surface,
+    },
+    unreadBadgeText: {
+      ...typography.caption,
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.textOnPrimary,
     },
     iconBtnPressed: {
       opacity: 0.6,

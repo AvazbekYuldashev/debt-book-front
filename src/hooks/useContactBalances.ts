@@ -12,6 +12,7 @@ import {
   isEmptyTotals,
 } from '../application/usecases/computeContactBalance';
 import { extractCurrencyTotals } from '../utils/money';
+import { parseBackendDate } from '../utils/date';
 import { AccountType, MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../types/money';
 
 // Har kontaktning valyuta bo'yicha credit/debt yig'indisi va oxirgi amal vaqti.
@@ -33,8 +34,8 @@ const EMPTY_DATES: ContactBalances['latestDateByContact'] = {};
 const maxCreatedDate = (items: MoneyResponseDTO[]): number => {
   let max = 0;
   for (const item of items) {
-    const ts = new Date(item.createdDate).getTime();
-    if (!Number.isNaN(ts) && ts > max) max = ts;
+    const ts = parseBackendDate(item.createdDate)?.getTime() ?? 0;
+    if (ts > max) max = ts;
   }
   return max;
 };

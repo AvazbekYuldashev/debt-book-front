@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
   Modal,
@@ -18,7 +18,9 @@ import { AuthContext } from '../context/AuthContext';
 import { ContactsContext } from '../context/ContactsContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { useMoney } from '../hooks/useMoney';
+import { useNotifications, useMarkNotificationRead } from '../hooks/useNotifications';
 import { useAccountContext } from '../hooks/useAccountContext';
+import { normalizePhone } from '../utils/phone';
 import { useContactAvatars } from '../shared/contactAvatars';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
@@ -67,6 +69,22 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     () => netByCurrency(currencyTotals.credit, currencyTotals.debt),
     [currencyTotals],
   );
+
+  // Telegram uslubida: kontakt ochilganda AYNAN SHU kontaktdan kelgan o'qilmagan
+  // bildirishnomalar o'qilgan deb belgilanadi — ro'yxatdagi badge tozalanadi.
+  const { data: notifData } = useNotifications();
+  const { mutate: markNotificationRead } = useMarkNotificationRead();
+  const markedIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const phone = contact?.phone ? normalizePhone(contact.phone) : '';
+    if (!phone) return;
+    for (const item of notifData?.content ?? []) {
+      if (item.read || markedIdsRef.current.has(item.id)) continue;
+      if (!item.actorPhone || normalizePhone(item.actorPhone) !== phone) continue;
+      markedIdsRef.current.add(item.id);
+      markNotificationRead(item.id);
+    }
+  }, [contact?.phone, notifData, markNotificationRead]);
 
   // Biznes kontekstida MEMBER faqat ko'rishi mumkin — yozish tugmalari yashiriladi.
   const allowWrite = canWrite(workspace.activeBusinessRole);

@@ -1,5 +1,41 @@
 import { translate } from '../i18n';
 
+// ============================================================
+//  Backend sanalarini DETERMINISTIK parse/formatlash.
+//  `new Date(string)` va `toLocaleDateString()` qurilma locale/engine'iga
+//  qarab har xil natija beradi (bir telefonda "7-noyabr", boshqasida
+//  "11/07") — shuning uchun qo'lda parse + qat'iy format ishlatiladi.
+// ============================================================
+
+/** Backend sana satrini engine-heuristikasiz parse qiladi. */
+export function parseBackendDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const raw = String(value).trim();
+
+  // ISO: 2026-07-11T03:22:45(.123)? yoki "2026-07-11 03:22"
+  let m = raw.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], m[6] ? +m[6] : 0);
+
+  m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+
+  // dd/MM/yyyy yoki dd.MM.yyyy (+ HH:mm) — DD birinchi deb qat'iy talqin qilinadi.
+  m = raw.match(/^(\d{2})[./](\d{2})[./](\d{4})(?:[ ,]+(\d{2}):(\d{2}))?/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1], m[4] ? +m[4] : 0, m[5] ? +m[5] : 0);
+
+  const fallback = new Date(raw);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+}
+
+const pad2 = (n: number): string => String(n).padStart(2, '0');
+
+/** Hamma qurilmada BIR XIL: "11.07.2026 03:22". Parse bo'lmasa — satr o'zi. */
+export function formatBackendDateTime(value: string): string {
+  const date = parseBackendDate(value);
+  if (!date) return value;
+  return `${pad2(date.getDate())}.${pad2(date.getMonth() + 1)}.${date.getFullYear()} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+}
+
 export type DateRangeResult =
   | { ok: true; fromDate?: string; endDate?: string }
   | { ok: false; error: string };
