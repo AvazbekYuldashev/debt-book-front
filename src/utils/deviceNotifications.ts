@@ -19,9 +19,9 @@ Notifications.setNotificationHandler({
 });
 
 // DIQQAT: Android kanal sozlamalari yaratilgandan keyin O'ZGARMAYDI — ovoz/
-// vibratsiya sozlamasini o'zgartirish uchun YANGI kanal ID kerak (shu sabab v2).
-const CHANNEL_ID = 'transactions-v2';
-const LEGACY_CHANNEL_IDS = ['transactions'];
+// vibratsiya sozlamasini o'zgartirish uchun YANGI kanal ID kerak (shu sabab v3).
+const CHANNEL_ID = 'transactions-v3';
+const LEGACY_CHANNEL_IDS = ['transactions', 'transactions-v2'];
 let channelAttempted = false;
 let channelCreated = false;
 
@@ -35,12 +35,13 @@ async function ensureChannel(): Promise<void> {
   }
   channelAttempted = true;
   try {
+    // Telefonning O'Z standartlari: default bildirishnoma ohangi + default
+    // vibratsiya (maxsus shablon yo'q — enableVibrate tizimnikini ishlatadi).
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Tranzaksiya bildirishnomalari',
       importance: Notifications.AndroidImportance.MAX,
       sound: 'default',
       enableVibrate: true,
-      vibrationPattern: [0, 250, 250, 250],
     });
     channelCreated = true;
     // Eski (ovoz/vibratsiyasiz yaratilgan) kanallarni tozalaymiz.
