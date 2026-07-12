@@ -1,40 +1,42 @@
-import React, { memo, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useCallback, useMemo } from 'react';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../theme';
 import type { ThemeValue } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
-import UserAvatar from '../../shared/ui/UserAvatar';
 import { formatMoney } from '../../utils/money';
+import { buildTelUrl, formatPhoneDisplay } from '../../utils/phone';
 import type { CurrencyNet } from '../../utils/currency';
 import type { Contact } from '../../context/ContactsContext';
-
-const AVATAR_SIZE = 52;
 
 interface ContactBalanceHeaderProps {
   contact: Contact;
   /** Har valyuta bo'yicha mustaqil sof balanslar (musbat = haq, manfiy = qarz). */
   balances: CurrencyNet[];
-  avatarUri?: string;
   onBack: () => void;
-  onAvatarPress: () => void;
 }
 
 /**
- * Kontakt detali ekranining tepasi: orqaga tugma, avatar/ism/telefon va joriy
- * balanslar — HAR VALYUTA ALOHIDA qatorda (so'm/dollar aralashtirilmaydi).
+ * Kontakt detali ekranining tepasi: orqaga tugma va bitta ixcham kartochka —
+ * chapda ism/telefon, o'ng tomonida joriy balanslar HAR VALYUTA ALOHIDA
+ * qatorda (so'm/dollar aralashtirilmaydi). Rasm (avatar) yo'q.
+ * Telefon raqam bosilganda telefonning o'z raqam terish oynasi ochiladi
+ * (ilova ichidan qo'ng'iroq qilinmaydi).
  */
-const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({
-  contact,
-  balances,
-  avatarUri,
-  onBack,
-  onAvatarPress,
-}) => {
+const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, balances, onBack }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const telUrl = buildTelUrl(contact.phone);
+
+  const handleDial = useCallback(() => {
+    if (!telUrl) return;
+    Linking.openURL(telUrl).catch(() => {
+      // Dialer ochilmasa (masalan, web'da qurilma qo'llamasa) — jim o'tamiz.
+    });
+  }, [telUrl]);
 
   return (
     <View style={styles.wrap}>
@@ -51,51 +53,57 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({
       </View>
 
       <View style={styles.card}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={onAvatarPress}
-            accessibilityRole="button"
-            accessibilityLabel={t('contact.changePhoto')}
-          >
-            <UserAvatar uri={avatarUri} size={AVATAR_SIZE} />
-          </Pressable>
-          <View style={styles.headerInfo}>
-            <Text style={styles.name} numberOfLines={1}>
+        <View style={styles.row}>
+          <View style={styles.identity}>
+            <Text style={styles.name} numberOfLines={2}>
               {contact.fullName}
             </Text>
-            <Text style={styles.phone} numberOfLines={1}>
-              {contact.phone}
-            </Text>
+            {contact.phone ? (
+              <Pressable
+                onPress={handleDial}
+                disabled={!telUrl}
+                style={({ pressed }) => [styles.phoneRow, pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('contact.callNumber')}
+                hitSlop={6}
+              >
+                <Ionicons name="call-outline" size={13} color={colors.primary} />
+                <Text style={styles.phone} numberOfLines={1}>
+                  {formatPhoneDisplay(contact.phone)}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          <View style={styles.balances}>
+            {balances.length === 0 ? (
+              <Text
+                style={[styles.balanceValue, { color: colors.textSecondary }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+              >
+                {formatMoney(0)}
+              </Text>
+            ) : (
+              balances.map(({ currency, amount }) => (
+                <Text
+                  key={currency}
+                  style={[
+                    styles.balanceValue,
+                    balances.length > 1 && styles.balanceValueCompact,
+                    { color: amount >= 0 ? colors.positive : colors.negative },
+                  ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
+                >
+                  {formatMoney(amount, currency)}
+                </Text>
+              ))
+            )}
           </View>
         </View>
-
-        <Text style={styles.balanceLabel}>{t('contact.currentBalance')}</Text>
-        {balances.length === 0 ? (
-          <Text
-            style={[styles.balanceValue, { color: colors.textSecondary }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.5}
-          >
-            {formatMoney(0)}
-          </Text>
-        ) : (
-          balances.map(({ currency, amount }) => (
-            <Text
-              key={currency}
-              style={[
-                styles.balanceValue,
-                balances.length > 1 && styles.balanceValueCompact,
-                { color: amount >= 0 ? colors.positive : colors.negative },
-              ]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
-              {formatMoney(amount, currency)}
-            </Text>
-          ))
-        )}
       </View>
     </View>
   );
@@ -134,13 +142,12 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       shadowRadius: 22,
       elevation: 8,
     },
-    header: {
+    row: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
-      marginBottom: spacing.sm,
     },
-    headerInfo: {
+    identity: {
       flex: 1,
     },
     name: {
@@ -148,29 +155,34 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontSize: 18,
       color: colors.textPrimary,
     },
+    phoneRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: spacing.xxs + 1,
+      marginTop: spacing.xxs,
+    },
     phone: {
       ...typography.caption,
-      marginTop: spacing.xxs / 2,
       fontSize: 13,
-      color: colors.textSecondary,
+      fontWeight: '600',
+      color: colors.primary,
     },
-    balanceLabel: {
-      ...typography.caption,
-      marginTop: spacing.sm,
-      color: colors.textSecondary,
+    balances: {
+      flexShrink: 1,
+      maxWidth: '60%',
+      alignItems: 'flex-end',
     },
     balanceValue: {
       ...typography.heading1,
-      marginTop: spacing.xxs + 2,
-      fontSize: 36,
+      fontSize: 24,
       fontWeight: '800',
-      letterSpacing: -1,
+      letterSpacing: -0.6,
     },
     // Ikki va undan ko'p valyuta ko'rsatilganda qatorlar ixchamroq.
     balanceValueCompact: {
-      fontSize: 28,
-      lineHeight: 34,
-      marginTop: spacing.xxs,
+      fontSize: 20,
+      lineHeight: 26,
     },
   });
 

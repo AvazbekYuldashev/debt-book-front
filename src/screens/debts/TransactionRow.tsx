@@ -14,8 +14,10 @@ interface TransactionRowProps {
 }
 
 /**
- * Kontakt tarixidagi bitta tranzaksiya qatori: yo'nalish ikonkasi + sana, izoh
- * va summa "pill"i — har doim O'Z valyutasida (kursga o'girish yo'q). `memo`langan.
+ * Kontakt tarixidagi bitta tranzaksiya qatori: chapda yo'nalish ikonkasi,
+ * yuqorida katta rangli summa (o'z valyutasida, kursga o'girish yo'q),
+ * pastda kichik sana-vaqt va uning yonida izoh. "Qarz olindi"/"Haq berildi"
+ * matni ko'rsatilmaydi (yo'nalishni ikonka va rang bildiradi). `memo`langan.
  */
 const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, onPress }) => {
   const theme = useAppTheme();
@@ -35,29 +37,28 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, onPress }) 
       accessibilityRole="button"
       accessibilityLabel={`${tx.label}: ${formatMoney(tx.amount, currency)}`}
     >
-      <View style={styles.left}>
-        <View style={[styles.iconWrap, { backgroundColor: isCredit ? colors.primarySoft : colors.dangerMuted }]}>
-          <Ionicons
-            name={isCredit ? 'arrow-up-outline' : 'arrow-down-outline'}
-            size={14}
-            color={isCredit ? colors.positive : colors.negative}
-          />
-        </View>
-        <Text style={styles.date}>{formatDateShort(tx.createdDate)}</Text>
+      <View style={[styles.iconWrap, { backgroundColor: isCredit ? colors.primarySoft : colors.dangerMuted }]}>
+        <Ionicons
+          name={isCredit ? 'arrow-up-outline' : 'arrow-down-outline'}
+          size={16}
+          color={isCredit ? colors.positive : colors.negative}
+        />
       </View>
 
-      <View style={styles.labelWrap}>
-        <Text style={styles.label} numberOfLines={2}>
-          {description || tx.label}
+      <View style={styles.body}>
+        <Text
+          style={[styles.amount, { color: isCredit ? colors.positive : colors.negative }]}
+          numberOfLines={1}
+        >
+          {formatMoney(tx.amount, currency)}
         </Text>
-        {description ? <Text style={styles.labelSub}>{tx.label}</Text> : null}
-      </View>
-
-      <View style={styles.amountWrap}>
-        <View style={[styles.pill, { backgroundColor: isCredit ? colors.positiveSoft : colors.negativeSoft }]}>
-          <Text style={[styles.amount, { color: isCredit ? colors.positive : colors.negative }]}>
-            {formatMoney(tx.amount, currency)}
-          </Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.date}>{formatDateShort(tx.createdDate)}</Text>
+          {description ? (
+            <Text style={styles.description} numberOfLines={1}>
+              {description}
+            </Text>
+          ) : null}
         </View>
       </View>
     </Pressable>
@@ -69,7 +70,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     row: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
+      gap: spacing.sm,
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm,
     },
@@ -80,50 +81,36 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     rowPressed: {
       backgroundColor: colors.surfaceMuted,
     },
-    left: {
-      width: 120,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xxs + 2,
-    },
     iconWrap: {
-      width: 24,
-      height: 24,
-      borderRadius: radius.sm,
+      width: 34,
+      height: 34,
+      borderRadius: radius.pill,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    body: {
+      flex: 1,
+    },
+    amount: {
+      ...typography.bodySmall,
+      fontSize: 18,
+      fontWeight: '800',
+      letterSpacing: -0.3,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginTop: spacing.xxs / 2,
     },
     date: {
       ...typography.caption,
       color: colors.textSecondary,
     },
-    labelWrap: {
-      flex: 1,
-    },
-    label: {
-      ...typography.bodySmall,
-      fontWeight: '500',
-      color: colors.textPrimary,
-    },
-    labelSub: {
+    description: {
       ...typography.caption,
-      marginTop: spacing.xxs / 2,
-      fontSize: 11,
+      flexShrink: 1,
       color: colors.textSecondary,
-    },
-    amountWrap: {
-      alignItems: 'flex-end',
-      gap: spacing.xxs / 2,
-    },
-    pill: {
-      paddingHorizontal: spacing.xs + 2,
-      paddingVertical: spacing.xxs + 1,
-      borderRadius: radius.pill,
-    },
-    amount: {
-      ...typography.caption,
-      fontSize: 13,
-      fontWeight: '800',
     },
   });
 

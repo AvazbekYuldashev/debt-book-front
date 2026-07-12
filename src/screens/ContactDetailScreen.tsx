@@ -1,14 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Image,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import FadeInView from '../components/animations/FadeInView';
 import MoneyActionModal, { MoneyActionPayload } from '../components/money/MoneyActionModal';
@@ -21,7 +12,6 @@ import { useMoney } from '../hooks/useMoney';
 import { useNotifications, useMarkNotificationRead } from '../hooks/useNotifications';
 import { useAccountContext } from '../hooks/useAccountContext';
 import { normalizePhone } from '../utils/phone';
-import { useContactAvatars } from '../shared/contactAvatars';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import type { DebtsScreenProps } from '../navigation/types';
@@ -51,18 +41,15 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const { workspace } = useContext(WorkspaceContext);
   const { accountType } = useAccountContext();
   const { contacts } = useContext(ContactsContext);
-  const { avatars } = useContactAvatars();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
   const [selectedTransaction, setSelectedTransaction] = useState<MappedTransaction | null>(null);
-  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
 
   const { history, currencyTotals, selectedCounterparty, loading, creating, error, fetchData, createMoney } =
     useMoney({ token: profile?.jwt });
 
   const contact = useMemo(() => contacts.find((item) => item.id === contactId), [contacts, contactId]);
-  const avatarUri = contact ? avatars[contact.partyId || contact.id] : undefined;
 
   // Har valyuta balansi MUSTAQIL — so'm alohida, dollar alohida (kurs aralashmaydi).
   const balances = useMemo(
@@ -154,10 +141,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     setModalVisible(true);
   }, []);
 
-  const handleAvatarPress = useCallback(() => {
-    if (avatarUri) setAvatarPreviewVisible(true);
-  }, [avatarUri]);
-
   if (!contact) {
     return (
       <View style={styles.centered}>
@@ -170,13 +153,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
   return (
     <View style={styles.container}>
-      <ContactBalanceHeader
-        contact={contact}
-        balances={balances}
-        avatarUri={avatarUri}
-        onBack={navigation.goBack}
-        onAvatarPress={handleAvatarPress}
-      />
+      <ContactBalanceHeader contact={contact} balances={balances} onBack={navigation.goBack} />
 
       <ScrollView
         style={styles.scroll}
@@ -244,19 +221,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         onClose={() => setModalVisible(false)}
         onSubmit={handleCreate}
       />
-
-      <Modal
-        visible={avatarPreviewVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAvatarPreviewVisible(false)}
-      >
-        <Pressable style={styles.avatarPreviewBackdrop} onPress={() => setAvatarPreviewVisible(false)}>
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatarPreviewImage} resizeMode="contain" />
-          ) : null}
-        </Pressable>
-      </Modal>
 
       <TransactionDetailModal
         tx={selectedTransaction}
@@ -353,17 +317,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.background,
-    },
-    avatarPreviewBackdrop: {
-      flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.85)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    avatarPreviewImage: {
-      width: '90%',
-      height: '70%',
-      borderRadius: radius.lg,
     },
   });
 

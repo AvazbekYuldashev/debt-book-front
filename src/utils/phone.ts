@@ -41,3 +41,15 @@ export const formatPhoneDisplay = (value?: string, emptyFallback = ''): string =
   if (digits.length === 12 && digits.startsWith('998')) return `+${digits}`;
   return value;
 };
+
+/**
+ * Telefonning raqam terish (dialer) oynasini ochish uchun tel: URL.
+ * Qo'ng'iroq ilova ichidan QILINMAYDI — Android'da ACTION_DIAL ochiladi,
+ * foydalanuvchi chaqiruv tugmasini o'zi bosadi. Raqam bo'lmasa null.
+ */
+export const buildTelUrl = (value?: string): string | null => {
+  const digits = (value || '').replace(/\D/g, '');
+  if (!digits) return null;
+  const normalized = normalizePhone(digits);
+  return /^998\d{9}$/.test(normalized) ? `tel:+${normalized}` : `tel:${normalized}`;
+};
