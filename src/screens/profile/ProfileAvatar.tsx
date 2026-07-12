@@ -16,6 +16,8 @@ interface ProfileAvatarProps {
   activeBusiness: BusinessDTO | null;
   personalPhotoUri: string;
   editing: boolean;
+  /** Rasmni o'zgartirish huquqi: shaxsiyda har doim, biznesда faqat OWNER. */
+  canEdit: boolean;
   onEditPhoto: () => void;
   onPreview: () => void;
 }
@@ -26,6 +28,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
   activeBusiness,
   personalPhotoUri,
   editing,
+  canEdit,
   onEditPhoto,
   onPreview,
 }) => {
@@ -34,7 +37,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const editButton = (
+  const editButton = canEdit ? (
     <Pressable
       style={({ pressed }) => [styles.editBtn, pressed && styles.pressed]}
       onPress={onEditPhoto}
@@ -48,7 +51,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
         <Ionicons name="create-outline" size={16} color={colors.primary} />
       )}
     </Pressable>
-  );
+  ) : null;
 
   // Business rejimi — hech qachon shaxsiy foto ko'rsatilmaydi.
   if (isBusiness) {

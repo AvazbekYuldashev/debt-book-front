@@ -257,6 +257,8 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
           activeBusiness={activeBusiness}
           personalPhotoUri={photoUri}
           editing={loadingKey === 'photo'}
+          // Biznes rasmini faqat OWNER almashtira oladi (backend ham tekshiradi).
+          canEdit={!isBusiness || workspace.activeBusinessRole === 'OWNER'}
           onEditPhoto={isBusiness ? handlePickBusinessPhoto : handlePickPhoto}
           onPreview={openPhotoPreview}
         />
