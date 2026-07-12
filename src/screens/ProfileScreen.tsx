@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
@@ -24,6 +25,7 @@ import {
 } from '../api/profile';
 import { updateBusinessPhoto } from '../services/businessService';
 import { useMyBusinesses, myBusinessesQueryKey } from '../hooks/useMyBusinesses';
+import { useUserStats } from '../hooks/useUserStats';
 import { BusinessDTO } from '../types/business';
 import { ROUTES } from '../navigation/routes';
 import type { ProfileNavigation } from '../navigation/types';
@@ -42,6 +44,9 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
   const { workspace } = useContext(WorkspaceContext);
   const queryClient = useQueryClient();
   const isBusiness = workspace.mode === 'business';
+
+  // Ilova bo'yicha umumiy foydalanuvchi sonlari (hamma ko'radi).
+  const { data: userStats } = useUserStats();
 
   // Faol biznes umumiy query keshidan hosilaviy — alohida so'rov/holat kerak emas.
   const { data: businesses } = useMyBusinesses(isBusiness);
@@ -287,6 +292,28 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
         <Text style={styles.infoText}>{t('profile.notLoggedIn')}</Text>
       )}
 
+      {profile && userStats ? (
+        <Card style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>{t('stats.title')}</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statTile}>
+              <View style={[styles.statIcon, { backgroundColor: colors.primarySoft }]}>
+                <Ionicons name="people-outline" size={16} color={colors.primary} />
+              </View>
+              <Text style={styles.statValue}>{userStats.registeredUsers}</Text>
+              <Text style={styles.statLabel}>{t('stats.registered')}</Text>
+            </View>
+            <View style={styles.statTile}>
+              <View style={[styles.statIcon, { backgroundColor: colors.surfaceMuted }]}>
+                <Ionicons name="hourglass-outline" size={16} color={colors.textSecondary} />
+              </View>
+              <Text style={styles.statValue}>{userStats.pendingUsers}</Text>
+              <Text style={styles.statLabel}>{t('stats.pending')}</Text>
+            </View>
+          </View>
+        </Card>
+      ) : null}
+
       <Card style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
         <LanguageSwitcher variant="list" />
@@ -481,6 +508,38 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     sectionCard: {
       marginBottom: spacing.sm,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    statTile: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      padding: spacing.sm,
+      backgroundColor: colors.surface,
+    },
+    statIcon: {
+      width: 28,
+      height: 28,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+    statValue: {
+      ...typography.heading2,
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    statLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      marginTop: spacing.xxs / 2,
+      color: colors.textSecondary,
     },
     sectionTitle: {
       ...typography.button,
