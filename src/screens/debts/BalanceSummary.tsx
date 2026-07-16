@@ -1,83 +1,153 @@
 import React, { memo, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../theme';
 import type { ThemeValue } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import { formatMoney } from '../../utils/money';
-import { CURRENCIES, CurrencyAmounts, DEFAULT_CURRENCY } from '../../utils/currency';
+import { CURRENCIES, Currency, CurrencyAmounts, DEFAULT_CURRENCY } from '../../utils/currency';
+
+// Saralash yo'nalishi: qarz tomoni (eng katta qarz birinchi) yoki haq tomoni.
+export type SortDirection = 'debt' | 'credit';
+export interface ActiveSort {
+  direction: SortDirection;
+  currency: Currency;
+}
 
 interface BalanceSummaryProps {
   totalDebt: CurrencyAmounts;
   totalCredit: CurrencyAmounts;
+  activeSort: ActiveSort | null;
+  onSelect: (direction: SortDirection, currency: Currency) => void;
+  onReset: () => void;
 }
 
-// Har valyuta o'z qatorida ko'rsatiladi; bo'sh bo'lsa standart valyutada "0".
-const amountLines = (amounts: CurrencyAmounts): string[] => {
-  const lines: string[] = [];
+interface CurrencyEntry {
+  currency: Currency;
+  text: string;
+}
+
+// Nolga teng bo'lmagan valyutalarni barqaror tartibda formatlab qaytaradi.
+const currencyEntries = (amounts: CurrencyAmounts): CurrencyEntry[] => {
+  const list: CurrencyEntry[] = [];
   for (const cur of CURRENCIES) {
     const value = amounts[cur];
-    if (value) lines.push(formatMoney(value, cur));
+    if (value) list.push({ currency: cur, text: formatMoney(value, cur) });
   }
-  return lines.length > 0 ? lines : [formatMoney(0, DEFAULT_CURRENCY)];
+  return list;
 };
 
 /**
  * Umumiy qarz/haq xulosasi. Har valyuta hisobi ALOHIDA qatorda — so'm va dollar
- * bir-biriga aylantirilmaydi (foydalanuvchi talabi: ikki mustaqil hisob).
+ * bir-biriga aylantirilmaydi (foydalanuvchi talabi: mustaqil hisoblar).
+ *
+ * Har summa bosiladigan blok: qarz tomonidagi valyutani bossang ro'yxat o'sha
+ * valyuta bo'yicha eng katta qarzdan eng katta haqgacha, haq tomonidagi valyutani
+ * bossang teskarisiga saralanadi. Aktiv blokni qayta bosish yoki "Standart" tugmasi
+ * odatiy (oxirgi amal birinchi) tartibga qaytaradi.
  */
-const BalanceSummary: React.FC<BalanceSummaryProps> = ({ totalDebt, totalCredit }) => {
+const BalanceSummary: React.FC<BalanceSummaryProps> = ({
+  totalDebt,
+  totalCredit,
+  activeSort,
+  onSelect,
+  onReset,
+}) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const debtLines = useMemo(() => amountLines(totalDebt), [totalDebt]);
-  const creditLines = useMemo(() => amountLines(totalCredit), [totalCredit]);
+  const debtEntries = useMemo(() => currencyEntries(totalDebt), [totalDebt]);
+  const creditEntries = useMemo(() => currencyEntries(totalCredit), [totalCredit]);
+
+  const renderTile = (
+    direction: SortDirection,
+    entries: CurrencyEntry[],
+    color: string,
+    softColor: string,
+    iconName: keyof typeof Ionicons.glyphMap,
+    label: string,
+  ) => (
+    <View style={styles.tile}>
+      <View style={[styles.icon, { backgroundColor: softColor }]}>
+        <Ionicons name={iconName} size={15} color={color} />
+      </View>
+      <View style={styles.textWrap}>
+        <Text style={styles.label}>{label}</Text>
+        {entries.length === 0 ? (
+          <Text style={[styles.value, styles.valueIdle, { color }]}>
+            {formatMoney(0, DEFAULT_CURRENCY)}
+          </Text>
+        ) : (
+          entries.map((entry) => {
+            const active =
+              activeSort?.direction === direction && activeSort?.currency === entry.currency;
+            return (
+              <Pressable
+                key={entry.currency}
+                onPress={() => onSelect(direction, entry.currency)}
+                style={({ pressed }) => [
+                  styles.amountBlock,
+                  active && { backgroundColor: softColor, borderColor: color },
+                  pressed && styles.amountBlockPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`${label}: ${entry.text}`}
+              >
+                <Text
+                  style={[styles.value, { color }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
+                >
+                  {entry.text}
+                </Text>
+                {active ? (
+                  <Ionicons name="swap-vertical" size={11} color={color} />
+                ) : null}
+              </Pressable>
+            );
+          })
+        )}
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.card}>
-      <View style={styles.tile}>
-        <View style={[styles.icon, { backgroundColor: colors.negativeSoft }]}>
-          <Ionicons name="arrow-down" size={15} color={colors.negative} />
-        </View>
-        <View style={styles.textWrap}>
-          <Text style={styles.label}>{t('debts.currentDebt')}</Text>
-          {debtLines.map((line) => (
-            <Text
-              key={line}
-              style={[styles.value, { color: colors.negative }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.6}
-            >
-              {line}
-            </Text>
-          ))}
-        </View>
+      <View style={styles.tilesRow}>
+        {renderTile(
+          'debt',
+          debtEntries,
+          colors.negative,
+          colors.negativeSoft,
+          'arrow-down',
+          t('debts.currentDebt'),
+        )}
+        <View style={styles.divider} />
+        {renderTile(
+          'credit',
+          creditEntries,
+          colors.positive,
+          colors.positiveSoft,
+          'arrow-up',
+          t('debts.currentCredit'),
+        )}
       </View>
 
-      <View style={styles.divider} />
-
-      <View style={styles.tile}>
-        <View style={[styles.icon, { backgroundColor: colors.positiveSoft }]}>
-          <Ionicons name="arrow-up" size={15} color={colors.positive} />
-        </View>
-        <View style={styles.textWrap}>
-          <Text style={styles.label}>{t('debts.currentCredit')}</Text>
-          {creditLines.map((line) => (
-            <Text
-              key={line}
-              style={[styles.value, { color: colors.positive }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.6}
-            >
-              {line}
-            </Text>
-          ))}
-        </View>
-      </View>
+      {activeSort ? (
+        <Pressable
+          onPress={onReset}
+          style={({ pressed }) => [styles.resetChip, pressed && styles.resetChipPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={t('debts.sortReset')}
+        >
+          <Ionicons name="refresh" size={12} color={colors.textSecondary} />
+          <Text style={styles.resetText}>{t('debts.sortReset')}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 };
@@ -85,8 +155,6 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({ totalDebt, totalCredit 
 const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     card: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
       backgroundColor: colors.surface,
       borderRadius: radius.xl,
       paddingVertical: spacing.sm,
@@ -98,6 +166,10 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       shadowOpacity: 0.12,
       shadowRadius: 20,
       elevation: 6,
+    },
+    tilesRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
     },
     tile: {
       flex: 1,
@@ -119,7 +191,23 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.caption,
       fontSize: 11,
       color: colors.textSecondary,
-      marginBottom: 2,
+      marginBottom: spacing.xxs,
+    },
+    amountBlock: {
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      maxWidth: '100%',
+      paddingVertical: 3,
+      paddingHorizontal: 7,
+      marginTop: spacing.xxs,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    amountBlockPressed: {
+      opacity: 0.55,
     },
     value: {
       ...typography.caption,
@@ -130,11 +218,35 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontVariant: ['tabular-nums'],
       flexShrink: 1,
     },
+    valueIdle: {
+      marginTop: spacing.xxs,
+      paddingHorizontal: 7,
+    },
     divider: {
       width: 1,
       alignSelf: 'stretch',
       backgroundColor: colors.border,
       marginHorizontal: spacing.sm,
+    },
+    resetChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'center',
+      gap: 4,
+      marginTop: spacing.sm,
+      paddingVertical: spacing.xxs + 1,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surfaceMuted,
+    },
+    resetChipPressed: {
+      opacity: 0.6,
+    },
+    resetText: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textSecondary,
     },
   });
 

@@ -25,6 +25,8 @@ import type { ThemeValue } from '../theme/ThemeProvider';
 import { ROUTES } from '../navigation/routes';
 import type { DebtsNavigation } from '../navigation/types';
 import { CurrencyAmounts, netByCurrency } from '../utils/currency';
+import type { ActiveSort, SortDirection } from './debts/BalanceSummary';
+import type { Currency } from '../utils/currency';
 import { confirmAction } from '../utils/confirm';
 import { canWrite } from '../utils/permissions';
 import { normalizePhone } from '../utils/phone';
@@ -122,14 +124,45 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     return searchResults;
   }, [contacts, filterName, filterPhone, searchResults]);
 
-  // Eng oxirgi amal bajarilgan kontakt birinchi chiqsin. Vaqti aniqlanmaganlar pastda.
-  const sortedContacts = useMemo(
-    () =>
-      [...filteredContacts].sort(
-        (a, b) => (latestDateByContact[b.id] ?? 0) - (latestDateByContact[a.id] ?? 0),
-      ),
-    [filteredContacts, latestDateByContact],
-  );
+  // ---- Saralash holati ----
+  // null = odatiy tartib (oxirgi amal bajargan kontakt birinchi, Telegram uslubi).
+  // Aks holda tanlangan valyuta bo'yicha qarz/haq tomoniga saralanadi.
+  const [sort, setSort] = useState<ActiveSort | null>(null);
+
+  const handleSelectSort = useCallback((direction: SortDirection, currency: Currency) => {
+    setSort((prev) =>
+      prev && prev.direction === direction && prev.currency === currency
+        ? null
+        : { direction, currency },
+    );
+  }, []);
+
+  const handleResetSort = useCallback(() => setSort(null), []);
+
+  // Odatiy holatda oxirgi amal birinchi; valyuta tanlansa o'sha valyutaning sof
+  // balansi (credit - debt) bo'yicha. 'debt' = eng katta qarzdan (eng manfiy) haqgacha,
+  // 'credit' = teskarisiga. Tenglar oxirgi amal vaqti bo'yicha ajratiladi.
+  const sortedContacts = useMemo(() => {
+    const base = [...filteredContacts];
+    const byRecent = (a: (typeof base)[number], b: (typeof base)[number]) =>
+      (latestDateByContact[b.id] ?? 0) - (latestDateByContact[a.id] ?? 0);
+
+    if (!sort) return base.sort(byRecent);
+
+    const cur = sort.currency;
+    const netOf = (id: string): number => {
+      const totals = totalsByContact[id];
+      if (!totals) return 0;
+      return (totals.credit[cur] ?? 0) - (totals.debt[cur] ?? 0);
+    };
+    const dir = sort.direction === 'debt' ? 1 : -1;
+
+    return base.sort((a, b) => {
+      const diff = netOf(a.id) - netOf(b.id);
+      if (diff !== 0) return dir * diff;
+      return byRecent(a, b);
+    });
+  }, [filteredContacts, sort, totalsByContact, latestDateByContact]);
 
   // Jami balanslar HAR VALYUTA bo'yicha alohida yig'iladi — so'm hisobi so'mda,
   // dollar hisobi dollarda. Kursda aylantirish YO'Q (foydalanuvchi talabi).
@@ -393,7 +426,13 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           />
         ) : null}
 
-        <BalanceSummary totalDebt={aggregateTotals.totalDebt} totalCredit={aggregateTotals.totalCredit} />
+        <BalanceSummary
+          totalDebt={aggregateTotals.totalDebt}
+          totalCredit={aggregateTotals.totalCredit}
+          activeSort={sort}
+          onSelect={handleSelectSort}
+          onReset={handleResetSort}
+        />
       </View>
 
       <ScrollView
