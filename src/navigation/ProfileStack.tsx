@@ -9,7 +9,6 @@ import PrivacyPolicyScreen from '../screens/legal/PrivacyPolicyScreen';
 import { ROUTES } from './routes';
 import type { ProfileStackParamList } from './types';
 import { withFadeInScreen } from './withFadeInScreen';
-import { useI18n } from '../i18n';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -20,26 +19,18 @@ const OfferScreenWithFade = withFadeInScreen(OfferScreen);
 const TermsScreenWithFade = withFadeInScreen(TermsScreen);
 const PrivacyPolicyScreenWithFade = withFadeInScreen(PrivacyPolicyScreen);
 
-const ProfileStack: React.FC = () => {
-  const { t } = useI18n();
-  return (
-    <Stack.Navigator>
-      <Stack.Screen name={ROUTES.PROFILE_HOME} component={ProfileScreenWithFade} options={{ headerShown: false }} />
-      <Stack.Screen name={ROUTES.MY_BUSINESSES} component={MyBusinessesScreenWithFade} options={{ title: 'My Businesses' }} />
-      <Stack.Screen
-        name={ROUTES.BUSINESS_MEMBERS}
-        component={BusinessMembersScreenWithFade}
-        options={{ title: 'Business Members' }}
-      />
-      <Stack.Screen name={ROUTES.OFFER} component={OfferScreenWithFade} options={{ title: t('legal.offerTitle') }} />
-      <Stack.Screen name={ROUTES.TERMS} component={TermsScreenWithFade} options={{ title: t('legal.termsTitle') }} />
-      <Stack.Screen
-        name={ROUTES.PRIVACY_POLICY}
-        component={PrivacyPolicyScreenWithFade}
-        options={{ title: t('legal.privacyTitle') }}
-      />
-    </Stack.Navigator>
-  );
-};
+// Har bir ekran o'zining ScreenHeader'ini chizadi (izchil orqaga tugmasi/sarlavha
+// uchun) — shuning uchun native-stack'ning standart headeri barcha ekranlarda
+// yashirilgan (headerShown: false).
+const ProfileStack: React.FC = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name={ROUTES.PROFILE_HOME} component={ProfileScreenWithFade} />
+    <Stack.Screen name={ROUTES.MY_BUSINESSES} component={MyBusinessesScreenWithFade} />
+    <Stack.Screen name={ROUTES.BUSINESS_MEMBERS} component={BusinessMembersScreenWithFade} />
+    <Stack.Screen name={ROUTES.OFFER} component={OfferScreenWithFade} />
+    <Stack.Screen name={ROUTES.TERMS} component={TermsScreenWithFade} />
+    <Stack.Screen name={ROUTES.PRIVACY_POLICY} component={PrivacyPolicyScreenWithFade} />
+  </Stack.Navigator>
+);
 
 export default ProfileStack;

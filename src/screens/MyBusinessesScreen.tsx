@@ -9,6 +9,7 @@ import { useMyBusinesses, myBusinessesQueryKey } from '../hooks/useMyBusinesses'
 import { BusinessDTO } from '../types/business';
 import CreateBusinessModal from '../components/business/CreateBusinessModal';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
+import ScreenHeader from '../components/atoms/ScreenHeader';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import { ROUTES } from '../navigation/routes';
 import type { ProfileNavigation } from '../navigation/types';
@@ -64,10 +65,8 @@ const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navig
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <ScreenHeader title={t('business.myBusinesses')} onBack={navigation.goBack} />
         <WorkspaceSwitcher />
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>{t('business.myBusinesses')}</Text>
-        </View>
       </View>
 
       <ScrollView
@@ -122,18 +121,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     header: {
       backgroundColor: colors.background,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
-    },
-    title: {
-      ...typography.heading2,
-      color: colors.textPrimary,
     },
     scroll: {
       flex: 1,

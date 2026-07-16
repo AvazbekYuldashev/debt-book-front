@@ -20,7 +20,7 @@ const ExpensesStack: React.FC = () => (
     <Stack.Screen
       name={ROUTES.EXPENSE_CATEGORY_DETAIL}
       component={ExpenseCategoryDetailScreenWithFade}
-      options={{ title: 'Xarajatlar' }}
+      options={{ headerShown: false }}
     />
   </Stack.Navigator>
 );

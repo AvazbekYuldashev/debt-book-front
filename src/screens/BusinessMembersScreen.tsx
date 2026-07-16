@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import BusinessMembersTable from '../components/business/BusinessMembersTable';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
+import ScreenHeader from '../components/atoms/ScreenHeader';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import {
@@ -26,7 +27,7 @@ import AddMemberModal, { AddMemberResult } from './businesses/AddMemberModal';
 
 type Props = ProfileScreenProps<typeof ROUTES.BUSINESS_MEMBERS>;
 
-const BusinessMembersScreen: React.FC<Props> = ({ route }) => {
+const BusinessMembersScreen: React.FC<Props> = ({ route, navigation }) => {
   const { t } = useI18n();
   const theme = useAppTheme();
   const { colors } = theme;
@@ -151,15 +152,8 @@ const BusinessMembersScreen: React.FC<Props> = ({ route }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <ScreenHeader title={t('members.title')} subtitle={businessName} onBack={navigation.goBack} />
         <WorkspaceSwitcher />
-        <View style={styles.headerRow}>
-          <View style={styles.titleWrap}>
-            <Text style={styles.title}>{t('members.title')}</Text>
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {businessName}
-            </Text>
-          </View>
-        </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
 
@@ -208,28 +202,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     header: {
       backgroundColor: colors.background,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: spacing.xs,
-      gap: spacing.xs,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
-    },
-    titleWrap: {
-      flex: 1,
-    },
-    title: {
-      ...typography.heading2,
-      fontSize: 22,
-      color: colors.textPrimary,
-    },
-    subtitle: {
-      ...typography.caption,
-      marginTop: spacing.xxs / 2,
-      color: colors.textSecondary,
     },
     scroll: {
       flex: 1,

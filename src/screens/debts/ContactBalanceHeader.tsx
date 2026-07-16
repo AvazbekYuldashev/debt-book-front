@@ -8,6 +8,7 @@ import { formatMoney } from '../../utils/money';
 import { buildTelUrl, formatPhoneDisplay } from '../../utils/phone';
 import type { CurrencyNet } from '../../utils/currency';
 import type { Contact } from '../../context/ContactsContext';
+import BackButton from '../../components/atoms/BackButton';
 
 interface ContactBalanceHeaderProps {
   contact: Contact;
@@ -41,15 +42,7 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
   return (
     <View style={styles.wrap}>
       <View style={styles.topBar}>
-        <Pressable
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-          onPress={onBack}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.cancel')}
-          hitSlop={6}
-        >
-          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
-        </Pressable>
+        <BackButton onPress={onBack} />
       </View>
 
       <View style={styles.card}>
@@ -117,16 +110,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     topBar: {
       marginBottom: spacing.xs,
-    },
-    backButton: {
-      width: 32,
-      height: 32,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
     },
     pressed: {
       opacity: 0.6,

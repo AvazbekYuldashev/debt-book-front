@@ -3,6 +3,7 @@ import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from 'rea
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../components/atoms/Button';
+import ScreenHeader from '../components/atoms/ScreenHeader';
 import { SkeletonCardList } from '../components/ui/SkeletonShimmer';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
@@ -21,7 +22,7 @@ import ExpenseFormModal from './expenses/ExpenseFormModal';
 
 type Props = ExpensesScreenProps<typeof ROUTES.EXPENSE_CATEGORY_DETAIL>;
 
-const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route }) => {
+const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { t } = useI18n();
   const theme = useAppTheme();
   const { colors } = theme;
@@ -168,14 +169,15 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title} numberOfLines={1}>
-            {categoryName || t('expenses.title')}
-          </Text>
-          {allowWrite ? (
-            <Button title={t('expenses.addExpense')} onPress={() => setExpenseModalVisible(true)} />
-          ) : null}
-        </View>
+        <ScreenHeader
+          title={categoryName || t('expenses.title')}
+          onBack={navigation.goBack}
+          right={
+            allowWrite ? (
+              <Button title={t('expenses.addExpense')} onPress={() => setExpenseModalVisible(true)} />
+            ) : null
+          }
+        />
 
         <View style={styles.searchRow}>
           <Ionicons name="search-outline" size={17} color={colors.textSecondary} />
@@ -233,24 +235,10 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       backgroundColor: colors.background,
     },
     header: {
-      padding: spacing.md,
-      paddingBottom: spacing.xs,
       backgroundColor: colors.background,
     },
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: spacing.xs,
-      marginBottom: spacing.xs,
-    },
-    title: {
-      ...typography.heading2,
-      flex: 1,
-      fontSize: 20,
-      color: colors.textPrimary,
-    },
     searchRow: {
+      marginHorizontal: spacing.md,
       marginBottom: spacing.xs,
       borderWidth: 1,
       borderColor: colors.border,
@@ -269,6 +257,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       paddingVertical: spacing.xs,
     },
     errorRow: {
+      marginHorizontal: spacing.md,
       padding: spacing.sm,
       borderWidth: 1,
       borderColor: colors.danger,
