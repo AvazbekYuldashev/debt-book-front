@@ -29,6 +29,7 @@ import { BusinessDTO } from '../types/business';
 import { ROUTES } from '../navigation/routes';
 import type { ProfileNavigation } from '../navigation/types';
 import FieldWithAction from './profile/FieldWithAction';
+import LegalMenuRow from './profile/LegalMenuRow';
 import ProfileAvatar from './profile/ProfileAvatar';
 import ProfilePhotoModal from './profile/ProfilePhotoModal';
 import { pickAndUploadImage } from './profile/pickImage';
@@ -323,6 +324,26 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
       <Card style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>{t('profile.theme')}</Text>
         <ThemeSwitcher />
+      </Card>
+
+      <Card style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>{t('profile.legalSection')}</Text>
+        <LegalMenuRow
+          label={t('legal.offerTitle')}
+          iconName="document-text-outline"
+          onPress={() => navigation.navigate(ROUTES.OFFER)}
+        />
+        <LegalMenuRow
+          label={t('legal.termsTitle')}
+          iconName="reader-outline"
+          onPress={() => navigation.navigate(ROUTES.TERMS)}
+        />
+        <LegalMenuRow
+          label={t('legal.privacyTitle')}
+          iconName="shield-checkmark-outline"
+          onPress={() => navigation.navigate(ROUTES.PRIVACY_POLICY)}
+          isLast
+        />
       </Card>
 
       {profile && !isBusiness ? (

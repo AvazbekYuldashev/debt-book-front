@@ -45,6 +45,9 @@ export type ProfileStackParamList = {
   [ROUTES.PROFILE_HOME]: undefined;
   [ROUTES.MY_BUSINESSES]: undefined;
   [ROUTES.BUSINESS_MEMBERS]: { businessId?: string; businessName?: string } | undefined;
+  [ROUTES.OFFER]: undefined;
+  [ROUTES.TERMS]: undefined;
+  [ROUTES.PRIVACY_POLICY]: undefined;
 };
 
 export type ProfileNavigation = NativeStackNavigationProp<ProfileStackParamList>;

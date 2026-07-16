@@ -372,6 +372,21 @@ const uz: Dict = {
   'members.noBusiness': 'Biznes tanlanmagan',
   'members.phone9': "Telefon raqami 9 ta raqamdan iborat bo'lishi kerak",
   'members.addFailed': "A'zo qo'shib bo'lmadi",
+
+  // legal / consent
+  'profile.legalSection': 'Huquqiy hujjatlar',
+  'legal.offerTitle': 'Ommaviy oferta',
+  'legal.termsTitle': 'Foydalanish shartlari',
+  'legal.privacyTitle': 'Maxfiylik siyosati',
+  'legal.version': 'Versiya',
+  'legal.lastUpdated': 'Yangilangan sana',
+  'consent.title': 'Shartlarga rozilik',
+  'consent.intro': "Ilovadan foydalanishni davom ettirish uchun quyidagi hujjatlar bilan tanishib, roziligingizni bildiring.",
+  'consent.termsCheckboxLabel': "Men Foydalanish shartlarini o'qidim va ularga roziman.",
+  'consent.privacyCheckboxLabel': 'Men Maxfiylik siyosati bilan tanishdim va roziman.',
+  'consent.readLink': 'Batafsil',
+  'consent.continueButton': 'Roziman va davom etish',
+  'consent.mustAcceptBoth': "Davom etish uchun ikkala bandni ham tasdiqlang",
 };
 
 const ru: Dict = {
@@ -718,6 +733,21 @@ const ru: Dict = {
   'members.noBusiness': 'Бизнес не выбран',
   'members.phone9': 'Номер телефона должен содержать 9 цифр',
   'members.addFailed': 'Не удалось добавить участника',
+
+  // legal / consent
+  'profile.legalSection': 'Юридические документы',
+  'legal.offerTitle': 'Публичная оферта',
+  'legal.termsTitle': 'Условия использования',
+  'legal.privacyTitle': 'Политика конфиденциальности',
+  'legal.version': 'Версия',
+  'legal.lastUpdated': 'Дата обновления',
+  'consent.title': 'Согласие с условиями',
+  'consent.intro': 'Чтобы продолжить использование приложения, ознакомьтесь со следующими документами и подтвердите своё согласие.',
+  'consent.termsCheckboxLabel': 'Я прочитал(а) Условия использования и согласен(на) с ними.',
+  'consent.privacyCheckboxLabel': 'Я ознакомился(ась) с Политикой конфиденциальности и согласен(на) с ней.',
+  'consent.readLink': 'Подробнее',
+  'consent.continueButton': 'Согласен и продолжить',
+  'consent.mustAcceptBoth': 'Чтобы продолжить, подтвердите оба пункта',
 };
 
 const en: Dict = {
@@ -1064,6 +1094,21 @@ const en: Dict = {
   'members.noBusiness': 'No business selected',
   'members.phone9': 'Phone number must be 9 digits',
   'members.addFailed': 'Could not add member',
+
+  // legal / consent
+  'profile.legalSection': 'Legal documents',
+  'legal.offerTitle': 'Public offer',
+  'legal.termsTitle': 'Terms of service',
+  'legal.privacyTitle': 'Privacy policy',
+  'legal.version': 'Version',
+  'legal.lastUpdated': 'Last updated',
+  'consent.title': 'Consent to terms',
+  'consent.intro': 'To continue using the app, please review the following documents and confirm your consent.',
+  'consent.termsCheckboxLabel': 'I have read the Terms of service and agree to them.',
+  'consent.privacyCheckboxLabel': 'I have read the Privacy policy and agree to it.',
+  'consent.readLink': 'Read more',
+  'consent.continueButton': 'Agree and continue',
+  'consent.mustAcceptBoth': 'Please confirm both items to continue',
 };
 
 export const translations: Record<Lang, Dict> = { uz, ru, en };

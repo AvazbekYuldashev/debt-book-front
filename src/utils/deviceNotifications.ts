@@ -12,7 +12,8 @@ import type { NotifyPermission } from './webNotify';
 // Ilova OCHIQ (foreground) paytida ham banner + ovoz ko'rinsin.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),

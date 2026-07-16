@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { Animated, DimensionValue, Easing, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useAppTheme } from '../../theme';
 
 interface SkeletonShimmerProps {
   height?: number;
-  width?: number | string;
+  width?: DimensionValue;
   borderRadius?: number;
   style?: StyleProp<ViewStyle>;
 }

@@ -54,7 +54,7 @@ const createStyles = (_theme: ThemeValue) =>
       backgroundColor: 'rgba(0,0,0,0.9)',
     },
     center: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 2,

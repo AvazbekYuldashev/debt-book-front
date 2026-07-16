@@ -51,15 +51,11 @@ function useAppStateFocusManager(): void {
 const AppShell: React.FC = () => {
   const { activeTheme, colors } = useAppTheme();
 
-  // Android'da status bar SHAFFOF EMAS — ilova soat/batareya qatori ostiga
-  // kirmaydi (aks holda har ekran tepasi bosilib qoladi). Rang va matn
-  // yorug'ligi joriy mavzuga mos.
+  // RN 0.85+/Android 15+ edge-to-edge majburiy bo'lgani uchun status bar rangini
+  // endi ilova o'zi belgilay olmaydi (backgroundColor/translucent olib tashlandi) —
+  // faqat matn yorug'ligi (style) joriy mavzuga moslashtiriladi.
   const statusBar = (
-    <StatusBar
-      style={activeTheme === 'dark' ? 'light' : 'dark'}
-      backgroundColor={colors.background}
-      translucent={false}
-    />
+    <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
   );
 
   const navigationTheme = activeTheme === 'dark'

@@ -12,4 +12,7 @@ export const ROUTES = {
   EXPENSE_CATEGORY_DETAIL: 'ExpenseCategoryDetail',
   MY_BUSINESSES: 'MyBusinesses',
   BUSINESS_MEMBERS: 'BusinessMembers',
+  OFFER: 'Offer',
+  TERMS: 'Terms',
+  PRIVACY_POLICY: 'PrivacyPolicy',
 } as const;

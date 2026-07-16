@@ -30,7 +30,7 @@ export interface ThemeValue {
 
 const ThemeContext = createContext<ThemeValue | undefined>(undefined);
 
-function resolveActiveTheme(mode: ThemeMode, scheme: ColorSchemeName): ActiveTheme {
+function resolveActiveTheme(mode: ThemeMode, scheme: ColorSchemeName | null | undefined): ActiveTheme {
   if (mode === 'system') return scheme === 'dark' ? 'dark' : 'light';
   return mode;
 }

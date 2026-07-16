@@ -1,16 +1,13 @@
-import React, { lazy, Suspense, useContext, useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import NotificationWatcher from '../components/NotificationWatcher';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { getMyProfile } from '../api/profile';
 import { buildAttachUrl } from '../shared/attachUrl';
-
-// Route-darajali code splitting: web'da login sahifasi butun ilova bundle'ini,
-// login qilgan foydalanuvchi esa auth ekranlarini yuklamaydi (alohida chunk'lar,
-// immutable kesh bilan bir marta yuklanadi). Native Metro'da xatti-harakat o'zgarmaydi.
-const AuthStack = lazy(() => import('./AuthStack'));
-const BottomTabNavigator = lazy(() => import('./BottomTabNavigator'));
+import AuthStack from './AuthStack';
+import BottomTabNavigator from './BottomTabNavigator';
+import ConsentGate from '../components/legal/ConsentGate';
 
 const CenteredLoader: React.FC = () => (
   <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -46,18 +43,13 @@ const RootNavigator: React.FC = () => {
     return <CenteredLoader />;
   }
   if (!profile) {
-    return (
-      <Suspense fallback={<CenteredLoader />}>
-        <AuthStack />
-      </Suspense>
-    );
+    return <AuthStack />;
   }
   return (
     <>
       <NotificationWatcher />
-      <Suspense fallback={<CenteredLoader />}>
-        <BottomTabNavigator />
-      </Suspense>
+      <BottomTabNavigator />
+      <ConsentGate />
     </>
   );
 };

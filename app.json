@@ -10,7 +10,6 @@
       "android",
       "web"
     ],
-    "sdkVersion": "48.0.0",
     "updates": {
       "fallbackToCacheTimeout": 0
     },
@@ -25,7 +24,7 @@
     },
     "android": {
       "package": "uz.debtbook.app",
-      "versionCode": 11,
+      "versionCode": 16,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0D9488"
@@ -45,7 +44,8 @@
       "lang": "uz",
       "description": "Debt Book - qarz daftari: mijozlar bilan oldi-berdi, balanslar va xarajatlarni yuritish uchun zamonaviy ilova.",
       "themeColor": "#0D9488",
-      "backgroundColor": "#F1F5F9"
+      "backgroundColor": "#F1F5F9",
+      "bundler": "metro"
     },
     "plugins": [
       [
@@ -53,7 +53,19 @@
         {
           "contactsPermission": "Ilova telefon kontaktlaringizni mijoz sifatida qo'shish uchun foydalanadi."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-secure-store",
+      "expo-font",
+      "expo-asset",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ilova profil/biznes rasmini o'zgartirish uchun galereyangizdan foydalanadi.",
+          "cameraPermission": false
+        }
+      ],
+      "expo-build-properties"
     ],
     "extra": {
       "eas": {

@@ -3,7 +3,7 @@ import { login, register, ApiRequestError } from '../auth';
 // auth.ts global fetch ishlatadi — uni mock qilamiz.
 const mockFetch = jest.fn();
 beforeAll(() => {
-  (global as any).fetch = mockFetch;
+  (globalThis as any).fetch = mockFetch;
 });
 beforeEach(() => {
   mockFetch.mockReset();
