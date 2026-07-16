@@ -2,6 +2,7 @@ export interface CategoryResponseDTO {
   id: string;
   name: string;
   pin?: boolean;
+  photoId?: string;
   visible?: boolean;
   createdDate?: string;
   creatorId?: string;

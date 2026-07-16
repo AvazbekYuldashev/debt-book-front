@@ -9,8 +9,9 @@ import type { ThemeValue } from '../theme/ThemeProvider';
 import { AuthContext } from '../context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { CategoryResponseDTO } from '../types/category';
-import { createCategory, deleteCategory, getCategories, pinCategory, updateCategory } from '../services/categoryService';
+import { createCategory, deleteCategory, getCategories, pinCategory, updateCategory, updateCategoryPhoto } from '../services/categoryService';
 import { getExpenseSumByCategory } from '../services/expenseService';
+import { pickAndUploadImage } from './profile/pickImage';
 import { ROUTES } from '../navigation/routes';
 import type { ExpensesNavigation } from '../navigation/types';
 import { canManageCategories } from '../utils/permissions';
@@ -208,6 +209,37 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
       }
     },
     [profile?.jwt, loadCategories, t]
+  );
+
+  // Kategoriya avatariga bosilganda: galereyadan rasm tanlab yuklaydi va backendда
+  // saqlaydi. Ruxsat (OWNER/shaxsiy) bo'lmasa chaqirilmaydi (avatar bosilmaydi).
+  const [photoUploadingId, setPhotoUploadingId] = useState<string>('');
+  const handleChangeCategoryPhoto = useCallback(
+    async (category: CategoryResponseDTO) => {
+      if (!profile?.jwt) {
+        setError(t('expenses.noToken'));
+        return;
+      }
+      setPhotoUploadingId(category.id);
+      setError('');
+      try {
+        const result = await pickAndUploadImage(profile.jwt);
+        if (result.status === 'canceled') return;
+        if (result.status !== 'ok') {
+          setError(result.status === 'denied' ? t('expenses.photoPermission') : t('expenses.photoFailed'));
+          return;
+        }
+        await updateCategoryPhoto(category.id, result.id, profile.jwt);
+        setCategories((prev) =>
+          prev.map((item) => (item.id === category.id ? { ...item, photoId: result.id } : item)),
+        );
+      } catch (e) {
+        setError(e instanceof Error ? e.message : t('expenses.photoFailed'));
+      } finally {
+        setPhotoUploadingId('');
+      }
+    },
+    [profile?.jwt, t],
   );
 
   const handleTogglePinCategory = useCallback(
@@ -468,11 +500,13 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
                 expanded={expandedCategoryActionsId === item.id}
                 pinning={pinningCategoryId === item.id}
                 deleting={deletingCategory === item.id}
+                photoUploading={photoUploadingId === item.id}
                 onOpen={handleOpenCategory}
                 onToggleExpand={toggleCategoryActions}
                 onTogglePin={pinFromRow}
                 onEdit={editFromRow}
                 onRequestDelete={deleteFromRow}
+                onChangePhoto={handleChangeCategoryPhoto}
               />
             ))
           )}

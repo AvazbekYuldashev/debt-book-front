@@ -41,3 +41,13 @@ export const pinCategory = async (dto: CategoryPinDTO, token?: string): Promise<
   const response = await apiClient.patch<AppResponse<string>>('/category/pin', dto);
   return response.data;
 };
+
+export const updateCategoryPhoto = async (
+  id: string,
+  photoId: string,
+  token?: string,
+): Promise<CategoryResponseDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.put<CategoryResponseDTO>(`/category/${id}/photo`, { photoId });
+  return response.data;
+};
