@@ -37,14 +37,24 @@ const currencyEntries = (amounts: CurrencyAmounts): CurrencyEntry[] => {
   return list;
 };
 
+// Summa uzun bo'lganda shriftni kichraytiramiz. `adjustsFontSizeToFit` web'da
+// (react-native-web) ishlamaydi — shuning uchun matn uzunligiga qarab qo'lda
+// moslаymiz. Katta summalar ("5 004 179 446 so'm") ham to'liq ko'rinadi.
+const valueFontSize = (length: number): number => {
+  if (length <= 13) return 15;
+  if (length <= 16) return 13;
+  if (length <= 20) return 11;
+  return 10;
+};
+
 /**
- * Umumiy qarz/haq xulosasi. Har valyuta hisobi ALOHIDA qatorda — so'm va dollar
+ * Umumiy qarz/haq xulosasi. Har valyuta hisobi ALOHIDA — so'm va dollar
  * bir-biriga aylantirilmaydi (foydalanuvchi talabi: mustaqil hisoblar).
  *
- * Har summa bosiladigan blok: qarz tomonidagi valyutani bossang ro'yxat o'sha
- * valyuta bo'yicha eng katta qarzdan eng katta haqgacha, haq tomonidagi valyutani
- * bossang teskarisiga saralanadi. Aktiv blokni qayta bosish yoki "Standart" tugmasi
- * odatiy (oxirgi amal birinchi) tartibga qaytaradi.
+ * Joylashuv: yuqorida ikonka + sarlavha, ostida esa summalar butun katak enini
+ * egallaydi (katta raqamlar siqilib ketmasligi uchun). Har summa bosiladigan blok:
+ * qarz tomonini bossang eng katta qarzdan haqgacha, haq tomonini bossang teskarisiga
+ * saralanadi. "Standart" tugmasi yoki aktiv blokni qayta bosish odatiy tartibga qaytaradi.
  */
 const BalanceSummary: React.FC<BalanceSummaryProps> = ({
   totalDebt,
@@ -70,48 +80,52 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
     label: string,
   ) => (
     <View style={styles.tile}>
-      <View style={[styles.icon, { backgroundColor: softColor }]}>
-        <Ionicons name={iconName} size={15} color={color} />
+      <View style={styles.tileHeader}>
+        <View style={[styles.icon, { backgroundColor: softColor }]}>
+          <Ionicons name={iconName} size={15} color={color} />
+        </View>
+        <Text style={styles.label} numberOfLines={1}>
+          {label}
+        </Text>
       </View>
-      <View style={styles.textWrap}>
-        <Text style={styles.label}>{label}</Text>
-        {entries.length === 0 ? (
-          <Text style={[styles.value, styles.valueIdle, { color }]}>
-            {formatMoney(0, DEFAULT_CURRENCY)}
-          </Text>
-        ) : (
-          entries.map((entry) => {
-            const active =
-              activeSort?.direction === direction && activeSort?.currency === entry.currency;
-            return (
-              <Pressable
-                key={entry.currency}
-                onPress={() => onSelect(direction, entry.currency)}
-                style={({ pressed }) => [
-                  styles.amountBlock,
-                  active && { backgroundColor: softColor, borderColor: color },
-                  pressed && styles.amountBlockPressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={`${label}: ${entry.text}`}
+
+      {entries.length === 0 ? (
+        <Text
+          style={[styles.value, styles.valueIdle, { color, fontSize: valueFontSize(6) }]}
+          numberOfLines={1}
+        >
+          {formatMoney(0, DEFAULT_CURRENCY)}
+        </Text>
+      ) : (
+        entries.map((entry) => {
+          const active =
+            activeSort?.direction === direction && activeSort?.currency === entry.currency;
+          return (
+            <Pressable
+              key={entry.currency}
+              onPress={() => onSelect(direction, entry.currency)}
+              style={({ pressed }) => [
+                styles.amountBlock,
+                active && { backgroundColor: softColor, borderColor: color },
+                pressed && styles.amountBlockPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`${label}: ${entry.text}`}
+            >
+              <Text
+                style={[styles.value, { color, fontSize: valueFontSize(entry.text.length) }]}
+                numberOfLines={1}
               >
-                <Text
-                  style={[styles.value, { color }]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.6}
-                >
-                  {entry.text}
-                </Text>
-                {active ? (
-                  <Ionicons name="swap-vertical" size={11} color={color} />
-                ) : null}
-              </Pressable>
-            );
-          })
-        )}
-      </View>
+                {entry.text}
+              </Text>
+              {active ? (
+                <Ionicons name="swap-vertical" size={12} color={color} />
+              ) : null}
+            </Pressable>
+          );
+        })
+      )}
     </View>
   );
 
@@ -173,34 +187,34 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     tile: {
       flex: 1,
+      minWidth: 0,
+    },
+    tileHeader: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       gap: spacing.xs,
+      marginBottom: spacing.xxs,
     },
     icon: {
-      width: 30,
-      height: 30,
+      width: 28,
+      height: 28,
       borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    textWrap: {
-      flex: 1,
     },
     label: {
       ...typography.caption,
       fontSize: 11,
       color: colors.textSecondary,
-      marginBottom: spacing.xxs,
+      flexShrink: 1,
     },
     amountBlock: {
-      alignSelf: 'flex-start',
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      maxWidth: '100%',
+      alignSelf: 'stretch',
       paddingVertical: 3,
-      paddingHorizontal: 7,
+      paddingHorizontal: 6,
       marginTop: spacing.xxs,
       borderRadius: radius.sm,
       borderWidth: 1,
@@ -211,8 +225,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     value: {
       ...typography.caption,
-      fontSize: 14,
-      lineHeight: 18,
+      lineHeight: 19,
       fontWeight: '800',
       letterSpacing: -0.2,
       fontVariant: ['tabular-nums'],
@@ -220,7 +233,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     valueIdle: {
       marginTop: spacing.xxs,
-      paddingHorizontal: 7,
+      paddingHorizontal: 6,
     },
     divider: {
       width: 1,
