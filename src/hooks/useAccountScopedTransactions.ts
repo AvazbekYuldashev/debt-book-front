@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { getProfileByPhone } from '../services/profileService';
 import { createCredit, createDebt, getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import {
@@ -34,6 +35,7 @@ interface UseAccountScopedTransactionsParams {
 }
 
 export function useAccountScopedTransactions({ token }: UseAccountScopedTransactionsParams) {
+  const queryClient = useQueryClient();
   const { accountKey, accountType, partyType: ownerPartyType } = useAccountContext();
   const [history, setHistory] = useState<MoneyResponseDTO[]>([]);
   const [totalPrice, setTotalPrice] = useState<MoneyPriceDTO | null>(null);
@@ -198,6 +200,12 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
         if (selectedCounterparty?.id && selectedCounterparty.partyType) {
           await fetchData({ partyType: selectedCounterparty.partyType, partyId: selectedCounterparty.id });
         }
+
+        // Mijozlar ro'yxatidagi balanslar (React Query) alohida cache — bu yerdan
+        // invalidatsiya qilmasak, ro'yxat faqat fokus/refetch vaqtida yangilanadi va
+        // yangi qo'shilgan yozuv (ayniqsa yangi valyuta) darhol ko'rinmay qolishi mumkin.
+        queryClient.invalidateQueries({ queryKey: ['contact-balances'] });
+
         return true;
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Amaliyot bajarilmadi');
@@ -206,7 +214,7 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
         setCreating(false);
       }
     },
-    [fetchData, ownerPartyType, selectedCounterparty?.id, selectedCounterparty?.partyType, token]
+    [fetchData, ownerPartyType, queryClient, selectedCounterparty?.id, selectedCounterparty?.partyType, token]
   );
 
   const totals = useMemo(() => extractMoneyTotals(totalPrice), [totalPrice]);
