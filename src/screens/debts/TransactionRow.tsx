@@ -69,7 +69,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: spacing.sm,
-      paddingHorizontal: spacing.sm,
+      paddingLeft: spacing.sm,
+      paddingRight: spacing.md,
       paddingVertical: spacing.sm,
     },
     rowBorder: {
@@ -102,8 +103,9 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     description: {
       ...typography.caption,
-      flex: 1,
       flexShrink: 1,
+      maxWidth: '45%',
+      marginLeft: spacing.md,
       textAlign: 'right',
       color: colors.textSecondary,
     },
