@@ -67,7 +67,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       gap: spacing.sm,
       paddingLeft: spacing.sm,
       paddingRight: spacing.md,
