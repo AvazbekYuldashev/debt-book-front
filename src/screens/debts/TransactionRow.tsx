@@ -88,7 +88,10 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       justifyContent: 'center',
     },
     body: {
-      flex: 1,
+      flexShrink: 1,
+      flexGrow: 3,
+      flexBasis: 0,
+      minWidth: 0,
     },
     amount: {
       ...typography.bodySmall,
@@ -104,7 +107,9 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     description: {
       ...typography.caption,
       flexShrink: 1,
-      maxWidth: '45%',
+      flexGrow: 2,
+      flexBasis: 0,
+      minWidth: 0,
       marginLeft: spacing.md,
       textAlign: 'right',
       color: colors.textSecondary,
