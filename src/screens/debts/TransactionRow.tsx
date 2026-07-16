@@ -15,9 +15,10 @@ interface TransactionRowProps {
 
 /**
  * Kontakt tarixidagi bitta tranzaksiya qatori: chapda yo'nalish ikonkasi,
- * yuqorida katta rangli summa (o'z valyutasida, kursga o'girish yo'q),
- * pastda kichik sana-vaqt va uning yonida izoh. "Qarz olindi"/"Haq berildi"
- * matni ko'rsatilmaydi (yo'nalishni ikonka va rang bildiradi). `memo`langan.
+ * o'rtada katta rangli summa (o'z valyutasida, kursga o'girish yo'q) va
+ * pastida sana, o'ngda izoh (uzun bo'lsa ko'p qatorga o'tib, qator
+ * balandligi shunga qarab o'sadi). "Qarz olindi"/"Haq berildi" matni
+ * ko'rsatilmaydi (yo'nalishni ikonka va rang bildiradi). `memo`langan.
  */
 const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, onPress }) => {
   const theme = useAppTheme();
@@ -52,15 +53,12 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, onPress }) 
         >
           {formatMoney(tx.amount, currency)}
         </Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.date}>{formatDateShort(tx.createdDate)}</Text>
-          {description ? (
-            <Text style={styles.description} numberOfLines={1}>
-              {description}
-            </Text>
-          ) : null}
-        </View>
+        <Text style={styles.date}>{formatDateShort(tx.createdDate)}</Text>
       </View>
+
+      {description ? (
+        <Text style={styles.description}>{description}</Text>
+      ) : null}
     </Pressable>
   );
 };
@@ -69,7 +67,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       gap: spacing.sm,
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm,
@@ -97,19 +95,16 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontWeight: '800',
       letterSpacing: -0.3,
     },
-    metaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      marginTop: spacing.xxs / 2,
-    },
     date: {
       ...typography.caption,
       color: colors.textSecondary,
+      marginTop: spacing.xxs / 2,
     },
     description: {
       ...typography.caption,
+      flex: 1,
       flexShrink: 1,
+      textAlign: 'right',
       color: colors.textSecondary,
     },
   });
