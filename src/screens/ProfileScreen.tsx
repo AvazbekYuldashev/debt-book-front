@@ -11,7 +11,6 @@ import Input from '../components/atoms/Input';
 import WorkspaceSwitcher from '../components/business/WorkspaceSwitcher';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import ThemeSwitcher from '../components/ThemeSwitcher';
-import CurrencySwitcher from '../components/CurrencySwitcher';
 import { useI18n } from '../i18n';
 import { confirmAction } from '../utils/confirm';
 import {
@@ -324,11 +323,6 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
       <Card style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>{t('profile.theme')}</Text>
         <ThemeSwitcher />
-      </Card>
-
-      <Card style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>{t('profile.currency')}</Text>
-        <CurrencySwitcher />
       </Card>
 
       {profile && !isBusiness ? (
