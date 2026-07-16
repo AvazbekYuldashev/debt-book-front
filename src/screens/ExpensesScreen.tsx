@@ -28,6 +28,7 @@ import CategoryRow from './expenses/CategoryRow';
 import CategoryFormModal from './expenses/CategoryFormModal';
 import ConfirmDialog from './expenses/ConfirmDialog';
 import QuickFilterModal, { QuickFilterKey } from './expenses/QuickFilterModal';
+import ExpenseSortBar, { ExpenseSortKey, SortDir } from './expenses/ExpenseSortBar';
 
 type CategoryMode = 'create' | 'edit';
 
@@ -63,6 +64,11 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
   const [expandedCategoryActionsId, setExpandedCategoryActionsId] = useState<string | null>(null);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [pendingDeleteCategory, setPendingDeleteCategory] = useState<{ id: string; name: string } | null>(null);
+
+  // ---- Saralash holati ----
+  // 'default' = pin yuqorida, qolgani asl tartibda. 'name' = A-Z/Z-A, 'sum' = katta/kichik.
+  const [sortKey, setSortKey] = useState<ExpenseSortKey>('default');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
   const loadCategorySums = useCallback(
     async (nextCategories: CategoryResponseDTO[], nextFromDate?: string, nextEndDate?: string) => {
@@ -320,12 +326,48 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
     setDeleteConfirmVisible(true);
   }, []);
 
-  // pin === true bo'lganlar yuqorida (o'z tartibida), qolganlari o'z o'rnida qoladi.
+  // Nom chipini bosish: boshqa kalitdan kelsa nom + A-Z, aks holda yo'nalishni almashtiradi.
+  const toggleNameSort = useCallback(() => {
+    if (sortKey === 'name') {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey('name');
+      setSortDir('asc');
+    }
+  }, [sortKey]);
+
+  // Summa chipini bosish: standart yo'nalish — kattadan kichikka (desc).
+  const toggleSumSort = useCallback(() => {
+    if (sortKey === 'sum') {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey('sum');
+      setSortDir('desc');
+    }
+  }, [sortKey]);
+
+  const resetSort = useCallback(() => {
+    setSortKey('default');
+    setSortDir('asc');
+  }, []);
+
+  // Odatiy holatda pin === true yuqorida (asl tartibda), qolganlari o'z o'rnida.
+  // Nom/summa tanlansa — butun ro'yxat o'sha kalit bo'yicha sof saralanadi.
   const sortedCategories = useMemo(() => {
-    const pinned = categories.filter((c) => c.pin === true);
-    const others = categories.filter((c) => c.pin !== true);
-    return [...pinned, ...others];
-  }, [categories]);
+    if (sortKey === 'default') {
+      const pinned = categories.filter((c) => c.pin === true);
+      const others = categories.filter((c) => c.pin !== true);
+      return [...pinned, ...others];
+    }
+    const cmp = (a: CategoryResponseDTO, b: CategoryResponseDTO): number => {
+      const r =
+        sortKey === 'name'
+          ? a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+          : (categorySums[a.id] ?? 0) - (categorySums[b.id] ?? 0);
+      return sortDir === 'asc' ? r : -r;
+    };
+    return [...categories].sort(cmp);
+  }, [categories, categorySums, sortKey, sortDir]);
 
   const totalExpenseAmount = useMemo(
     () => Object.values(categorySums).reduce((acc, value) => acc + (Number.isFinite(value) ? value : 0), 0),
@@ -399,6 +441,16 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         ) : null}
 
         <Text style={styles.sectionTitle}>{t('expenses.categories')}</Text>
+
+        {!loading && sortedCategories.length > 0 ? (
+          <ExpenseSortBar
+            sortKey={sortKey}
+            sortDir={sortDir}
+            onToggleName={toggleNameSort}
+            onToggleSum={toggleSumSort}
+            onReset={resetSort}
+          />
+        ) : null}
 
         <View style={styles.listCard}>
           {loading ? (
