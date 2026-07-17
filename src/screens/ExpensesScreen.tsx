@@ -12,6 +12,8 @@ import { CategoryResponseDTO } from '../types/category';
 import { createCategory, deleteCategory, getCategories, pinCategory, updateCategory, updateCategoryPhoto } from '../services/categoryService';
 import { getExpenseSumByCategory } from '../services/expenseService';
 import { pickAndUploadImage } from './profile/pickImage';
+import ProfilePhotoModal from './profile/ProfilePhotoModal';
+import { buildAttachUrl } from '../shared/attachUrl';
 import { ROUTES } from '../navigation/routes';
 import type { ExpensesNavigation } from '../navigation/types';
 import { canManageCategories } from '../utils/permissions';
@@ -148,6 +150,11 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
     [categories, editingCategoryId]
   );
 
+  const editingPhotoUri = useMemo(() => {
+    const photoId = categories.find((c) => c.id === editingCategoryId)?.photoId;
+    return photoId ? buildAttachUrl(photoId) : undefined;
+  }, [categories, editingCategoryId]);
+
   const openCreateCategory = useCallback(() => {
     setCategoryMode('create');
     setEditingCategoryId('');
@@ -211,36 +218,40 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
     [profile?.jwt, loadCategories, t]
   );
 
-  // Kategoriya avatariga bosilganda: galereyadan rasm tanlab yuklaydi va backendда
-  // saqlaydi. Ruxsat (OWNER/shaxsiy) bo'lmasa chaqirilmaydi (avatar bosilmaydi).
-  const [photoUploadingId, setPhotoUploadingId] = useState<string>('');
-  const handleChangeCategoryPhoto = useCallback(
-    async (category: CategoryResponseDTO) => {
-      if (!profile?.jwt) {
-        setError(t('expenses.noToken'));
+  // Tahrirlash modalidan: galereyadan rasm tanlab yuklaydi va backendда saqlaydi.
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const handleChangeCategoryPhoto = useCallback(async () => {
+    if (!editingCategoryId) return;
+    if (!profile?.jwt) {
+      setError(t('expenses.noToken'));
+      return;
+    }
+    setPhotoUploading(true);
+    setError('');
+    try {
+      const result = await pickAndUploadImage(profile.jwt);
+      if (result.status === 'canceled') return;
+      if (result.status !== 'ok') {
+        setError(result.status === 'denied' ? t('expenses.photoPermission') : t('expenses.photoFailed'));
         return;
       }
-      setPhotoUploadingId(category.id);
-      setError('');
-      try {
-        const result = await pickAndUploadImage(profile.jwt);
-        if (result.status === 'canceled') return;
-        if (result.status !== 'ok') {
-          setError(result.status === 'denied' ? t('expenses.photoPermission') : t('expenses.photoFailed'));
-          return;
-        }
-        await updateCategoryPhoto(category.id, result.id, profile.jwt);
-        setCategories((prev) =>
-          prev.map((item) => (item.id === category.id ? { ...item, photoId: result.id } : item)),
-        );
-      } catch (e) {
-        setError(e instanceof Error ? e.message : t('expenses.photoFailed'));
-      } finally {
-        setPhotoUploadingId('');
-      }
-    },
-    [profile?.jwt, t],
-  );
+      await updateCategoryPhoto(editingCategoryId, result.id, profile.jwt);
+      setCategories((prev) =>
+        prev.map((item) => (item.id === editingCategoryId ? { ...item, photoId: result.id } : item)),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('expenses.photoFailed'));
+    } finally {
+      setPhotoUploading(false);
+    }
+  }, [editingCategoryId, profile?.jwt, t]);
+
+  // Ro'yxatdagi avatarga bosilganda rasmni to'liq ekranda ko'rsatamiz.
+  const [photoViewUri, setPhotoViewUri] = useState('');
+  const viewCategoryPhoto = useCallback((category: CategoryResponseDTO) => {
+    if (category.photoId) setPhotoViewUri(buildAttachUrl(category.photoId));
+  }, []);
+  const closePhotoView = useCallback(() => setPhotoViewUri(''), []);
 
   const handleTogglePinCategory = useCallback(
     async (category: CategoryResponseDTO) => {
@@ -500,13 +511,12 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
                 expanded={expandedCategoryActionsId === item.id}
                 pinning={pinningCategoryId === item.id}
                 deleting={deletingCategory === item.id}
-                photoUploading={photoUploadingId === item.id}
                 onOpen={handleOpenCategory}
                 onToggleExpand={toggleCategoryActions}
                 onTogglePin={pinFromRow}
                 onEdit={editFromRow}
                 onRequestDelete={deleteFromRow}
-                onChangePhoto={handleChangeCategoryPhoto}
+                onViewPhoto={viewCategoryPhoto}
               />
             ))
           )}
@@ -529,8 +539,11 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         mode={categoryMode}
         initialName={editingName}
         submitting={savingCategory}
+        photoUri={editingPhotoUri}
+        photoUploading={photoUploading}
         onClose={closeCategoryModal}
         onSubmit={submitCategory}
+        onChangePhoto={handleChangeCategoryPhoto}
       />
 
       <ConfirmDialog
@@ -548,6 +561,14 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         visible={quickFilterVisible}
         onClose={() => setQuickFilterVisible(false)}
         onSelect={handleQuickFilterSelect}
+      />
+
+      <ProfilePhotoModal
+        visible={Boolean(photoViewUri)}
+        photoUri={photoViewUri}
+        error=""
+        onClose={closePhotoView}
+        onImageError={closePhotoView}
       />
     </View>
   );

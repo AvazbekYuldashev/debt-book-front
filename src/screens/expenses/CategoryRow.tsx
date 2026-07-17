@@ -17,13 +17,13 @@ interface CategoryRowProps {
   expanded: boolean;
   pinning: boolean;
   deleting: boolean;
-  photoUploading: boolean;
   onOpen: (category: CategoryResponseDTO) => void;
   onToggleExpand: (id: string) => void;
   onTogglePin: (category: CategoryResponseDTO) => void;
   onEdit: (category: CategoryResponseDTO) => void;
   onRequestDelete: (category: CategoryResponseDTO) => void;
-  onChangePhoto: (category: CategoryResponseDTO) => void;
+  /** Avatarga bosilganda biriktirilgan rasmni to'liq ekranda ko'rsatadi. */
+  onViewPhoto: (category: CategoryResponseDTO) => void;
 }
 
 /**
@@ -38,13 +38,12 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
   expanded,
   pinning,
   deleting,
-  photoUploading,
   onOpen,
   onToggleExpand,
   onTogglePin,
   onEdit,
   onRequestDelete,
-  onChangePhoto,
+  onViewPhoto,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -58,7 +57,7 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
   const handlePin = useCallback(() => onTogglePin(category), [onTogglePin, category]);
   const handleEdit = useCallback(() => onEdit(category), [onEdit, category]);
   const handleDelete = useCallback(() => onRequestDelete(category), [onRequestDelete, category]);
-  const handleChangePhoto = useCallback(() => onChangePhoto(category), [onChangePhoto, category]);
+  const handleViewPhoto = useCallback(() => onViewPhoto(category), [onViewPhoto, category]);
 
   const avatarInner = photoUri ? (
     <Image source={{ uri: photoUri }} style={styles.avatarImage} />
@@ -76,25 +75,17 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
         accessibilityRole="button"
         accessibilityLabel={category.name}
       >
-        {allowManage ? (
+        {/* Rasm biriktirilgan bo'lsa avatar bosiladi va rasm to'liq ekranda ochiladi;
+            rasm bo'lmasa bosish qatorning o'ziga (kategoriyani ochishga) o'tadi. */}
+        {photoUri ? (
           <Pressable
             style={styles.avatarWrap}
-            onPress={handleChangePhoto}
-            disabled={photoUploading}
+            onPress={handleViewPhoto}
             accessibilityRole="button"
-            accessibilityLabel={t('expenses.changePhoto')}
+            accessibilityLabel={t('expenses.viewPhoto')}
             hitSlop={6}
           >
             {avatarInner}
-            {photoUploading ? (
-              <View style={styles.avatarOverlay}>
-                <ActivityIndicator size="small" color={colors.textOnPrimary} />
-              </View>
-            ) : (
-              <View style={styles.cameraBadge}>
-                <Ionicons name="camera" size={11} color={colors.textOnPrimary} />
-              </View>
-            )}
           </Pressable>
         ) : (
           <View style={styles.avatarWrap}>{avatarInner}</View>
@@ -201,30 +192,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       height: 44,
       borderRadius: radius.md,
       backgroundColor: colors.surfaceMuted,
-    },
-    avatarOverlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      borderRadius: radius.md,
-      backgroundColor: 'rgba(15,23,42,0.45)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    cameraBadge: {
-      position: 'absolute',
-      right: -3,
-      bottom: -3,
-      width: 19,
-      height: 19,
-      borderRadius: radius.pill,
-      backgroundColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1.5,
-      borderColor: colors.surface,
     },
     avatarText: {
       ...typography.label,

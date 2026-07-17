@@ -1,5 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../theme';
 import type { ThemeValue } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
@@ -13,8 +25,12 @@ interface CategoryFormModalProps {
   mode: Mode;
   initialName?: string;
   submitting: boolean;
+  /** Tahrirlanayotgan kategoriyaning hozirgi rasmi (attach URL). */
+  photoUri?: string;
+  photoUploading: boolean;
   onClose: () => void;
   onSubmit: (name: string) => Promise<boolean>;
+  onChangePhoto: () => void;
 }
 
 /** Kategoriya qo'shish/tahrirlash modali (nom validatsiyasi inline). */
@@ -23,10 +39,14 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   mode,
   initialName,
   submitting,
+  photoUri,
+  photoUploading,
   onClose,
   onSubmit,
+  onChangePhoto,
 }) => {
   const theme = useAppTheme();
+  const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -60,6 +80,34 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
             <Text style={styles.title}>
               {mode === 'create' ? t('expenses.addCategory') : t('expenses.editCategory')}
             </Text>
+            {/* Rasm faqat tahrirlashda: yangi kategoriyada hali id yo'q. */}
+            {mode === 'edit' ? (
+              <Pressable
+                style={({ pressed }) => [styles.photoRow, pressed && styles.photoRowPressed]}
+                onPress={onChangePhoto}
+                disabled={photoUploading}
+                accessibilityRole="button"
+                accessibilityLabel={t('expenses.changePhoto')}
+              >
+                {photoUri ? (
+                  <Image source={{ uri: photoUri }} style={styles.photoAvatar} />
+                ) : (
+                  <View style={[styles.photoAvatar, styles.photoAvatarEmpty]}>
+                    <Ionicons name="image-outline" size={22} color={colors.textSecondary} />
+                  </View>
+                )}
+                <View style={styles.photoTextWrap}>
+                  <Text style={styles.photoTitle}>{t('expenses.changePhoto')}</Text>
+                  <Text style={styles.photoHint}>{t('expenses.photoHint')}</Text>
+                </View>
+                {photoUploading ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="camera-outline" size={18} color={colors.primary} />
+                )}
+              </Pressable>
+            ) : null}
+
             <Input
               label={t('expenses.categoryName')}
               value={name}
@@ -107,6 +155,43 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontSize: 18,
       color: colors.textPrimary,
       marginBottom: spacing.xs,
+    },
+    photoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.sm,
+      marginBottom: spacing.sm,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
+    },
+    photoRowPressed: {
+      opacity: 0.7,
+    },
+    photoAvatar: {
+      width: 52,
+      height: 52,
+      borderRadius: radius.md,
+      backgroundColor: colors.surface,
+    },
+    photoAvatarEmpty: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    photoTextWrap: {
+      flex: 1,
+    },
+    photoTitle: {
+      ...typography.button,
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    photoHint: {
+      ...typography.caption,
+      marginTop: spacing.xxs / 2,
+      color: colors.textSecondary,
     },
     error: {
       ...typography.caption,
