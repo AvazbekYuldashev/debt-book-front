@@ -27,7 +27,7 @@
       "versionCode": 16,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0D9488"
+        "backgroundColor": "#F4F1DB"
       },
       "permissions": [
         "READ_MEDIA_IMAGES",
@@ -43,7 +43,7 @@
       "shortName": "Tez Top",
       "lang": "uz",
       "description": "Tez Top: mijozlar bilan oldi-berdi, balanslar va xarajatlarni yuritish uchun zamonaviy ilova.",
-      "themeColor": "#0D9488",
+      "themeColor": "#2BA24D",
       "backgroundColor": "#F1F5F9",
       "bundler": "metro"
     },

@@ -10,7 +10,7 @@ export const AVATAR_COLORS: { bg: string; fg: string }[] = [
   { bg: '#FCE7F3', fg: '#BE185D' },
   { bg: '#EDE9FE', fg: '#6D28D9' },
   { bg: '#FFEDD5', fg: '#C2410C' },
-  { bg: '#CCFBF1', fg: '#0F766E' },
+  { bg: '#D8F3DD', fg: '#1F8A3F' },
 ];
 
 export const getInitials = (name: string): string => {
