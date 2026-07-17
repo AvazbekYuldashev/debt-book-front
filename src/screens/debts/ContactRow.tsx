@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useCallback, useMemo, useState } from 'react';
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../theme';
 import type { ThemeValue } from '../../theme/ThemeProvider';
@@ -11,14 +11,24 @@ import type { Contact } from '../../context/ContactsContext';
 
 const AVATAR_SIZE = 46;
 
-// Summa uzun bo'lganda shriftni kichraytiramiz — mijoz ismi summadan MUHIMROQ,
-// shuning uchun summa siqiladi, ism emas. `adjustsFontSizeToFit` web'da
-// (react-native-web) ishlamaydi, shuning uchun uzunlikka qarab qo'lda moslаymiz.
-const amountFontSize = (length: number): number => {
-  if (length <= 14) return 13;
-  if (length <= 18) return 12;
-  if (length <= 24) return 10;
-  return 9;
+const AMOUNT_FONT_MAX = 13;
+const AMOUNT_FONT_MIN = 9;
+// Qalin, tabular-nums raqam uchun belgi eni ≈ shriftning shuncha ulushi.
+const AVG_CHAR_RATIO = 0.62;
+// Summalar bloki yonidagi tahrir tugmasi + oraliqlar uchun ajratma.
+const RIGHT_RESERVED = 44;
+const RIGHT_RESERVED_NO_EDIT = 12;
+
+/**
+ * Summa shriftini MAVJUD ENGA qarab hisoblaydi: keng ekranda to'liq o'lcham
+ * (AMOUNT_FONT_MAX), tor ekranda kerak bo'lgandagina kichrayadi (AMOUNT_FONT_MIN
+ * gacha). Faqat uzunlikka qarash keng ekranda ham mayda qilib yuborardi.
+ * `adjustsFontSizeToFit` web'da (react-native-web) ishlamaydi — shuning uchun qo'lda.
+ */
+const amountFontSize = (length: number, availWidth: number): number => {
+  if (!length || availWidth <= 0) return AMOUNT_FONT_MAX;
+  const fitted = Math.floor(availWidth / (length * AVG_CHAR_RATIO));
+  return Math.max(AMOUNT_FONT_MIN, Math.min(AMOUNT_FONT_MAX, fitted));
 };
 
 interface ContactRowProps {
@@ -60,6 +70,15 @@ const ContactRow: React.FC<ContactRowProps> = ({
 
   const avatarKey = contact.partyId || contact.id;
 
+  // Summa shrifti mavjud enga qarab hisoblanadi — qator enini o'lchab olamiz.
+  const [rowWidth, setRowWidth] = useState(0);
+  const handleRowLayout = useCallback(
+    (event: LayoutChangeEvent) => setRowWidth(event.nativeEvent.layout.width),
+    [],
+  );
+  const amountsWidth =
+    rowWidth > 0 ? rowWidth * 0.5 - (canEdit ? RIGHT_RESERVED : RIGHT_RESERVED_NO_EDIT) : 0;
+
   const handlePress = useCallback(() => onPress(contact.id), [onPress, contact.id]);
   const handleEdit = useCallback(() => onEdit(contact.id), [onEdit, contact.id]);
   const handleChangePhoto = useCallback(() => onChangePhoto(avatarKey), [onChangePhoto, avatarKey]);
@@ -70,7 +89,7 @@ const ContactRow: React.FC<ContactRowProps> = ({
       : contact.phone || contact.partyId || '--';
 
   return (
-    <View style={[styles.row, !isLast && styles.rowBorder]}>
+    <View style={[styles.row, !isLast && styles.rowBorder]} onLayout={handleRowLayout}>
       <Pressable
         style={({ pressed }) => [styles.main, pressed && styles.mainPressed]}
         onPress={handlePress}
@@ -116,7 +135,7 @@ const ContactRow: React.FC<ContactRowProps> = ({
                     styles.amount,
                     {
                       color: amount > 0 ? colors.positive : colors.negative,
-                      fontSize: amountFontSize(text.length),
+                      fontSize: amountFontSize(text.length, amountsWidth),
                     },
                   ]}
                   numberOfLines={1}
