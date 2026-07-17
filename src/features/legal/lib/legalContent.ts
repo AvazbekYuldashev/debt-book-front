@@ -30,7 +30,7 @@ export const LEGAL_DOCS: Record<LegalDocKey, LegalDoc> = {
     version: '1.0.0',
     lastUpdated: '2026-07-11',
     intro:
-      "Ushbu hujjat Pul Hisob (Qarz Daftari) ilovasi (Android ilova va pul-hisob.uz veb-versiyasi) " +
+      "Ushbu hujjat Tez Top ilovasi (Android ilova va pul-hisob.uz veb-versiyasi) " +
       "foydalanuvchi ma'lumotlarini qanday yig'ishi, ishlatishi va himoya qilishini tushuntiradi.",
     sections: [
       {
@@ -81,7 +81,7 @@ export const LEGAL_DOCS: Record<LegalDocKey, LegalDoc> = {
     version: '1.0.0',
     lastUpdated: '2026-07-16',
     intro:
-      "Ushbu Foydalanish shartlari (\"Shartlar\") Pul Hisob (Qarz Daftari) ilovasidan (\"Xizmat\") foydalanish " +
+      "Ushbu Foydalanish shartlari (\"Shartlar\") Tez Top ilovasidan (\"Xizmat\") foydalanish " +
       "tartibini belgilaydi. Ilovadan ro'yxatdan o'tib yoki foydalanib, siz ushbu Shartlarga to'liq rozilik " +
       "bildirasiz. Rozi bo'lmasangiz, Xizmatdan foydalanishni to'xtating.",
     sections: [
@@ -137,7 +137,7 @@ export const LEGAL_DOCS: Record<LegalDocKey, LegalDoc> = {
     version: '1.0.0',
     lastUpdated: '2026-07-16',
     intro:
-      "Ushbu hujjat Pul Hisob (Qarz Daftari) ilovasi xizmatlaridan foydalanish bo'yicha ommaviy ofertadir. " +
+      "Ushbu hujjat Tez Top ilovasi xizmatlaridan foydalanish bo'yicha ommaviy ofertadir. " +
       "Ilovada ro'yxatdan o'tish yoki undan foydalanishni boshlash — ushbu ofertani to'liq va so'zsiz qabul " +
       "qilish (aksept) hisoblanadi.",
     sections: [

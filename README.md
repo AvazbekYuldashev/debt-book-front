@@ -1,4 +1,4 @@
-# Debt Book (React Native UI)
+# Tez Top (React Native UI)
 
 This repository contains the frontend UI for a debt tracker application built with React Native and Expo. It supports Android, iOS, and web platforms. The backend will be provided later (Spring Boot).
 
