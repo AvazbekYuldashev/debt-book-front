@@ -1,5 +1,5 @@
-import React, { memo, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useCallback, useMemo, useState } from 'react';
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../theme';
 import type { ThemeValue } from '../../theme/ThemeProvider';
@@ -37,14 +37,29 @@ const currencyEntries = (amounts: CurrencyAmounts): CurrencyEntry[] => {
   return list;
 };
 
-// Summa uzun bo'lganda shriftni kichraytiramiz. `adjustsFontSizeToFit` web'da
-// (react-native-web) ishlamaydi — shuning uchun matn uzunligiga qarab qo'lda
-// moslаymiz. Katta summalar ("5 004 179 446 so'm") ham to'liq ko'rinadi.
-const valueFontSize = (length: number): number => {
-  if (length <= 13) return 15;
-  if (length <= 16) return 13;
-  if (length <= 20) return 11;
-  return 10;
+const VALUE_FONT_MAX = 15;
+const VALUE_FONT_MIN = 11;
+// Qalin, tabular-nums summa satri uchun o'rtacha belgi eni ≈ shriftning shuncha ulushi.
+const AVG_CHAR_RATIO = 0.58;
+// Blok ichki bo'shlig'i + ramka + (aktiv bo'lsa) saralash o'qi uchun ajratma.
+const BLOCK_RESERVED = 30;
+// Ajratuvchi chiziq va uning yon bo'shliqlari (tile eni hisobi uchun).
+const DIVIDER_SPACE = 17;
+
+/**
+ * Summa shriftini MAVJUD ENGA qarab hisoblaydi: keng ekranda to'liq o'lcham
+ * (VALUE_FONT_MAX), tor ekranda kerak bo'lgandagina kichrayadi (VALUE_FONT_MIN
+ * gacha). Faqat uzunlikka qarash keng ekranda ham mayda qilib yuborardi.
+ * `adjustsFontSizeToFit` web'da (react-native-web) ishlamaydi — shuning uchun qo'lda.
+ *
+ * `longestLength` — kartadagi ENG UZUN summa satri: barcha valyutalar (ikkala
+ * tomonda ham) BIR XIL shrift oladi, aks holda uzun satr yonidagilardan kichik
+ * bo'lib, xunuk ko'rinardi.
+ */
+const valueFontSize = (longestLength: number, availWidth: number): number => {
+  if (!longestLength || availWidth <= 0) return VALUE_FONT_MAX;
+  const fitted = Math.floor(availWidth / (longestLength * AVG_CHAR_RATIO));
+  return Math.max(VALUE_FONT_MIN, Math.min(VALUE_FONT_MAX, fitted));
 };
 
 /**
@@ -71,6 +86,24 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
   const debtEntries = useMemo(() => currencyEntries(totalDebt), [totalDebt]);
   const creditEntries = useMemo(() => currencyEntries(totalCredit), [totalCredit]);
 
+  // Shrift mavjud enga qarab hisoblanadi — ikkala katak yonma-yon, shuning uchun
+  // qator enini o'lchab, bitta katak enini chiqaramiz.
+  const [rowWidth, setRowWidth] = useState(0);
+  const handleRowLayout = useCallback(
+    (event: LayoutChangeEvent) => setRowWidth(event.nativeEvent.layout.width),
+    [],
+  );
+
+  // Kartadagi ENG UZUN summa (ikkala tomondan) yagona shriftni belgilaydi.
+  const valueFont = useMemo(() => {
+    const longest = [...debtEntries, ...creditEntries].reduce(
+      (max, entry) => Math.max(max, entry.text.length),
+      0,
+    );
+    const tileWidth = rowWidth > 0 ? (rowWidth - DIVIDER_SPACE) / 2 : 0;
+    return valueFontSize(longest, tileWidth - BLOCK_RESERVED);
+  }, [debtEntries, creditEntries, rowWidth]);
+
   const renderTile = (
     direction: SortDirection,
     entries: CurrencyEntry[],
@@ -91,7 +124,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
 
       {entries.length === 0 ? (
         <Text
-          style={[styles.value, styles.valueIdle, { color, fontSize: valueFontSize(6) }]}
+          style={[styles.value, styles.valueIdle, { color, fontSize: valueFont }]}
           numberOfLines={1}
         >
           {formatMoney(0, DEFAULT_CURRENCY)}
@@ -114,8 +147,8 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
               accessibilityLabel={`${label}: ${entry.text}`}
             >
               <Text
-                style={[styles.value, { color, fontSize: valueFontSize(entry.text.length) }]}
-                numberOfLines={1}
+                style={[styles.value, { color, fontSize: valueFont }]}
+                numberOfLines={2}
               >
                 {entry.text}
               </Text>
@@ -131,7 +164,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
 
   return (
     <View style={styles.card}>
-      <View style={styles.tilesRow}>
+      <View style={styles.tilesRow} onLayout={handleRowLayout}>
         {renderTile(
           'debt',
           debtEntries,
