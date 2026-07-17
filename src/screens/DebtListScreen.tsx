@@ -37,6 +37,7 @@ import { useI18n } from '../i18n';
 import BalanceSummary from './debts/BalanceSummary';
 import ContactRow from './debts/ContactRow';
 import ContactFormModal from './debts/ContactFormModal';
+import ProfilePhotoModal from './profile/ProfilePhotoModal';
 import { pickContactImage, useContactAvatars } from '../shared/contactAvatars';
 
 type Mode = 'create' | 'edit';
@@ -292,13 +293,28 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     [navigation],
   );
 
-  const changeContactPhoto = useCallback(
-    async (key: string) => {
-      const uri = await pickContactImage();
-      if (uri) setAvatar(key, uri);
+  // Tahrirlash modalidagi mijozning rasm kaliti va hozirgi rasmi.
+  const selectedAvatarKey = useMemo(() => {
+    const contact = contacts.find((item) => item.id === selectedId);
+    return contact ? contact.partyId || contact.id : '';
+  }, [contacts, selectedId]);
+
+  const changeSelectedPhoto = useCallback(async () => {
+    if (!selectedAvatarKey) return;
+    const uri = await pickContactImage();
+    if (uri) setAvatar(selectedAvatarKey, uri);
+  }, [selectedAvatarKey, setAvatar]);
+
+  // Ro'yxatdagi avatarga bosilganda rasmni to'liq ekranda ko'rsatamiz.
+  const [photoViewUri, setPhotoViewUri] = useState('');
+  const viewContactPhoto = useCallback(
+    (key: string) => {
+      const uri = avatars[key];
+      if (uri) setPhotoViewUri(uri);
     },
-    [setAvatar],
+    [avatars],
   );
+  const closePhotoView = useCallback(() => setPhotoViewUri(''), []);
 
   const handleUpdate = useCallback(
     (name: string) => updateContact(selectedId, { name }),
@@ -485,7 +501,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
                     isLast={index === sortedContacts.length - 1}
                     onPress={openContact}
                     onEdit={openEdit}
-                    onChangePhoto={changeContactPhoto}
+                    onViewPhoto={viewContactPhoto}
                   />
                 </FadeInView>
               );
@@ -514,6 +530,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         submitting={creating || updating}
         canDelete={canDeleteSelected}
         deleting={deleting}
+        photoUri={avatars[selectedAvatarKey]}
         onDelete={handleDeleteContact}
         onClose={() => setModalVisible(false)}
         onCreate={addContact}
@@ -522,6 +539,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           setModalVisible(false);
           setPickerVisible(true);
         }}
+        onChangePhoto={changeSelectedPhoto}
       />
 
       <DeviceContactsPickerModal
@@ -529,6 +547,14 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         onClose={() => setPickerVisible(false)}
         existingPhones={existingPhones}
         onSubmit={handleAddFromDevice}
+      />
+
+      <ProfilePhotoModal
+        visible={Boolean(photoViewUri)}
+        photoUri={photoViewUri}
+        error=""
+        onClose={closePhotoView}
+        onImageError={closePhotoView}
       />
     </View>
   );

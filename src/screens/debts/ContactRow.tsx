@@ -48,7 +48,8 @@ interface ContactRowProps {
   isLast: boolean;
   onPress: (id: string) => void;
   onEdit: (id: string) => void;
-  onChangePhoto: (avatarKey: string) => void;
+  /** Avatarga bosilganda biriktirilgan rasmni to'liq ekranda ko'rsatadi. */
+  onViewPhoto: (avatarKey: string) => void;
 }
 
 /**
@@ -66,7 +67,7 @@ const ContactRow: React.FC<ContactRowProps> = ({
   isLast,
   onPress,
   onEdit,
-  onChangePhoto,
+  onViewPhoto,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -86,7 +87,7 @@ const ContactRow: React.FC<ContactRowProps> = ({
 
   const handlePress = useCallback(() => onPress(contact.id), [onPress, contact.id]);
   const handleEdit = useCallback(() => onEdit(contact.id), [onEdit, contact.id]);
-  const handleChangePhoto = useCallback(() => onChangePhoto(avatarKey), [onChangePhoto, avatarKey]);
+  const handleViewPhoto = useCallback(() => onViewPhoto(avatarKey), [onViewPhoto, avatarKey]);
 
   const secondaryLabel =
     contact.partyType === 'BUSINESS_ACCOUNT'
@@ -116,19 +117,32 @@ const ContactRow: React.FC<ContactRowProps> = ({
         accessibilityRole="button"
         accessibilityLabel={contact.fullName}
       >
-        <Pressable
-          onPress={handleChangePhoto}
-          accessibilityRole="button"
-          accessibilityLabel={t('contact.changePhoto')}
-          hitSlop={6}
-        >
-          <UserAvatar uri={localPhoto} size={AVATAR_SIZE} />
-          {unreadCount > 0 ? (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-            </View>
-          ) : null}
-        </Pressable>
+        {/* Rasm biriktirilgan bo'lsa avatar bosiladi va rasm to'liq ekranda ochiladi;
+            rasm bo'lmasa bosish qatorning o'ziga (mijozni ochishga) o'tadi. */}
+        {localPhoto ? (
+          <Pressable
+            onPress={handleViewPhoto}
+            accessibilityRole="button"
+            accessibilityLabel={t('contact.viewPhoto')}
+            hitSlop={6}
+          >
+            <UserAvatar uri={localPhoto} size={AVATAR_SIZE} />
+            {unreadCount > 0 ? (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        ) : (
+          <View>
+            <UserAvatar uri={undefined} size={AVATAR_SIZE} />
+            {unreadCount > 0 ? (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            ) : null}
+          </View>
+        )}
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>
             {contact.fullName}

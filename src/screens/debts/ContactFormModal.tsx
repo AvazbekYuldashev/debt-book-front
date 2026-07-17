@@ -17,6 +17,7 @@ import type { ThemeValue } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import Input from '../../components/atoms/Input';
 import Button from '../../components/atoms/Button';
+import UserAvatar from '../../shared/ui/UserAvatar';
 import PartyTypeSelector from '../../components/form/PartyTypeSelector';
 import type { ContactFormInput } from '../../context/ContactsContext';
 import type { PartyType } from '../../types/money';
@@ -33,11 +34,14 @@ interface ContactFormModalProps {
   /** O'chirishga ruxsat: hisob to'liq yopiq (hech valyutada qarz/haq yo'q) bo'lsagina true. */
   canDelete: boolean;
   deleting: boolean;
+  /** Tahrirlanayotgan mijozning hozirgi rasmi (lokal). */
+  photoUri?: string;
   onDelete: () => void;
   onClose: () => void;
   onCreate: (input: ContactFormInput) => Promise<boolean>;
   onUpdate: (name: string) => Promise<boolean>;
   onOpenDeviceContacts: () => void;
+  onChangePhoto: () => void;
 }
 
 const MAX_PHONE_DIGITS = 12;
@@ -54,11 +58,13 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
   submitting,
   canDelete,
   deleting,
+  photoUri,
   onDelete,
   onClose,
   onCreate,
   onUpdate,
   onOpenDeviceContacts,
+  onChangePhoto,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -142,6 +148,23 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
                 <Ionicons name="people-outline" size={18} color={colors.primary} />
                 <Text style={styles.deviceBtnText}>{t('debts.fromPhoneContacts')}</Text>
               </TouchableOpacity>
+            ) : null}
+
+            {/* Rasm faqat tahrirlashda: yangi mijozda hali saqlash kaliti (partyId) yo'q. */}
+            {mode === 'edit' ? (
+              <Pressable
+                style={({ pressed }) => [styles.photoRow, pressed && styles.photoRowPressed]}
+                onPress={onChangePhoto}
+                accessibilityRole="button"
+                accessibilityLabel={t('contact.changePhoto')}
+              >
+                <UserAvatar uri={photoUri} size={52} />
+                <View style={styles.photoTextWrap}>
+                  <Text style={styles.photoTitle}>{t('contact.changePhoto')}</Text>
+                  <Text style={styles.photoHint}>{t('contact.photoHint')}</Text>
+                </View>
+                <Ionicons name="camera-outline" size={18} color={colors.primary} />
+              </Pressable>
             ) : null}
 
             <Input label={t('debts.fullName')} value={name} onChangeText={setName} placeholder="Ali Valiyev" />
@@ -261,6 +284,33 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     deviceBtnText: {
       ...typography.button,
       color: colors.primary,
+    },
+    photoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.sm,
+      marginBottom: spacing.sm,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
+    },
+    photoRowPressed: {
+      opacity: 0.7,
+    },
+    photoTextWrap: {
+      flex: 1,
+    },
+    photoTitle: {
+      ...typography.button,
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    photoHint: {
+      ...typography.caption,
+      marginTop: spacing.xxs / 2,
+      color: colors.textSecondary,
     },
     error: {
       ...typography.caption,
