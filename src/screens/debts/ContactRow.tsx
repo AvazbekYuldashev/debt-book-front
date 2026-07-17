@@ -12,9 +12,10 @@ import type { Contact } from '../../context/ContactsContext';
 const AVATAR_SIZE = 46;
 
 const AMOUNT_FONT_MAX = 13;
-const AMOUNT_FONT_MIN = 9;
-// Qalin, tabular-nums raqam uchun belgi eni ≈ shriftning shuncha ulushi.
-const AVG_CHAR_RATIO = 0.62;
+const AMOUNT_FONT_MIN = 11;
+// Qalin, tabular-nums summa satri uchun o'rtacha belgi eni ≈ shriftning shuncha
+// ulushi (raqam ~0.6em, bo'sh joy ~0.3em — summalarda ikkalasi aralash).
+const AVG_CHAR_RATIO = 0.58;
 // Summalar bloki yonidagi tahrir tugmasi + oraliqlar uchun ajratma.
 const RIGHT_RESERVED = 44;
 const RIGHT_RESERVED_NO_EDIT = 12;
@@ -24,10 +25,14 @@ const RIGHT_RESERVED_NO_EDIT = 12;
  * (AMOUNT_FONT_MAX), tor ekranda kerak bo'lgandagina kichrayadi (AMOUNT_FONT_MIN
  * gacha). Faqat uzunlikka qarash keng ekranda ham mayda qilib yuborardi.
  * `adjustsFontSizeToFit` web'da (react-native-web) ishlamaydi — shuning uchun qo'lda.
+ *
+ * `longestLength` — qatordagi ENG UZUN summa satri: bitta mijoz qatoridagi barcha
+ * valyutalar BIR XIL shrift oladi (aks holda uzun satr yonidagilardan kichik
+ * bo'lib, xunuk ko'rinardi).
  */
-const amountFontSize = (length: number, availWidth: number): number => {
-  if (!length || availWidth <= 0) return AMOUNT_FONT_MAX;
-  const fitted = Math.floor(availWidth / (length * AVG_CHAR_RATIO));
+const amountFontSize = (longestLength: number, availWidth: number): number => {
+  if (!longestLength || availWidth <= 0) return AMOUNT_FONT_MAX;
+  const fitted = Math.floor(availWidth / (longestLength * AVG_CHAR_RATIO));
   return Math.max(AMOUNT_FONT_MIN, Math.min(AMOUNT_FONT_MAX, fitted));
 };
 
@@ -77,7 +82,7 @@ const ContactRow: React.FC<ContactRowProps> = ({
     [],
   );
   const amountsWidth =
-    rowWidth > 0 ? rowWidth * 0.5 - (canEdit ? RIGHT_RESERVED : RIGHT_RESERVED_NO_EDIT) : 0;
+    rowWidth > 0 ? rowWidth * 0.55 - (canEdit ? RIGHT_RESERVED : RIGHT_RESERVED_NO_EDIT) : 0;
 
   const handlePress = useCallback(() => onPress(contact.id), [onPress, contact.id]);
   const handleEdit = useCallback(() => onEdit(contact.id), [onEdit, contact.id]);
@@ -87,6 +92,21 @@ const ContactRow: React.FC<ContactRowProps> = ({
     contact.partyType === 'BUSINESS_ACCOUNT'
       ? `${t('debts.businessLabel')}: ${contact.partyId || '--'}`
       : contact.phone || contact.partyId || '--';
+
+  // Satrlarni oldindan yasaymiz — eng uzuni butun qator uchun yagona shriftni belgilaydi.
+  const amountItems = useMemo(
+    () =>
+      (balances ?? []).map(({ currency, amount }) => ({
+        currency,
+        amount,
+        text: `${amount > 0 ? '+' : ''}${formatMoney(amount, currency)}`,
+      })),
+    [balances],
+  );
+  const amountFont = useMemo(() => {
+    const longest = amountItems.reduce((max, item) => Math.max(max, item.text.length), 0);
+    return amountFontSize(longest, amountsWidth);
+  }, [amountItems, amountsWidth]);
 
   return (
     <View style={[styles.row, !isLast && styles.rowBorder]} onLayout={handleRowLayout}>
@@ -126,24 +146,21 @@ const ContactRow: React.FC<ContactRowProps> = ({
           ) : balances.length === 0 ? (
             <Text style={styles.amountMuted}>{formatMoney(0)}</Text>
           ) : (
-            balances.map(({ currency, amount }) => {
-              const text = `${amount > 0 ? '+' : ''}${formatMoney(amount, currency)}`;
-              return (
-                <Text
-                  key={currency}
-                  style={[
-                    styles.amount,
-                    {
-                      color: amount > 0 ? colors.positive : colors.negative,
-                      fontSize: amountFontSize(text.length, amountsWidth),
-                    },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {text}
-                </Text>
-              );
-            })
+            amountItems.map(({ currency, amount, text }) => (
+              <Text
+                key={currency}
+                style={[
+                  styles.amount,
+                  {
+                    color: amount > 0 ? colors.positive : colors.negative,
+                    fontSize: amountFont,
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {text}
+              </Text>
+            ))
           )}
         </View>
         {canEdit ? (
@@ -209,9 +226,9 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
-      // Summa qanchalik katta bo'lmasin, qatorning yarmidan ko'pini egallamaydi —
-      // qolgan joy mijoz ismiga tegishli.
-      maxWidth: '50%',
+      // Summa qanchalik katta bo'lmasin, qator enining shuncha ulushidan oshmaydi —
+      // qolgan joy mijoz ismiga tegishli (ism summadan muhimroq).
+      maxWidth: '55%',
       flexShrink: 1,
     },
     amounts: {
