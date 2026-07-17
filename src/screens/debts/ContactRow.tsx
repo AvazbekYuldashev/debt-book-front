@@ -11,6 +11,16 @@ import type { Contact } from '../../context/ContactsContext';
 
 const AVATAR_SIZE = 46;
 
+// Summa uzun bo'lganda shriftni kichraytiramiz — mijoz ismi summadan MUHIMROQ,
+// shuning uchun summa siqiladi, ism emas. `adjustsFontSizeToFit` web'da
+// (react-native-web) ishlamaydi, shuning uchun uzunlikka qarab qo'lda moslаymiz.
+const amountFontSize = (length: number): number => {
+  if (length <= 14) return 13;
+  if (length <= 18) return 12;
+  if (length <= 24) return 10;
+  return 9;
+};
+
 interface ContactRowProps {
   contact: Contact;
   /** Har valyuta bo'yicha mustaqil sof balanslar; undefined = hali yuklanmagan. */
@@ -97,15 +107,24 @@ const ContactRow: React.FC<ContactRowProps> = ({
           ) : balances.length === 0 ? (
             <Text style={styles.amountMuted}>{formatMoney(0)}</Text>
           ) : (
-            balances.map(({ currency, amount }) => (
-              <Text
-                key={currency}
-                style={[styles.amount, { color: amount > 0 ? colors.positive : colors.negative }]}
-              >
-                {amount > 0 ? '+' : ''}
-                {formatMoney(amount, currency)}
-              </Text>
-            ))
+            balances.map(({ currency, amount }) => {
+              const text = `${amount > 0 ? '+' : ''}${formatMoney(amount, currency)}`;
+              return (
+                <Text
+                  key={currency}
+                  style={[
+                    styles.amount,
+                    {
+                      color: amount > 0 ? colors.positive : colors.negative,
+                      fontSize: amountFontSize(text.length),
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {text}
+                </Text>
+              );
+            })
           )}
         </View>
         {canEdit ? (
@@ -140,6 +159,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     main: {
       flex: 1,
+      minWidth: 0,
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
@@ -150,6 +170,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     info: {
       flex: 1,
+      minWidth: 0,
     },
     name: {
       ...typography.label,
@@ -169,9 +190,15 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
+      // Summa qanchalik katta bo'lmasin, qatorning yarmidan ko'pini egallamaydi —
+      // qolgan joy mijoz ismiga tegishli.
+      maxWidth: '50%',
+      flexShrink: 1,
     },
     amounts: {
       alignItems: 'flex-end',
+      minWidth: 0,
+      flexShrink: 1,
       gap: 1,
     },
     amount: {
