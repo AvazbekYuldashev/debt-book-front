@@ -2,18 +2,18 @@ import React, { useEffect } from 'react';
 import { AppState, AppStateStatus, Platform, Text, TextInput } from 'react-native';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
-import RootNavigator from './src/navigation/RootNavigator';
+import RootNavigator from './src/app/navigation/RootNavigator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { ContactsProvider } from './src/context/ContactsContext';
-import { AuthProvider } from './src/context/AuthContext';
-import { WorkspaceProvider } from './src/context/WorkspaceContext';
-import { CurrencyProvider } from './src/context/CurrencyContext';
-import { ContactAvatarsProvider } from './src/shared/contactAvatars';
-import { AppThemeProvider, useAppTheme } from './src/theme';
-import { LanguageProvider } from './src/i18n';
-import ErrorBoundary from './src/components/ErrorBoundary';
-import { WEB_FONT_STACK } from './src/theme/fonts';
+import { ContactsProvider } from './src/features/debts/context/ContactsContext';
+import { AuthProvider } from './src/features/auth/context/AuthContext';
+import { WorkspaceProvider } from './src/features/business/context/WorkspaceContext';
+import { CurrencyProvider } from './src/features/debts/context/CurrencyContext';
+import { ContactAvatarsProvider } from './src/features/debts/context/contactAvatars';
+import { AppThemeProvider, useAppTheme } from './src/shared/theme';
+import { LanguageProvider } from './src/shared/i18n';
+import ErrorBoundary from './src/shared/ui/ErrorBoundary';
+import { WEB_FONT_STACK } from './src/shared/theme/fonts';
 
 // Web'da Inter'ni BARCHA matnga global qo'llaymiz (ekranlar fontFamily belgilamaydi).
 // Modul yuklanishida — birinchi render'dan oldin bajariladi.
