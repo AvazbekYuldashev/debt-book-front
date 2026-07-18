@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DebtsStack from './DebtsStack';
 import ExpensesStack from './ExpensesStack';
 import ProfileStack from './ProfileStack';
@@ -14,6 +15,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const BottomTabNavigator: React.FC = () => {
   const { t } = useI18n();
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const tabLabel = (routeName: string) => {
     if (routeName === ROUTES.DEBTS) return t('tab.debts');
     if (routeName === ROUTES.EXPENSES) return t('tab.expenses');
@@ -29,8 +31,9 @@ const BottomTabNavigator: React.FC = () => {
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
           borderTopColor: colors.border,
-          height: 62,
-          paddingBottom: 8,
+          // Gesture/navigatsiya paneliga yopishib qolmasligi uchun pastki inset qo'shamiz.
+          height: 62 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 6,
           backgroundColor: colors.surface,
           shadowColor: '#0F172A',

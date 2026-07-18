@@ -3,7 +3,7 @@ import { AppState, AppStateStatus, Platform, Text, TextInput } from 'react-nativ
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import RootNavigator from './src/app/navigation/RootNavigator';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ContactsProvider } from './src/features/debts/context/ContactsContext';
 import { AuthProvider } from './src/features/auth/context/AuthContext';
@@ -90,7 +90,12 @@ const AppShell: React.FC = () => {
             <ContactAvatarsProvider>
               {statusBar}
               <NavigationContainer theme={navigationTheme}>
-                <RootNavigator />
+                {/* Android 15+ edge-to-edge majburiy — kontent status bar ostiga
+                    kirmasligi uchun yuqoridan xavfsiz-zona (top inset) qo'llaymiz.
+                    Pastki inset tab bar ichida alohida boshqariladi. */}
+                <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+                  <RootNavigator />
+                </SafeAreaView>
               </NavigationContainer>
             </ContactAvatarsProvider>
           </ContactsProvider>
