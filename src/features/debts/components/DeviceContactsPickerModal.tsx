@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -38,9 +39,12 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<LoadError>(null);
+  // Umumiy xato holatida haqiqiy sababni ko'rsatish (diagnostika uchun).
+  const [errorDetail, setErrorDetail] = useState('');
   const [contacts, setContacts] = useState<DeviceContact[]>([]);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -54,11 +58,14 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
+    setErrorDetail('');
     try {
       const list = await loadDeviceContacts();
       setContacts(list);
     } catch (e) {
-      setLoadError(e instanceof ContactsPermissionError ? 'permission' : 'generic');
+      const isPerm = e instanceof ContactsPermissionError;
+      setLoadError(isPerm ? 'permission' : 'generic');
+      setErrorDetail(isPerm ? '' : e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -112,13 +119,14 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
     setAdding(true);
     setResult(null);
     try {
-      const res = await onSubmit(chosen);
-      setResult(res);
+      await onSubmit(chosen);
       setSelected(new Set());
+      // Kontakt(lar) qo'shilgach modalni yopamiz — nechta tanlanganidan qat'i nazar.
+      onClose();
     } finally {
       setAdding(false);
     }
-  }, [contacts, selected, isSelectable, onSubmit]);
+  }, [contacts, selected, isSelectable, onSubmit, onClose]);
 
   const selectedCount = selected.size;
 
@@ -138,7 +146,8 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+        {/* Pastki xavfsiz-zona (nav bar) — tasdiqlash tugmasi ostiga tushib ketmasin. */}
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + theme.spacing.sm }]}>
           <View style={styles.header}>
             <Text style={styles.title} accessibilityRole="header">
               {t('contactPicker.title')}
@@ -167,6 +176,11 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
               <Text style={styles.centeredText}>
                 {loadError === 'permission' ? t('contactPicker.permissionDenied') : t('contactPicker.loadError')}
               </Text>
+              {loadError === 'generic' && errorDetail ? (
+                <Text style={styles.errorDetailText} selectable>
+                  {errorDetail}
+                </Text>
+              ) : null}
               <Pressable
                 style={({ pressed }) => [styles.retryBtn, pressed && styles.pressed]}
                 onPress={load}
@@ -296,6 +310,13 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.bodySmall,
       color: colors.textSecondary,
       textAlign: 'center',
+    },
+    errorDetailText: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.danger,
+      textAlign: 'center',
+      paddingHorizontal: spacing.md,
     },
     retryBtn: {
       marginTop: spacing.xxs,
