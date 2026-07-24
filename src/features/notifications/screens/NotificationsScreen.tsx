@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, type ListRenderItem, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -7,7 +7,6 @@ import { useI18n } from '../../../shared/i18n';
 import type { DebtsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
-import FadeInView from '../../../shared/ui/FadeInView';
 import { useNotifications, useMarkNotificationRead } from '../hooks/useNotifications';
 import { ContactsContext } from '../../debts/context/ContactsContext';
 import { normalizePhone } from '../../../shared/lib/phone';
@@ -23,9 +22,6 @@ import NotificationRow from '../components/NotificationRow';
 
 type Props = DebtsScreenProps<typeof ROUTES.NOTIFICATIONS>;
 
-const ROW_STAGGER_MS = 45;
-const ROW_STAGGER_CAP_MS = 360;
-
 const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   const { t } = useI18n();
   const theme = useAppTheme();
@@ -37,7 +33,6 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   const { contacts } = useContext(ContactsContext);
 
   const items = data?.content ?? [];
-  const isEmpty = items.length === 0;
 
   // Qurilma bildirishnomasi ruxsati — 'granted' bo'lmasa banner chiqadi.
   // Boshlang'ich 'granted' (banner miltillamasin), haqiqiy holat async keladi.
@@ -84,6 +79,17 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
     [markReadMutate, contacts, navigation],
   );
 
+  // Ro'yxat virtualizatsiyalangan (FlatList) — faqat ko'rinadigan qatorlar render qilinadi.
+  const lastIndex = items.length - 1;
+  const renderNotification = useCallback<ListRenderItem<NotificationDTO>>(
+    ({ item, index }) => (
+      <NotificationRow notification={item} isLast={index === lastIndex} onPress={handlePress} />
+    ),
+    [lastIndex, handlePress],
+  );
+
+  const keyExtractor = useCallback((item: NotificationDTO) => item.id, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -109,64 +115,53 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
         </Pressable>
       </View>
 
-      <ScrollView
+      {pushPermission === 'default' || pushPermission === 'denied' ? (
+        <Pressable
+          style={({ pressed }) => [styles.permissionBanner, pressed && styles.pressed]}
+          onPress={handleEnablePush}
+          accessibilityRole="button"
+          accessibilityLabel={t('notifications.enablePush')}
+        >
+          <Ionicons
+            name={pushPermission === 'denied' ? 'notifications-off-outline' : 'notifications-outline'}
+            size={18}
+            color={pushPermission === 'denied' ? colors.danger : colors.primary}
+          />
+          <Text style={styles.permissionText}>
+            {pushPermission === 'denied'
+              ? Platform.OS === 'web'
+                ? t('notifications.pushBlocked')
+                : t('notifications.pushBlockedNative')
+              : t('notifications.enablePush')}
+          </Text>
+        </Pressable>
+      ) : null}
+
+      <FlatList
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={styles.listCard}
+        data={isLoading ? [] : items}
+        renderItem={renderNotification}
+        keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={12}
+        windowSize={11}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />
         }
-      >
-        {pushPermission === 'default' || pushPermission === 'denied' ? (
-          <Pressable
-            style={({ pressed }) => [styles.permissionBanner, pressed && styles.pressed]}
-            onPress={handleEnablePush}
-            accessibilityRole="button"
-            accessibilityLabel={t('notifications.enablePush')}
-          >
-            <Ionicons
-              name={pushPermission === 'denied' ? 'notifications-off-outline' : 'notifications-outline'}
-              size={18}
-              color={pushPermission === 'denied' ? colors.danger : colors.primary}
-            />
-            <Text style={styles.permissionText}>
-              {pushPermission === 'denied'
-                ? Platform.OS === 'web'
-                  ? t('notifications.pushBlocked')
-                  : t('notifications.pushBlockedNative')
-                : t('notifications.enablePush')}
-            </Text>
-          </Pressable>
-        ) : null}
-
-        <View style={styles.listCard}>
-          {isLoading ? (
+        ListEmptyComponent={
+          isLoading ? (
             <SkeletonCardList count={5} containerStyle={styles.skeleton} />
-          ) : isEmpty ? (
+          ) : (
             <View style={styles.empty}>
               <View style={styles.emptyIcon}>
                 <Ionicons name="notifications-outline" size={26} color={colors.textSecondary} />
               </View>
               <Text style={styles.emptyText}>{t('notifications.empty')}</Text>
             </View>
-          ) : (
-            items.map((item, index) => (
-              <FadeInView
-                key={item.id}
-                delay={Math.min(index * ROW_STAGGER_MS, ROW_STAGGER_CAP_MS)}
-                duration={300}
-                fromY={10}
-              >
-                <NotificationRow
-                  notification={item}
-                  isLast={index === items.length - 1}
-                  onPress={handlePress}
-                />
-              </FadeInView>
-            ))
-          )}
-        </View>
-      </ScrollView>
+          )
+        }
+      />
     </View>
   );
 };
@@ -216,15 +211,16 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     scroll: {
       flex: 1,
-    },
-    content: {
-      padding: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.md,
     },
     permissionBanner: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
       padding: spacing.sm,
+      marginHorizontal: spacing.md,
       marginBottom: spacing.sm,
       borderRadius: radius.md,
       borderWidth: 1,

@@ -1,7 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, type ListRenderItem, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import FadeInView from '../../../shared/ui/FadeInView';
 import MoneyActionModal, { MoneyActionPayload } from '../components/MoneyActionModal';
 import Button from '../../../shared/ui/Button';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
@@ -24,9 +23,6 @@ import ContactBalanceHeader from '../components/ContactBalanceHeader';
 import TransactionRow from '../components/TransactionRow';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
-
-const ROW_STAGGER_MS = 50;
-const ROW_STAGGER_CAP_MS = 380;
 
 type ContactDetailProps = DebtsScreenProps<typeof ROUTES.CONTACT_DETAIL>;
 
@@ -141,6 +137,18 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     setModalVisible(true);
   }, []);
 
+  // Tarix virtualizatsiyalangan (FlatList) — bir kontaktda minglab yozuv bo'lishi
+  // mumkin; avval ScrollView + .map() hammasini bir vaqtda render qilardi ("qotish").
+  const lastIndex = mappedHistory.length - 1;
+  const renderTransaction = useCallback<ListRenderItem<MappedTransaction>>(
+    ({ item, index }) => (
+      <TransactionRow tx={item} isLast={index === lastIndex} onPress={setSelectedTransaction} />
+    ),
+    [lastIndex],
+  );
+
+  const keyExtractor = useCallback((item: MappedTransaction) => item.id, []);
+
   if (!contact) {
     return (
       <View style={styles.centered}>
@@ -149,50 +157,37 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     );
   }
 
-  const isEmpty = mappedHistory.length === 0;
-
   return (
     <View style={styles.container}>
       <ContactBalanceHeader contact={contact} balances={balances} onBack={navigation.goBack} />
 
-      <ScrollView
+      {error ? (
+        <Pressable style={styles.errorBox} onPress={loadScreenData}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.retryText}>{t('common.retry')}</Text>
+        </Pressable>
+      ) : null}
+
+      <FlatList
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={styles.listCard}
+        data={mappedHistory}
+        renderItem={renderTransaction}
+        keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={14}
+        windowSize={11}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={loadScreenData} tintColor={colors.primary} />
         }
-      >
-        {error ? (
-          <Pressable style={styles.errorBox} onPress={loadScreenData}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Text style={styles.retryText}>{t('common.retry')}</Text>
-          </Pressable>
-        ) : null}
-
-        <View style={styles.listCard}>
-          {loading && isEmpty ? (
+        ListEmptyComponent={
+          loading ? (
             <SkeletonCardList count={4} containerStyle={styles.listSkeleton} />
-          ) : isEmpty ? (
-            <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
           ) : (
-            mappedHistory.map((item, index) => (
-              <FadeInView
-                key={item.id}
-                delay={Math.min(index * ROW_STAGGER_MS, ROW_STAGGER_CAP_MS)}
-                duration={300}
-                fromY={10}
-              >
-                <TransactionRow
-                  tx={item}
-                  isLast={index === mappedHistory.length - 1}
-                  onPress={setSelectedTransaction}
-                />
-              </FadeInView>
-            ))
-          )}
-        </View>
-      </ScrollView>
+            <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
+          )
+        }
+      />
 
       {allowWrite ? (
         <View style={styles.bottomActions}>
@@ -239,8 +234,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     scroll: {
       flex: 1,
-    },
-    content: {
       paddingHorizontal: spacing.md,
       paddingTop: spacing.xxs,
       paddingBottom: spacing.md,
@@ -251,6 +244,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       backgroundColor: colors.dangerMuted,
       borderRadius: radius.sm,
       padding: spacing.sm,
+      marginHorizontal: spacing.md,
+      marginTop: spacing.xxs,
       marginBottom: spacing.sm,
     },
     errorText: {

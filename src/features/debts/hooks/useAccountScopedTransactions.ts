@@ -197,8 +197,12 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
           );
         }
 
+        // Yaratish tugashi bilan `true` qaytaramiz — chaqiruvchi modalni DARHOL yopadi.
+        // Tarixni qayta yuklashni KUTMAYMIZ (`void`): avval `await fetchData` modal
+        // spinnerini yana 2-3 ketma-ket so'rov davomida ushlab turardi va "qotish"
+        // hissini berardi. Endi ekran fonda o'z `loading` holati bilan yangilanadi.
         if (selectedCounterparty?.id && selectedCounterparty.partyType) {
-          await fetchData({ partyType: selectedCounterparty.partyType, partyId: selectedCounterparty.id });
+          void fetchData({ partyType: selectedCounterparty.partyType, partyId: selectedCounterparty.id });
         }
 
         // Mijozlar ro'yxatidagi balanslar (React Query) alohida cache — bu yerdan

@@ -154,7 +154,13 @@ const ContactRow: React.FC<ContactRowProps> = ({
       </Pressable>
 
       <View style={styles.right}>
-        <View style={styles.amounts}>
+        {/* Summalar bloki ham mijozni ochadi — ism/avatar bilan bir xil (onPress). */}
+        <Pressable
+          style={({ pressed }) => [styles.amounts, pressed && styles.mainPressed]}
+          onPress={handlePress}
+          accessibilityRole="button"
+          accessibilityLabel={contact.fullName}
+        >
           {balances === undefined ? (
             <Text style={styles.amountMuted}>{totalsLoading ? '…' : '--'}</Text>
           ) : balances.length === 0 ? (
@@ -176,7 +182,7 @@ const ContactRow: React.FC<ContactRowProps> = ({
               </Text>
             ))
           )}
-        </View>
+        </Pressable>
         {canEdit ? (
           <Pressable
             style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}

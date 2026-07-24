@@ -2,9 +2,10 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import {
   Animated,
   Easing,
+  FlatList,
+  type ListRenderItem,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -14,9 +15,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import Input from '../../../shared/ui/Input';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import WorkspaceSwitcher from '../../business/components/WorkspaceSwitcher';
-import FadeInView from '../../../shared/ui/FadeInView';
 import DeviceContactsPickerModal from '../components/DeviceContactsPickerModal';
-import { ContactsContext } from '../context/ContactsContext';
+import { ContactsContext, type Contact } from '../context/ContactsContext';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import { useContactBalances } from '../hooks/useContactBalances';
 import { useNotifications, useUnreadNotificationCount } from '../../notifications/hooks/useNotifications';
@@ -46,8 +46,6 @@ type SearchField = 'name' | 'phone';
 const MIN_QUERY_LENGTH = 3;
 const SEARCH_DEBOUNCE_MS = 300;
 const FAB_PULSE_MS = 1000;
-const ROW_STAGGER_MS = 55;
-const ROW_STAGGER_CAP_MS = 420;
 
 const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation }) => {
   const { t } = useI18n();
@@ -316,6 +314,43 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   );
   const closePhotoView = useCallback(() => setPhotoViewUri(''), []);
 
+  // Virtualizatsiyalangan ro'yxat uchun bitta qatorni chizadi (FlatList renderItem).
+  // Balans HAR VALYUTA bo'yicha alohida — kursda aralashtirmaymiz.
+  const lastIndex = sortedContacts.length - 1;
+  const renderContact = useCallback<ListRenderItem<Contact>>(
+    ({ item, index }) => {
+      const totals = totalsByContact[item.id];
+      const balances = totals ? netByCurrency(totals.credit, totals.debt) : undefined;
+      return (
+        <ContactRow
+          contact={item}
+          balances={balances}
+          unreadCount={item.phone ? unreadByPhone[normalizePhone(item.phone)] ?? 0 : 0}
+          totalsLoading={totalsLoading}
+          localPhoto={avatars[item.partyId || item.id]}
+          canEdit={canEdit}
+          isLast={index === lastIndex}
+          onPress={openContact}
+          onEdit={openEdit}
+          onViewPhoto={viewContactPhoto}
+        />
+      );
+    },
+    [
+      totalsByContact,
+      unreadByPhone,
+      totalsLoading,
+      avatars,
+      canEdit,
+      lastIndex,
+      openContact,
+      openEdit,
+      viewContactPhoto,
+    ],
+  );
+
+  const keyExtractor = useCallback((item: Contact, index: number) => item.id || `contact-${index}`, []);
+
   const handleUpdate = useCallback(
     (name: string) => updateContact(selectedId, { name }),
     [updateContact, selectedId],
@@ -449,16 +484,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           onSelect={handleSelectSort}
           onReset={handleResetSort}
         />
-      </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
-        }
-      >
         {error ? (
           <View style={styles.errorRow}>
             <Text style={styles.errorText}>{error}</Text>
@@ -469,46 +495,37 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
             <Text style={styles.errorText}>{searchError}</Text>
           </View>
         ) : null}
+      </View>
 
-        <View style={styles.listCard}>
-          {isBusy ? (
+      {/* Ro'yxat virtualizatsiyalangan (FlatList) — faqat ko'rinadigan qatorlar
+          render qilinadi. Avval ScrollView + .map() barcha kontaktni bir vaqtda
+          DOM'ga chiqarardi (katta ro'yxatda "qotish"). Karta ko'rinishi
+          contentContainerStyle orqali saqlanadi. */}
+      <FlatList
+        style={styles.scroll}
+        contentContainerStyle={styles.listCard}
+        data={isBusy ? [] : sortedContacts}
+        renderItem={renderContact}
+        keyExtractor={keyExtractor}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={12}
+        windowSize={11}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
+        }
+        ListEmptyComponent={
+          isBusy ? (
             <SkeletonCardList count={5} containerStyle={styles.listSkeleton} />
-          ) : isEmpty ? (
+          ) : (
             <View style={styles.empty}>
               <View style={styles.emptyIcon}>
                 <Ionicons name="people-outline" size={26} color={colors.textSecondary} />
               </View>
               <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
             </View>
-          ) : (
-            sortedContacts.map((item, index) => {
-              const totals = totalsByContact[item.id];
-              const balances = totals ? netByCurrency(totals.credit, totals.debt) : undefined;
-              return (
-                <FadeInView
-                  key={item.id || `contact-${index}`}
-                  delay={Math.min(index * ROW_STAGGER_MS, ROW_STAGGER_CAP_MS)}
-                  duration={320}
-                  fromY={12}
-                >
-                  <ContactRow
-                    contact={item}
-                    balances={balances}
-                    unreadCount={item.phone ? unreadByPhone[normalizePhone(item.phone)] ?? 0 : 0}
-                    totalsLoading={totalsLoading}
-                    localPhoto={avatars[item.partyId || item.id]}
-                    canEdit={canEdit}
-                    isLast={index === sortedContacts.length - 1}
-                    onPress={openContact}
-                    onEdit={openEdit}
-                    onViewPhoto={viewContactPhoto}
-                  />
-                </FadeInView>
-              );
-            })
-          )}
-        </View>
-      </ScrollView>
+          )
+        }
+      />
 
       {canEdit ? (
         <Animated.View style={[styles.fabWrap, { transform: [{ scale: fabScale }] }]}>
@@ -672,13 +689,13 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     scroll: {
       flex: 1,
-    },
-    content: {
-      padding: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
       paddingBottom: 96,
     },
     errorRow: {
       padding: spacing.sm,
+      marginHorizontal: spacing.md,
       borderWidth: 1,
       borderColor: colors.danger,
       backgroundColor: colors.dangerMuted,
