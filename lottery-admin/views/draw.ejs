@@ -20,18 +20,26 @@
   </div>
 
   <% if (result) { %>
-    <div class="card">
+    <%# Natija SERVERDA to'liq chiqariladi (JS o'chiq bo'lsa ham hammasi ko'rinadi).
+        JS yuklangach uni darhol maskalab, sahnaviy tartibda ochib boradi:
+        o'rinlar soni -> telefon raqami raqamma-raqam -> ism familiya. %>
+    <div class="card" id="drawResult">
       <h2><%= t('result_title') %> <span class="muted-count">Draw #<%= result.drawId %></span></h2>
+      <div class="reveal-announce" id="revealAnnounce" data-count="<%= result.winners.length %>">
+        🏆 <%= t('reveal_places', { count: result.winners.length }) %>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th><%= t('th_place') %></th><th><%= t('th_number') %></th><th><%= t('th_draw_name') %></th><th><%= t('th_phone') %></th></tr></thead>
           <tbody>
             <% result.winners.forEach((w, i) => { %>
-              <tr>
+              <tr class="reveal-row"
+                  data-phone="<%= w.phone || '' %>"
+                  data-name="<%= [w.name, w.surname].filter(Boolean).join(' ') || '-' %>">
                 <td><span class="winner-badge">🏆 <%= i + 1 %></span></td>
                 <td><span class="num-pill"><%= w.number %></span></td>
-                <td><%= [w.name, w.surname].filter(Boolean).join(' ') || '-' %></td>
-                <td class="dim"><%= w.phone || '-' %></td>
+                <td><span class="reveal-name"><%= [w.name, w.surname].filter(Boolean).join(' ') || '-' %></span></td>
+                <td class="dim"><span class="reveal-phone"><%= w.phone || '-' %></span></td>
               </tr>
             <% }) %>
           </tbody>

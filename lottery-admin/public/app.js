@@ -38,4 +38,121 @@
       }
     });
   });
+
+  // ---------- Viktorina natijasini sahnaviy ochish ----------
+  // Tartib: o'rinlar soni e'lon qilinadi -> har bir g'olibning telefon raqami
+  // raqamma-raqam ochiladi (998xxxxxxxxx -> 9989xxxxxxxx -> ...) -> raqam to'liq
+  // shakllangach ismi ko'rinadi -> keyingi o'ringa o'tiladi.
+  //
+  // Server natijani to'liq chiqaradi; maskalashni shu yerda qilamiz, ya'ni JS
+  // ishlamasa foydalanuvchi baribir hamma narsani ko'radi.
+  (function initDrawReveal() {
+    var card = document.getElementById('drawResult');
+    if (!card) return;
+
+    var rows = Array.prototype.slice.call(card.querySelectorAll('.reveal-row'));
+    if (!rows.length) return;
+
+    var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return; // animatsiyasiz — hammasi allaqachon ko'rinib turibdi
+
+    // G'oliblar ko'p bo'lsa tezlashtiramiz (20 kishini 60 soniya kutmaslik uchun).
+    var speed = rows.length > 8 ? 0.4 : rows.length > 4 ? 0.65 : 1;
+    var VISIBLE_PREFIX = 3;              // "998" boshidan ko'rinib turadi
+    var DIGIT_MS = Math.round(160 * speed);
+    var FLICKER_MS = Math.round(45 * speed);
+    var FLICKER_COUNT = 3;
+    var NAME_DELAY_MS = Math.round(280 * speed);
+    var ROW_GAP_MS = Math.round(520 * speed);
+    var START_DELAY_MS = 700;
+
+    function maskPhone(phone, shown) {
+      var hidden = Math.max(0, phone.length - shown);
+      return phone.slice(0, shown) + new Array(hidden + 1).join('x');
+    }
+
+    // 1-qadam: hammasini yashiramiz.
+    rows.forEach(function (row) {
+      var phone = row.getAttribute('data-phone') || '';
+      var phoneEl = row.querySelector('.reveal-phone');
+      var nameEl = row.querySelector('.reveal-name');
+      row.classList.add('is-pending');
+      if (phoneEl && phone) phoneEl.textContent = maskPhone(phone, VISIBLE_PREFIX);
+      if (nameEl) {
+        nameEl.classList.add('is-hidden');
+        var placeholder = document.createElement('span');
+        placeholder.className = 'reveal-placeholder';
+        placeholder.textContent = '• • •';
+        nameEl.parentNode.insertBefore(placeholder, nameEl);
+      }
+    });
+
+    var announce = document.getElementById('revealAnnounce');
+    if (announce) announce.classList.add('is-visible');
+
+    function revealRow(row, onDone) {
+      var phone = row.getAttribute('data-phone') || '';
+      var phoneEl = row.querySelector('.reveal-phone');
+      var nameEl = row.querySelector('.reveal-name');
+      var placeholder = row.querySelector('.reveal-placeholder');
+
+      row.classList.remove('is-pending');
+      row.classList.add('is-active');
+
+      var shown = VISIBLE_PREFIX;
+
+      function showName() {
+        if (phoneEl && phone) {
+          phoneEl.textContent = phone;
+          phoneEl.classList.add('is-complete');
+        }
+        window.setTimeout(function () {
+          if (placeholder) placeholder.classList.add('is-gone');
+          if (nameEl) {
+            nameEl.classList.remove('is-hidden');
+            nameEl.classList.add('is-revealed');
+          }
+          row.classList.remove('is-active');
+          row.classList.add('is-done');
+          window.setTimeout(onDone, ROW_GAP_MS);
+        }, NAME_DELAY_MS);
+      }
+
+      function nextDigit() {
+        if (!phone || !phoneEl || shown >= phone.length) {
+          showName();
+          return;
+        }
+        // Ochilayotgan raqam bir necha marta "aylanadi", so'ng o'rniga tushadi.
+        var flicks = FLICKER_COUNT;
+        var timer = window.setInterval(function () {
+          flicks -= 1;
+          if (flicks > 0) {
+            var random = String(Math.floor(Math.random() * 10));
+            var rest = Math.max(0, phone.length - shown - 1);
+            phoneEl.textContent = phone.slice(0, shown) + random + new Array(rest + 1).join('x');
+            return;
+          }
+          window.clearInterval(timer);
+          shown += 1;
+          phoneEl.textContent = maskPhone(phone, shown);
+          phoneEl.classList.add('is-ticking');
+          window.setTimeout(function () { phoneEl.classList.remove('is-ticking'); }, DIGIT_MS / 2);
+          window.setTimeout(nextDigit, DIGIT_MS);
+        }, FLICKER_MS);
+      }
+
+      nextDigit();
+    }
+
+    function runQueue(index) {
+      if (index >= rows.length) {
+        card.classList.add('reveal-finished');
+        return;
+      }
+      revealRow(rows[index], function () { runQueue(index + 1); });
+    }
+
+    window.setTimeout(function () { runQueue(0); }, START_DELAY_MS);
+  })();
 })();

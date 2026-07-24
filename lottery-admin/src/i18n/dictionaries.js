@@ -17,6 +17,7 @@ module.exports = {
     csrf_error: "Sessiya eskirdi yoki so'rov ishonchsiz manbadan keldi. Sahifani yangilab, qaytadan urinib ko'ring.",
     sync_error_days: "Kunlar soni 1 dan 3650 gacha butun son bo'lishi kerak",
     draw_error_prize_count: "Mukofotlar soni 1 dan 1000 gacha butun son bo'lishi kerak",
+    reveal_places: "{{count}} ta mukofotli o'rin — g'oliblar ochilmoqda...",
     account_error_weak: "Parol juda oddiy — faqat raqam, takrorlanuvchi belgi yoki keng tarqalgan parol bo'lmasin.",
 
     participants_title: "Ishtirokchilar",
@@ -88,6 +89,7 @@ module.exports = {
     csrf_error: "Сессия устарела или запрос пришёл из недоверенного источника. Обновите страницу и попробуйте снова.",
     sync_error_days: "Количество дней должно быть целым числом от 1 до 3650",
     draw_error_prize_count: "Количество призов должно быть целым числом от 1 до 1000",
+    reveal_places: "{{count}} призовых мест — победители раскрываются...",
     account_error_weak: "Пароль слишком простой — не используйте только цифры, повторяющиеся символы или распространённые пароли.",
 
     participants_title: "Участники",
@@ -159,6 +161,7 @@ module.exports = {
     csrf_error: "Your session expired or the request came from an untrusted source. Reload the page and try again.",
     sync_error_days: "Days must be a whole number between 1 and 3650",
     draw_error_prize_count: "Prize count must be a whole number between 1 and 1000",
+    reveal_places: "{{count}} prize places - revealing winners...",
     account_error_weak: "Password is too simple - avoid digits only, repeated characters or common passwords.",
 
     participants_title: "Participants",
