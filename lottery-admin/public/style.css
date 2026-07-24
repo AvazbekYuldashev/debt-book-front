@@ -429,71 +429,123 @@ td.dim { color: var(--text-dim); }
 }
 
 /* ---------- Natijani sahnaviy ochish (viktorina) ---------- */
+@keyframes announcePulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  50% { box-shadow: 0 0 0 10px transparent; }
+}
+@keyframes rowFlash {
+  0% { background: color-mix(in srgb, var(--success) 30%, transparent); }
+  100% { background: color-mix(in srgb, var(--success) 7%, transparent); }
+}
+@keyframes activeBar {
+  0%, 100% { box-shadow: inset 4px 0 0 0 var(--accent); }
+  50% { box-shadow: inset 4px 0 0 0 var(--accent-2); }
+}
+
+/* Natija kartasi ajralib tursin. */
+#drawResult {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  box-shadow: var(--shadow), 0 0 40px -18px var(--accent);
+}
+
 .reveal-announce {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 0 14px;
-  padding: 9px 16px;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 20px;
   border-radius: 999px;
   background: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
   color: var(--text);
-  font-weight: 700;
-  font-size: 0.95rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
   opacity: 0;
-  transform: translateY(-6px);
-  transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
+  transform: translateY(-8px) scale(0.96);
+  transition: opacity 0.45s var(--ease), transform 0.45s var(--ease);
 }
-.reveal-announce.is-visible { opacity: 1; transform: none; }
+.reveal-announce.is-visible {
+  opacity: 1;
+  transform: none;
+  animation: announcePulse 2.4s ease-in-out infinite;
+}
+
+/* Natija jadvali — sahnada ko'rinishi uchun yiriklashtirilgan. */
+#drawResult table { font-size: 1rem; }
+#drawResult th, #drawResult td { padding: 15px 14px; }
+#drawResult .winner-badge { min-width: 38px; height: 34px; font-size: 0.95rem; }
+#drawResult .num-pill { min-width: 34px; height: 32px; font-size: 0.92rem; }
 
 /* Navbati kelmagan qator xiralashgan turadi. */
-.reveal-row.is-pending { opacity: 0.4; }
-.reveal-row { transition: opacity 0.35s var(--ease), background 0.35s var(--ease); }
-.reveal-row.is-active {
-  opacity: 1;
-  background: color-mix(in srgb, var(--accent) 9%, transparent);
-}
+.reveal-row { transition: opacity 0.35s var(--ease); }
+.reveal-row.is-pending { opacity: 0.32; }
+.reveal-row.is-pending .reveal-phone { color: var(--text-faint); }
+.reveal-row > td { transition: background 0.35s var(--ease); }
+
+.reveal-row.is-active { opacity: 1; }
+.reveal-row.is-active > td { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.reveal-row.is-active > td:first-child { animation: activeBar 1.1s ease-in-out infinite; }
+
 .reveal-row.is-done { opacity: 1; }
+.reveal-row.is-done > td { background: color-mix(in srgb, var(--success) 7%, transparent); }
+.reveal-row.just-revealed > td { animation: rowFlash 1s var(--ease) forwards; }
+.reveal-row.just-revealed .winner-badge { animation: pulseGlow 1s ease-in-out 2; }
 
 /* Telefon raqami: raqamlar sakramasligi uchun teng kenglikdagi shrift. */
 .reveal-phone {
+  display: inline-block;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
-  font-size: 0.95em;
-  transition: color 0.2s ease, text-shadow 0.2s ease;
+  letter-spacing: 0.08em;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  transition: color 0.2s ease, text-shadow 0.2s ease, transform 0.2s var(--ease);
 }
 .reveal-phone.is-ticking {
   color: var(--accent-2);
-  text-shadow: 0 0 12px var(--accent-soft);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 70%, transparent);
+  transform: scale(1.07);
 }
 .reveal-phone.is-complete {
   color: var(--text);
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--success) 45%, transparent);
 }
 
-/* Ism raqam to'liq shakllanmaguncha ko'rinmaydi. */
+/* Ism raqam to'liq shakllanmaguncha "• • •" bo'lib turadi (bir xil elementda —
+   ustunlar qiyshaymasligi uchun qo'shimcha element ishlatilmaydi). */
+/* MUHIM: "paydo bo'lish" effekti keyframe + fill-mode bilan emas, TRANSITION
+   bilan qilingan. Sababi: animatsiya ishga tushmasa (fon-tab, throttling,
+   reduced-motion) fill-mode elementni boshlang'ich kadrda — siljigan holatda —
+   qotirib qo'yardi va ism jadvalda pastroqda turib qolardi. */
 .reveal-name {
   display: inline-block;
-  opacity: 0;
-  filter: blur(7px);
-  transform: translateY(5px);
-  transition: opacity 0.5s var(--ease), filter 0.5s var(--ease), transform 0.5s var(--ease);
+  font-size: 1.06rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease), filter 0.5s var(--ease);
 }
-.reveal-name.is-hidden { opacity: 0; }
-.reveal-name.is-revealed { opacity: 1; filter: none; transform: none; }
-.reveal-placeholder {
-  display: inline-block;
+.reveal-name.is-masked {
   color: var(--text-faint);
-  letter-spacing: 0.12em;
-  transition: opacity 0.3s ease;
+  font-weight: 600;
+  letter-spacing: 0.18em;
 }
-.reveal-placeholder.is-gone { opacity: 0; width: 0; overflow: hidden; }
-
-/* JS ishlamasa (yoki animatsiya o'chirilgan bo'lsa) — hammasi ko'rinib turadi. */
-.reveal-name:not(.is-hidden) { opacity: 1; filter: none; transform: none; }
+/* Faqat bir zumlik boshlang'ich holat — darhol olib tashlanadi va element
+   o'zining tabiiy joyiga "chiqadi". */
+.reveal-name.is-popping {
+  opacity: 0;
+  transform: scale(0.86) translateY(6px);
+  filter: blur(8px);
+}
+.reveal-name.is-revealed {
+  color: var(--text);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--success) 35%, transparent);
+}
 
 /* ---------- Empty state ---------- */
 .empty-state { text-align: center; padding: 40px 16px; color: var(--text-faint); }
@@ -632,6 +684,14 @@ td.dim { color: var(--text-dim); }
   .table-wrap table { min-width: 480px; font-size: 0.88rem; }
   th, td { padding: 10px 11px; }
   .date-cell { font-size: 0.82rem; }
+
+  /* Natija jadvali telefonda ham o'qiladigan bo'lsin (ustunlar siqilmasin). */
+  #drawResult .table-wrap table { min-width: 540px; font-size: 0.92rem; }
+  #drawResult th, #drawResult td { padding: 12px 11px; }
+  .reveal-announce { font-size: 0.92rem; padding: 10px 15px; margin-bottom: 12px; }
+  .reveal-phone { font-size: 0.96rem; letter-spacing: 0.05em; }
+  .reveal-name { font-size: 0.98rem; }
+  #drawResult .winner-badge { min-width: 34px; height: 30px; font-size: 0.88rem; }
 
   .login-wrap { padding: 16px; min-height: 100vh; min-height: 100dvh; }
   .login-card { padding: 26px 20px; }

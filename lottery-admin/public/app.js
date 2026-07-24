@@ -72,6 +72,9 @@
     }
 
     // 1-qadam: hammasini yashiramiz.
+    // Ism uchun ALOHIDA element qo'shmaymiz — o'sha elementning matnini "• • •"
+    // ga almashtiramiz. Aks holda ikkita inline element ikki qatorga tushib,
+    // jadval ustunlari qiyshayib qoladi.
     rows.forEach(function (row) {
       var phone = row.getAttribute('data-phone') || '';
       var phoneEl = row.querySelector('.reveal-phone');
@@ -79,11 +82,9 @@
       row.classList.add('is-pending');
       if (phoneEl && phone) phoneEl.textContent = maskPhone(phone, VISIBLE_PREFIX);
       if (nameEl) {
-        nameEl.classList.add('is-hidden');
-        var placeholder = document.createElement('span');
-        placeholder.className = 'reveal-placeholder';
-        placeholder.textContent = '• • •';
-        nameEl.parentNode.insertBefore(placeholder, nameEl);
+        nameEl.setAttribute('data-name', row.getAttribute('data-name') || nameEl.textContent);
+        nameEl.textContent = '• • •';
+        nameEl.classList.add('is-masked');
       }
     });
 
@@ -94,7 +95,6 @@
       var phone = row.getAttribute('data-phone') || '';
       var phoneEl = row.querySelector('.reveal-phone');
       var nameEl = row.querySelector('.reveal-name');
-      var placeholder = row.querySelector('.reveal-placeholder');
 
       row.classList.remove('is-pending');
       row.classList.add('is-active');
@@ -107,13 +107,22 @@
           phoneEl.classList.add('is-complete');
         }
         window.setTimeout(function () {
-          if (placeholder) placeholder.classList.add('is-gone');
           if (nameEl) {
-            nameEl.classList.remove('is-hidden');
-            nameEl.classList.add('is-revealed');
+            nameEl.textContent = nameEl.getAttribute('data-name') || nameEl.textContent;
+            nameEl.classList.remove('is-masked');
+            // Bir zumlik boshlang'ich holat -> keyingi kadrda olib tashlanadi va
+            // element transition bilan o'z joyiga "chiqadi". Animatsiya
+            // ishlamasa ham element to'g'ri joyda qoladi.
+            nameEl.classList.add('is-popping');
+            void nameEl.offsetWidth;
+            window.requestAnimationFrame(function () {
+              nameEl.classList.remove('is-popping');
+              nameEl.classList.add('is-revealed');
+            });
           }
           row.classList.remove('is-active');
-          row.classList.add('is-done');
+          row.classList.add('is-done', 'just-revealed');
+          window.setTimeout(function () { row.classList.remove('just-revealed'); }, 1100);
           window.setTimeout(onDone, ROW_GAP_MS);
         }, NAME_DELAY_MS);
       }
