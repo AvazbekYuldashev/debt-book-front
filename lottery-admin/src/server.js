@@ -11,6 +11,7 @@ const securityHeaders = require('./middleware/securityHeaders');
 const csrfProtection = require('./middleware/csrf');
 const { rateLimitMiddleware } = require('./middleware/rateLimit');
 const authRoutes = require('./routes/auth');
+const membersRoutes = require('./routes/members');
 const participantsRoutes = require('./routes/participants');
 const drawsRoutes = require('./routes/draws');
 const accountRoutes = require('./routes/account');
@@ -76,6 +77,7 @@ app.use(csrfProtection);
 
 app.use(basePath, authRoutes);
 app.use(basePath + '/lang', langRoutes);
+app.use(basePath + '/members', requireAuth, membersRoutes);
 app.use(basePath + '/participants', requireAuth, participantsRoutes);
 app.use(basePath + '/draws', requireAuth, drawsRoutes);
 app.use(basePath + '/account', requireAuth, accountRoutes);

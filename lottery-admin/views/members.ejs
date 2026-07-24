@@ -1,0 +1,125 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+<%
+  // Ism-familiyadan bosh harflar (rasm bo'lmasa avatar o'rniga ko'rsatiladi).
+  const initialsOf = (u) => {
+    const first = (u.name || '').trim().charAt(0);
+    const second = (u.surname || '').trim().charAt(0);
+    const text = (first + second).toUpperCase();
+    return text || '#';
+  };
+  const fullName = (u) => [u.name, u.surname].filter(Boolean).join(' ') || '-';
+  const statusKey = (u) => u.status || 'NOT_REGISTERED';
+%>
+<div class="container">
+  <div class="page-header">
+    <h1><%= t('members_title') %></h1>
+    <p><%= t('members_subtitle') %></p>
+  </div>
+
+  <div class="card">
+    <div class="status-summary">
+      <% ['ACTIVE', 'IN_REGISTRATION', 'BLOCK', 'NOT_REGISTERED'].forEach((code) => { %>
+        <div class="status-chip status-<%= code.toLowerCase() %>">
+          <span class="status-dot"></span>
+          <%= t('status_' + code) %>
+          <strong><%= counts[code] || 0 %></strong>
+        </div>
+      <% }) %>
+    </div>
+
+    <form method="get" action="<%= base %>/members" class="form-row members-filter">
+      <input
+        type="text"
+        name="search"
+        value="<%= search %>"
+        placeholder="<%= t('members_search_placeholder') %>"
+        maxlength="60"
+        class="search-input"
+      />
+      <select name="status" class="status-select">
+        <option value=""><%= t('members_filter_all') %></option>
+        <% filterStatuses.forEach((code) => { %>
+          <option value="<%= code %>" <%= filterStatus === code ? 'selected' : '' %>><%= t('status_' + code) %></option>
+        <% }) %>
+      </select>
+      <button type="submit"><%= t('members_filter_btn') %></button>
+      <% if (search || filterStatus) { %>
+        <a class="btn btn-ghost-link" href="<%= base %>/members"><%= t('members_filter_reset') %></a>
+      <% } %>
+    </form>
+
+    <% if (error) { %><div class="alert alert-error">⚠️ <%= error %></div><% } %>
+    <% if (success) { %><div class="alert alert-success">✅ <%= success %></div><% } %>
+  </div>
+
+  <div class="card">
+    <h2><%= t('members_list_title') %> <span class="muted-count"><%= users.length %> <%= t('list_count_suffix') %></span></h2>
+
+    <% if (users.length === 0) { %>
+      <div class="empty-state">
+        <div class="icon">👤</div>
+        <%= t('members_empty') %>
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="members-table">
+          <thead>
+            <tr>
+              <th><%= t('th_member') %></th>
+              <th><%= t('th_phone') %></th>
+              <th><%= t('th_status') %></th>
+              <th><%= t('th_activity') %></th>
+              <th><%= t('th_actions') %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% users.forEach((u) => { %>
+              <tr>
+                <td>
+                  <div class="member-cell">
+                    <% if (u.photoUrl) { %>
+                      <img class="member-avatar" src="<%= u.photoUrl %>" alt="" loading="lazy" />
+                    <% } else { %>
+                      <span class="member-avatar member-avatar-fallback"><%= initialsOf(u) %></span>
+                    <% } %>
+                    <span class="member-info">
+                      <span class="member-name"><%= fullName(u) %></span>
+                      <span class="member-since"><%= t('members_since') %>: <%= u.createdDate ? new Date(u.createdDate).toLocaleDateString('uz-UZ') : '-' %></span>
+                    </span>
+                  </div>
+                </td>
+                <td class="dim"><%= u.phone || '-' %></td>
+                <td>
+                  <span class="status-badge status-<%= statusKey(u).toLowerCase() %>">
+                    <span class="status-dot"></span><%= t('status_' + statusKey(u)) %>
+                  </span>
+                </td>
+                <td class="dim"><%= u.transactionCount %> <%= t('members_tx_suffix') %></td>
+                <td>
+                  <div class="member-actions">
+                    <% statuses.forEach((code) => { %>
+                      <% if (code !== u.status) { %>
+                        <form method="post" action="<%= base %>/members/status" class="inline-form">
+                          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                          <input type="hidden" name="profileId" value="<%= u.profileId %>" />
+                          <input type="hidden" name="status" value="<%= code %>" />
+                          <button type="submit" class="btn-status btn-status-<%= code.toLowerCase() %>">
+                            <%= t('members_action_' + code) %>
+                          </button>
+                        </form>
+                      <% } %>
+                    <% }) %>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+<%- include('partials/scripts') %>
+</body>
+</html>

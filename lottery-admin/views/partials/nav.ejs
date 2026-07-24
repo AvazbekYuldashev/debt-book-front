@@ -1,6 +1,7 @@
 <div class="topbar">
   <span class="brand"><span class="dot"></span> <%= t('app_name') %></span>
   <nav>
+    <a href="<%= base %>/members" class="<%= active === 'members' ? 'active' : '' %>"><%= t('nav_members') %></a>
     <a href="<%= base %>/participants" class="<%= active === 'participants' ? 'active' : '' %>"><%= t('nav_participants') %></a>
     <a href="<%= base %>/draws" class="<%= active === 'draws' ? 'active' : '' %>"><%= t('nav_draws') %></a>
     <a href="<%= base %>/draws/history" class="<%= active === 'history' ? 'active' : '' %>"><%= t('nav_history') %></a>
