@@ -1,0 +1,32 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+<div class="container">
+  <div class="page-header">
+    <h1>Draw #<%= draw.id %></h1>
+  </div>
+  <div class="card">
+    <div class="meta-row">
+      <span class="date-cell"><%= t('draw_detail_date_label') %>: <strong><%= new Date(draw.created_at).toLocaleString('uz-UZ') %></strong></span>
+      <span><%= t('draw_detail_prize_count_label') %>: <strong><%= draw.prize_count %></strong></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th><%= t('th_place') %></th><th><%= t('th_number') %></th><th><%= t('th_draw_name') %></th><th><%= t('th_phone') %></th></tr></thead>
+        <tbody>
+          <% winners.forEach(w => { %>
+            <tr>
+              <td><span class="winner-badge">🏆 <%= w.prize_rank %></span></td>
+              <td><span class="num-pill"><%= w.number %></span></td>
+              <td><%= [w.name, w.surname].filter(Boolean).join(' ') || '-' %></td>
+              <td class="dim"><%= w.phone || '-' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <a class="back-link" href="<%= base %>/draws/history">← <%= t('back_to_history') %></a>
+</div>
+<%- include('partials/scripts') %>
+</body>
+</html>

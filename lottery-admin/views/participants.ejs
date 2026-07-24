@@ -1,0 +1,67 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+<div class="container">
+  <div class="page-header">
+    <h1><%= t('participants_title') %></h1>
+    <p><%= t('participants_subtitle') %></p>
+  </div>
+
+  <div class="card">
+    <form method="post" action="<%= base %>/participants/sync" class="form-row">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <div class="field-inline">
+        <%= t('sync_prefix') %>
+        <input type="number" name="days" value="<%= defaultDays %>" min="1" max="3650" class="num-sm" inputmode="numeric" />
+        <%= t('sync_suffix') %>
+      </div>
+      <button type="submit"><%= t('sync_btn') %></button>
+    </form>
+
+    <% if (error) { %><div class="alert alert-error">⚠️ <%= t('sync_error_prefix') %>: <%= error %></div><% } %>
+    <% if (syncResult) { %>
+      <div class="alert alert-success">
+        <%# Bu yerda HTML chiqariladi (<strong>), shuning uchun ichkariga FAQAT
+            sonlar qo'yiladi — Number() bilan majburan songa aylantiramiz.
+            Aks holda tashqaridan kelgan matn HTML sifatida ishlab ketishi (XSS)
+            mumkin bo'lardi. %>
+        ✅ <%- t('sync_success', {
+          fetched: `<strong>${Number(syncResult.fetched) || 0}</strong>`,
+          days: Number(syncResult.days) || 0,
+          added: `<strong>${Number(syncResult.added) || 0}</strong>`,
+          total: `<strong>${Number(syncResult.total) || 0}</strong>`,
+        }) %>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <h2><%= t('list_title') %> <span class="muted-count"><%= participants.length %> <%= t('list_count_suffix') %></span></h2>
+    <% if (participants.length === 0) { %>
+      <div class="empty-state">
+        <div class="icon">👥</div>
+        <%= t('participants_empty') %>
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th><%= t('th_number') %></th><th><%= t('th_name') %></th><th><%= t('th_phone') %></th><th><%= t('th_first_seen') %></th></tr>
+          </thead>
+          <tbody>
+            <% participants.forEach(p => { %>
+              <tr>
+                <td><span class="num-pill"><%= p.number %></span></td>
+                <td><%= [p.name, p.surname].filter(Boolean).join(' ') || '-' %></td>
+                <td class="dim"><%= p.phone || '-' %></td>
+                <td class="dim date-cell"><%= new Date(p.first_seen_at).toLocaleString('uz-UZ') %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+<%- include('partials/scripts') %>
+</body>
+</html>

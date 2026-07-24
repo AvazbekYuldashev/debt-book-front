@@ -1,0 +1,19 @@
+# Bog'liqliklar
+node_modules/
+
+# Maxfiy sozlamalar (SESSION_SECRET, admin seed, API kalitlari) — HECH QACHON commit qilinmasin
+.env
+.env.local
+.env.*.local
+*.bak-*
+
+# Ma'lumotlar bazasi (ishtirokchilar, g'oliblar, sessiyalar, admin hash'i)
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Loglar va vaqtinchalik fayllar
+*.log
+npm-debug.log*
+.DS_Store

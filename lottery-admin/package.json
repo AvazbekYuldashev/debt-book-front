@@ -1,0 +1,20 @@
+{
+  "name": "lottery-admin",
+  "version": "1.0.0",
+  "description": "Qarz daftari uchun viktorina/lotereya admin paneli",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.3.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.0",
+    "express-session": "^1.18.0"
+  }
+}

@@ -1,0 +1,35 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+<div class="container">
+  <div class="page-header">
+    <h1><%= t('history_title') %></h1>
+    <p><%= t('history_subtitle') %></p>
+  </div>
+  <div class="card">
+    <% if (draws.length === 0) { %>
+      <div class="empty-state">
+        <div class="icon">🎟️</div>
+        <%= t('history_empty') %>
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th><%= t('th_id') %></th><th><%= t('th_date') %></th><th><%= t('th_prize_count') %></th><th></th></tr></thead>
+          <tbody>
+            <% draws.forEach(d => { %>
+              <tr>
+                <td><span class="num-pill">#<%= d.id %></span></td>
+                <td class="dim date-cell"><%= new Date(d.created_at).toLocaleString('uz-UZ') %></td>
+                <td><%= d.prize_count %></td>
+                <td><a class="link" href="<%= base %>/draws/history/<%= d.id %>"><%= t('detail_link') %> →</a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+<%- include('partials/scripts') %>
+</body>
+</html>
