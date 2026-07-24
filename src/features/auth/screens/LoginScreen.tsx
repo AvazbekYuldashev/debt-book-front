@@ -1,9 +1,10 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiRequestError, login } from '../api/auth';
 import { AuthContext } from '../context/AuthContext';
 import AuthShell from '../components/AuthShell';
+import AuthTextInput from '../components/AuthTextInput';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
@@ -53,7 +54,7 @@ const LoginScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }) =
         <Text style={s.fieldLabel}>{t('login.phone')}</Text>
         <View style={s.inputRow}>
           <Text style={s.phonePrefix}>+998</Text>
-          <TextInput
+          <AuthTextInput
             style={s.input}
             placeholder="90 123 45 67"
             placeholderTextColor={colors.textSecondary}
@@ -70,7 +71,7 @@ const LoginScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }) =
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('login.password')}</Text>
         <View style={s.inputRow}>
-          <TextInput
+          <AuthTextInput
             style={s.input}
             placeholder="••••••••"
             placeholderTextColor={colors.textSecondary}
@@ -80,6 +81,8 @@ const LoginScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }) =
             autoComplete="password"
             textContentType="password"
             importantForAutofill="yes"
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
           />
           <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword((p) => !p)}>
             <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />

@@ -1,9 +1,10 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { verifySms, resendSms } from '../api/auth';
 import { AuthContext } from '../context/AuthContext';
 import { ProfileDTO } from '../../../shared/types';
 import AuthShell from '../components/AuthShell';
+import AuthTextInput from '../components/AuthTextInput';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
@@ -54,13 +55,15 @@ const SmsVerificationScreen: React.FC<AuthScreenProps<'SmsVerification'>> = ({ n
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('sms.code')}</Text>
         <View style={s.inputRow}>
-          <TextInput
+          <AuthTextInput
             style={s.codeInput}
             placeholder="• • • • •"
             placeholderTextColor={colors.textSecondary}
             value={code}
             onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
             keyboardType="number-pad"
+            autoComplete="sms-otp"
+            textContentType="oneTimeCode"
           />
         </View>
       </View>

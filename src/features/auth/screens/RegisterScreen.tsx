@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiRequestError, register } from '../api/auth';
 import AuthShell from '../components/AuthShell';
+import AuthTextInput from '../components/AuthTextInput';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
@@ -18,6 +19,9 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  // Klaviaturadagi "keyingi" tugmasi bilan maydondan maydonga o'tish uchun.
+  const surnameRef = useRef<TextInput>(null);
+  const usernameRef = useRef<TextInput>(null);
 
   const handleUsernameChange = (value: string) => {
     let digits = value.replace(/\D/g, '');
@@ -56,14 +60,39 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('register.name')}</Text>
         <View style={s.inputRow}>
-          <TextInput style={s.input} placeholder={t('register.name')} placeholderTextColor={colors.textSecondary} value={name} onChangeText={setName} />
+          <AuthTextInput
+            style={s.input}
+            placeholder={t('register.name')}
+            placeholderTextColor={colors.textSecondary}
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            autoComplete="name-given"
+            textContentType="givenName"
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => surnameRef.current?.focus()}
+          />
         </View>
       </View>
 
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('register.surname')}</Text>
         <View style={s.inputRow}>
-          <TextInput style={s.input} placeholder={t('register.surname')} placeholderTextColor={colors.textSecondary} value={surname} onChangeText={setSurname} />
+          <AuthTextInput
+            ref={surnameRef}
+            style={s.input}
+            placeholder={t('register.surname')}
+            placeholderTextColor={colors.textSecondary}
+            value={surname}
+            onChangeText={setSurname}
+            autoCapitalize="words"
+            autoComplete="name-family"
+            textContentType="familyName"
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => usernameRef.current?.focus()}
+          />
         </View>
       </View>
 
@@ -71,13 +100,16 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
         <Text style={s.fieldLabel}>{t('register.phone')}</Text>
         <View style={s.inputRow}>
           <Text style={s.phonePrefix}>+998</Text>
-          <TextInput
+          <AuthTextInput
+            ref={usernameRef}
             style={s.input}
             placeholder="90 123 45 67"
             placeholderTextColor={colors.textSecondary}
             value={username}
             onChangeText={handleUsernameChange}
             keyboardType="number-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
           />
         </View>
       </View>
@@ -85,13 +117,17 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('register.password')}</Text>
         <View style={s.inputRow}>
-          <TextInput
+          <AuthTextInput
             style={s.input}
             placeholder="••••••••"
             placeholderTextColor={colors.textSecondary}
             secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
+            autoComplete="password-new"
+            textContentType="newPassword"
+            returnKeyType="done"
+            onSubmitEditing={handleRegister}
           />
           <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword((p) => !p)}>
             <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />

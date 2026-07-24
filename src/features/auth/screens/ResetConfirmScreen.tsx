@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { confirmReset } from '../api/auth';
 import AuthShell from '../components/AuthShell';
+import AuthTextInput from '../components/AuthTextInput';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
@@ -41,7 +42,7 @@ const ResetConfirmScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigati
         <Text style={s.fieldLabel}>{t('resetConfirm.phone')}</Text>
         <View style={s.inputRow}>
           <Text style={s.phonePrefix}>+998</Text>
-          <TextInput
+          <AuthTextInput
             style={s.input}
             placeholder="90 123 45 67"
             placeholderTextColor={colors.textSecondary}
@@ -55,7 +56,7 @@ const ResetConfirmScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigati
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('resetConfirm.code')}</Text>
         <View style={s.inputRow}>
-          <TextInput
+          <AuthTextInput
             style={s.input}
             placeholder={t('resetConfirm.codePlaceholder')}
             placeholderTextColor={colors.textSecondary}
@@ -69,13 +70,17 @@ const ResetConfirmScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigati
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('resetConfirm.newPassword')}</Text>
         <View style={s.inputRow}>
-          <TextInput
+          <AuthTextInput
             style={s.input}
             placeholder="••••••••"
             placeholderTextColor={colors.textSecondary}
             secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
+            autoComplete="password-new"
+            textContentType="newPassword"
+            returnKeyType="done"
+            onSubmitEditing={handleConfirm}
           />
           <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword((p) => !p)}>
             <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />

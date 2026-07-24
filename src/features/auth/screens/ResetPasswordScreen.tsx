@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { resetPassword } from '../api/auth';
 import AuthShell from '../components/AuthShell';
+import AuthTextInput from '../components/AuthTextInput';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
@@ -37,7 +38,7 @@ const ResetPasswordScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigat
         <Text style={s.fieldLabel}>{t('reset.phone')}</Text>
         <View style={s.inputRow}>
           <Text style={s.phonePrefix}>+998</Text>
-          <TextInput
+          <AuthTextInput
             style={s.input}
             placeholder="90 123 45 67"
             placeholderTextColor={colors.textSecondary}
