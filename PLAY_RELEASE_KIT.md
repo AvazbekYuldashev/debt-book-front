@@ -34,9 +34,11 @@ ASOSIY IMKONIYATLAR:
 • Qulay interfeys — yorug' va qorong'i mavzu, o'zbek va rus tillari.
 
 Tez Top bilan daftar va yozuvlarni unutib, barcha hisobni telefoningizda aniq va tartibli yuriting.
+
+MUHIM: Tez Top — bu shaxsiy hisob-kitob DAFTARI. Ilova pul bermaydi, kredit yoki qarz bermaydi, to'lovlarni amalga oshirmaydi va hech qanday moliyaviy xizmat ko'rsatmaydi. Ilova faqat foydalanuvchining O'ZI kiritgan yozuvlarini saqlaydi va ko'rsatadi — qog'oz daftarning raqamli o'rnini bosadi.
 ```
 
-**Kategoriya:** Moliya (Finance) yoki Biznes (Business)
+**Kategoriya:** Biznes (Business) — TAVSIYA ETILADI. "Moliya" (Finance) tanlamang: shaxsiy dev-akkaunt uchun moliyaviy-xizmat tekshiruvini kuchaytiradi. Ilova moliyaviy xizmat emas, hisob-kitob vositasi.
 **Teglar/kalit so'zlar:** qarz daftari, hisob-kitob, nasiya, balans, xarajat
 
 ### Rus (Русский)
@@ -67,7 +69,27 @@ Tez Top — удобное приложение для ведения взаим
 • Удобный интерфейс — светлая и тёмная тема, узбекский и русский языки.
 
 С Tez Top ведите все расчёты в телефоне — точно, аккуратно и без бумажных тетрадей.
+
+ВАЖНО: Tez Top — это личная УЧЁТНАЯ ТЕТРАДЬ. Приложение не выдаёт деньги, не предоставляет кредиты или займы, не проводит платежи и не оказывает никаких финансовых услуг. Оно лишь хранит и показывает записи, которые вводит САМ пользователь, — цифровая замена бумажной тетради.
 ```
+
+---
+
+## 1b. ⚠️ Tekshiruvdan o'tish uchun 4 ta majburiy qadam (2026-07-26)
+
+Google shaxsiy dev-akkauntlarga "moliyaviy xizmat" ilovalarini taqiqlaydi. Qarz daftari shubha uyg'otishi mumkin — quyidagilar rad etilmaslik uchun:
+
+1. **Kategoriya = Business** (Finance emas). Play Console → Store listing → App category.
+2. **Tavsifga "moliyaviy xizmat emas" izohi** qo'shildi (yuqorida, uz/ru) — bu matnni to'liq qo'ying.
+3. **App content → Data safety / Financial features**: kredit, qarz berish (loans), to'lov, kripto — HECH BIRINI belgilamang ("None of these").
+4. **App content → App access → "All functionality is restricted"**: reviewer uchun ISHLAYDIGAN demo login (telefon + parol) bering. SMS Eskiz test rejimida bo'lgani uchun reviewer o'zi ro'yxatdan o'ta olmaydi — demosiz deyarli aniq rad etiladi.
+
+### Demo akkaunt qanday tayyorlanadi (SMS ishlamasa ham)
+Ilovada o'zingiz demo akkaunt yarating; SMS kodini bazadan olib, tasdiqlang:
+1. Ilovada (yoki https://pul-hisob.uz) yangi raqam bilan ro'yxatdan o'ting (masalan `90 000 00 01`), parol o'ylab qo'ying.
+2. SMS ekraniga yetganda kod kelmaydi — kodni serverdan olamiz (`sms_history` jadvalidan, faqat o'qish).
+3. Kodni kiritasiz → akkaunt ACTIVE bo'ladi. Shu telefon+parolni Play "App access"ga yozing.
+> Kod: `psql` → `select code from sms_history where phone='998900000001' order by created_date desc limit 1;` (15 daqiqa amal qiladi). Yoki panelda A'zolar bo'limidan holatni ACTIVE qilib qo'yish mumkin.
 
 ---
 
