@@ -398,6 +398,13 @@ const uz: Dict = {
   'consent.readLink': 'Batafsil',
   'consent.continueButton': 'Roziman va davom etish',
   'consent.mustAcceptBoth': "Davom etish uchun ikkala bandni ham tasdiqlang",
+
+  'update.required.title': 'Yangilanish talab qilinadi',
+  'update.required.body': "Ilovaning yangi versiyasi chiqdi. Davom etish uchun ilovani yangilang.",
+  'update.required.button': 'Yangilash',
+  'update.optional.title': 'Yangi versiya mavjud',
+  'update.optional.body': 'Ilovaning yangi versiyasi bor. Yangilashni tavsiya qilamiz.',
+  'update.optional.later': 'Keyinroq',
 };
 
 const ru: Dict = {
@@ -770,6 +777,13 @@ const ru: Dict = {
   'consent.readLink': 'Подробнее',
   'consent.continueButton': 'Согласен и продолжить',
   'consent.mustAcceptBoth': 'Чтобы продолжить, подтвердите оба пункта',
+
+  'update.required.title': 'Требуется обновление',
+  'update.required.body': 'Вышла новая версия приложения. Обновите приложение, чтобы продолжить.',
+  'update.required.button': 'Обновить',
+  'update.optional.title': 'Доступна новая версия',
+  'update.optional.body': 'Доступна новая версия приложения. Рекомендуем обновить.',
+  'update.optional.later': 'Позже',
 };
 
 const en: Dict = {
@@ -1142,6 +1156,13 @@ const en: Dict = {
   'consent.readLink': 'Read more',
   'consent.continueButton': 'Agree and continue',
   'consent.mustAcceptBoth': 'Please confirm both items to continue',
+
+  'update.required.title': 'Update required',
+  'update.required.body': 'A new version of the app is available. Please update to continue.',
+  'update.required.button': 'Update',
+  'update.optional.title': 'New version available',
+  'update.optional.body': 'A new version of the app is available. We recommend updating.',
+  'update.optional.later': 'Later',
 };
 
 export const translations: Record<Lang, Dict> = { uz, ru, en };

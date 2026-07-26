@@ -13,6 +13,7 @@ import { ContactAvatarsProvider } from './src/features/debts/context/contactAvat
 import { AppThemeProvider, useAppTheme } from './src/shared/theme';
 import { LanguageProvider } from './src/shared/i18n';
 import ErrorBoundary from './src/shared/ui/ErrorBoundary';
+import UpdateGate from './src/features/app-update/UpdateGate';
 import { WEB_FONT_STACK } from './src/shared/theme/fonts';
 
 // Web'da Inter'ni BARCHA matnga global qo'llaymiz (ekranlar fontFamily belgilamaydi).
@@ -94,7 +95,9 @@ const AppShell: React.FC = () => {
                     kirmasligi uchun yuqoridan xavfsiz-zona (top inset) qo'llaymiz.
                     Pastki inset tab bar ichida alohida boshqariladi. */}
                 <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
-                  <RootNavigator />
+                  <UpdateGate>
+                    <RootNavigator />
+                  </UpdateGate>
                 </SafeAreaView>
               </NavigationContainer>
             </ContactAvatarsProvider>
