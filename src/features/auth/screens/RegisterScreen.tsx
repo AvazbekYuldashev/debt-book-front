@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiRequestError, register } from '../api/auth';
 import AuthShell from '../components/AuthShell';
@@ -19,6 +19,9 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  // So'rov ketayotganda tugmani o'chirib turadi — tugma tez-tez bosilib,
+  // bir necha bir xil ro'yxatdan o'tish so'rovi (dublikat profil) ketmasin.
+  const [submitting, setSubmitting] = useState(false);
   // Klaviaturadagi "keyingi" tugmasi bilan maydondan maydonga o'tish uchun.
   const surnameRef = useRef<TextInput>(null);
   const usernameRef = useRef<TextInput>(null);
@@ -30,6 +33,7 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
   };
 
   const handleRegister = async () => {
+    if (submitting) return; // so'rov ketayotgan bo'lsa qayta yubormaymiz
     setErrorMessage('');
     const payload = { name: name.trim(), surname: surname.trim(), username: username.trim(), password };
 
@@ -42,6 +46,7 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
       return;
     }
 
+    setSubmitting(true);
     try {
       await register(payload);
       navigation.navigate('SmsVerification', { username: `998${payload.username}` });
@@ -52,6 +57,8 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
         message = e.message || raw || message;
       }
       setErrorMessage(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -137,8 +144,8 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
 
       {errorMessage ? <Text style={s.errorText}>{errorMessage}</Text> : null}
 
-      <TouchableOpacity style={s.button} onPress={handleRegister} activeOpacity={0.9}>
-        <Text style={s.buttonText}>{t('register.submit')}</Text>
+      <TouchableOpacity style={s.button} onPress={handleRegister} disabled={submitting} activeOpacity={0.9}>
+        {submitting ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={s.buttonText}>{t('register.submit')}</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
