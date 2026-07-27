@@ -5,6 +5,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import UserAvatar from '../../../shared/ui/UserAvatar';
+import CopyButton from '../../../shared/ui/CopyButton';
 import { formatMoney } from '../../../shared/lib/money';
 import type { CurrencyNet } from '../../../shared/lib/currency';
 import type { Contact } from '../context/ContactsContext';
@@ -147,9 +148,19 @@ const ContactRow: React.FC<ContactRowProps> = ({
           <Text style={styles.name} numberOfLines={1}>
             {contact.fullName}
           </Text>
-          <Text style={styles.secondary} numberOfLines={1}>
-            {secondaryLabel}
-          </Text>
+          {contact.partyType === 'BUSINESS_ACCOUNT' ? (
+            // Biznes mijoz: telefon o'rniga biznes ID'si + nusxalash tugmasi.
+            <View style={styles.secondaryRow}>
+              <Text style={styles.secondary} numberOfLines={1}>
+                {secondaryLabel}
+              </Text>
+              {contact.partyId ? <CopyButton value={contact.partyId} size={14} /> : null}
+            </View>
+          ) : (
+            <Text style={styles.secondary} numberOfLines={1}>
+              {secondaryLabel}
+            </Text>
+          )}
         </View>
       </Pressable>
 
@@ -239,6 +250,12 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       marginTop: spacing.xxs / 2,
       fontSize: 13,
       color: colors.textSecondary,
+      flexShrink: 1,
+    },
+    secondaryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xxs,
     },
     // Summalar (fonsiz, o'ngga tekis) va tahrir tugmasi YONMA-YON, vertikal
     // markazda — qator bo'yi avatar balandligidan oshmaydi, o'ng chet tekis.

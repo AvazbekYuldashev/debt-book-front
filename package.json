@@ -6,8 +6,8 @@
   "scripts": {
     "start": "expo start",
     "dev": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "build:web": "expo export --platform web",
@@ -29,6 +29,7 @@
     "expo": "~57.0.6",
     "expo-asset": "~57.0.5",
     "expo-build-properties": "~57.0.5",
+    "expo-clipboard": "~57.0.1",
     "expo-contacts": "~57.0.1",
     "expo-font": "~57.0.1",
     "expo-image-picker": "~57.0.4",

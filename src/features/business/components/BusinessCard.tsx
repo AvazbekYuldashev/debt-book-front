@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
+import CopyButton from '../../../shared/ui/CopyButton';
 import type { BusinessDTO } from '../types/business';
 
 interface BusinessCardProps {
@@ -35,6 +36,14 @@ const BusinessCard: React.FC<BusinessCardProps> = ({ business, isActive, onOpen,
       <Text style={styles.meta}>
         {t('business.ownerLabel')}: {business.ownerName || '--'}
       </Text>
+
+      {/* Biznes ID — boshqalar sizni mijoz sifatida qo'shishi uchun ulashiladi. */}
+      <View style={styles.idRow}>
+        <Text style={[styles.meta, styles.idText]} numberOfLines={1}>
+          {t('business.idLabel')}: {business.id}
+        </Text>
+        <CopyButton value={business.id} size={16} />
+      </View>
 
       <View style={styles.actions}>
         <Pressable
@@ -99,6 +108,14 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.caption,
       marginTop: spacing.xxs,
       color: colors.textSecondary,
+    },
+    idRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xxs,
+    },
+    idText: {
+      flex: 1,
     },
     actions: {
       marginTop: spacing.xs,
