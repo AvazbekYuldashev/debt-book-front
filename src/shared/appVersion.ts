@@ -4,4 +4,4 @@
 // Majburiy yangilanish (force-update) tekshiruvi shu qiymatni backenddagi
 // minVersionCode bilan solishtiradi: APP_VERSION_CODE < minVersionCode bo'lsa,
 // ilova foydalanuvchidan yangilashni talab qiladi va ishlashni bloklaydi.
-export const APP_VERSION_CODE = 21;
+export const APP_VERSION_CODE = 22;
