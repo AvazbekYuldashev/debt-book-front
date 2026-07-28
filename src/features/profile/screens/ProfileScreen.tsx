@@ -11,6 +11,7 @@ import Input from '../../../shared/ui/Input';
 import WorkspaceSwitcher from '../../business/components/WorkspaceSwitcher';
 import LanguageSwitcher from '../../../shared/ui/LanguageSwitcher';
 import ThemeSwitcher from '../../../shared/ui/ThemeSwitcher';
+import CopyButton from '../../../shared/ui/CopyButton';
 import { useI18n } from '../../../shared/i18n';
 import { confirmAction } from '../../../shared/lib/confirm';
 import {
@@ -274,6 +275,13 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
               <Text style={styles.infoSubText}>
                 {t('business.ownerLabel')}: {activeBusiness.ownerName || '--'}
               </Text>
+              {/* Biznes ID — boshqalar sizni mijoz sifatida qo'shishi uchun ulashiladi. */}
+              <View style={styles.idRow}>
+                <Text style={[styles.infoSubText, styles.idText]} numberOfLines={1}>
+                  {t('business.idLabel')}: {activeBusiness.id}
+                </Text>
+                <CopyButton value={activeBusiness.id} size={16} />
+              </View>
               {workspace.activeBusinessRole ? (
                 <View style={styles.roleBadge}>
                   <Text style={styles.roleBadgeText}>{workspace.activeBusinessRole}</Text>
@@ -508,6 +516,15 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontSize: 13,
       color: colors.textSecondary,
       marginBottom: spacing.xxs / 2,
+    },
+    idRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xxs,
+    },
+    idText: {
+      flex: 1,
+      marginBottom: 0,
     },
     roleBadge: {
       alignSelf: 'flex-start',
