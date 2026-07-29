@@ -23,6 +23,7 @@ import ContactBalanceHeader from '../components/ContactBalanceHeader';
 import TransactionRow from '../components/TransactionRow';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
+import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
 
 type ContactDetailProps = DebtsScreenProps<typeof ROUTES.CONTACT_DETAIL>;
 
@@ -35,8 +36,12 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const contactId = route.params.id;
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
-  const { accountType } = useAccountContext();
+  const { accountType, partyType, accountId } = useAccountContext();
   const { contacts } = useContext(ContactsContext);
+
+  // Joriy hisob (shaxsiy profil yoki faol biznes) — tranzaksiya tomonlarini
+  // shu bo'yicha aniqlaymiz. Yagona manba useAccountContext.
+  const owner = useMemo(() => ({ partyType, partyId: accountId }), [partyType, accountId]);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
@@ -73,35 +78,15 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const allowWrite = canWrite(workspace.activeBusinessRole);
 
   const mappedHistory = useMemo(
-    () =>
-      history.map((item) =>
-        mapTransaction(
-          item,
-          {
-            partyType:
-              workspace.mode === 'business' && workspace.activeBusinessId ? 'BUSINESS_ACCOUNT' : 'PROFILE',
-            partyId: workspace.mode === 'business' ? workspace.activeBusinessId || '' : profile?.id || '',
-          },
-          selectedCounterparty || undefined,
-        ),
-      ),
-    [history, profile?.id, selectedCounterparty, workspace.activeBusinessId, workspace.mode],
+    () => history.map((item) => mapTransaction(item, owner, selectedCounterparty || undefined)),
+    [history, owner, selectedCounterparty],
   );
 
-  // Biznes ishtirok etgan tranzaksiyada amalni bajargan xodim telefoni.
-  const performerPhone = useMemo(() => {
-    if (!selectedTransaction) return '';
-    const businessInvolved = Boolean(
-      selectedTransaction.creditorBusinessId || selectedTransaction.debtorBusinessId,
-    );
-    if (!businessInvolved) return '';
-    return (
-      selectedTransaction.creditorBusinessProfilePhone ||
-      selectedTransaction.debtorBusinessProfilePhone ||
-      selectedTransaction.createdByProfilePhone ||
-      ''
-    );
-  }, [selectedTransaction]);
+  // QARAMA-QARSHI tomon xodimi: men tanlagan odam menga, men esa ularga ko'rinaman.
+  const performerPhone = useMemo(
+    () => (selectedTransaction ? counterpartyPerformerPhone(selectedTransaction, owner, profile?.id) : ''),
+    [selectedTransaction, owner, profile?.id],
+  );
 
   const loadScreenData = useCallback(async () => {
     if (!contact?.partyType) return;
