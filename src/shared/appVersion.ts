@@ -10,4 +10,4 @@
 // esa allaqachon eng yangi versiya turgan bo'ladi. Shu sababli moslikni
 // `__tests__/appVersion.test.ts` avtomatik tekshiradi — versionCode oshirilganda
 // test yiqilsa, demak shu faylni ham yangilash kerak.
-export const APP_VERSION_CODE = 24;
+export const APP_VERSION_CODE = 25;

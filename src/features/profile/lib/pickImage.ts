@@ -14,11 +14,8 @@ export type PickImageResult =
  * qaytaradi, chaqiruvchi i18n xabarini o'zi hal qiladi.
  */
 export async function pickAndUploadImage(token: string): Promise<PickImageResult> {
-  if (Platform.OS !== 'web') {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return { status: 'denied' };
-  }
-
+  // Ruxsat so'ralmaydi: Android tizim Photo Picker'i faqat tanlangan rasmni beradi
+  // (Google Play "Photo and Video Permissions" siyosati READ_MEDIA_IMAGES'ni taqiqlaydi).
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     quality: 0.8,

@@ -70,10 +70,6 @@ export const useContactAvatars = (): ContactAvatarsValue => useContext(ContactAv
 
 // Galereyadan rasm tanlab, saqlanadigan uri qaytaradi (web: data-uri, mobil: file uri).
 export async function pickContactImage(): Promise<string | null> {
-  if (Platform.OS !== 'web') {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return null;
-  }
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsEditing: true,
