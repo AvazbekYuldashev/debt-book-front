@@ -40,6 +40,30 @@ export type ExpensesScreenProps<T extends keyof ExpensesStackParamList> = Native
   T
 >;
 
+/**
+ * Gap kassa (aylanma jamg'arma) stack'i.
+ *
+ * Ekranlar orasida `groupName` ham uzatiladi: sarlavha ma'lumot yuklanishini
+ * kutmasdan darhol ko'rinsin.
+ */
+export type GapStackParamList = {
+  [ROUTES.GAP_GROUPS]: undefined;
+  [ROUTES.GAP_GROUP_DETAIL]: { groupId: string; groupName?: string };
+  [ROUTES.GAP_MEMBERS]: { groupId: string; groupName?: string };
+  [ROUTES.GAP_QUEUE]: { groupId: string; groupName?: string };
+  [ROUTES.GAP_ROUNDS]: { groupId: string; groupName?: string };
+  [ROUTES.GAP_HISTORY]: { groupId: string; groupName?: string };
+  [ROUTES.GAP_BALANCES]: { groupId: string; groupName?: string };
+  [ROUTES.GAP_SETTLEMENT]: { groupId: string; groupName?: string };
+};
+
+export type GapNavigation = NativeStackNavigationProp<GapStackParamList>;
+
+export type GapScreenProps<T extends keyof GapStackParamList> = NativeStackScreenProps<
+  GapStackParamList,
+  T
+>;
+
 /** Profile stack'i — profil, bizneslar va biznes a'zolari ekranlari. */
 export type ProfileStackParamList = {
   [ROUTES.PROFILE_HOME]: undefined;
@@ -61,6 +85,7 @@ export type ProfileScreenProps<T extends keyof ProfileStackParamList> = NativeSt
 export type MainTabParamList = {
   [ROUTES.DEBTS]: NavigatorScreenParams<DebtsStackParamList>;
   [ROUTES.EXPENSES]: NavigatorScreenParams<ExpensesStackParamList>;
+  [ROUTES.GAP]: NavigatorScreenParams<GapStackParamList>;
   [ROUTES.PROFILE]: NavigatorScreenParams<ProfileStackParamList>;
 };
 

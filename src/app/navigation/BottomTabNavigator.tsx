@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DebtsStack from './DebtsStack';
 import ExpensesStack from './ExpensesStack';
+import GapStack from './GapStack';
 import ProfileStack from './ProfileStack';
 import { Feather } from '@expo/vector-icons';
 import { ROUTES } from './routes';
@@ -19,6 +20,7 @@ const BottomTabNavigator: React.FC = () => {
   const tabLabel = (routeName: string) => {
     if (routeName === ROUTES.DEBTS) return t('tab.debts');
     if (routeName === ROUTES.EXPENSES) return t('tab.expenses');
+    if (routeName === ROUTES.GAP) return t('tab.gap');
     if (routeName === ROUTES.PROFILE) return t('tab.profile');
     return routeName;
   };
@@ -52,6 +54,9 @@ const BottomTabNavigator: React.FC = () => {
             iconName = 'list';
           } else if (route.name === ROUTES.EXPENSES) {
             iconName = 'dollar-sign';
+          } else if (route.name === ROUTES.GAP) {
+            // Gap kassa — bir guruh odam navbat bilan pul oladi.
+            iconName = 'users';
           } else if (route.name === ROUTES.PROFILE) {
             iconName = 'user';
           }
@@ -61,6 +66,7 @@ const BottomTabNavigator: React.FC = () => {
     >
       <Tab.Screen name={ROUTES.DEBTS} component={DebtsStack} />
       <Tab.Screen name={ROUTES.EXPENSES} component={ExpensesStack} />
+      <Tab.Screen name={ROUTES.GAP} component={GapStack} />
       <Tab.Screen name={ROUTES.PROFILE} component={ProfileStack} />
     </Tab.Navigator>
   );
