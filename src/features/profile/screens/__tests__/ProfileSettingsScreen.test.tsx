@@ -6,13 +6,13 @@ import { AppThemeProvider } from '../../../../shared/theme';
 import { LanguageProvider } from '../../../../shared/i18n';
 import { AuthContext } from '../../../auth/context/AuthContext';
 import { WorkspaceContext } from '../../../business/context/WorkspaceContext';
-import ProfileScreen from '../ProfileScreen';
+import ProfileSettingsScreen from '../ProfileSettingsScreen';
 import { ROUTES } from '../../../../app/navigation/routes';
 
 /**
- * Profil bo'limi uchta ekranga bo'lindi: ko'rish, tahrirlash, sozlamalar.
- * Bosh ekranning vazifasi - qolgan ikkalasiga yo'l ochish. Huquqiy hujjatlar
- * endi Sozlamalar ichida (ProfileSettingsScreen.test.tsx ga qarang).
+ * Huquqiy hujjatlar profil bo'limi qayta tuzilganda Sozlamalar ekraniga
+ * ko'chdi. Muhim shart o'zgarmadi: uchala hujjat login qilinmagan holatda
+ * ham ko'rinishi va ochilishi kerak - do'kon talabi shunday.
  */
 
 const authValue = {
@@ -38,7 +38,9 @@ const wsValue = {
 // timerlari jest worker'ini ushlab turadi ("worker failed to exit" ogohlantirishi).
 const activeQueryClients: QueryClient[] = [];
 
-const renderProfile = (navigate = jest.fn()) => {
+const renderSettings = () => {
+  const navigate = jest.fn();
+  const goBack = jest.fn();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, cacheTime: 0 } },
   });
@@ -50,7 +52,10 @@ const renderProfile = (navigate = jest.fn()) => {
           <AuthContext.Provider value={authValue}>
             <WorkspaceContext.Provider value={wsValue}>
               <NavigationContainer>
-                <ProfileScreen navigation={{ navigate } as any} />
+                <ProfileSettingsScreen
+                  navigation={{ navigate, goBack } as any}
+                  route={{ key: 'settings', name: ROUTES.PROFILE_SETTINGS } as any}
+                />
               </NavigationContainer>
             </WorkspaceContext.Provider>
           </AuthContext.Provider>
@@ -58,7 +63,7 @@ const renderProfile = (navigate = jest.fn()) => {
       </LanguageProvider>
     </AppThemeProvider>,
   );
-  return { navigate };
+  return { navigate, goBack };
 };
 
 const settle = () =>
@@ -71,23 +76,27 @@ afterEach(() => {
   activeQueryClients.length = 0;
 });
 
-describe('ProfileScreen — boshqa ekranlarga yo\'l', () => {
-  it('tahrirlash va sozlamalar bandlarini ko\'rsatadi', async () => {
-    renderProfile();
+describe("ProfileSettingsScreen — Huquqiy hujjatlar bo'limi", () => {
+  it("uchala huquqiy hujjat bandini (login qilinmagan bo'lsa ham) ko'rsatadi", async () => {
+    renderSettings();
     await settle();
 
-    expect(screen.getByText('Axborotni tahrirlash')).toBeTruthy();
-    expect(screen.getByText('Sozlamalar')).toBeTruthy();
+    expect(screen.getByText('Ommaviy oferta')).toBeTruthy();
+    expect(screen.getByText('Foydalanish shartlari')).toBeTruthy();
+    expect(screen.getByText('Maxfiylik siyosati')).toBeTruthy();
   });
 
-  it('bandlar bosilganda tegishli ekranga o\'tadi', async () => {
-    const { navigate } = renderProfile();
+  it('bandlar bosilganda tegishli ekranga navigatsiya qiladi', async () => {
+    const { navigate } = renderSettings();
     await settle();
 
-    fireEvent.press(screen.getByText('Axborotni tahrirlash'));
-    expect(navigate).toHaveBeenCalledWith(ROUTES.PROFILE_EDIT);
+    fireEvent.press(screen.getByText('Ommaviy oferta'));
+    expect(navigate).toHaveBeenCalledWith(ROUTES.OFFER);
 
-    fireEvent.press(screen.getByText('Sozlamalar'));
-    expect(navigate).toHaveBeenCalledWith(ROUTES.PROFILE_SETTINGS);
+    fireEvent.press(screen.getByText('Foydalanish shartlari'));
+    expect(navigate).toHaveBeenCalledWith(ROUTES.TERMS);
+
+    fireEvent.press(screen.getByText('Maxfiylik siyosati'));
+    expect(navigate).toHaveBeenCalledWith(ROUTES.PRIVACY_POLICY);
   });
 });

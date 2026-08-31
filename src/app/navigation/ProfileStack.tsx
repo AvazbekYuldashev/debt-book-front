@@ -1,6 +1,8 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ProfileScreen from '../../features/profile/screens/ProfileScreen';
+import ProfileEditScreen from '../../features/profile/screens/ProfileEditScreen';
+import ProfileSettingsScreen from '../../features/profile/screens/ProfileSettingsScreen';
 import MyBusinessesScreen from '../../features/business/screens/MyBusinessesScreen';
 import BusinessMembersScreen from '../../features/business/screens/BusinessMembersScreen';
 import OfferScreen from '../../features/legal/screens/OfferScreen';
@@ -13,6 +15,8 @@ import { withFadeInScreen } from './withFadeInScreen';
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
 const ProfileScreenWithFade = withFadeInScreen(ProfileScreen);
+const ProfileEditScreenWithFade = withFadeInScreen(ProfileEditScreen);
+const ProfileSettingsScreenWithFade = withFadeInScreen(ProfileSettingsScreen);
 const MyBusinessesScreenWithFade = withFadeInScreen(MyBusinessesScreen);
 const BusinessMembersScreenWithFade = withFadeInScreen(BusinessMembersScreen);
 const OfferScreenWithFade = withFadeInScreen(OfferScreen);
@@ -25,6 +29,8 @@ const PrivacyPolicyScreenWithFade = withFadeInScreen(PrivacyPolicyScreen);
 const ProfileStack: React.FC = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name={ROUTES.PROFILE_HOME} component={ProfileScreenWithFade} />
+    <Stack.Screen name={ROUTES.PROFILE_EDIT} component={ProfileEditScreenWithFade} />
+    <Stack.Screen name={ROUTES.PROFILE_SETTINGS} component={ProfileSettingsScreenWithFade} />
     <Stack.Screen name={ROUTES.MY_BUSINESSES} component={MyBusinessesScreenWithFade} />
     <Stack.Screen name={ROUTES.BUSINESS_MEMBERS} component={BusinessMembersScreenWithFade} />
     <Stack.Screen name={ROUTES.OFFER} component={OfferScreenWithFade} />

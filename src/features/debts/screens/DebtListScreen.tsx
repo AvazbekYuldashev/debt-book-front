@@ -1,7 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated,
-  Easing,
   FlatList,
   type ListRenderItem,
   Pressable,
@@ -13,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import Input from '../../../shared/ui/Input';
+import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import WorkspaceSwitcher from '../../business/components/WorkspaceSwitcher';
 import DeviceContactsPickerModal from '../components/DeviceContactsPickerModal';
@@ -45,7 +44,6 @@ type SearchField = 'name' | 'phone';
 
 const MIN_QUERY_LENGTH = 3;
 const SEARCH_DEBOUNCE_MS = 300;
-const FAB_PULSE_MS = 1000;
 
 const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation }) => {
   const { t } = useI18n();
@@ -113,8 +111,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     () => contacts.find((contact) => contact.id === selectedId)?.fullName ?? '',
     [contacts, selectedId],
   );
-
-  const fabScale = useRef(new Animated.Value(1)).current;
 
   const filteredContacts = useMemo(() => {
     const nameQuery = filterName.trim();
@@ -392,32 +388,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   // CHEKLI takror bilan. Avval cheksiz loop edi: web'da bu har frame'da style
   // yozadigan doimiy rAF ishi (batareya + Performance panelida uzluksiz faollik).
   const shouldPulseFab = canEdit && isEmpty && !isBusy;
-  useEffect(() => {
-    if (!shouldPulseFab) return undefined;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(fabScale, {
-          toValue: 1.1,
-          duration: FAB_PULSE_MS,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(fabScale, {
-          toValue: 1,
-          duration: FAB_PULSE_MS,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-      { iterations: 4 },
-    );
-    loop.start();
-    return () => {
-      loop.stop();
-      fabScale.setValue(1);
-    };
-  }, [shouldPulseFab, fabScale]);
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -528,16 +498,11 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       />
 
       {canEdit ? (
-        <Animated.View style={[styles.fabWrap, { transform: [{ scale: fabScale }] }]}>
-          <Pressable
-            style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-            onPress={openCreate}
-            accessibilityRole="button"
-            accessibilityLabel={t('debts.addClient')}
-          >
-            <Ionicons name="add" size={30} color={colors.textOnPrimary} />
-          </Pressable>
-        </Animated.View>
+        <FloatingActionButton
+          onPress={openCreate}
+          accessibilityLabel={t('debts.addClient')}
+          pulse={shouldPulseFab}
+        />
       ) : null}
 
       <ContactFormModal
@@ -689,7 +654,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     scroll: {
       flex: 1,
-      paddingHorizontal: spacing.md,
       paddingTop: spacing.md,
       paddingBottom: 96,
     },
@@ -710,6 +674,10 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     listCard: {
       backgroundColor: colors.surface,
       borderRadius: radius.xl,
+      // Chetdan chekinish KARTAning ozida — FlatList style'iga qoyilsa
+      // react-native-web uni tashqi va ichki blokka ikki marta qollab,
+      // karta boshqa ekranlardagidan ikki barobar ichkariga tushib qolardi.
+      marginHorizontal: spacing.md,
       paddingVertical: spacing.xxs,
       shadowColor: '#0F172A',
       shadowOffset: { width: 0, height: 8 },
@@ -738,28 +706,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.body,
       textAlign: 'center',
       color: colors.textSecondary,
-    },
-    fabWrap: {
-      position: 'absolute',
-      right: spacing.md + 2,
-      bottom: spacing.lg,
-    },
-    fab: {
-      width: 60,
-      height: 60,
-      borderRadius: radius.pill,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primary,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.5,
-      shadowRadius: 14,
-      elevation: 10,
-    },
-    fabPressed: {
-      opacity: 0.9,
-      transform: [{ scale: 0.96 }],
     },
   });
 

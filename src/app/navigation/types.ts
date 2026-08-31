@@ -40,33 +40,11 @@ export type ExpensesScreenProps<T extends keyof ExpensesStackParamList> = Native
   T
 >;
 
-/**
- * Gap kassa (aylanma jamg'arma) stack'i.
- *
- * Ekranlar orasida `groupName` ham uzatiladi: sarlavha ma'lumot yuklanishini
- * kutmasdan darhol ko'rinsin.
- */
-export type GapStackParamList = {
-  [ROUTES.GAP_GROUPS]: undefined;
-  [ROUTES.GAP_GROUP_DETAIL]: { groupId: string; groupName?: string };
-  [ROUTES.GAP_MEMBERS]: { groupId: string; groupName?: string };
-  [ROUTES.GAP_QUEUE]: { groupId: string; groupName?: string };
-  [ROUTES.GAP_ROUNDS]: { groupId: string; groupName?: string };
-  [ROUTES.GAP_HISTORY]: { groupId: string; groupName?: string };
-  [ROUTES.GAP_BALANCES]: { groupId: string; groupName?: string };
-  [ROUTES.GAP_SETTLEMENT]: { groupId: string; groupName?: string };
-};
-
-export type GapNavigation = NativeStackNavigationProp<GapStackParamList>;
-
-export type GapScreenProps<T extends keyof GapStackParamList> = NativeStackScreenProps<
-  GapStackParamList,
-  T
->;
-
 /** Profile stack'i — profil, bizneslar va biznes a'zolari ekranlari. */
 export type ProfileStackParamList = {
   [ROUTES.PROFILE_HOME]: undefined;
+  [ROUTES.PROFILE_EDIT]: undefined;
+  [ROUTES.PROFILE_SETTINGS]: undefined;
   [ROUTES.MY_BUSINESSES]: undefined;
   [ROUTES.BUSINESS_MEMBERS]: { businessId?: string; businessName?: string } | undefined;
   [ROUTES.OFFER]: undefined;
@@ -81,11 +59,44 @@ export type ProfileScreenProps<T extends keyof ProfileStackParamList> = NativeSt
   T
 >;
 
+/** Gap kassa stack'ining route param'lari. */
+export type GapStackParamList = {
+  [ROUTES.GAP_LIST]: undefined;
+  [ROUTES.GAP_DETAIL]: {
+    id: string;
+    name: string;
+    amount: number;
+    unitCode: string;
+    unitLabel: string;
+    unitType: 'MONEY' | 'GOODS';
+    currentPeriod: number;
+    totalPeriods: number;
+    status: 'DRAFT' | 'ACTIVE' | 'FINISHED' | 'STOPPED';
+    queueMode: 'UPFRONT' | 'MONTHLY';
+    organizer: boolean;
+  };
+  [ROUTES.GAP_MEMBER]: {
+    shareId: string;
+    memberName: string;
+    unitCode: string;
+    unitLabel: string;
+    unitType: 'MONEY' | 'GOODS';
+  };
+  [ROUTES.GAP_CREATE]: undefined;
+};
+
+export type GapNavigation = NativeStackNavigationProp<GapStackParamList>;
+
+export type GapScreenProps<T extends keyof GapStackParamList> = NativeStackScreenProps<
+  GapStackParamList,
+  T
+>;
+
 /** Pastki tab navigatori — stack'lararo (cross-tab) navigatsiya uchun. */
 export type MainTabParamList = {
   [ROUTES.DEBTS]: NavigatorScreenParams<DebtsStackParamList>;
-  [ROUTES.EXPENSES]: NavigatorScreenParams<ExpensesStackParamList>;
   [ROUTES.GAP]: NavigatorScreenParams<GapStackParamList>;
+  [ROUTES.EXPENSES]: NavigatorScreenParams<ExpensesStackParamList>;
   [ROUTES.PROFILE]: NavigatorScreenParams<ProfileStackParamList>;
 };
 

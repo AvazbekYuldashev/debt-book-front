@@ -1,6 +1,5 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../../auth/context/AuthContext';
@@ -14,6 +13,7 @@ import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { ProfileNavigation } from '../../../app/navigation/types';
 import { useI18n } from '../../../shared/i18n';
+import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import BusinessCard from '../components/BusinessCard';
@@ -92,14 +92,10 @@ const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navig
         {errorText ? <Text style={styles.error}>{errorText}</Text> : null}
       </ScrollView>
 
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+      <FloatingActionButton
         onPress={() => setCreateModalVisible(true)}
-        accessibilityRole="button"
         accessibilityLabel={t('business.myBusinesses')}
-      >
-        <Ionicons name="add" size={30} color={colors.textOnPrimary} />
-      </Pressable>
+      />
 
       <CreateBusinessModal
         visible={createModalVisible}
@@ -139,26 +135,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.caption,
       marginTop: spacing.xs,
       color: colors.danger,
-    },
-    fab: {
-      position: 'absolute',
-      right: spacing.md + 2,
-      bottom: spacing.lg,
-      width: 60,
-      height: 60,
-      borderRadius: radius.pill,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primary,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
-      elevation: 6,
-    },
-    fabPressed: {
-      opacity: 0.9,
-      transform: [{ scale: 0.96 }],
     },
   });
 

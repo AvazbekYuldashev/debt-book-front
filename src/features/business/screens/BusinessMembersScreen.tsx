@@ -1,6 +1,5 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import BusinessMembersTable from '../components/BusinessMembersTable';
 import WorkspaceSwitcher from '../components/WorkspaceSwitcher';
@@ -19,6 +18,7 @@ import { normalizePhone } from '../../../shared/lib/phone';
 import { canManageMembers, isBusinessOwner } from '../../../shared/lib/permissions';
 import { confirmAction } from '../../../shared/lib/confirm';
 import { useI18n } from '../../../shared/i18n';
+import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
@@ -173,15 +173,11 @@ const BusinessMembersScreen: React.FC<Props> = ({ route, navigation }) => {
       </ScrollView>
 
       {canManageMembers(workspace.activeBusinessRole) ? (
-        <Pressable
-          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed, !canLoad && styles.fabDisabled]}
+        <FloatingActionButton
           onPress={() => setModalVisible(true)}
           disabled={!canLoad}
-          accessibilityRole="button"
           accessibilityLabel={t('members.add')}
-        >
-          <Ionicons name="add" size={30} color={colors.textOnPrimary} />
-        </Pressable>
+        />
       ) : null}
 
       <AddMemberModal
@@ -215,29 +211,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       color: colors.danger,
       marginBottom: spacing.xs,
       paddingHorizontal: spacing.md,
-    },
-    fab: {
-      position: 'absolute',
-      right: spacing.md + 2,
-      bottom: spacing.lg,
-      width: 60,
-      height: 60,
-      borderRadius: radius.pill,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primary,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
-      elevation: 6,
-    },
-    fabPressed: {
-      opacity: 0.9,
-      transform: [{ scale: 0.96 }],
-    },
-    fabDisabled: {
-      opacity: 0.5,
     },
   });
 

@@ -1,417 +1,178 @@
-// ============================================================
-//  Gap kassa API qatlami.
-//
-//  Loyiha konvensiyasi: har bir funksiya `token` oladi va
-//  setApiAuthToken(token) chaqiradi (categoryService bilan bir xil).
-//  `page` 1 dan boshlanadi — backend o'zi 0 ga o'giradi.
-// ============================================================
-
 import apiClient, { setApiAuthToken } from '../../../shared/api/apiClient';
-import { AppResponse, PageResponse } from '../../../shared/types/money';
+import { PageResponse } from '../../../shared/types/money';
 import {
-  GapAuditResponseDTO,
-  GapContributionResponseDTO,
-  GapDisputeCreateDTO,
-  GapDisputeResolveDTO,
-  GapDisputeResponseDTO,
-  GapGroupCreateDTO,
-  GapGroupResponseDTO,
-  GapMemberCreateDTO,
-  GapMemberResponseDTO,
-  GapMyDashboardDTO,
-  GapPayoutReleaseDTO,
-  GapPayoutResponseDTO,
-  GapQueueAssignDTO,
-  GapQueueNextDTO,
-  GapRoundResponseDTO,
-  GapSettlementDTO,
-  GapShareBalanceDTO,
-  GapShareResponseDTO,
-  GapSwapRequestDTO,
-  GapSwapResponseDTO,
+  GapFilterDTO,
+  GapMemberDTO,
+  GapResponseDTO,
+  GapShareDetailDTO,
+  GapSummaryDTO,
+  GapUnit,
 } from '../types/gap';
 
-// ----------------------------------------------------------- guruh --
+export interface GetMyGapsParams {
+  filter?: GapFilterDTO;
+  page?: number;
+  size?: number;
+  token?: string;
+}
 
-export const createGapGroup = async (
-  dto: GapGroupCreateDTO,
-  token?: string,
-): Promise<GapGroupResponseDTO> => {
+/** Statistika paneli. Filter bo'sh bo'lsa barcha valyutalar qaytadi. */
+export const getGapSummary = async (
+  filter: GapFilterDTO = {},
+  token?: string
+): Promise<GapSummaryDTO> => {
   setApiAuthToken(token);
-  const response = await apiClient.post<GapGroupResponseDTO>('/gap/group', dto);
+  const response = await apiClient.post<GapSummaryDTO>('/gap/summary', filter);
   return response.data;
 };
 
-export const getMyGapGroups = async (
-  { page = 1, size = 20 }: { page?: number; size?: number },
-  token?: string,
-): Promise<PageResponse<GapGroupResponseDTO>> => {
+/** Men qatnashayotgan gap kassalar. Filter bo'sh bo'lsa hammasi. */
+export const getMyGaps = async ({
+  filter = {},
+  page = 1,
+  size = 15,
+  token,
+}: GetMyGapsParams): Promise<PageResponse<GapResponseDTO>> => {
   setApiAuthToken(token);
-  const response = await apiClient.get<PageResponse<GapGroupResponseDTO>>('/gap/group/my', {
+  const response = await apiClient.post<PageResponse<GapResponseDTO>>('/gap/my', filter, {
     params: { page, size },
   });
   return response.data;
 };
 
-export const getGapGroup = async (groupId: string, token?: string): Promise<GapGroupResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<GapGroupResponseDTO>(`/gap/group/${groupId}`);
-  return response.data;
-};
-
-/** TZ 12-bo'lim: a'zoning asosiy ekrani — uchta savolga bitta so'rovda javob. */
-export const getMyGapDashboard = async (
-  groupId: string,
-  token?: string,
-): Promise<GapMyDashboardDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<GapMyDashboardDTO>(`/gap/group/${groupId}/my`);
-  return response.data;
-};
-
-export const activateGapGroup = async (
-  groupId: string,
-  token?: string,
-): Promise<GapGroupResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapGroupResponseDTO>(`/gap/group/${groupId}/activate`);
-  return response.data;
-};
-
-export const terminateGapGroup = async (
-  groupId: string,
-  reason?: string,
-  token?: string,
-): Promise<GapSettlementDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapSettlementDTO>(`/gap/group/${groupId}/terminate`, null, {
-    params: reason ? { reason } : undefined,
-  });
-  return response.data;
-};
-
-export const getGapSettlement = async (
-  groupId: string,
-  token?: string,
-): Promise<GapSettlementDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<GapSettlementDTO>(`/gap/group/${groupId}/settlement`);
-  return response.data;
-};
-
-export const getGapBalances = async (
-  groupId: string,
-  token?: string,
-): Promise<GapShareBalanceDTO[]> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<GapShareBalanceDTO[]>(`/gap/group/${groupId}/balance`);
-  return response.data;
-};
-
-// ------------------------------------------------------------ a'zo --
-
+/** Guruh a'zolari, navbat tartibida. */
 export const getGapMembers = async (
   groupId: string,
-  token?: string,
-): Promise<GapMemberResponseDTO[]> => {
+  token?: string
+): Promise<GapMemberDTO[]> => {
   setApiAuthToken(token);
-  const response = await apiClient.get<GapMemberResponseDTO[]>(`/gap/group/${groupId}/member`);
+  const response = await apiClient.get<GapMemberDTO[]>(`/gap/${groupId}/members`);
   return response.data;
 };
 
+/** Bitta a'zoning hisob-kitobi: unga kim bergan, u kimga bergan. */
+export const getGapShareDetail = async (
+  shareId: string,
+  token?: string
+): Promise<GapShareDetailDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.get<GapShareDetailDTO>(`/gap/member/${shareId}`);
+  return response.data;
+};
+
+/** Filter chiplari uchun: men qatnashayotgan guruhlardagi birliklar. */
+export const getGapUnits = async (token?: string): Promise<GapUnit[]> => {
+  setApiAuthToken(token);
+  const response = await apiClient.get<GapUnit[]>('/gap/units');
+  return response.data;
+};
+
+export interface GapMemberInput {
+  name: string;
+  phone?: string;
+  profileId?: string;
+  shareCount?: number;
+}
+
+export interface GapCreateInput {
+  name: string;
+  amount: number;
+  unitType: 'MONEY' | 'GOODS';
+  unitCode: string;
+  unitLabel: string;
+  paymentDay: number;
+  queueMode: 'UPFRONT' | 'MONTHLY';
+  queueType: 'AGREEMENT' | 'LOTTERY';
+  members: GapMemberInput[];
+}
+
+/** Yangi gap kassa. Guruh DRAFT holatida yaratiladi, ID qaytadi. */
+export const createGap = async (dto: GapCreateInput, token?: string): Promise<string> => {
+  setApiAuthToken(token);
+  const response = await apiClient.post<{ data: string }>('/gap', dto);
+  return response.data.data;
+};
+
+/** Siklni boshlash: davrlar generatsiya qilinadi, guruh ACTIVE bo'ladi. */
+export const startGap = async (groupId: string, token?: string): Promise<string> => {
+  setApiAuthToken(token);
+  const response = await apiClient.post<{ data: string }>(`/gap/${groupId}/start`);
+  return response.data.data;
+};
+
+/** Guruhga a'zo qo'shish (guruh DRAFT holatida). */
 export const addGapMember = async (
   groupId: string,
-  dto: GapMemberCreateDTO,
-  token?: string,
-): Promise<GapMemberResponseDTO> => {
+  dto: GapMemberInput,
+  token?: string
+): Promise<string> => {
   setApiAuthToken(token);
-  const response = await apiClient.post<GapMemberResponseDTO>(`/gap/group/${groupId}/member`, dto);
-  return response.data;
+  const response = await apiClient.post<{ data: string }>(`/gap/${groupId}/members`, dto);
+  return response.data.data;
 };
 
-export const removeGapMember = async (
+/** Bitta davrning oluvchisini belgilash. shareId berilmasa qur'a tashlanadi. */
+export const setPeriodReceiver = async (
   groupId: string,
-  memberId: string,
-  token?: string,
-): Promise<AppResponse<string>> => {
+  periodNumber: number,
+  shareId: string | null,
+  token?: string
+): Promise<string> => {
   setApiAuthToken(token);
-  const response = await apiClient.delete<AppResponse<string>>(
-    `/gap/group/${groupId}/member/${memberId}`,
-  );
-  return response.data;
-};
-
-export const assignGapGuarantor = async (
-  groupId: string,
-  memberId: string,
-  guarantorMemberId: string,
-  token?: string,
-): Promise<GapMemberResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.patch<GapMemberResponseDTO>(
-    `/gap/group/${groupId}/member/${memberId}/guarantor`,
-    null,
-    { params: { guarantorMemberId } },
-  );
-  return response.data;
-};
-
-/** Sikl o'rtasida o'rinni boshqa odam egallaydi. Qarzdor a'zo almashtirilmaydi. */
-export const replaceGapMember = async (
-  groupId: string,
-  memberId: string,
-  dto: GapMemberCreateDTO,
-  token?: string,
-): Promise<GapMemberResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapMemberResponseDTO>(
-    `/gap/group/${groupId}/member/${memberId}/replace`,
-    dto,
-  );
-  return response.data;
-};
-
-// ---------------------------------------------------------- navbat --
-
-export const getGapQueue = async (
-  groupId: string,
-  token?: string,
-): Promise<GapShareResponseDTO[]> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<GapShareResponseDTO[]>(`/gap/group/${groupId}/queue`);
-  return response.data;
-};
-
-export const assignGapQueue = async (
-  groupId: string,
-  dto: GapQueueAssignDTO,
-  token?: string,
-): Promise<GapShareResponseDTO[]> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapShareResponseDTO[]>(`/gap/group/${groupId}/queue`, dto);
-  return response.data;
+  const response = await apiClient.post<{ data: string }>(`/gap/${groupId}/period-receiver`, {
+    periodNumber,
+    shareId,
+  });
+  return response.data.data;
 };
 
 /**
- * Keyingi davr oluvchisini belgilash — qur'a yoki kelishuv bilan.
- *
- * Faqat tashkilotchi va faqat ochiq davr yo'q paytda ishlaydi.
+ * Belgilangan davrning navbatini bekor qilib qaytadan tashlash.
+ * `periodNumber` berilmasa eng oxirgi belgilangan davr olinadi.
  */
-export const chooseGapNextRecipient = async (
+export const redrawPeriod = async (
   groupId: string,
-  dto: GapQueueNextDTO,
-  token?: string,
-): Promise<GapShareResponseDTO[]> => {
+  periodNumber: number | null,
+  token?: string
+): Promise<string> => {
   setApiAuthToken(token);
-  const response = await apiClient.post<GapShareResponseDTO[]>(
-    `/gap/queue/${groupId}/next`,
-    dto,
+  const response = await apiClient.post<{ data: string }>(`/gap/${groupId}/redraw`, null, {
+    params: periodNumber == null ? {} : { periodNumber },
+  });
+  return response.data.data;
+};
+
+/** "Berdim" — to'lovchi o'z ulushini berganini belgilaydi. */
+export const markGapPaid = async (
+  paymentId: string,
+  amount: number | null,
+  token?: string
+): Promise<string> => {
+  setApiAuthToken(token);
+  const response = await apiClient.post<{ data: string }>(
+    `/gap/payment/${paymentId}/paid`,
+    amount == null ? {} : { amount }
   );
-  return response.data;
+  return response.data.data;
 };
 
-/** Almashinuv faqat ikkinchi tomon tasdiqlagach kuchga kiradi. */
-export const requestGapSwap = async (
-  groupId: string,
-  dto: GapSwapRequestDTO,
-  token?: string,
-): Promise<AppResponse<string>> => {
+/** "Oldim" — qabul qiluvchi to'lovni tasdiqlaydi. */
+export const confirmGapPaid = async (paymentId: string, token?: string): Promise<string> => {
   setApiAuthToken(token);
-  const response = await apiClient.post<AppResponse<string>>(`/gap/queue/${groupId}/swap`, dto);
-  return response.data;
+  const response = await apiClient.post<{ data: string }>(`/gap/payment/${paymentId}/confirm`);
+  return response.data.data;
 };
 
-/** Ochiq almashinuv so'rovlari — butun guruhga ko'rinadi. */
-export const getGapPendingSwaps = async (
-  groupId: string,
-  token?: string,
-): Promise<GapSwapResponseDTO[]> => {
+/** Joriy davrni yopib, siklni keyingi oyga o'tkazish. */
+export const closeGapPeriod = async (groupId: string, token?: string): Promise<string> => {
   setApiAuthToken(token);
-  const response = await apiClient.get<GapSwapResponseDTO[]>(`/gap/queue/${groupId}/swap`);
-  return response.data;
+  const response = await apiClient.post<{ data: string }>(`/gap/${groupId}/close-period`);
+  return response.data.data;
 };
 
-export const respondGapSwap = async (
-  swapId: string,
-  accept: boolean,
-  token?: string,
-): Promise<GapShareResponseDTO[]> => {
+/** Bitta guruhning joriy holati (davr raqami, status, tashkilotchimi ...). */
+export const getGapGroup = async (groupId: string, token?: string): Promise<GapResponseDTO> => {
   setApiAuthToken(token);
-  const action = accept ? 'accept' : 'reject';
-  const response = await apiClient.post<GapShareResponseDTO[]>(`/gap/queue/swap/${swapId}/${action}`);
-  return response.data;
-};
-
-// ------------------------------------------------------------ davr --
-
-export const getGapRounds = async (
-  groupId: string,
-  token?: string,
-): Promise<GapRoundResponseDTO[]> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<GapRoundResponseDTO[]>(`/gap/round/group/${groupId}`);
-  return response.data;
-};
-
-// Eslatma: `/gap/round/group/{id}/current` endpointi backendda bor, lekin bu
-// yerda o'ralmagan — joriy davr `/gap/group/{id}/my` javobida allaqachon keladi
-// va uni ikkinchi marta so'rash ortiqcha.
-
-export const openGapRound = async (
-  roundId: string,
-  token?: string,
-): Promise<GapRoundResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapRoundResponseDTO>(`/gap/round/${roundId}/open`);
-  return response.data;
-};
-
-export const closeGapRound = async (
-  roundId: string,
-  token?: string,
-): Promise<GapRoundResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapRoundResponseDTO>(`/gap/round/${roundId}/close`);
-  return response.data;
-};
-
-export const getGapRoundContributions = async (
-  roundId: string,
-  token?: string,
-): Promise<GapContributionResponseDTO[]> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<GapContributionResponseDTO[]>(
-    `/gap/round/${roundId}/contribution`,
-  );
-  return response.data;
-};
-
-export const getGapRoundPayouts = async (
-  roundId: string,
-  token?: string,
-): Promise<GapPayoutResponseDTO[]> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<GapPayoutResponseDTO[]>(`/gap/round/${roundId}/payout`);
-  return response.data;
-};
-
-// ------------------------------------------------- badal va kassa --
-// DIQQAT: bu chaqiruvlar hech qanday pul o'tkazmaydi — faqat faktni qayd etadi.
-
-/**
- * Bitta ulushning barcha badallari — "men kimga qancha to'ladim".
- *
- * Davr bo'yicha yig'ish mumkin edi, lekin 20 davrli guruhda bu 20 ta so'rov
- * degani bo'lardi — shuning uchun backendda alohida endpoint.
- */
-export const getGapShareContributions = async (
-  shareId: string,
-  token?: string,
-): Promise<GapContributionResponseDTO[]> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<GapContributionResponseDTO[]>(
-    `/gap/contribution/share/${shareId}`,
-  );
-  return response.data;
-};
-
-/**
- * A'zo "to'ladim" deydi va to'lagan summasini kiritadi.
- *
- * `amount` berilmasa to'liq badal hisoblanadi. Badaldan oshiq summa backendda
- * rad etiladi — ortiqcha pul boshqa a'zoning hissasini yopib qo'yardi.
- */
-export const declareGapContribution = async (
-  contributionId: string,
-  amount?: number,
-  token?: string,
-): Promise<GapContributionResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapContributionResponseDTO>(
-    `/gap/contribution/${contributionId}/declare`,
-    amount != null ? { amount } : {},
-  );
-  return response.data;
-};
-
-/** Tashkilotchi yoki shu oy kassani oluvchi "oldim" deb tasdiqlaydi. */
-export const confirmGapContribution = async (
-  contributionId: string,
-  token?: string,
-): Promise<GapContributionResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapContributionResponseDTO>(
-    `/gap/contribution/${contributionId}/confirm`,
-  );
-  return response.data;
-};
-
-export const releaseGapPayout = async (
-  roundId: string,
-  dto: GapPayoutReleaseDTO | undefined,
-  token?: string,
-): Promise<GapPayoutResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapPayoutResponseDTO>(
-    `/gap/payout/round/${roundId}/release`,
-    dto ?? {},
-  );
-  return response.data;
-};
-
-export const confirmGapPayout = async (
-  payoutId: string,
-  token?: string,
-): Promise<GapPayoutResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapPayoutResponseDTO>(`/gap/payout/${payoutId}/confirm`);
-  return response.data;
-};
-
-// ------------------------------------------------------ nizo, tarix --
-
-export const openGapDispute = async (
-  groupId: string,
-  dto: GapDisputeCreateDTO,
-  token?: string,
-): Promise<GapDisputeResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapDisputeResponseDTO>(`/gap/dispute/group/${groupId}`, dto);
-  return response.data;
-};
-
-export const resolveGapDispute = async (
-  disputeId: string,
-  dto: GapDisputeResolveDTO,
-  token?: string,
-): Promise<GapDisputeResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.post<GapDisputeResponseDTO>(
-    `/gap/dispute/${disputeId}/resolve`,
-    dto,
-  );
-  return response.data;
-};
-
-export const getGapDisputes = async (
-  groupId: string,
-  token?: string,
-): Promise<GapDisputeResponseDTO[]> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<GapDisputeResponseDTO[]>(`/gap/dispute/group/${groupId}`);
-  return response.data;
-};
-
-/** Tarix matni backend tomonidan Accept-Language bo'yicha render qilinadi. */
-export const getGapHistory = async (
-  groupId: string,
-  { page = 1, size = 30 }: { page?: number; size?: number },
-  token?: string,
-): Promise<PageResponse<GapAuditResponseDTO>> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<PageResponse<GapAuditResponseDTO>>(
-    `/gap/history/group/${groupId}`,
-    { params: { page, size } },
-  );
+  const response = await apiClient.get<GapResponseDTO>(`/gap/${groupId}`);
   return response.data;
 };
