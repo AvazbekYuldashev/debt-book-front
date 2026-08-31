@@ -1,0 +1,28 @@
+# pul-hisob.uz docroot sozlamalari.
+# Bu fayl repoda turadi va har deploy'da docroot'ga ko'chiriladi —
+# aks holda docroot tozalanganda yo'qoladi.
+
+<IfModule mod_mime.c>
+  # Apache .webmanifest ni bilmaydi; noto'g'ri turda berilsa brauzer
+  # manifestni umuman o'qimaydi.
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Nomida hash bor fayllar (_expo/static/...) — abadiy kesh.
+  <FilesMatch "\.(js|css|woff2?|png|jpe?g|svg|gif)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Nomi o'zgarmaydigan, lekin almashishi mumkin bo'lgan rasmlar — bir hafta.
+  # Yuqoridagi "immutable" ostida qolsa, logo yangilanganda bir yil eskisi
+  # ko'rinib turardi.
+  <FilesMatch "^(favicon\.ico|icon-192\.png|icon-512\.png|apple-touch-icon\.png|og-image\.png)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+
+  # Har safar serverdan qayta o'qilishi shart bo'lganlar.
+  <FilesMatch "(index\.html|service-worker\.js|robots\.txt|sitemap\.xml|.*\.webmanifest)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+</IfModule>

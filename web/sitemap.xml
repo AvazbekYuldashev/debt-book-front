@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Faqat HAQIQATAN ochiq sahifalar. Ilova ichidagi yo'llar (/HisobKitob,
+  /Profile va h.k.) kirishni talab qiladi va indekslashga yaramaydi -
+  ularni bu yerga qo'shish sitemap'ga ishonchni tushiradi.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://pul-hisob.uz/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://pul-hisob.uz/privacy.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://pul-hisob.uz/terms.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://pul-hisob.uz/delete-account.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>

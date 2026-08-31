@@ -1,0 +1,10 @@
+# Tez Top — pul-hisob.uz
+# Barcha qidiruv tizimlariga ruxsat. /api va /ws foydalanuvchi sahifasi emas.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /ws
+Disallow: /lottery-admin/
+
+Sitemap: https://pul-hisob.uz/sitemap.xml

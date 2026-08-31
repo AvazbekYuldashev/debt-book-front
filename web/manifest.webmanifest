@@ -1,0 +1,32 @@
+{
+  "name": "Tez Top — qarz, gap to'yona va xarajat daftari",
+  "short_name": "Tez Top",
+  "description": "Tez Top: mijozlar bilan oldi-berdi, qarzlar, gap to'yona va xarajatlarni yuritish uchun zamonaviy ilova.",
+  "lang": "uz",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#2BA24D",
+  "background_color": "#F1F5F9",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
