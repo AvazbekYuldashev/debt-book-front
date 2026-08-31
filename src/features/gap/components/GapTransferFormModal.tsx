@@ -1,10 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
+import CalculatorModal from '../../../shared/ui/CalculatorModal';
 import GapUnitPicker from './GapUnitPicker';
 import { formatGapAmountInput, parseGapAmountInput } from '../model/gapFormat';
 import { GapTransferDirection, GapUnit } from '../types/gap';
@@ -49,6 +60,7 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
   onSubmit,
 }) => {
   const theme = useAppTheme();
+  const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -57,6 +69,7 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
   const [note, setNote] = useState('');
   const [selectedUnit, setSelectedUnit] = useState<GapUnit | null>(unit);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [calcOpen, setCalcOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -92,9 +105,21 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title} accessibilityRole="header">
-              {isGive ? t('gap.giveTitle') : t('gap.takeTitle')}
-            </Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title} accessibilityRole="header">
+                {isGive ? t('gap.giveTitle') : t('gap.takeTitle')}
+              </Text>
+              {/* Summani oldindan hisoblab olish uchun — ilovadan chiqmasdan. */}
+              <Pressable
+                onPress={() => setCalcOpen(true)}
+                hitSlop={8}
+                style={({ pressed }) => [styles.calcBtn, pressed && styles.calcBtnPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('calc.title')}
+              >
+                <Ionicons name="calculator-outline" size={20} color={colors.primary} />
+              </Pressable>
+            </View>
             <Text style={styles.subtitle} numberOfLines={2}>
               {memberName}
             </Text>
@@ -138,6 +163,13 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
               />
             </View>
           </View>
+
+          <CalculatorModal
+            visible={calcOpen}
+            initialValue={amount}
+            onClose={() => setCalcOpen(false)}
+            onApply={(value) => setAmount(formatGapAmountInput(value))}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -164,10 +196,27 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       padding: spacing.md,
       gap: spacing.sm,
     },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
     title: {
       ...typography.heading2,
       fontSize: 18,
       color: colors.textPrimary,
+      flexShrink: 1,
+    },
+    calcBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySoft,
+    },
+    calcBtnPressed: {
+      opacity: 0.6,
     },
     subtitle: {
       ...typography.caption,

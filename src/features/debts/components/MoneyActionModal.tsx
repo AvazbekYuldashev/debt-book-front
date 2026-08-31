@@ -1,8 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import ChipSelector, { ChipOption } from '../../../shared/ui/ChipSelector';
+import CalculatorModal from '../../../shared/ui/CalculatorModal';
 import PartyTypeSelector from '../../../shared/ui/PartyTypeSelector';
 import BusinessMemberPicker from './BusinessMemberPicker';
 import {
@@ -63,9 +74,11 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   const { t } = useI18n();
   const { baseCurrency } = useCurrency();
   const theme = useAppTheme();
+  const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [amount, setAmount] = useState('');
+  const [calcOpen, setCalcOpen] = useState(false);
   const [currency, setCurrency] = useState<Currency>(baseCurrency);
   const [counterpartyId, setCounterpartyId] = useState('');
   const [targetType, setTargetType] = useState<PartyType>('PROFILE');
@@ -200,9 +213,21 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title} accessibilityRole="header">
-              {title}
-            </Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title} accessibilityRole="header">
+                {title}
+              </Text>
+              {/* Summani oldindan hisoblab olish uchun — ilovadan chiqmasdan. */}
+              <Pressable
+                onPress={() => setCalcOpen(true)}
+                hitSlop={8}
+                style={({ pressed }) => [styles.calcBtn, pressed && styles.calcBtnPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('calc.title')}
+              >
+                <Ionicons name="calculator-outline" size={20} color={colors.primary} />
+              </Pressable>
+            </View>
 
             <Input
               label={t('money.amount')}
@@ -268,6 +293,13 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               <Button title={title} onPress={handleSubmit} loading={loading} style={styles.actionBtn} />
             </View>
           </View>
+
+          <CalculatorModal
+            visible={calcOpen}
+            initialValue={amount}
+            onClose={() => setCalcOpen(false)}
+            onApply={(value) => handleAmountChange(value)}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -293,11 +325,28 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderRadius: radius.lg,
       padding: spacing.md,
     },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.sm,
+    },
     title: {
       ...typography.heading2,
       fontSize: 18,
       color: colors.textPrimary,
-      marginBottom: spacing.sm,
+      flexShrink: 1,
+    },
+    calcBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySoft,
+    },
+    calcBtnPressed: {
+      opacity: 0.6,
     },
     field: {
       marginBottom: spacing.sm,
