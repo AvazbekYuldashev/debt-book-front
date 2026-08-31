@@ -53,7 +53,7 @@ const ContactRow: React.FC<ContactRowProps> = ({
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
-  const { baseCurrency } = useContext(CurrencyContext);
+  const { baseCurrency, toBase } = useContext(CurrencyContext);
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const avatarKey = contact.partyId || contact.id;
@@ -68,17 +68,24 @@ const ContactRow: React.FC<ContactRowProps> = ({
   const secondaryLabel = isBusiness ? t('debts.businessLabel') : contact.phone || '';
 
   /**
-   * Asosiy summa: foydalanuvchining asosiy valyutasidagisi, u bo'lmasa eng
-   * kattasi. Asosiy valyutaga bog'lash barqarorlik beradi — summalar
-   * o'zgarganda qatordagi valyuta sakrab yurmaydi.
+   * Qaysi summa asosiy bo'lib chiqadi: foydalanuvchining asosiy valyutasidagisi,
+   * u bo'lmasa QIYMATI eng kattasi.
+   *
+   * Qiymat solishtirish uchun kursga aylantiriladi, lekin EKRANDA baribir
+   * o'z valyutasida ko'rsatiladi. Xom raqamlarni solishtirsak 20 000 ₽
+   * 1 000 $ dan "katta" bo'lib chiqardi — bu noto'g'ri.
    */
   const primary = useMemo(() => {
     const rows = balances ?? [];
     if (rows.length === 0) return null;
     const inBase = rows.find((row) => row.currency === baseCurrency);
     if (inBase) return inBase;
-    return rows.reduce((max, row) => (Math.abs(row.amount) > Math.abs(max.amount) ? row : max));
-  }, [balances, baseCurrency]);
+    return rows.reduce((max, row) =>
+      Math.abs(toBase(row.amount, row.currency)) > Math.abs(toBase(max.amount, max.currency))
+        ? row
+        : max,
+    );
+  }, [balances, baseCurrency, toBase]);
 
   const extraCount = (balances?.length ?? 0) - (primary ? 1 : 0);
 
