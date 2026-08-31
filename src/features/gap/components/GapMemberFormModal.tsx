@@ -3,7 +3,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
-  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -35,11 +35,14 @@ interface GapMemberFormModalProps {
 /**
  * Guruhga a'zo qo'shish oynasi.
  *
+ * Joylashuvi Qarzlar bo'limidagi oynalar bilan bir xil: yuqorida sarlavha,
+ * o'rtada maydonlar, pastda "Bekor qilish" va asosiy tugma yonma-yon.
+ *
  * Telefon ixtiyoriy: ro'yxatdan o'tmagan odam ham a'zo bo'la oladi —
  * u ism va telefon bilan yuritiladi (TZ 07).
  *
  * Bittalab kiritish uzoq bo'lgani uchun tepada telefon kontaktlaridan
- * ko'plab tanlash yo'li ham bor — Qarzlar bo'limidagi bilan bir xil oyna.
+ * ko'plab tanlash yo'li ham bor.
  */
 const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
   visible,
@@ -79,22 +82,20 @@ const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
   }, [name, phone, onSubmit, t]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          {/* Ichki bosishlar oynani yopmasligi uchun alohida Pressable. */}
-          <Pressable style={styles.card} onPress={() => {}}>
-            <View style={styles.header}>
-              <Text style={styles.title}>{t('gap.addMemberTitle')}</Text>
-              <Pressable
-                onPress={onClose}
-                accessibilityRole="button"
-                accessibilityLabel={t('common.cancel')}
-                style={styles.close}
-              >
-                <Ionicons name="close" size={20} color={colors.textSecondary} />
-              </Pressable>
-            </View>
+    <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.card}>
+            <Text style={styles.title} accessibilityRole="header">
+              {t('gap.addMemberTitle')}
+            </Text>
 
             {onOpenDeviceContacts ? (
               <TouchableOpacity
@@ -120,10 +121,23 @@ const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
               <Text style={styles.error}>{localError ?? error}</Text>
             ) : null}
 
-            <Button title={t('gap.addMember')} onPress={handleSubmit} loading={loading} />
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Pressable>
+            <View style={styles.actions}>
+              <Button
+                title={t('common.cancel')}
+                variant="secondary"
+                onPress={onClose}
+                style={styles.actionBtn}
+              />
+              <Button
+                title={t('gap.addMember')}
+                onPress={handleSubmit}
+                loading={loading}
+                style={styles.actionBtn}
+              />
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -133,27 +147,25 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     backdrop: {
       flex: 1,
       backgroundColor: colors.overlay,
-      justifyContent: 'center',
-      padding: spacing.md,
+    },
+    // Oyna yuqoriroqda ochilsin — klaviatura maydonlarni to'smasligi uchun.
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: 'flex-start',
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.lg,
     },
     card: {
-      backgroundColor: colors.background,
-      borderRadius: radius.xl,
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
       padding: spacing.md,
-      gap: spacing.sm,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
     },
     title: {
-      ...typography.body,
-      fontWeight: '700',
+      ...typography.heading2,
+      fontSize: 18,
       color: colors.textPrimary,
-    },
-    close: {
-      padding: 4,
+      marginBottom: spacing.sm,
     },
     deviceBtn: {
       flexDirection: 'row',
@@ -165,6 +177,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderWidth: 1,
       borderColor: colors.primary,
       backgroundColor: colors.primarySoft,
+      marginBottom: spacing.sm,
     },
     deviceBtnText: {
       ...typography.button,
@@ -174,11 +187,19 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.caption,
       fontSize: 11,
       color: colors.textSecondary,
+      marginBottom: spacing.sm,
     },
     error: {
       ...typography.caption,
       color: colors.danger,
-      textAlign: 'center',
+      marginBottom: spacing.xs,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: spacing.xs,
+    },
+    actionBtn: {
+      flex: 1,
     },
   });
 

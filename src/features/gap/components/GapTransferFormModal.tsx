@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { useAppTheme } from '../../../shared/theme';
@@ -27,13 +26,17 @@ interface GapTransferFormModalProps {
 /**
  * "Berdim" / "Oldim" oynasi.
  *
+ * Joylashuvi Qarzlar bo'limidagi "Qarz berish" oynasi bilan bir xil:
+ * yuqorida sarlavha, o'rtada maydonlar, pastda "Bekor qilish" va asosiy
+ * tugma yonma-yon.
+ *
  * Ikkalasi ham bitta yozuvni yaratadi, faqat yo'nalish teskari. Miqdorni va
  * O'LCHOV BIRLIGINI har safar foydalanuvchi tanlaydi: bitta odam bilan so'm,
  * dollar va kg go'sht bo'yicha bir vaqtda hisob yuritish mumkin. Guruhning
  * birligi shunchaki oldindan tanlab qo'yiladi.
  *
  * Yozuvni kiritgan odam uni o'zi tasdiqlamaydi: tasdiq qarama-qarshi tomonda
- * qoladi, shuning uchun oyna pastida shu haqda eslatma turadi.
+ * qoladi, shuning uchun pastda shu haqda eslatma turadi.
  */
 const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
   visible,
@@ -46,7 +49,6 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
   onSubmit,
 }) => {
   const theme = useAppTheme();
-  const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -79,22 +81,20 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
   }, [amount, note, selectedUnit, onSubmit, t]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <Pressable style={styles.card} onPress={() => {}}>
-            <View style={styles.header}>
-              <Text style={styles.title}>{isGive ? t('gap.giveTitle') : t('gap.takeTitle')}</Text>
-              <Pressable
-                onPress={onClose}
-                accessibilityRole="button"
-                accessibilityLabel={t('common.cancel')}
-                style={styles.close}
-              >
-                <Ionicons name="close" size={20} color={colors.textSecondary} />
-              </Pressable>
-            </View>
-
+    <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.card}>
+            <Text style={styles.title} accessibilityRole="header">
+              {isGive ? t('gap.giveTitle') : t('gap.takeTitle')}
+            </Text>
             <Text style={styles.subtitle} numberOfLines={2}>
               {memberName}
             </Text>
@@ -116,11 +116,7 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
               resetKey={visible}
             />
 
-            <Input
-              label={t('gap.fieldNote')}
-              value={note}
-              onChangeText={setNote}
-            />
+            <Input label={t('gap.fieldNote')} value={note} onChangeText={setNote} />
             <Text style={styles.hint}>{t('gap.transferConfirmHint')}</Text>
 
             {localError || error ? (
@@ -128,21 +124,22 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
             ) : null}
 
             <View style={styles.actions}>
-              <View style={styles.actionCell}>
-                <Button title={t('common.cancel')} variant="outline" onPress={onClose} />
-              </View>
-              <View style={styles.actionCell}>
-                <Button
-                  title={isGive ? t('gap.give') : t('gap.take')}
-                  onPress={handleSubmit}
-                  loading={loading}
-                  style={isGive ? styles.giveBtn : styles.takeBtn}
-                />
-              </View>
+              <Button
+                title={t('common.cancel')}
+                variant="secondary"
+                onPress={onClose}
+                style={styles.actionBtn}
+              />
+              <Button
+                title={isGive ? t('gap.give') : t('gap.take')}
+                onPress={handleSubmit}
+                loading={loading}
+                style={styles.actionBtn}
+              />
             </View>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -152,33 +149,31 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     backdrop: {
       flex: 1,
       backgroundColor: colors.overlay,
-      justifyContent: 'center',
-      padding: spacing.md,
+    },
+    // Oyna yuqoriroqda ochilsin — klaviatura maydonlarni to'smasligi uchun.
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: 'flex-start',
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.lg,
     },
     card: {
-      backgroundColor: colors.background,
-      borderRadius: radius.xl,
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
       padding: spacing.md,
       gap: spacing.sm,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
     title: {
-      ...typography.body,
-      fontWeight: '700',
+      ...typography.heading2,
+      fontSize: 18,
       color: colors.textPrimary,
     },
     subtitle: {
       ...typography.caption,
       fontSize: 12,
       color: colors.textSecondary,
-      marginTop: -spacing.xs,
-    },
-    close: {
-      padding: 4,
+      marginTop: -spacing.sm,
     },
     hint: {
       ...typography.caption,
@@ -194,16 +189,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       gap: spacing.xs,
     },
-    actionCell: {
+    actionBtn: {
       flex: 1,
-    },
-    giveBtn: {
-      backgroundColor: colors.primary,
-      borderWidth: 0,
-    },
-    takeBtn: {
-      backgroundColor: colors.danger,
-      borderWidth: 0,
     },
   });
 
