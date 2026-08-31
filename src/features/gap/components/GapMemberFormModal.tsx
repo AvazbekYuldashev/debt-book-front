@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
@@ -19,6 +28,8 @@ interface GapMemberFormModalProps {
   error?: string | null;
   onClose: () => void;
   onSubmit: (value: GapMemberFormValue) => void;
+  /** Telefon kontaktlaridan ko'plab a'zo tanlash oynasini ochadi. */
+  onOpenDeviceContacts?: () => void;
 }
 
 /**
@@ -26,6 +37,9 @@ interface GapMemberFormModalProps {
  *
  * Telefon ixtiyoriy: ro'yxatdan o'tmagan odam ham a'zo bo'la oladi —
  * u ism va telefon bilan yuritiladi (TZ 07).
+ *
+ * Bittalab kiritish uzoq bo'lgani uchun tepada telefon kontaktlaridan
+ * ko'plab tanlash yo'li ham bor — Qarzlar bo'limidagi bilan bir xil oyna.
  */
 const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
   visible,
@@ -33,6 +47,7 @@ const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
   error,
   onClose,
   onSubmit,
+  onOpenDeviceContacts,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -81,6 +96,17 @@ const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
               </Pressable>
             </View>
 
+            {onOpenDeviceContacts ? (
+              <TouchableOpacity
+                style={styles.deviceBtn}
+                onPress={onOpenDeviceContacts}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="people-outline" size={18} color={colors.primary} />
+                <Text style={styles.deviceBtnText}>{t('debts.fromPhoneContacts')}</Text>
+              </TouchableOpacity>
+            ) : null}
+
             <Input label={t('gap.fieldMemberName')} value={name} onChangeText={setName} />
             <Input
               label={t('gap.fieldMemberPhone')}
@@ -128,6 +154,21 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     close: {
       padding: 4,
+    },
+    deviceBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      backgroundColor: colors.primarySoft,
+    },
+    deviceBtnText: {
+      ...typography.button,
+      color: colors.primary,
     },
     hint: {
       ...typography.caption,

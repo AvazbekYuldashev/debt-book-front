@@ -13,6 +13,9 @@ import { useAddGapMember, useGapGroup, useGapMembers } from '../hooks/useGap';
 import GapMemberRow from '../components/GapMemberRow';
 import GapMemberFormModal from '../components/GapMemberFormModal';
 import GapGroupBalanceCard from '../components/GapGroupBalanceCard';
+import DeviceContactsPickerModal from '../../debts/components/DeviceContactsPickerModal';
+import type { DeviceContact } from '../../../shared/lib/deviceContacts';
+import { normalizePhone } from '../../../shared/lib/phone';
 import { GapMemberDTO, GapUnit } from '../types/gap';
 
 /**
@@ -48,6 +51,43 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
 
   const addMemberMutation = useAddGapMember(id);
   const [memberModalOpen, setMemberModalOpen] = useState(false);
+  const [contactsOpen, setContactsOpen] = useState(false);
+
+  /**
+   * Allaqachon a'zo bo'lganlarning raqamlari — tanlagich ularni belgilab
+   * qo'yadi, bir odam ikki marta qo'shilmasin.
+   */
+  const existingPhones = useMemo(() => {
+    const set = new Set<string>();
+    for (const member of members) {
+      if (member.memberPhone) set.add(normalizePhone(member.memberPhone));
+    }
+    return set;
+  }, [members]);
+
+  /**
+   * Kontaktlardan ko'plab a'zo qo'shish.
+   *
+   * Ketma-ket yuboriladi, bittasi yiqilsa qolgani davom etadi — yarim
+   * qo'shilgan holat butunlay qo'shilmaganidan yaxshiroq va oyna natijani
+   * ("N qo'shildi") o'zi ko'rsatadi.
+   */
+  const handleAddFromDevice = useCallback(
+    async (selected: DeviceContact[]): Promise<{ added: number; failed: number }> => {
+      let added = 0;
+      let failed = 0;
+      for (const contact of selected) {
+        try {
+          await addMemberMutation.mutateAsync({ name: contact.name, phone: contact.phone });
+          added += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+      return { added, failed };
+    },
+    [addMemberMutation]
+  );
 
   const unit: GapUnit = useMemo(
     () => ({
@@ -155,9 +195,20 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
         loading={addMemberMutation.isPending}
         error={addError}
         onClose={() => setMemberModalOpen(false)}
+        onOpenDeviceContacts={() => {
+          setMemberModalOpen(false);
+          setContactsOpen(true);
+        }}
         onSubmit={(payload) =>
           addMemberMutation.mutate(payload, { onSuccess: () => setMemberModalOpen(false) })
         }
+      />
+
+      <DeviceContactsPickerModal
+        visible={contactsOpen}
+        onClose={() => setContactsOpen(false)}
+        existingPhones={existingPhones}
+        onSubmit={handleAddFromDevice}
       />
     </View>
   );
