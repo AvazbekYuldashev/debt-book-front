@@ -25,8 +25,9 @@ interface GapMemberBalanceHeaderProps {
  * A'zo ekranining tepasi — Qarzlar bo'limidagi mijoz kartasi bilan bir xil:
  * chapda ism va telefon, o'ngda hisob.
  *
- * O'ngdagi raqam — SOF hisob (olganim − berganim): musbat bo'lsa u menga
- * ko'proq bergan, manfiy bo'lsa men unga.
+ * O'ngdagi raqam — SOF hisob (berganim − olganim): musbat bo'lsa men unga
+ * ko'proq berganman va u menga qaytarishi kerak, manfiy bo'lsa aksincha.
+ * Qarzlar bo'limidagi "haq" va "qarz" bilan bir xil mantiq.
  *
  * Har birlik alohida qatorda va o'z ishorasi bilan: so'm bo'yicha qarzdor
  * bo'lib, dollar bo'yicha haqdor bo'lish mumkin. Ularni qo'shib bo'lmaydi.
@@ -59,10 +60,12 @@ const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
    */
   const nets = useMemo(() => {
     const byCode = new Map<string, GapAmountDTO>();
-    for (const entry of received) {
+    // Berganim musbat: u menga qaytishi kerak.
+    for (const entry of given) {
       byCode.set(entry.unitCode, { ...entry, amount: toAmount(entry.amount) });
     }
-    for (const entry of given) {
+    // Olganim manfiy: bu mening qarzim.
+    for (const entry of received) {
       const existing = byCode.get(entry.unitCode);
       const value = toAmount(entry.amount);
       if (existing) {

@@ -20,14 +20,14 @@ interface GapGroupBalanceCardProps {
 
 /**
  * Guruh ekranining tepasidagi hisob kartasi — Qarzlar bo'limidagi umumiy
- * xulosa bilan bir xil ko'rinishda: chapda olganim (yashil), o'ngda berganim
- * (qizil), o'rtada ajratuvchi chiziq.
+ * xulosa bilan bir xil ko'rinishda: chapda berganim (yashil — u menga
+ * qaytishi kerak), o'ngda olganim (qizil — bu mening qarzim).
  *
  * Har birlik alohida qatorda: so'm, dollar va kg go'sht bir-biriga
  * qo'shilmaydi.
  *
- * Raqamlar faqat ikki tomon tasdiqlagan yozuvlardan (TZ 09) — tasdiq
- * kutayotgani hisobga kirmaydi, aks holda karta haqiqatdan chalg'itardi.
+ * Hisobga barcha yozuvlar kiradi; tasdiq faqat ikkinchi tomon roziligi
+ * belgisi bo'lib, yozuv qatorida ko'rinadi.
  */
 const GapGroupBalanceCard: React.FC<GapGroupBalanceCardProps> = ({
   unit,
@@ -75,19 +75,19 @@ const GapGroupBalanceCard: React.FC<GapGroupBalanceCardProps> = ({
     <View style={styles.card}>
       <View style={styles.row}>
         {renderTile(
-          t('gap.totalReceived'),
-          received,
+          t('gap.totalGiven'),
+          given,
           colors.positive,
           colors.positiveSoft,
-          'arrow-down'
+          'arrow-up'
         )}
         <View style={styles.divider} />
         {renderTile(
-          t('gap.totalGiven'),
-          given,
+          t('gap.totalReceived'),
+          received,
           colors.negative,
           colors.negativeSoft,
-          'arrow-up'
+          'arrow-down'
         )}
       </View>
     </View>

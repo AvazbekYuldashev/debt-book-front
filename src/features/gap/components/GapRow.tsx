@@ -75,8 +75,9 @@ const GapRow: React.FC<GapRowProps> = ({ item, isLast = false, onPress }) => {
           </Text>
         ) : (
           <>
-            <GapAmountStack items={received} sign="+" color={colors.positive} />
-            <GapAmountStack items={given} sign="−" color={colors.negative} />
+            {/* Berganim yashil (+), olganim qizil (−). */}
+            <GapAmountStack items={given} sign="+" color={colors.positive} />
+            <GapAmountStack items={received} sign="−" color={colors.negative} />
           </>
         )}
       </View>

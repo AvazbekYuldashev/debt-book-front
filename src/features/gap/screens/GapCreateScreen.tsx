@@ -49,17 +49,10 @@ const GapCreateScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_CREATE>> = ({ n
         unitLabel: selectedUnit.label,
       },
       {
-        // Yaratilgach darhol a'zolar ekraniga o'tamiz — keyingi qadam o'sha yerda.
-        onSuccess: (groupId) => {
-          navigation.replace(ROUTES.GAP_DETAIL, {
-            id: groupId,
-            name: name.trim(),
-            unitCode: selectedUnit.code,
-            unitLabel: selectedUnit.label,
-            unitType: selectedUnit.type,
-            organizer: true,
-          });
-        },
+        // Yaratilgach ro'yxatga qaytamiz: yangi guruh boshida turadi va
+        // foydalanuvchi uni o'zi ochadi. Ichkariga majburan kirgizish
+        // "orqaga" tugmasini chalkashtirardi.
+        onSuccess: () => navigation.goBack(),
         onError: (err) => setError((err as Error).message),
       }
     );

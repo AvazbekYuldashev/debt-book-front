@@ -106,7 +106,15 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
               keyboardType="decimal-pad"
             />
 
-            <GapUnitPicker value={unit} onChange={setSelectedUnit} resetKey={visible} />
+            <GapUnitPicker
+              value={unit}
+              onChange={(next) => {
+                setSelectedUnit(next);
+                // Birlik tanlangach eski ogohlantirish osilib qolmasin.
+                if (next) setLocalError(null);
+              }}
+              resetKey={visible}
+            />
 
             <Input
               label={t('gap.fieldNote')}

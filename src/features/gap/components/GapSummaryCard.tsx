@@ -29,8 +29,8 @@ interface GapSummaryCardProps {
 
 /**
  * Ekranning yuqori paneli:
- *   yashil qator — men OLGANIM (bu oy / jami)
- *   qizil  qator — men BERGANIM (bu oy / jami)
+ *   yashil qator — men BERGANIM (bu oy / jami): menga qaytishi kerak
+ *   qizil  qator — men OLGANIM  (bu oy / jami): mening qarzim
  *
  * Raqamlar haqiqatda bo'lib o'tgan, ikki tomon tasdiqlagan oldi-berdilardan:
  * rejalashtirilgan majburiyat degan narsa bu modelda yo'q.
@@ -152,18 +152,18 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
     <View style={styles.card}>
       <View style={styles.row}>
         {renderTile(
-          'received',
-          t('gap.currentMonthReceived'),
-          summary?.currentMonthReceived,
+          'given',
+          t('gap.currentMonthGiven'),
+          summary?.currentMonthGiven,
           colors.positive,
           colors.positiveSoft,
-          'arrow-down'
+          'arrow-up'
         )}
         <View style={styles.divider} />
         {renderTile(
-          'received',
-          t('gap.totalReceived'),
-          summary?.totalReceived,
+          'given',
+          t('gap.totalGiven'),
+          summary?.totalGiven,
           colors.positive,
           colors.positiveSoft,
           'wallet-outline'
@@ -174,18 +174,18 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
 
       <View style={styles.row}>
         {renderTile(
-          'given',
-          t('gap.currentMonthGiven'),
-          summary?.currentMonthGiven,
+          'received',
+          t('gap.currentMonthReceived'),
+          summary?.currentMonthReceived,
           colors.negative,
           colors.negativeSoft,
-          'arrow-up'
+          'arrow-down'
         )}
         <View style={styles.divider} />
         {renderTile(
-          'given',
-          t('gap.totalGiven'),
-          summary?.totalGiven,
+          'received',
+          t('gap.totalReceived'),
+          summary?.totalReceived,
           colors.negative,
           colors.negativeSoft,
           'time-outline'

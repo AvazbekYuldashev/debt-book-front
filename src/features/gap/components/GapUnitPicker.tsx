@@ -21,12 +21,13 @@ interface GapUnitPickerProps {
 /**
  * O'lchov birligini tanlash.
  *
- * Pul tanlansa boshqa savol yo'q. Mahsulot tanlansa NIMA o'lchanayotgani
+ * Pul tanlansa boshqa savol yo'q. Qolgan hamma holatda NIMA o'lchanayotgani
  * so'raladi: 1 kg go'sht bilan 1 kg guruch bir xil narsa emas, ularni bitta
- * ustunga qo'shib bo'lmaydi. Kiritilgan mahsulot birlik kalitiga kiradi,
- * shuning uchun ular statistikada hech qachon aralashmaydi.
+ * ustunga qo'shib bo'lmaydi. Bu "Boshqa" ga ham tegishli — bir qop guruch
+ * bir qop un emas.
  *
- * "Boshqa" — ro'yxatda yo'q o'lchov uchun (qop, bosh, quti ...).
+ * Kiritilgan mahsulot birlik kalitiga kiradi, shuning uchun ular statistikada
+ * hech qachon aralashmaydi.
  */
 const GapUnitPicker: React.FC<GapUnitPickerProps> = ({ value, onChange, resetKey }) => {
   const theme = useAppTheme();
@@ -50,13 +51,20 @@ const GapUnitPicker: React.FC<GapUnitPickerProps> = ({ value, onChange, resetKey
   }, [resetKey]);
 
   const measure = GAP_UNIT_PRESETS.find((preset) => preset.code === measureCode) ?? null;
-  const isGoods = measure?.type === 'GOODS';
   const isCustom = measureCode === CUSTOM;
+  // Nima ekani pul birliklaridan tashqari HAMMA holatda so'raladi: "qop" ham
+  // "kg" kabi yolg'iz o'zi ma'nosiz — bir qop guruch bir qop un emas.
+  const needsSubstance = isCustom || measure?.type === 'GOODS';
 
   // Tanlov o'zgarganda tayyor birlikni yuqoriga uzatamiz.
   useEffect(() => {
     if (isCustom) {
-      onChange(customLabel.trim() ? customUnit(customLabel) : null);
+      const base = customLabel.trim() ? customUnit(customLabel) : null;
+      if (!base) {
+        onChange(null);
+        return;
+      }
+      onChange(substance.trim() ? goodsUnit(base, substance) : null);
       return;
     }
     if (!measure) {
@@ -99,7 +107,7 @@ const GapUnitPicker: React.FC<GapUnitPickerProps> = ({ value, onChange, resetKey
         />
       ) : null}
 
-      {isGoods ? (
+      {needsSubstance ? (
         <>
           <Input
             label={t('gap.fieldSubstance')}

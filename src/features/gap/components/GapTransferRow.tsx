@@ -24,6 +24,9 @@ interface GapTransferRowProps {
  * Summa yozuvning O'Z birligida chiqadi — bir odam bilan bir vaqtda so'm,
  * dollar va kg bo'yicha hisob yuritish mumkin.
  *
+ * Rang: BERGANIM yashil, OLGANIM qizil — Qarzlar bo'limidagi "haq" va "qarz"
+ * bilan bir xil. Bergan pulim menga qaytishi kerak, olganim esa qarzim.
+ *
  * Summa hech qachon so'nmaydi: yozuv kiritilgan bo'lsa pul haqiqatda
  * ko'chgan va hisobga kirgan. Ikkinchi tomon hali tasdiqlamagan bo'lsa,
  * qator o'ng chetida "kutilmoqda" belgisi turadi — bu roziliq haqida,
@@ -40,8 +43,10 @@ const GapTransferRow: React.FC<GapTransferRowProps> = ({
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  // Berdim -> yashil (+), oldim -> qizil (-): Qarzlar bo'limidagi "haq" va
+  // "qarz" bilan bir xil mantiq.
   const isIn = direction === 'in';
-  const color = isIn ? colors.positive : colors.negative;
+  const color = isIn ? colors.negative : colors.positive;
   const actionable = onPress != null;
 
   const note = item.note?.trim();
@@ -64,7 +69,7 @@ const GapTransferRow: React.FC<GapTransferRowProps> = ({
       <View
         style={[
           styles.iconWrap,
-          { backgroundColor: isIn ? colors.positiveSoft : colors.negativeSoft },
+          { backgroundColor: isIn ? colors.negativeSoft : colors.positiveSoft },
         ]}
       >
         <Ionicons

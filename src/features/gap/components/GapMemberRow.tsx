@@ -22,7 +22,7 @@ interface GapMemberRowProps {
 /**
  * A'zolar ro'yxatidagi bitta qator — Qarzlar bo'limidagi mijoz qatori bilan
  * bir xil ko'rinishda: chapda avatar, ism va telefon; o'ngda shu a'zoning
- * hisobi (olgani yashil, bergani qizil).
+ * hisobi (bergani yashil, olgani qizil).
  *
  * Ikkala summa ham ko'rsatiladi, chunki gap kassada odam bir vaqtning o'zida
  * ham olgan, ham bergan bo'lishi mumkin — bittasini tanlab ko'rsatish
@@ -77,8 +77,9 @@ const GapMemberRow: React.FC<GapMemberRowProps> = ({
             </Text>
           ) : (
             <>
-              <GapAmountStack items={received} sign="+" color={colors.positive} />
-              <GapAmountStack items={given} sign="−" color={colors.negative} />
+              {/* Berganim yashil (+), olganim qizil (−). */}
+              <GapAmountStack items={given} sign="+" color={colors.positive} />
+              <GapAmountStack items={received} sign="−" color={colors.negative} />
             </>
           )}
         </View>
