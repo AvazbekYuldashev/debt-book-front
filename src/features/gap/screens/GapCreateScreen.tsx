@@ -3,17 +3,14 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
-import ChipSelector from '../../../shared/ui/ChipSelector';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import type { GapScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
 import { useCreateGap } from '../hooks/useGap';
-import { GAP_UNIT_PRESETS, customUnit } from '../model/gapUnits';
+import GapUnitPicker from '../components/GapUnitPicker';
 import type { GapUnit } from '../types/gap';
-
-const CUSTOM = '__custom__';
 
 /**
  * Yangi gap kassa yaratish.
@@ -33,24 +30,10 @@ const GapCreateScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_CREATE>> = ({ n
   const createMutation = useCreateGap();
 
   const [name, setName] = useState('');
-  const [unitCode, setUnitCode] = useState<string>('UZS');
-  const [customLabel, setCustomLabel] = useState('');
+  const [selectedUnit, setSelectedUnit] = useState<GapUnit | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const unitOptions = useMemo(
-    () => [
-      ...GAP_UNIT_PRESETS.map((unit) => ({ value: unit.code, label: unit.label })),
-      { value: CUSTOM, label: t('gap.unitCustom') },
-    ],
-    [t]
-  );
 
-  const selectedUnit: GapUnit | null = useMemo(() => {
-    if (unitCode === CUSTOM) {
-      return customLabel.trim() ? customUnit(customLabel) : null;
-    }
-    return GAP_UNIT_PRESETS.find((unit) => unit.code === unitCode) ?? null;
-  }, [unitCode, customLabel]);
 
   const handleSubmit = useCallback(() => {
     setError(null);
@@ -93,21 +76,7 @@ const GapCreateScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_CREATE>> = ({ n
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Input label={t('gap.fieldName')} value={name} onChangeText={setName} />
 
-          <ChipSelector
-            label={t('gap.fieldUnit')}
-            options={unitOptions}
-            value={unitCode}
-            onChange={setUnitCode}
-            layout="wrap"
-          />
-          {unitCode === CUSTOM ? (
-            <Input
-              label={t('gap.fieldUnitCustom')}
-              value={customLabel}
-              onChangeText={setCustomLabel}
-              placeholder="qop, bosh, quti ..."
-            />
-          ) : null}
+          <GapUnitPicker value={selectedUnit} onChange={setSelectedUnit} />
 
           <Text style={styles.note}>{t('gap.membersLaterHint')}</Text>
           <Text style={styles.note}>{t('gap.freeLedgerHint')}</Text>

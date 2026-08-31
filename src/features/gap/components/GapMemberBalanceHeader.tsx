@@ -18,6 +18,10 @@ interface GapMemberBalanceHeaderProps {
   received: GapAmountDTO[];
   /** Unga berganim, birlik bo'yicha. */
   given: GapAmountDTO[];
+  /** Tasdiq kutayotgan kirim — hisobga kirmaydi, lekin ko'rinishi kerak. */
+  pendingReceived?: GapAmountDTO[];
+  /** Tasdiq kutayotgan chiqim. */
+  pendingGiven?: GapAmountDTO[];
   onBack: () => void;
 }
 
@@ -31,6 +35,10 @@ interface GapMemberBalanceHeaderProps {
  * Har birlik alohida qatorda va o'z ishorasi bilan: so'm bo'yicha qarzdor
  * bo'lib, dollar bo'yicha haqdor bo'lish mumkin. Ularni qo'shib bo'lmaydi.
  *
+ * Sof hisobga faqat IKKI TOMON TASDIQLAGAN yozuvlar kiradi (TZ 09). Tasdiq
+ * kutayotganlari pastda alohida, so'niq qilib ko'rsatiladi — aks holda
+ * yozuvlar ro'yxatda turib, balans nol chiqib, ekran yolg'on gapirardi.
+ *
  * Telefon bosilganda qurilmaning raqam terish oynasi ochiladi.
  */
 const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
@@ -39,6 +47,8 @@ const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
   unit,
   received,
   given,
+  pendingReceived,
+  pendingGiven,
   onBack,
 }) => {
   const theme = useAppTheme();
@@ -69,6 +79,25 @@ const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
     }
     return nonZero([...byCode.values()]);
   }, [received, given]);
+
+  /** Tasdiq kutayotgan yig'indi — ikkala yo'nalish birga, faqat ko'rsatish uchun. */
+  const pending = useMemo(() => {
+    const byCode = new Map<string, GapAmountDTO>();
+    const add = (items: GapAmountDTO[] | undefined, sign: 1 | -1) => {
+      for (const entry of items ?? []) {
+        const existing = byCode.get(entry.unitCode);
+        const value = toAmount(entry.amount) * sign;
+        if (existing) {
+          existing.amount = toAmount(existing.amount) + value;
+        } else {
+          byCode.set(entry.unitCode, { ...entry, amount: value });
+        }
+      }
+    };
+    add(pendingReceived, 1);
+    add(pendingGiven, -1);
+    return nonZero([...byCode.values()]);
+  }, [pendingReceived, pendingGiven]);
 
   const handleDial = useCallback(() => {
     if (!telUrl) return;
@@ -136,6 +165,19 @@ const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
                 );
               })
             )}
+
+            {pending.length > 0 ? (
+              <View style={styles.pendingWrap}>
+                <Text style={styles.pendingLabel} numberOfLines={1}>
+                  {t('gap.pendingLabel')}
+                </Text>
+                {pending.map((entry) => (
+                  <Text key={entry.unitCode} style={styles.pendingValue} numberOfLines={1}>
+                    {formatGapAmount(toAmount(entry.amount), amountUnit(entry))}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
           </View>
         </View>
       </View>
@@ -203,6 +245,22 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontSize: 24,
       fontWeight: '800',
       letterSpacing: -0.6,
+      fontVariant: ['tabular-nums'],
+    },
+    pendingWrap: {
+      alignItems: 'flex-end',
+      marginTop: spacing.xxs,
+    },
+    pendingLabel: {
+      ...typography.caption,
+      fontSize: 10,
+      color: colors.textSecondary,
+    },
+    pendingValue: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textSecondary,
       fontVariant: ['tabular-nums'],
     },
     // Bir nechta birlik chiqsa qatorlar ixchamroq.
