@@ -6,38 +6,34 @@ import Button from '../../../shared/ui/Button';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
-import { formatGapAmount, formatGapAmountInput, parseGapAmountInput } from '../model/gapFormat';
-import { GapTransferDTO, GapUnit, toAmount } from '../types/gap';
+import { formatGapAmountInput, parseGapAmountInput } from '../model/gapFormat';
+import { GapTransferDirection, GapUnit } from '../types/gap';
 
-export type GapPaymentAction = 'give' | 'take';
-
-interface GapPaymentActionModalProps {
+interface GapTransferFormModalProps {
   visible: boolean;
-  action: GapPaymentAction;
-  /** Amal tegishli bo'lgan to'lov yozuvi. */
-  payment: GapTransferDTO | null;
-  /** Ekranda ochilgan a'zo — pul aynan u bilan almashinadi. */
+  /** GIVE — men berdim, TAKE — men oldim. */
+  direction: GapTransferDirection;
+  /** Ekranda ochilgan a'zo — hisob-kitob aynan u bilan. */
   memberName: string;
   unit: GapUnit;
   loading?: boolean;
   error?: string | null;
   onClose: () => void;
-  /** 'give' da miqdor uzatiladi, 'take' da tasdiq bo'lgani uchun null. */
-  onSubmit: (amount: number | null) => void;
+  onSubmit: (amount: number, note: string | null) => void;
 }
 
 /**
  * "Berdim" / "Oldim" oynasi.
  *
- * Berishda miqdor tahrirlanadi — a'zo badaldan kam berishi mumkin va guruh
- * buni o'z qoidasi bo'yicha yuritadi (TZ 10.1). Olishda esa miqdor
- * o'zgartirilmaydi: qabul qiluvchi faqat tasdiqlaydi, aks holda ikki tomonlama
- * tasdiqning ma'nosi qolmasdi (TZ 09).
+ * Ikkalasi ham bitta yozuvni yaratadi, faqat yo'nalish teskari. Miqdorni har
+ * safar foydalanuvchi kiritadi — guruhda belgilangan badal degan narsa yo'q.
+ *
+ * Yozuvni kiritgan odam uni o'zi tasdiqlamaydi: tasdiq qarama-qarshi tomonda
+ * qoladi, shuning uchun oyna pastida shu haqda eslatma turadi.
  */
-const GapPaymentActionModal: React.FC<GapPaymentActionModalProps> = ({
+const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
   visible,
-  action,
-  payment,
+  direction,
   memberName,
   unit,
   loading,
@@ -50,30 +46,28 @@ const GapPaymentActionModal: React.FC<GapPaymentActionModalProps> = ({
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const isGive = action === 'give';
+  const isGive = direction === 'GIVE';
   const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (visible && payment) {
-      setAmount(formatGapAmountInput(String(toAmount(payment.amount))));
+    if (visible) {
+      setAmount('');
+      setNote('');
       setLocalError(null);
     }
-  }, [visible, payment]);
+  }, [visible]);
 
   const handleSubmit = useCallback(() => {
-    if (!isGive) {
-      onSubmit(null);
-      return;
-    }
     const parsed = parseGapAmountInput(amount);
     if (!parsed) {
       setLocalError(t('gap.errAmount'));
       return;
     }
     setLocalError(null);
-    onSubmit(parsed);
-  }, [isGive, amount, onSubmit, t]);
+    onSubmit(parsed, note.trim() ? note.trim() : null);
+  }, [amount, note, onSubmit, t]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -92,33 +86,22 @@ const GapPaymentActionModal: React.FC<GapPaymentActionModalProps> = ({
               </Pressable>
             </View>
 
-            {payment ? (
-              <Text style={styles.subtitle} numberOfLines={2}>
-                {memberName}
-                {payment.periodNumber != null
-                  ? ` · ${t('gap.periodShort', { period: String(payment.periodNumber) })}`
-                  : ''}
-              </Text>
-            ) : null}
+            <Text style={styles.subtitle} numberOfLines={2}>
+              {memberName}
+            </Text>
 
-            {isGive ? (
-              <>
-                <Input
-                  label={`${t('gap.fieldAmount')} (${unit.label})`}
-                  value={amount}
-                  onChangeText={(text) => setAmount(formatGapAmountInput(text))}
-                  keyboardType="decimal-pad"
-                />
-                <Text style={styles.hint}>{t('gap.giveHint')}</Text>
-              </>
-            ) : (
-              <View style={styles.confirmBox}>
-                <Text style={styles.confirmAmount}>
-                  {formatGapAmount(toAmount(payment?.amount), unit)}
-                </Text>
-                <Text style={styles.hint}>{t('gap.takeHint')}</Text>
-              </View>
-            )}
+            <Input
+              label={`${t('gap.fieldAmount')} (${unit.label})`}
+              value={amount}
+              onChangeText={(text) => setAmount(formatGapAmountInput(text))}
+              keyboardType="decimal-pad"
+            />
+            <Input
+              label={t('gap.fieldNote')}
+              value={note}
+              onChangeText={setNote}
+            />
+            <Text style={styles.hint}>{t('gap.transferConfirmHint')}</Text>
 
             {localError || error ? (
               <Text style={styles.error}>{localError ?? error}</Text>
@@ -133,6 +116,7 @@ const GapPaymentActionModal: React.FC<GapPaymentActionModalProps> = ({
                   title={isGive ? t('gap.give') : t('gap.take')}
                   onPress={handleSubmit}
                   loading={loading}
+                  style={isGive ? styles.giveBtn : styles.takeBtn}
                 />
               </View>
             </View>
@@ -181,19 +165,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontSize: 11,
       color: colors.textSecondary,
     },
-    confirmBox: {
-      backgroundColor: colors.surface,
-      borderRadius: radius.lg,
-      padding: spacing.md,
-      alignItems: 'center',
-      gap: spacing.xxs,
-    },
-    confirmAmount: {
-      ...typography.heading2,
-      fontSize: 22,
-      color: colors.positive,
-      fontVariant: ['tabular-nums'],
-    },
     error: {
       ...typography.caption,
       color: colors.danger,
@@ -206,6 +177,14 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     actionCell: {
       flex: 1,
     },
+    giveBtn: {
+      backgroundColor: colors.primary,
+      borderWidth: 0,
+    },
+    takeBtn: {
+      backgroundColor: colors.danger,
+      borderWidth: 0,
+    },
   });
 
-export default GapPaymentActionModal;
+export default GapTransferFormModal;

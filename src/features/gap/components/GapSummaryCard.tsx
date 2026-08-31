@@ -29,8 +29,11 @@ interface GapSummaryCardProps {
 
 /**
  * Ekranning yuqori paneli:
- *   yashil qator — men OLADIGAN (bu oy / jami qolgan)
- *   qizil  qator — men BERADIGAN (bu oy / jami qolgan)
+ *   yashil qator — men OLGANIM (bu oy / jami)
+ *   qizil  qator — men BERGANIM (bu oy / jami)
+ *
+ * Raqamlar haqiqatda bo'lib o'tgan, ikki tomon tasdiqlagan oldi-berdilardan:
+ * rejalashtirilgan majburiyat degan narsa bu modelda yo'q.
  *
  * Har miqdor BIRLIK BO'YICHA ALOHIDA qator. Birlik pul bo'lishi shart emas:
  * so'm, dollar bilan bir qatorda "kg go'sht", "litr yog'" ham bo'ladi.
@@ -149,18 +152,18 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
     <View style={styles.card}>
       <View style={styles.row}>
         {renderTile(
-          'receive',
-          t('gap.currentMonthReceive'),
-          summary?.currentMonthReceive,
+          'received',
+          t('gap.currentMonthReceived'),
+          summary?.currentMonthReceived,
           colors.positive,
           colors.positiveSoft,
           'arrow-down'
         )}
         <View style={styles.divider} />
         {renderTile(
-          'receive',
-          t('gap.totalReceive'),
-          summary?.totalReceive,
+          'received',
+          t('gap.totalReceived'),
+          summary?.totalReceived,
           colors.positive,
           colors.positiveSoft,
           'wallet-outline'
@@ -171,18 +174,18 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
 
       <View style={styles.row}>
         {renderTile(
-          'pay',
-          t('gap.currentMonthPay'),
-          summary?.currentMonthPay,
+          'given',
+          t('gap.currentMonthGiven'),
+          summary?.currentMonthGiven,
           colors.negative,
           colors.negativeSoft,
           'arrow-up'
         )}
         <View style={styles.divider} />
         {renderTile(
-          'pay',
-          t('gap.totalPay'),
-          summary?.totalPay,
+          'given',
+          t('gap.totalGiven'),
+          summary?.totalGiven,
           colors.negative,
           colors.negativeSoft,
           'time-outline'

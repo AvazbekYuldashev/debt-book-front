@@ -5,36 +5,43 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { GapResponseDTO, toAmount, unitOf } from '../types/gap';
-import { formatGapAmount, formatGapDate } from '../model/gapFormat';
+import { formatGapAmount } from '../model/gapFormat';
 
 interface GapRowProps {
   item: GapResponseDTO;
+  isLast?: boolean;
   onPress?: (item: GapResponseDTO) => void;
 }
 
 /**
  * Ro'yxatdagi bitta gap kassa.
  *
- * Chapda nomi, badali va navbat ma'lumoti; o'ngda esa davr belgisi va shu
- * guruh bo'yicha shaxsiy hisobim — olganim va berganim ustma-ust turadi.
- * Raqamlar bir ustunda tursa, guruhlarni ko'z bilan solishtirish oson.
+ * Chapda nomi va a'zolar soni; o'ngda shu guruh bo'yicha shaxsiy hisobim —
+ * olganim va berganim ustma-ust. Raqamlar bir ustunda tursa, guruhlarni ko'z
+ * bilan solishtirish oson.
+ *
+ * Tasdig'imni kutayotgan yozuv bo'lsa qizil belgi chiqadi — bu qatorda
+ * bajarilmagan ish borligini bildiradi.
  */
-const GapRow: React.FC<GapRowProps> = ({ item, onPress }) => {
+const GapRow: React.FC<GapRowProps> = ({ item, isLast = false, onPress }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const isMyTurnNow = item.myQueuePosition != null && item.myQueuePosition === item.currentPeriod;
-
   const unit = unitOf(item);
   const received = toAmount(item.myTotalReceived);
   const given = toAmount(item.myTotalGiven);
+  const awaiting = item.awaitingMyConfirm ?? 0;
 
   return (
     <Pressable
       onPress={() => onPress?.(item)}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      style={({ pressed }) => [
+        styles.row,
+        !isLast && styles.rowBorder,
+        pressed && styles.rowPressed,
+      ]}
       accessibilityRole="button"
       accessibilityLabel={item.name}
     >
@@ -43,55 +50,42 @@ const GapRow: React.FC<GapRowProps> = ({ item, onPress }) => {
           {item.name}
         </Text>
 
-        <Text style={styles.amount}>
-          {formatGapAmount(toAmount(item.amount), unit)}
-          <Text style={styles.amountSuffix}> · {t('gap.perMonth')}</Text>
-        </Text>
-
         <View style={styles.metaRow}>
           <View style={styles.meta}>
-            <Ionicons
-              name="person-outline"
-              size={13}
-              color={isMyTurnNow ? colors.positive : colors.textSecondary}
-            />
-            <Text
-              style={[styles.metaText, isMyTurnNow && { color: colors.positive, fontWeight: '700' }]}
-            >
-              {item.myQueuePosition != null
-                ? t('gap.myTurnValue', {
-                    position: String(item.myQueuePosition),
-                    date: formatGapDate(item.myTurnDate),
-                  })
-                : '—'}
+            <Ionicons name="people-outline" size={13} color={colors.textSecondary} />
+            <Text style={styles.metaText}>
+              {t('gap.memberCount', { count: String(item.memberCount) })}
             </Text>
           </View>
-
-          <View style={styles.meta}>
-            <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
-            <Text style={styles.metaText}>{formatGapDate(item.nextPaymentDate)}</Text>
-          </View>
+          {awaiting > 0 ? (
+            <View style={[styles.badge, { backgroundColor: colors.negativeSoft }]}>
+              <Text style={[styles.badgeText, { color: colors.negative }]}>
+                {t('gap.awaitingMyConfirm', { count: String(awaiting) })}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
 
-      {/* O'ng ustun: davr belgisi va shaxsiy hisobim ustma-ust */}
       <View style={styles.side}>
-        <View style={[styles.periodBadge, isMyTurnNow && { backgroundColor: colors.positiveSoft }]}>
-          <Text style={[styles.periodText, isMyTurnNow && { color: colors.positive }]}>
-            {item.currentPeriod} / {item.totalPeriods}
+        {received === 0 && given === 0 ? (
+          <Text style={styles.totalMuted} numberOfLines={1}>
+            {formatGapAmount(0, unit)}
           </Text>
-        </View>
-
-        {received > 0 || given > 0 ? (
-          <View style={styles.totals}>
-            <Text style={[styles.total, { color: colors.positive }]} numberOfLines={1}>
-              + {formatGapAmount(received, unit)}
-            </Text>
-            <Text style={[styles.total, { color: colors.negative }]} numberOfLines={1}>
-              − {formatGapAmount(given, unit)}
-            </Text>
-          </View>
-        ) : null}
+        ) : (
+          <>
+            {received > 0 ? (
+              <Text style={[styles.total, { color: colors.positive }]} numberOfLines={1}>
+                + {formatGapAmount(received, unit)}
+              </Text>
+            ) : null}
+            {given > 0 ? (
+              <Text style={[styles.total, { color: colors.negative }]} numberOfLines={1}>
+                − {formatGapAmount(given, unit)}
+              </Text>
+            ) : null}
+          </>
+        )}
       </View>
     </Pressable>
   );
@@ -101,11 +95,14 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
+      justifyContent: 'space-between',
       gap: spacing.sm,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
-      borderBottomWidth: 1,
+    },
+    rowBorder: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
     },
     rowPressed: {
@@ -118,50 +115,19 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     side: {
       alignItems: 'flex-end',
-      gap: spacing.xxs,
+      maxWidth: '45%',
+      flexShrink: 1,
+      gap: 1,
     },
     name: {
       ...typography.body,
       fontWeight: '700',
       color: colors.textPrimary,
     },
-    periodBadge: {
-      paddingVertical: 2,
-      paddingHorizontal: spacing.xs,
-      borderRadius: radius.pill,
-      backgroundColor: colors.surfaceMuted,
-    },
-    periodText: {
-      ...typography.caption,
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.textSecondary,
-      fontVariant: ['tabular-nums'],
-    },
-    totals: {
-      alignItems: 'flex-end',
-    },
-    total: {
-      ...typography.caption,
-      fontSize: 12,
-      fontWeight: '800',
-      fontVariant: ['tabular-nums'],
-    },
-    amount: {
-      ...typography.caption,
-      fontSize: 13,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      fontVariant: ['tabular-nums'],
-    },
-    amountSuffix: {
-      fontWeight: '500',
-      color: colors.textSecondary,
-    },
     metaRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
+      gap: spacing.sm,
       flexWrap: 'wrap',
     },
     meta: {
@@ -173,6 +139,30 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.caption,
       fontSize: 12,
       color: colors.textSecondary,
+    },
+    badge: {
+      paddingVertical: 2,
+      paddingHorizontal: spacing.xs,
+      borderRadius: radius.pill,
+    },
+    badgeText: {
+      ...typography.caption,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    total: {
+      ...typography.caption,
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: '800',
+      fontVariant: ['tabular-nums'],
+    },
+    totalMuted: {
+      ...typography.caption,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textSecondary,
+      fontVariant: ['tabular-nums'],
     },
   });
 

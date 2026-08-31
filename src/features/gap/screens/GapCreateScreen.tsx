@@ -10,7 +10,6 @@ import { useI18n } from '../../../shared/i18n';
 import type { GapScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
 import { useCreateGap } from '../hooks/useGap';
-import { formatGapAmountInput, parseGapAmountInput } from '../model/gapFormat';
 import { GAP_UNIT_PRESETS, customUnit } from '../model/gapUnits';
 import type { GapUnit } from '../types/gap';
 
@@ -19,9 +18,12 @@ const CUSTOM = '__custom__';
 /**
  * Yangi gap kassa yaratish.
  *
- * A'zolar bu yerda so'ralmaydi — ularni qo'shish guruh ichidagi jarayon.
- * Shu sababli forma faqat guruhning o'zgarmas shartlarini oladi va guruh
- * DRAFT holatida yaratiladi; keyin a'zolar ekraniga o'tiladi.
+ * Forma ataylab qisqa: guruhga faqat nom va o'lchov birligi kerak. Badal,
+ * to'lov kuni, navbat va qur'a degan narsalar yo'q — kim qachon va qancha
+ * berishini a'zolar o'zlari hal qiladi.
+ *
+ * A'zolar bu yerda so'ralmaydi — ularni qo'shish guruh ichidagi jarayon,
+ * shuning uchun yaratilgach darhol a'zolar ekraniga o'tiladi.
  */
 const GapCreateScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_CREATE>> = ({ navigation }) => {
   const theme = useAppTheme();
@@ -31,12 +33,8 @@ const GapCreateScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_CREATE>> = ({ n
   const createMutation = useCreateGap();
 
   const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
   const [unitCode, setUnitCode] = useState<string>('UZS');
   const [customLabel, setCustomLabel] = useState('');
-  const [paymentDay, setPaymentDay] = useState('5');
-  const [queueMode, setQueueMode] = useState<'UPFRONT' | 'MONTHLY'>('UPFRONT');
-  const [queueType, setQueueType] = useState<'AGREEMENT' | 'LOTTERY'>('AGREEMENT');
   const [error, setError] = useState<string | null>(null);
 
   const unitOptions = useMemo(
@@ -57,25 +55,15 @@ const GapCreateScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_CREATE>> = ({ n
   const handleSubmit = useCallback(() => {
     setError(null);
 
-    const parsedAmount = parseGapAmountInput(amount);
-    const day = Number(paymentDay);
-
     if (!name.trim()) return setError(t('gap.errName'));
-    if (!parsedAmount) return setError(t('gap.errAmount'));
     if (!selectedUnit) return setError(t('gap.errUnit'));
-    if (!Number.isFinite(day) || day < 1 || day > 31) return setError(t('gap.errPaymentDay'));
 
     createMutation.mutate(
       {
         name: name.trim(),
-        amount: parsedAmount,
         unitType: selectedUnit.type,
         unitCode: selectedUnit.code,
         unitLabel: selectedUnit.label,
-        paymentDay: day,
-        queueMode,
-        queueType,
-        members: [],
       },
       {
         // Yaratilgach darhol a'zolar ekraniga o'tamiz — keyingi qadam o'sha yerda.
@@ -83,21 +71,16 @@ const GapCreateScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_CREATE>> = ({ n
           navigation.replace(ROUTES.GAP_DETAIL, {
             id: groupId,
             name: name.trim(),
-            amount: parsedAmount,
             unitCode: selectedUnit.code,
             unitLabel: selectedUnit.label,
             unitType: selectedUnit.type,
-            currentPeriod: 0,
-            totalPeriods: 0,
-            status: 'DRAFT',
-            queueMode,
             organizer: true,
           });
         },
         onError: (err) => setError((err as Error).message),
       }
     );
-  }, [name, amount, selectedUnit, paymentDay, queueMode, queueType, createMutation, navigation, t]);
+  }, [name, selectedUnit, createMutation, navigation, t]);
 
   return (
     <View style={styles.container}>
@@ -109,14 +92,6 @@ const GapCreateScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_CREATE>> = ({ n
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Input label={t('gap.fieldName')} value={name} onChangeText={setName} />
-
-          <Input
-            label={t('gap.fieldAmount')}
-            value={amount}
-            onChangeText={(text) => setAmount(formatGapAmountInput(text))}
-            keyboardType="decimal-pad"
-            placeholder="1.5"
-          />
 
           <ChipSelector
             label={t('gap.fieldUnit')}
@@ -134,42 +109,8 @@ const GapCreateScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_CREATE>> = ({ n
             />
           ) : null}
 
-          <Input
-            label={t('gap.fieldPaymentDay')}
-            value={paymentDay}
-            onChangeText={(text) => setPaymentDay(text.replace(/\D/g, '').slice(0, 2))}
-            keyboardType="numeric"
-          />
-
-          <ChipSelector
-            label={t('gap.fieldQueueMode')}
-            options={[
-              { value: 'UPFRONT', label: t('gap.queueUpfront') },
-              { value: 'MONTHLY', label: t('gap.queueMonthly') },
-            ]}
-            value={queueMode}
-            onChange={setQueueMode}
-            layout="fluid"
-          />
-          <Text style={styles.hint}>
-            {queueMode === 'UPFRONT' ? t('gap.queueUpfrontHint') : t('gap.queueMonthlyHint')}
-          </Text>
-
-          {queueMode === 'UPFRONT' ? (
-            <ChipSelector
-              label={t('gap.fieldQueueType')}
-              options={[
-                { value: 'AGREEMENT', label: t('gap.queueAgreement') },
-                { value: 'LOTTERY', label: t('gap.queueLottery') },
-              ]}
-              value={queueType}
-              onChange={setQueueType}
-              layout="fluid"
-            />
-          ) : null}
-
           <Text style={styles.note}>{t('gap.membersLaterHint')}</Text>
-          <Text style={styles.note}>{t('gap.startDateHint')}</Text>
+          <Text style={styles.note}>{t('gap.freeLedgerHint')}</Text>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 

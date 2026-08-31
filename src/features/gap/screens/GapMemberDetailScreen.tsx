@@ -9,13 +9,11 @@ import { useI18n } from '../../../shared/i18n';
 import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import type { GapScreenProps } from '../../../app/navigation/types';
 import type { ROUTES } from '../../../app/navigation/routes';
-import { useGapPaymentAction, useGapShareDetail } from '../hooks/useGap';
+import { useConfirmGapTransfer, useCreateGapTransfer, useGapMemberDetail } from '../hooks/useGap';
 import Button from '../../../shared/ui/Button';
 import GapTransferRow from '../components/GapTransferRow';
-import GapPaymentActionModal, {
-  type GapPaymentAction,
-} from '../components/GapPaymentActionModal';
-import { GapTransferDTO, GapUnit, toAmount } from '../types/gap';
+import GapTransferFormModal from '../components/GapTransferFormModal';
+import { GapTransferDTO, GapTransferDirection, GapUnit, toAmount } from '../types/gap';
 import { formatGapAmount } from '../model/gapFormat';
 
 interface Section {
@@ -26,10 +24,17 @@ interface Section {
 }
 
 /**
- * Bitta a'zoning hisob-kitobi.
+ * Bitta a'zoning hisob-kitobi — Qarzlar bo'limidagi mijoz ekrani bilan bir
+ * xil tuzilishda: yuqorida oldi-berdi tarixi, pastda ikkita to'la enli tugma.
  *
- * Ikki bo'lim: unga kim qancha bergan (kirim) va u kimga qancha bergan (chiqim).
- * Bo'lim sarlavhasidagi jami — faqat ikki tomon tasdiqlagan yozuvlardan (TZ 09).
+ * Ikki bo'lim: unga kim qancha bergan (kirim) va u kimga qancha bergan
+ * (chiqim). Bo'lim sarlavhasidagi jami — faqat ikki tomon tasdiqlagan
+ * yozuvlardan (TZ 09).
+ *
+ * "Berdim" va "Oldim" istalgan paytda bosiladi: navbat ham, davr ham yo'q.
+ * Yozuvni kiritgan odam uni o'zi tasdiqlamaydi — tasdiq qarama-qarshi
+ * tomonda qoladi. Tasdig'imni kutayotgan yozuvni qator ustiga bosib
+ * tasdiqlayman.
  */
 const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> = ({
   navigation,
@@ -40,115 +45,42 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const { shareId, memberName, unitCode, unitLabel, unitType } = route.params;
+  const { memberId, groupId, memberName, unitCode, unitLabel, unitType } = route.params;
   const unit: GapUnit = useMemo(
     () => ({ code: unitCode, label: unitLabel, type: unitType }),
     [unitCode, unitLabel, unitType]
   );
 
-  const detailQuery = useGapShareDetail(shareId);
+  const detailQuery = useGapMemberDetail(memberId);
   const detail = detailQuery.data;
 
-  const actionMutation = useGapPaymentAction();
-  const [action, setAction] = useState<GapPaymentAction | null>(null);
-  /** Qatordan tanlangan to'lov — o'z hisobimda tasdiqlash shu orqali. */
-  const [rowPayment, setRowPayment] = useState<GapTransferDTO | null>(null);
+  const createMutation = useCreateGapTransfer(groupId);
+  const confirmMutation = useConfirmGapTransfer();
 
-  /**
-   * Tugmalar joriy foydalanuvchi bilan shu a'zo orasidagi yozuvga tegishli.
-   *
-   * "Berdim"  — men shu a'zoga to'laydigan yozuv (u kirimda: menga tegishli
-   *             qator), hali tasdiqlanmagan bo'lsa.
-   * "Oldim"   — shu a'zo menga to'lagan yozuv (u chiqimda), to'landi deb
-   *             belgilangan, lekin men hali tasdiqlamagan (TZ 09).
-   */
-  /**
-   * O'z hisobim ochilgan bo'lsa ham amallar ishlaydi.
-   *
-   * Bir odam bir guruhda bir nechta ulush olishi mumkin. Navbat uning bitta
-   * ulushiga kelganda qolgan ulushlari o'sha kassaga baribir to'laydi — pul
-   * o'z cho'ntagida qolsa ham, yozuv boshqalar ko'radigan hisobning bir qismi.
-   * Shuning uchun uni ham xuddi boshqalar kabi "Berdim" va "Oldim" bilan
-   * o'tkazamiz: kassa to'liq yig'ilgani hammaga ko'rinib tursin, "bu odam
-   * o'zi to'lamadimi?" degan savol tug'ilmasin.
-   *
-   * Boshqalar menga to'lagan pulni tasdiqlash qator ustiga bosish orqali
-   * (rowConfirmable) — har bir yozuv o'z egasining ekranida turadi.
-   */
+  const [direction, setDirection] = useState<GapTransferDirection | null>(null);
+
+  /** O'z hisobimda oldi-berdi tugmalari ma'nosiz — pul o'zimda qoladi. */
   const isSelf = detail?.me ?? false;
 
-  const payable = useMemo(
-    () =>
-      detail?.incoming.find(
-        (item) => item.counterpartyMe && !item.confirmed && !item.periodClosed
-      ) ?? null,
-    [detail]
-  );
-  const confirmable = useMemo(
-    () =>
-      // O'z ulushimga to'lovda ikkala tomon ham men — yozuv kirimda turadi.
-      (isSelf
-        ? detail?.incoming.find(
-            (item) =>
-              item.counterpartyMe &&
-              item.status === 'PAID' &&
-              !item.confirmed &&
-              !item.periodClosed
-          )
-        : detail?.outgoing.find(
-            (item) =>
-              item.counterpartyMe &&
-              item.status === 'PAID' &&
-              !item.confirmed &&
-              !item.periodClosed
-          )) ?? null,
-    [detail, isSelf]
-  );
-
-  /** Pastdagi panel o'z ulushlarim orasidagi yozuvga tegishlimi. */
-  const selfTransfer = isSelf && (payable != null || confirmable != null);
-
-  const activePayment = rowPayment ?? (action === 'give' ? payable : confirmable);
-
-  const closeAction = useCallback(() => {
-    setAction(null);
-    setRowPayment(null);
-  }, []);
-
-  /**
-   * O'z hisobimda kutilayotgan to'lovni qator orqali tasdiqlash.
-   *
-   * Tasdiq aynan shu yerda bo'lgani qulay: kim menga to'laganini bir joyda
-   * ko'rib, o'sha qatorning o'zidan tasdiqlayman. O'z ulushlarim orasidagi
-   * yozuv esa chiqmaydi — u tasdiq talab qilmaydi.
-   */
-  const confirmRow = useCallback(
-    (item: GapTransferDTO) => {
-      setRowPayment(item);
-      setAction('take');
-    },
-    []
-  );
-
-  const rowConfirmable = useCallback(
-    (item: GapTransferDTO) =>
-      isSelf &&
-      !item.counterpartyMe &&
-      item.status === 'PAID' &&
-      !item.confirmed &&
-      !item.periodClosed,
-    [isSelf]
-  );
-
-  const submitAction = useCallback(
-    (amount: number | null) => {
-      if (!activePayment) return;
-      actionMutation.mutate(
-        { paymentId: activePayment.paymentId, amount, confirm: action === 'take' },
-        { onSuccess: closeAction }
+  const submitTransfer = useCallback(
+    (amount: number, note: string | null) => {
+      createMutation.mutate(
+        {
+          counterpartyMemberId: memberId,
+          amount,
+          note: note ?? undefined,
+          direction: direction ?? 'GIVE',
+        },
+        { onSuccess: () => setDirection(null) }
       );
     },
-    [activePayment, action, actionMutation, closeAction]
+    [createMutation, memberId, direction]
+  );
+
+  /** Tasdig'imni kutayotgan yozuvni qator ustiga bosib tasdiqlash. */
+  const confirmRow = useCallback(
+    (item: GapTransferDTO) => confirmMutation.mutate(item.transferId),
+    [confirmMutation]
   );
 
   const sections = useMemo<Section[]>(() => {
@@ -156,7 +88,6 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
     return [
       {
         direction: 'in',
-        // O'z hisobimda sarlavha birinchi shaxsda: "menga kim bergan".
         title: isSelf ? t('gap.incomingTitleSelf') : t('gap.incomingTitle'),
         total: formatGapAmount(toAmount(detail.totalReceived), unit),
         data: detail.incoming,
@@ -171,17 +102,16 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
   }, [detail, unit, isSelf, t]);
 
   const renderItem = useCallback(
-    ({ item, section }: { item: GapTransferDTO; section: Section }) => (
+    ({ item, section, index }: { item: GapTransferDTO; section: Section; index: number }) => (
       <GapTransferRow
         item={item}
         unit={unit}
         direction={section.direction}
-        onPress={
-          section.direction === 'in' && rowConfirmable(item) ? confirmRow : undefined
-        }
+        isLast={index === section.data.length - 1}
+        onPress={item.canConfirm ? confirmRow : undefined}
       />
     ),
-    [unit, rowConfirmable, confirmRow]
+    [unit, confirmRow]
   );
 
   const renderSectionHeader = useCallback(
@@ -201,7 +131,12 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
     [styles, colors]
   );
 
-  const keyExtractor = useCallback((item: GapTransferDTO) => item.paymentId, []);
+  const keyExtractor = useCallback((item: GapTransferDTO) => item.transferId, []);
+
+  const actionError =
+    (createMutation.error as Error | null)?.message ??
+    (confirmMutation.error as Error | null)?.message ??
+    null;
 
   return (
     <View style={styles.container}>
@@ -242,50 +177,40 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         />
       )}
 
-      {/* Qarzlar ekranidagi kabi: pastda ikki amal. O'z ulushlarim orasidagi
-          yozuvda ham shu panel ishlaydi — ikkala tomon ham men bo'laman. */}
-      {isSelf && payable == null && confirmable == null ? (
+      {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+
+      {/* Qarzlar bo'limidagi kabi: ikkita to'la enli tugma — "Oldim" qizil,
+          "Berdim" yashil. O'z hisobimda amal yo'q. */}
+      {isSelf ? (
         <Text style={styles.actionHint}>
-          {detail?.incoming.some(rowConfirmable) ? t('gap.tapToConfirm') : t('gap.selfLedger')}
+          {detail?.incoming.some((item) => item.canConfirm)
+            ? t('gap.tapToConfirm')
+            : t('gap.selfLedger')}
         </Text>
       ) : (
-        <>
-          <View style={styles.actionBar}>
-            <View style={styles.actionCell}>
-              <Button
-                title={t('gap.take')}
-                variant="outline"
-                onPress={() => setAction('take')}
-                disabled={confirmable == null}
-              />
-            </View>
-            <View style={styles.actionCell}>
-              <Button
-                title={t('gap.give')}
-                onPress={() => setAction('give')}
-                disabled={payable == null}
-              />
-            </View>
-          </View>
-          {selfTransfer ? (
-            <Text style={styles.actionHint}>{t('gap.selfTransferHint')}</Text>
-          ) : null}
-        </>
+        <View style={styles.actionBar}>
+          <Button
+            title={t('gap.take')}
+            onPress={() => setDirection('TAKE')}
+            style={[styles.actionBtn, styles.takeBtn]}
+          />
+          <Button
+            title={t('gap.give')}
+            onPress={() => setDirection('GIVE')}
+            style={[styles.actionBtn, styles.giveBtn]}
+          />
+        </View>
       )}
-      {!isSelf && payable == null && confirmable == null ? (
-        <Text style={styles.actionHint}>{t('gap.nothingToGive')}</Text>
-      ) : null}
 
-      <GapPaymentActionModal
-        visible={action != null}
-        action={action ?? 'give'}
-        payment={activePayment}
+      <GapTransferFormModal
+        visible={direction != null}
+        direction={direction ?? 'GIVE'}
         memberName={memberName}
         unit={unit}
-        loading={actionMutation.isPending}
-        error={actionMutation.error ? (actionMutation.error as Error).message : null}
-        onClose={closeAction}
-        onSubmit={submitAction}
+        loading={createMutation.isPending}
+        error={(createMutation.error as Error | null)?.message ?? null}
+        onClose={() => setDirection(null)}
+        onSubmit={submitTransfer}
       />
     </View>
   );
@@ -340,23 +265,40 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.caption,
       color: colors.textSecondary,
     },
+    error: {
+      ...typography.caption,
+      color: colors.danger,
+      textAlign: 'center',
+      paddingHorizontal: spacing.md,
+      paddingBottom: spacing.xs,
+    },
     actionBar: {
       flexDirection: 'row',
-      gap: spacing.xs,
-      padding: spacing.md,
-      backgroundColor: colors.surface,
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.md,
+      backgroundColor: colors.background,
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
-    actionCell: {
+    actionBtn: {
       flex: 1,
+    },
+    takeBtn: {
+      backgroundColor: colors.danger,
+      borderWidth: 0,
+    },
+    giveBtn: {
+      backgroundColor: colors.primary,
+      borderWidth: 0,
     },
     actionHint: {
       ...typography.caption,
       fontSize: 11,
       color: colors.textSecondary,
       textAlign: 'center',
-      paddingBottom: spacing.xs,
+      paddingVertical: spacing.sm,
       backgroundColor: colors.surface,
     },
   });

@@ -4,8 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
-import { formatPhoneDisplay } from '../../../shared/lib/phone';
-import { formatGapAmount } from '../model/gapFormat';
+import { formatGapAmount, formatGapDate } from '../model/gapFormat';
 import { GapTransferDTO, GapUnit, toAmount } from '../types/gap';
 
 interface GapTransferRowProps {
@@ -13,57 +12,86 @@ interface GapTransferRowProps {
   unit: GapUnit;
   /** Kirim yashil (pul keldi), chiqim qizil (pul ketdi). */
   direction: 'in' | 'out';
+  isLast?: boolean;
   /** Berilsa qator bosiladigan bo'ladi — tasdiqlash shu yerdan qilinadi. */
   onPress?: (item: GapTransferDTO) => void;
 }
 
 /**
- * Hisob-kitobdagi bitta yozuv: qarama-qarshi tomon, nechanchi davr va summa.
+ * Oldi-berdi tarixidagi bitta yozuv — Qarzlar bo'limidagi tranzaksiya qatori
+ * bilan bir xil ko'rinishda: chapda yo'nalish ikonkasi, o'rtada katta rangli
+ * summa va ostida sana, o'ngda qarama-qarshi tomon.
  *
- * Ikki tomon tasdiqlamagan yozuv "kutilmoqda" deb belgilanadi va rangi
- * so'nadi — TZ 09 ga ko'ra faqat ikki tomonlama tasdiq yakuniy hisoblanadi.
+ * Ikki tomon tasdiqlamagan yozuv so'niq turadi va "kutilmoqda" deb
+ * belgilanadi — TZ 09 ga ko'ra faqat ikki tomonlama tasdiq yakuniy.
  */
-const GapTransferRow: React.FC<GapTransferRowProps> = ({ item, unit, direction, onPress }) => {
+const GapTransferRow: React.FC<GapTransferRowProps> = ({
+  item,
+  unit,
+  direction,
+  isLast = false,
+  onPress,
+}) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const color = direction === 'in' ? colors.positive : colors.negative;
-  const sign = direction === 'in' ? '+' : '−';
-
+  const isIn = direction === 'in';
+  const color = isIn ? colors.positive : colors.negative;
   const actionable = onPress != null;
+
+  const note = item.note?.trim();
 
   return (
     <Pressable
       onPress={() => onPress?.(item)}
       disabled={!actionable}
-      style={({ pressed }) => [styles.row, actionable && pressed && styles.rowPressed]}
+      style={({ pressed }) => [
+        styles.row,
+        !isLast && styles.rowBorder,
+        actionable && pressed && styles.rowPressed,
+      ]}
       accessibilityRole={actionable ? 'button' : undefined}
       accessibilityLabel={item.counterpartyName ?? undefined}
     >
-      <View style={styles.nameWrap}>
-        <Text style={styles.name} numberOfLines={1}>
-          {item.counterpartyName ?? '—'}
-        </Text>
-        <Text style={styles.meta} numberOfLines={1}>
-          {formatPhoneDisplay(item.counterpartyPhone ?? undefined, '—')}
-          {item.periodNumber != null
-            ? ` · ${t('gap.periodShort', { period: String(item.periodNumber) })}`
-            : ''}
-        </Text>
+      <View
+        style={[
+          styles.iconWrap,
+          { backgroundColor: isIn ? colors.positiveSoft : colors.negativeSoft },
+        ]}
+      >
+        <Ionicons
+          name={isIn ? 'arrow-down-outline' : 'arrow-up-outline'}
+          size={16}
+          color={color}
+        />
       </View>
 
-      <View style={styles.rightWrap}>
+      <View style={styles.body}>
         <Text
           style={[styles.amount, { color }, !item.confirmed && styles.amountPending]}
           numberOfLines={1}
         >
-          {sign} {formatGapAmount(toAmount(item.amount), unit)}
+          {formatGapAmount(toAmount(item.amount), unit)}
         </Text>
+        <Text style={styles.date} numberOfLines={1}>
+          {formatGapDate(item.date)}
+        </Text>
+      </View>
+
+      <View style={styles.side}>
+        <Text style={styles.counterparty} numberOfLines={1}>
+          {item.counterpartyName ?? '—'}
+        </Text>
+        {note ? (
+          <Text style={styles.note} numberOfLines={1}>
+            {note}
+          </Text>
+        ) : null}
         {!item.confirmed ? (
-          <Text style={styles.pendingText}>
-            {item.periodClosed ? t('gap.periodClosed') : t('gap.statusWaiting')}
+          <Text style={styles.pendingText} numberOfLines={1}>
+            {t('gap.statusWaiting')}
           </Text>
         ) : null}
       </View>
@@ -75,54 +103,77 @@ const GapTransferRow: React.FC<GapTransferRowProps> = ({ item, unit, direction, 
   );
 };
 
-const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
-      paddingVertical: spacing.xs + 2,
-      paddingHorizontal: spacing.md,
-      marginHorizontal: spacing.md,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
+      paddingLeft: spacing.sm,
+      paddingRight: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    rowBorder: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
     },
     rowPressed: {
       backgroundColor: colors.surfaceMuted,
     },
-    nameWrap: {
-      flex: 1,
+    iconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    body: {
+      flexShrink: 1,
+      flexGrow: 3,
+      flexBasis: 0,
       minWidth: 0,
     },
-    name: {
-      ...typography.body,
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.textPrimary,
-    },
-    meta: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textSecondary,
-      fontVariant: ['tabular-nums'],
-    },
-    rightWrap: {
-      alignItems: 'flex-end',
-    },
     amount: {
-      ...typography.caption,
-      fontSize: 14,
+      ...typography.bodySmall,
+      fontSize: 18,
       fontWeight: '800',
+      letterSpacing: -0.3,
       fontVariant: ['tabular-nums'],
     },
     amountPending: {
       opacity: 0.45,
     },
+    date: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.xxs / 2,
+      fontVariant: ['tabular-nums'],
+    },
+    side: {
+      flexShrink: 1,
+      flexGrow: 2,
+      flexBasis: 0,
+      minWidth: 0,
+      marginLeft: spacing.md,
+      alignItems: 'flex-end',
+    },
+    counterparty: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      textAlign: 'right',
+    },
+    note: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.textSecondary,
+      textAlign: 'right',
+      marginTop: spacing.xxs / 2,
+    },
     pendingText: {
       ...typography.caption,
       fontSize: 10,
       color: colors.textSecondary,
+      marginTop: spacing.xxs / 2,
     },
   });
 

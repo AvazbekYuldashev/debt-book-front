@@ -58,7 +58,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
     const list = listQuery.data?.content ?? [];
     if (!sort) return list;
     const value = (item: GapResponseDTO) =>
-      toAmount(sort.direction === 'receive' ? item.myTotalReceived : item.myTotalGiven);
+      toAmount(sort.direction === 'received' ? item.myTotalReceived : item.myTotalGiven);
     return [...list].sort((a, b) => value(b) - value(a));
   }, [listQuery.data, sort]);
 
@@ -86,14 +86,9 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
       navigation.navigate(ROUTES.GAP_DETAIL, {
         id: item.id,
         name: item.name,
-        amount: toAmount(item.amount),
         unitCode: item.unitCode,
         unitLabel: item.unitLabel,
         unitType: item.unitType,
-        currentPeriod: item.currentPeriod,
-        totalPeriods: item.totalPeriods,
-        status: item.status,
-        queueMode: item.queueMode,
         organizer: item.organizer,
       });
     },
@@ -101,8 +96,10 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
   );
 
   const renderItem: ListRenderItem<GapResponseDTO> = useCallback(
-    ({ item }) => <GapRow item={item} onPress={openDetail} />,
-    [openDetail]
+    ({ item, index }) => (
+      <GapRow item={item} isLast={index === items.length - 1} onPress={openDetail} />
+    ),
+    [openDetail, items.length]
   );
 
   const keyExtractor = useCallback((item: GapResponseDTO) => item.id, []);

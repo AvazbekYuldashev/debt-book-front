@@ -65,18 +65,14 @@ export type GapStackParamList = {
   [ROUTES.GAP_DETAIL]: {
     id: string;
     name: string;
-    amount: number;
     unitCode: string;
     unitLabel: string;
     unitType: 'MONEY' | 'GOODS';
-    currentPeriod: number;
-    totalPeriods: number;
-    status: 'DRAFT' | 'ACTIVE' | 'FINISHED' | 'STOPPED';
-    queueMode: 'UPFRONT' | 'MONTHLY';
     organizer: boolean;
   };
   [ROUTES.GAP_MEMBER]: {
-    shareId: string;
+    memberId: string;
+    groupId: string;
     memberName: string;
     unitCode: string;
     unitLabel: string;

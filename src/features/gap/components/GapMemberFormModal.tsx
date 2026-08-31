@@ -11,7 +11,6 @@ import { normalizePhone } from '../../../shared/lib/phone';
 export interface GapMemberFormValue {
   name: string;
   phone?: string;
-  shareCount: number;
 }
 
 interface GapMemberFormModalProps {
@@ -42,14 +41,12 @@ const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [shareCount, setShareCount] = useState('1');
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
       setName('');
       setPhone('');
-      setShareCount('1');
       setLocalError(null);
     }
   }, [visible]);
@@ -63,9 +60,8 @@ const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
     onSubmit({
       name: name.trim(),
       phone: phone.trim() ? normalizePhone(phone) : undefined,
-      shareCount: Math.max(1, Number(shareCount) || 1),
     });
-  }, [name, phone, shareCount, onSubmit, t]);
+  }, [name, phone, onSubmit, t]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -92,12 +88,7 @@ const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
               onChangeText={setPhone}
               keyboardType="phone-pad"
             />
-            <Input
-              label={t('gap.fieldShareCount')}
-              value={shareCount}
-              onChangeText={(text) => setShareCount(text.replace(/\D/g, '').slice(0, 2))}
-              keyboardType="numeric"
-            />
+            <Text style={styles.hint}>{t('gap.memberPhoneHint')}</Text>
 
             {localError || error ? (
               <Text style={styles.error}>{localError ?? error}</Text>
@@ -137,6 +128,11 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     close: {
       padding: 4,
+    },
+    hint: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.textSecondary,
     },
     error: {
       ...typography.caption,

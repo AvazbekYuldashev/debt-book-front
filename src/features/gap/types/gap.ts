@@ -1,11 +1,17 @@
-export type GapGroupStatus = 'DRAFT' | 'ACTIVE' | 'FINISHED' | 'STOPPED';
+/**
+ * Gap kassa: guruh + a'zolar + erkin oldi-berdi.
+ *
+ * Navbat, qur'a, davr va belgilangan oylik badal YO'Q — istalgan a'zo
+ * istalgan paytda istalgan a'zo bilan hisob-kitob qiladi. Yagona qat'iy
+ * qoida: yozuvni bir tomon kiritadi, ikkinchi tomon tasdiqlaydi.
+ */
 
-export type GapPaymentStatus = 'WAITING' | 'PAID' | 'CONFIRMED' | 'LATE' | 'DISPUTED';
+export type GapTransferStatus = 'WAITING' | 'CONFIRMED';
 
 /**
  * Badal nimada o'lchanadi.
  *  MONEY — pul (so'm, dollar, rubl)
- *  GOODS — mahsulot (kg go'sht, litr yog', metr mato, dona qo'y)
+ *  GOODS — mahsulot (kg go'sht, litr yog', metr mato)
  * Birliklar bir-biriga AYLANTIRILMAYDI va hech qachon qo'shilmaydi.
  */
 export type GapUnitType = 'MONEY' | 'GOODS';
@@ -34,76 +40,69 @@ export interface GapAmountDTO {
 
 /**
  * Statistika paneli. Har bir raqam birlik bo'yicha ajratilgan ro'yxat —
- * so'm, dollar, kg go'sht bir-biriga qo'shilmaydi.
- * Ikkala "jami" ham QOLGAN majburiyat, o'tgan davrlar emas.
+ * so'm, dollar va kg go'sht bir-biriga qo'shilmaydi.
+ *
+ * Raqamlar HAQIQATDA bo'lib o'tgan oldi-berdilardan: rejalashtirilgan
+ * majburiyat degan narsa endi yo'q.
  */
 export interface GapSummaryDTO {
-  currentMonthReceive: GapAmountDTO[];
-  totalReceive: GapAmountDTO[];
-  currentMonthPay: GapAmountDTO[];
-  totalPay: GapAmountDTO[];
+  currentMonthReceived: GapAmountDTO[];
+  totalReceived: GapAmountDTO[];
+  currentMonthGiven: GapAmountDTO[];
+  totalGiven: GapAmountDTO[];
 }
 
 /** Ro'yxatdagi bitta gap kassa qatori. */
 export interface GapResponseDTO {
   id: string;
   name: string;
-  amount: number | string;
   unitCode: string;
   unitLabel: string;
   unitType: GapUnitType;
-  status: GapGroupStatus;
-  queueMode: 'UPFRONT' | 'MONTHLY';
-  /** Joriy foydalanuvchi tashkilotchimi — navbat tugmalari faqat unga. */
+  /** Guruhni men yaratganmanmi — a'zo qo'shish va tahrir menga ochiq. */
   organizer: boolean;
-  currentPeriod: number;
-  totalPeriods: number;
-  myQueuePosition: number | null;
-  myTurnDate: string | null;
-  nextPaymentDate: string | null;
-  /** Shu guruhda jami olganim (tasdiqlangan to'lovlar). */
+  memberCount: number;
+  /** Shu guruhda jami olganim (tasdiqlangan yozuvlar). */
   myTotalReceived: number | string;
-  /** Shu guruhda jami berganim (tasdiqlangan to'lovlar). */
+  /** Shu guruhda jami berganim. */
   myTotalGiven: number | string;
+  /** Mening tasdig'imni kutayotgan yozuvlar soni. */
+  awaitingMyConfirm: number;
 }
 
-/** A'zolar ro'yxatidagi bitta qator. */
+/** A'zolar ro'yxatidagi bitta qator. Summalar MENGA NISBATAN. */
 export interface GapMemberDTO {
-  shareId: string;
+  memberId: string;
   memberName: string;
   memberPhone: string | null;
-  queuePosition: number;
-  turnDate: string | null;
   me: boolean;
-  receiverThisPeriod: boolean;
+  /** Undan olganim (yashil). */
   received: number | string;
-  paid: number | string;
-  openRisk: number | string;
-  currentPeriodStatus: GapPaymentStatus | null;
-  /** Shu davrda to'lashi kerak bo'lgan miqdor. Shu oy oluvchida null. */
-  currentPeriodAmount: number | string | null;
+  /** Unga berganim (qizil). */
+  given: number | string;
+  awaitingMyConfirm: number;
 }
 
-/** Ikki a'zo o'rtasidagi bitta to'lov yozuvi. */
+/** Oldi-berdi tarixidagi bitta yozuv. */
 export interface GapTransferDTO {
-  paymentId: string;
-  periodNumber: number | null;
-  dueDate: string | null;
-  counterpartyShareId: string | null;
+  transferId: string;
+  counterpartyMemberId: string | null;
   counterpartyName: string | null;
   counterpartyPhone: string | null;
   /** Qarama-qarshi tomon joriy foydalanuvchimi. */
   counterpartyMe: boolean;
   amount: number | string;
-  status: GapPaymentStatus | null;
+  note: string | null;
+  date: string | null;
   confirmed: boolean;
-  /** Davr yopilgan bo'lsa bu yozuv bilan hech qanday amal qilinmaydi. */
-  periodClosed: boolean;
+  status: GapTransferStatus;
+  /** Men shu yozuvni tasdiqlay olamanmi (o'zim kiritgan bo'lsam — yo'q). */
+  canConfirm: boolean;
 }
 
-/** Bitta a'zoning shaxsiy hisob-kitobi. */
-export interface GapShareDetailDTO {
-  shareId: string;
+/** Bitta a'zoning hisob-kitobi. */
+export interface GapMemberDetailDTO {
+  memberId: string;
   groupId: string;
   groupName: string;
   unitCode: string;
@@ -111,14 +110,35 @@ export interface GapShareDetailDTO {
   unitType: GapUnitType;
   memberName: string;
   memberPhone: string | null;
-  queuePosition: number;
   me: boolean;
   totalReceived: number | string;
   totalGiven: number | string;
-  /** Unga kim qancha bergan */
+  /** Unga kim qancha bergan. */
   incoming: GapTransferDTO[];
-  /** U kimga qancha bergan */
+  /** U kimga qancha bergan. */
   outgoing: GapTransferDTO[];
+}
+
+/** Yangi yozuv yo'nalishi: men berdim yoki men oldim. */
+export type GapTransferDirection = 'GIVE' | 'TAKE';
+
+export interface GapTransferCreateDTO {
+  counterpartyMemberId: string;
+  amount: number;
+  note?: string;
+  direction: GapTransferDirection;
+}
+
+export interface GapGroupCreateDTO {
+  name: string;
+  unitType: GapUnitType;
+  unitCode: string;
+  unitLabel: string;
+}
+
+export interface GapMemberCreateDTO {
+  name: string;
+  phone?: string;
 }
 
 /** Backend BigDecimal'ni ba'zan satr sifatida qaytaradi — normallashtiramiz. */
@@ -143,7 +163,7 @@ export const unitOf = (source: {
 });
 
 /** Statistika panelidagi qaysi raqam bo'yicha saralanmoqda. */
-export type GapSortDirection = 'receive' | 'pay';
+export type GapSortDirection = 'received' | 'given';
 
 export interface GapSort {
   direction: GapSortDirection;
