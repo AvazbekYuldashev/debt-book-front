@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DebtsStack from './DebtsStack';
@@ -9,12 +9,18 @@ import { Feather } from '@expo/vector-icons';
 import { ROUTES } from './routes';
 import type { MainTabParamList } from './types';
 import { useI18n } from '../../shared/i18n';
+import { WorkspaceContext } from '../../features/business/context/WorkspaceContext';
 import { useAppTheme } from '../../shared/theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const BottomTabNavigator: React.FC = () => {
   const { t } = useI18n();
+  // Gap to'yona — SHAXSIY bo'lim: odamlar o'rtasidagi oldi-berdi daftari.
+  // Biznes hisobiga o'tilganda tab umuman ko'rinmaydi (backend ham
+  // biznes konteksti bilan kelgan so'rovni rad etadi).
+  const { workspace } = useContext(WorkspaceContext);
+  const gapAvailable = workspace.mode !== 'business';
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const tabLabel = (routeName: string) => {
@@ -64,7 +70,7 @@ const BottomTabNavigator: React.FC = () => {
       })}
     >
       <Tab.Screen name={ROUTES.DEBTS} component={DebtsStack} />
-      <Tab.Screen name={ROUTES.GAP} component={GapStack} />
+      {gapAvailable ? <Tab.Screen name={ROUTES.GAP} component={GapStack} /> : null}
       <Tab.Screen name={ROUTES.EXPENSES} component={ExpensesStack} />
       <Tab.Screen name={ROUTES.PROFILE} component={ProfileStack} />
     </Tab.Navigator>

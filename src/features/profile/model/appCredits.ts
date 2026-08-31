@@ -33,7 +33,7 @@ export const APP_CREDITS: CreditPerson[] = [
   {
     roleKey: 'about.roleIdea',
     fullName: "Tojiboyev Mirzoxidjon Mirzajonovich",
-    shortName: 'Mirzohid',
+    shortName: 'Mirzohidjon',
     contacts: [
       { kind: 'phone', value: '+998 88 817 27 27' },
       { kind: 'telegram', value: '@Tojiboyev_Mirzohid' },
