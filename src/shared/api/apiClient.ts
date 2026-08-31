@@ -52,11 +52,44 @@ apiClient.interceptors.request.use((config) => {
 });
 
 let isRefreshing = false;
-let refreshQueue: Array<(jwt: string) => void> = [];
+
+/**
+ * Yangilanish tugashini kutayotgan so'rovlar.
+ *
+ * Ikkala tomon ham saqlanadi: yangilanish yiqilsa ularni REJECT qilish kerak,
+ * aks holda so'rovlar abadiy osilib qoladi va ekran yuklanmay turaveradi.
+ */
+let refreshQueue: Array<{
+  resolve: (jwt: string) => void;
+  reject: (reason: unknown) => void;
+}> = [];
 
 function flushQueue(jwt: string) {
-  refreshQueue.forEach((cb) => cb(jwt));
+  const queue = refreshQueue;
   refreshQueue = [];
+  queue.forEach(({ resolve }) => resolve(jwt));
+}
+
+function rejectQueue(reason: unknown) {
+  const queue = refreshQueue;
+  refreshQueue = [];
+  queue.forEach(({ reject }) => reject(reason));
+}
+
+/**
+ * "Sessiya tugadi" xabari BIR MARTA chiqishi uchun.
+ *
+ * Ekran ochilganda o'nlab so'rov parallel ketadi. Token eskirgan bo'lsa
+ * hammasi 401 qaytaradi va har biri handler'ni chaqirsa, foydalanuvchi
+ * ketma-ket o'nta bir xil oyna ko'radi. Bayroq keyingi muvaffaqiyatli
+ * kirishgacha ushlab turadi.
+ */
+let sessionExpiredNotified = false;
+
+function notifyUnauthorized() {
+  if (sessionExpiredNotified) return;
+  sessionExpiredNotified = true;
+  unauthorizedHandler?.();
 }
 
 apiClient.interceptors.response.use(
@@ -72,8 +105,8 @@ apiClient.interceptors.response.use(
         originalRequest._retry = true;
 
         if (isRefreshing) {
-          return new Promise<string>((resolve) => {
-            refreshQueue.push(resolve);
+          return new Promise<string>((resolve, reject) => {
+            refreshQueue.push({ resolve, reject });
           }).then((jwt) => {
             originalRequest.headers = originalRequest.headers || {};
             originalRequest.headers.Authorization = `Bearer ${jwt}`;
@@ -89,6 +122,9 @@ apiClient.interceptors.response.use(
           const { jwt, refreshToken: newRefreshToken } = res.data as { jwt: string; refreshToken: string };
 
           apiClient.defaults.headers.common.Authorization = `Bearer ${jwt}`;
+          // Sessiya tiklandi — keyingi muddat tugashida xabar yana chiqsin.
+          lastAuthToken = jwt;
+          sessionExpiredNotified = false;
           onTokenRefreshed?.(jwt, newRefreshToken);
           flushQueue(jwt);
 
@@ -96,15 +132,16 @@ apiClient.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${jwt}`;
           return apiClient(originalRequest);
         } catch {
-          refreshQueue = [];
-          unauthorizedHandler?.();
+          rejectQueue(error);
+          notifyUnauthorized();
           return Promise.reject(error);
         } finally {
           isRefreshing = false;
         }
       }
 
-      unauthorizedHandler?.();
+      // Refresh token yo'q — qayta urinishning ma'nosi yo'q, kirish kerak.
+      notifyUnauthorized();
     }
 
     const statusText = error.response?.statusText;
@@ -131,11 +168,27 @@ export const setTokenRefreshedHandler = (handler: ((jwt: string, refreshToken: s
   onTokenRefreshed = handler;
 };
 
+/**
+ * Oxirgi o'rnatilgan token.
+ *
+ * `setApiAuthToken` har bir so'rovdan oldin chaqiriladi, shuning uchun
+ * "sessiya tugadi" bayrog'ini shunchaki har chaqiruvda tozalab bo'lmaydi —
+ * u holda eskirgan token bilan ketgan har bir so'rov yana xabar chiqarardi.
+ * Bayroq faqat token HAQIQATAN boshqasiga almashganda tiklanadi: bu yangi
+ * kirish yoki muvaffaqiyatli yangilanish degani.
+ */
+let lastAuthToken: string | undefined;
+
 export const setApiAuthToken = (token?: string) => {
   if (token) {
     apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+    if (token !== lastAuthToken) {
+      lastAuthToken = token;
+      sessionExpiredNotified = false;
+    }
     return;
   }
+  lastAuthToken = undefined;
   delete apiClient.defaults.headers.common.Authorization;
 };
 
