@@ -34,13 +34,17 @@ export const APP_CREDITS: CreditPerson[] = [
     roleKey: 'about.roleIdea',
     fullName: "Tojiboyev Mirzoxidjon Mirzajonovich",
     shortName: 'Mirzohid',
-    contacts: [{ kind: 'telegram', value: '@Tojiboyev_Mirzohid' }],
+    contacts: [
+      { kind: 'phone', value: '+998 88 817 27 27' },
+      { kind: 'telegram', value: '@Tojiboyev_Mirzohid' },
+    ],
   },
   {
     roleKey: 'about.roleDeveloper',
     fullName: "Yuldashev Avazbek Maxamadsoli o'g'li",
     shortName: 'Avazbek',
     contacts: [
+      { kind: 'phone', value: '+998 90 141 36 56' },
       { kind: 'telegram', value: '@Greed_Coder' },
       { kind: 'email', value: 'avazbek.yuldashev3003@gmail.com' },
     ],

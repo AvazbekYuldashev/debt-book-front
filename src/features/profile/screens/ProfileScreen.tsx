@@ -19,6 +19,7 @@ import { useProfileAction } from '../hooks/useProfileAction';
 import { BusinessDTO } from '../../business/types/business';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { ProfileNavigation } from '../../../app/navigation/types';
+import LegalMenuRow from '../components/LegalMenuRow';
 import ProfileAvatar from '../components/ProfileAvatar';
 import ProfilePhotoModal from '../components/ProfilePhotoModal';
 import { pickAndUploadImage } from '../lib/pickImage';
@@ -271,6 +272,16 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
             />
           </View>
         </View>
+
+        {/* Eng pastda: kundalik ish emas, kamdan-kam ochiladi. */}
+        <Card style={styles.card}>
+          <LegalMenuRow
+            label={t('about.title')}
+            iconName="information-circle-outline"
+            isLast
+            onPress={() => navigation.navigate(ROUTES.ABOUT_APP)}
+          />
+        </Card>
       </ScrollView>
 
       <ProfilePhotoModal
