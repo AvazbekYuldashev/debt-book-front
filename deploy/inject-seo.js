@@ -96,6 +96,7 @@ const HEAD_TAGS = SITE_VERIFICATION + `
 <meta name="application-name" content="Tez Top">
 <meta name="apple-mobile-web-app-title" content="Tez Top">
 <link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="256x256" href="/favicon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -137,6 +138,17 @@ if (!/<meta name="description" content="[^"]*">/.test(html)) fail('description m
 html = html.replace(
   /<meta name="description" content="[^"]*">/,
   '<meta name="description" content="' + DESCRIPTION + '">'
+);
+
+// Expo `<link rel="icon" href="/favicon.ico"/>` ni type'siz qo'yadi.
+// Yandex esa `rel` "icon"/"shortcut icon" VA formatga mos `type` bo'lishini
+// so'raydi, aks holda natijalarda logo o'rniga umumiy globus chiziladi.
+const expoIcon = '<link rel="icon" href="/favicon.ico"/>';
+if (!html.includes(expoIcon)) fail('expo favicon <link> topilmadi');
+html = html.replace(
+  expoIcon,
+  '<link rel="icon" type="image/x-icon" href="/favicon.ico">\n' +
+    '<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">'
 );
 
 if (!html.includes('</head>')) fail('</head> topilmadi');
