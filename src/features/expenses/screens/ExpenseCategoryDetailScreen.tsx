@@ -2,8 +2,8 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import Button from '../../../shared/ui/Button';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
+import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -169,14 +169,11 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        {/* Qo'shish tugmasi pastdagi suzuvchi "+" da — Qarzlar va
+            Xarajatlar ro'yxatidagi bilan bir xil joyda. */}
         <ScreenHeader
           title={categoryName || t('expenses.title')}
           onBack={navigation.goBack}
-          right={
-            allowWrite ? (
-              <Button title={t('expenses.addExpense')} onPress={() => setExpenseModalVisible(true)} />
-            ) : null
-          }
         />
 
         <View style={styles.searchRow}>
@@ -216,6 +213,13 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
           />
         )}
       />
+
+      {allowWrite ? (
+        <FloatingActionButton
+          onPress={() => setExpenseModalVisible(true)}
+          accessibilityLabel={t('expenses.addExpense')}
+        />
+      ) : null}
 
       <ExpenseFormModal
         visible={expenseModalVisible}
