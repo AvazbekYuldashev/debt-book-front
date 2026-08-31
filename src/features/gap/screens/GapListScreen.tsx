@@ -200,7 +200,9 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       backgroundColor: colors.surface,
       borderRadius: radius.xl,
       marginHorizontal: spacing.md,
-      marginBottom: spacing.md,
+      // Pastdan bo'shliq: aks holda "+" tugmasi oxirgi qatorning summasini
+      // yopib turadi (tugma ro'yxat USTIDA suzadi).
+      marginBottom: 96,
       overflow: 'hidden',
     },
     listSkeleton: {

@@ -1,41 +1,16 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
-import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useCallback, useContext, useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import UserAvatar from '../../../shared/ui/UserAvatar';
-import CopyButton from '../../../shared/ui/CopyButton';
 import { formatMoney } from '../../../shared/lib/money';
 import type { CurrencyNet } from '../../../shared/lib/currency';
 import type { Contact } from '../context/ContactsContext';
+import { CurrencyContext } from '../context/CurrencyContext';
 
 const AVATAR_SIZE = 46;
-
-const AMOUNT_FONT_MAX = 13;
-const AMOUNT_FONT_MIN = 11;
-// Qalin, tabular-nums summa satri uchun o'rtacha belgi eni ≈ shriftning shuncha
-// ulushi (raqam ~0.6em, bo'sh joy ~0.3em — summalarda ikkalasi aralash).
-const AVG_CHAR_RATIO = 0.58;
-// Summalar bloki yonidagi tahrir tugmasi + oraliqlar uchun ajratma.
-const RIGHT_RESERVED = 44;
-const RIGHT_RESERVED_NO_EDIT = 12;
-
-/**
- * Summa shriftini MAVJUD ENGA qarab hisoblaydi: keng ekranda to'liq o'lcham
- * (AMOUNT_FONT_MAX), tor ekranda kerak bo'lgandagina kichrayadi (AMOUNT_FONT_MIN
- * gacha). Faqat uzunlikka qarash keng ekranda ham mayda qilib yuborardi.
- * `adjustsFontSizeToFit` web'da (react-native-web) ishlamaydi — shuning uchun qo'lda.
- *
- * `longestLength` — qatordagi ENG UZUN summa satri: bitta mijoz qatoridagi barcha
- * valyutalar BIR XIL shrift oladi (aks holda uzun satr yonidagilardan kichik
- * bo'lib, xunuk ko'rinardi).
- */
-const amountFontSize = (longestLength: number, availWidth: number): number => {
-  if (!longestLength || availWidth <= 0) return AMOUNT_FONT_MAX;
-  const fitted = Math.floor(availWidth / (longestLength * AVG_CHAR_RATIO));
-  return Math.max(AMOUNT_FONT_MIN, Math.min(AMOUNT_FONT_MAX, fitted));
-};
 
 interface ContactRowProps {
   contact: Contact;
@@ -54,9 +29,14 @@ interface ContactRowProps {
 }
 
 /**
- * Kontaktlar ro'yxatining bitta qatori: avatar, ism/telefon, HAR VALYUTA uchun
- * alohida balans "pill"i (so'm va dollar hisobi aralashtirilmaydi) va (ruxsat
- * bo'lsa) tahrirlash tugmasi. To'liq prezentatsion va `memo`langan.
+ * Ro'yxatdagi bitta mijoz qatori.
+ *
+ * Qator BALANDLIGI DOIMIY: ism + izoh, o'ngda bitta summa. Mijozda bir
+ * nechta valyuta bo'lsa faqat asosiysi chiqadi, qolgani "yana N ta"
+ * bo'lib turadi - to'liq taqsimot mijoz ochilganda.
+ *
+ * Valyutalar bir-biriga QO'SHILMAYDI: dollarni bugungi kurs bo'yicha
+ * so'mga aylantirish qarzning haqiqiy ma'nosini buzadi.
  */
 const ContactRow: React.FC<ContactRowProps> = ({
   contact,
@@ -73,45 +53,37 @@ const ContactRow: React.FC<ContactRowProps> = ({
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
+  const { baseCurrency } = useContext(CurrencyContext);
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const avatarKey = contact.partyId || contact.id;
-
-  // Summa shrifti mavjud enga qarab hisoblanadi — qator enini o'lchab olamiz.
-  const [rowWidth, setRowWidth] = useState(0);
-  const handleRowLayout = useCallback(
-    (event: LayoutChangeEvent) => setRowWidth(event.nativeEvent.layout.width),
-    [],
-  );
-  const amountsWidth =
-    rowWidth > 0 ? rowWidth * 0.55 - (canEdit ? RIGHT_RESERVED : RIGHT_RESERVED_NO_EDIT) : 0;
 
   const handlePress = useCallback(() => onPress(contact.id), [onPress, contact.id]);
   const handleEdit = useCallback(() => onEdit(contact.id), [onEdit, contact.id]);
   const handleViewPhoto = useCallback(() => onViewPhoto(avatarKey), [onViewPhoto, avatarKey]);
 
-  const secondaryLabel =
-    contact.partyType === 'BUSINESS_ACCOUNT'
-      ? `${t('debts.businessLabel')}: ${contact.partyId || '--'}`
-      : contact.phone || contact.partyId || '--';
+  const isBusiness = contact.partyType === 'BUSINESS_ACCOUNT';
+  // Biznes mijozda telefon yo'q. Ilgari uning o'rniga UUID chiqardi — endi
+  // shunchaki "Biznes" deb belgilanadi, to'liq id mijoz kartasida.
+  const secondaryLabel = isBusiness ? t('debts.businessLabel') : contact.phone || '';
 
-  // Satrlarni oldindan yasaymiz — eng uzuni butun qator uchun yagona shriftni belgilaydi.
-  const amountItems = useMemo(
-    () =>
-      (balances ?? []).map(({ currency, amount }) => ({
-        currency,
-        amount,
-        text: `${amount > 0 ? '+' : ''}${formatMoney(amount, currency)}`,
-      })),
-    [balances],
-  );
-  const amountFont = useMemo(() => {
-    const longest = amountItems.reduce((max, item) => Math.max(max, item.text.length), 0);
-    return amountFontSize(longest, amountsWidth);
-  }, [amountItems, amountsWidth]);
+  /**
+   * Asosiy summa: foydalanuvchining asosiy valyutasidagisi, u bo'lmasa eng
+   * kattasi. Asosiy valyutaga bog'lash barqarorlik beradi — summalar
+   * o'zgarganda qatordagi valyuta sakrab yurmaydi.
+   */
+  const primary = useMemo(() => {
+    const rows = balances ?? [];
+    if (rows.length === 0) return null;
+    const inBase = rows.find((row) => row.currency === baseCurrency);
+    if (inBase) return inBase;
+    return rows.reduce((max, row) => (Math.abs(row.amount) > Math.abs(max.amount) ? row : max));
+  }, [balances, baseCurrency]);
+
+  const extraCount = (balances?.length ?? 0) - (primary ? 1 : 0);
 
   return (
-    <View style={[styles.row, !isLast && styles.rowBorder]} onLayout={handleRowLayout}>
+    <View style={[styles.row, !isLast && styles.rowBorder]}>
       <Pressable
         style={({ pressed }) => [styles.main, pressed && styles.mainPressed]}
         onPress={handlePress}
@@ -148,19 +120,15 @@ const ContactRow: React.FC<ContactRowProps> = ({
           <Text style={styles.name} numberOfLines={1}>
             {contact.fullName}
           </Text>
-          {contact.partyType === 'BUSINESS_ACCOUNT' ? (
-            // Biznes mijoz: telefon o'rniga biznes ID'si + nusxalash tugmasi.
-            <View style={styles.secondaryRow}>
-              <Text style={styles.secondary} numberOfLines={1}>
-                {secondaryLabel}
-              </Text>
-              {contact.partyId ? <CopyButton value={contact.partyId} size={14} /> : null}
+          {isBusiness ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{secondaryLabel}</Text>
             </View>
-          ) : (
+          ) : secondaryLabel ? (
             <Text style={styles.secondary} numberOfLines={1}>
               {secondaryLabel}
             </Text>
-          )}
+          ) : null}
         </View>
       </Pressable>
 
@@ -174,24 +142,28 @@ const ContactRow: React.FC<ContactRowProps> = ({
         >
           {balances === undefined ? (
             <Text style={styles.amountMuted}>{totalsLoading ? '…' : '--'}</Text>
-          ) : balances.length === 0 ? (
+          ) : primary === null ? (
             <Text style={styles.amountMuted}>{formatMoney(0)}</Text>
           ) : (
-            amountItems.map(({ currency, amount, text }) => (
+            <>
               <Text
-                key={currency}
                 style={[
                   styles.amount,
-                  {
-                    color: amount > 0 ? colors.positive : colors.negative,
-                    fontSize: amountFont,
-                  },
+                  { color: primary.amount > 0 ? colors.positive : colors.negative },
                 ]}
                 numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
               >
-                {text}
+                {primary.amount > 0 ? '+' : ''}
+                {formatMoney(primary.amount, primary.currency)}
               </Text>
-            ))
+              {extraCount > 0 ? (
+                <Text style={styles.amountMuted} numberOfLines={1}>
+                  {t('debts.moreCurrencies', { count: extraCount })}
+                </Text>
+              ) : null}
+            </>
           )}
         </Pressable>
         {canEdit ? (
@@ -252,10 +224,21 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       color: colors.textSecondary,
       flexShrink: 1,
     },
-    secondaryRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xxs,
+    // "Biznes" belgisi — UUID o'rniga. Kichik, past kontrastli: qatorda
+    // ism eng muhim element bo'lib qolishi kerak.
+    badge: {
+      alignSelf: 'flex-start',
+      marginTop: spacing.xxs / 2,
+      paddingHorizontal: spacing.xs,
+      paddingVertical: 1,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surfaceMuted,
+    },
+    badgeText: {
+      ...typography.caption,
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textSecondary,
     },
     // Summalar (fonsiz, o'ngga tekis) va tahrir tugmasi YONMA-YON, vertikal
     // markazda — qator bo'yi avatar balandligidan oshmaydi, o'ng chet tekis.
@@ -275,17 +258,15 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       gap: 1,
     },
     amount: {
-      ...typography.caption,
-      fontSize: 13,
-      lineHeight: 17,
+      ...typography.label,
       fontWeight: '800',
       fontVariant: ['tabular-nums'],
     },
     amountMuted: {
       ...typography.caption,
-      fontSize: 13,
-      fontWeight: '600',
+      fontSize: 11,
       color: colors.textSecondary,
+      marginTop: 1,
     },
     iconBtn: {
       width: 28,

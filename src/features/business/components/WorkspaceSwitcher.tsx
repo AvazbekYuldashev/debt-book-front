@@ -37,12 +37,12 @@ const BadgeAvatar = memo<BadgeAvatarProps>(({ isBusiness, activeBusiness, person
     if (activeBusiness) {
       return <InitialsAvatar name={activeBusiness.name} size={BADGE_AVATAR_SIZE} />;
     }
-    return <Ionicons name="business" size={20} color={colors.textOnPrimary} />;
+    return <Ionicons name="business" size={20} color={colors.textSecondary} />;
   }
   if (personalPhotoUri) {
     return <UserAvatar uri={personalPhotoUri} size={BADGE_AVATAR_SIZE} />;
   }
-  return <Ionicons name="person" size={20} color={colors.textOnPrimary} />;
+  return <Ionicons name="person" size={20} color={colors.textSecondary} />;
 });
 BadgeAvatar.displayName = 'BadgeAvatar';
 
@@ -155,7 +155,6 @@ const WorkspaceSwitcher: React.FC = () => {
           />
         </View>
         <View style={styles.labelWrap}>
-          <Text style={styles.contextHint}>{t('workspace.title')}</Text>
           <View style={styles.labelRow}>
             <Text numberOfLines={1} style={styles.label}>
               {contextLabel}
@@ -167,7 +166,7 @@ const WorkspaceSwitcher: React.FC = () => {
             ) : null}
           </View>
         </View>
-        <Ionicons name="chevron-down" size={22} color={colors.textOnPrimary} />
+        <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
       </Pressable>
 
       <WorkspacePickerModal
@@ -197,71 +196,53 @@ const WorkspaceSwitcher: React.FC = () => {
 const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     wrapper: {
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.md,
       paddingTop: spacing.xs,
-      paddingBottom: spacing.xs,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      paddingBottom: spacing.xxs,
+      backgroundColor: colors.background,
     },
+    // Fonsiz, soyasiz: bu navigatsiya emas, kontekst ko'rsatkichi.
     trigger: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.sm,
-      minHeight: 58,
-      borderRadius: radius.md,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.25,
-      shadowRadius: 8,
-      elevation: 4,
+      gap: spacing.xs,
+      alignSelf: 'flex-start',
+      maxWidth: '100%',
+      minHeight: 36,
+      borderRadius: radius.pill,
+      paddingRight: spacing.xs,
     },
-    triggerPersonal: {
-      backgroundColor: colors.primary,
-    },
-    triggerBusiness: {
-      backgroundColor: colors.primaryPressed,
-    },
+    triggerPersonal: {},
+    triggerBusiness: {},
     triggerPressed: {
-      opacity: 0.9,
+      opacity: 0.55,
     },
     iconBadge: {
       width: BADGE_AVATAR_SIZE,
       height: BADGE_AVATAR_SIZE,
-      borderRadius: radius.md,
+      borderRadius: radius.pill,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.onPrimarySoft,
+      backgroundColor: colors.surfaceMuted,
       overflow: 'hidden',
     },
     labelWrap: {
-      flex: 1,
-      paddingRight: spacing.xxs,
+      flexShrink: 1,
+      minWidth: 0,
     },
     labelRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
     },
-    contextHint: {
-      ...typography.caption,
-      fontSize: 11,
-      fontWeight: '600',
-      color: colors.textOnPrimary,
-      opacity: 0.75,
-      marginBottom: 1,
-    },
     label: {
-      ...typography.heading2,
-      fontSize: 17,
-      lineHeight: 22,
-      color: colors.textOnPrimary,
+      ...typography.label,
+      fontWeight: '700',
+      color: colors.textSecondary,
       flexShrink: 1,
     },
     roleBadge: {
-      backgroundColor: colors.onPrimarySoft,
+      backgroundColor: colors.surfaceMuted,
       borderRadius: radius.sm,
       paddingHorizontal: spacing.xs,
       paddingVertical: 2,
@@ -270,7 +251,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.caption,
       fontSize: 10,
       fontWeight: '700',
-      color: colors.textOnPrimary,
+      color: colors.textSecondary,
     },
   });
 

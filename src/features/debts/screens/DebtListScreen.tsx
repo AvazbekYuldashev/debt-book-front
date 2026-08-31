@@ -393,7 +393,10 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       <View style={styles.header}>
         <WorkspaceSwitcher />
         <View style={styles.headerRow}>
-          <Text style={styles.title}>{t('debts.clientsTitle')}</Text>
+          {/* Sarlavha tab nomi bilan BIR XIL: ilgari tabda "Qarzlar",
+              ekranda "Mijozlar" turardi va foydalanuvchi qayerdaligini
+              anglash uchun ikki xil lug'atni bog'lashiga to'g'ri kelardi. */}
+          <Text style={styles.title}>{t('tab.debts')}</Text>
           <View style={styles.headerTools}>
             <Pressable
               style={({ pressed }) => [styles.bellBtn, pressed && styles.searchTogglePressed]}
