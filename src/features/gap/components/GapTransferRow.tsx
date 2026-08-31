@@ -24,8 +24,10 @@ interface GapTransferRowProps {
  * Summa yozuvning O'Z birligida chiqadi — bir odam bilan bir vaqtda so'm,
  * dollar va kg bo'yicha hisob yuritish mumkin.
  *
- * Ikki tomon tasdiqlamagan yozuv so'niq turadi va "kutilmoqda" deb
- * belgilanadi — TZ 09 ga ko'ra faqat ikki tomonlama tasdiq yakuniy.
+ * Summa hech qachon so'nmaydi: yozuv kiritilgan bo'lsa pul haqiqatda
+ * ko'chgan va hisobga kirgan. Ikkinchi tomon hali tasdiqlamagan bo'lsa,
+ * qator o'ng chetida "kutilmoqda" belgisi turadi — bu roziliq haqida,
+ * pul haqida emas.
  */
 const GapTransferRow: React.FC<GapTransferRowProps> = ({
   item,
@@ -73,10 +75,7 @@ const GapTransferRow: React.FC<GapTransferRowProps> = ({
       </View>
 
       <View style={styles.body}>
-        <Text
-          style={[styles.amount, { color }, !item.confirmed && styles.amountPending]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.amount, { color }]} numberOfLines={1}>
           {formatGapAmount(toAmount(item.amount), unit)}
         </Text>
         <Text style={styles.date} numberOfLines={1}>
@@ -143,9 +142,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontWeight: '800',
       letterSpacing: -0.3,
       fontVariant: ['tabular-nums'],
-    },
-    amountPending: {
-      opacity: 0.45,
     },
     date: {
       ...typography.caption,

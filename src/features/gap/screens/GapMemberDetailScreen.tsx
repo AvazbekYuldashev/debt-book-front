@@ -11,7 +11,7 @@ import Button from '../../../shared/ui/Button';
 import GapTransferRow from '../components/GapTransferRow';
 import GapMemberBalanceHeader from '../components/GapMemberBalanceHeader';
 import GapTransferFormModal from '../components/GapTransferFormModal';
-import { GapAmountDTO, GapTransferDTO, GapTransferDirection, GapUnit } from '../types/gap';
+import { GapTransferDTO, GapTransferDirection, GapUnit } from '../types/gap';
 
 /** Ro'yxat qatori: yozuv va uning men uchun yo'nalishi. */
 interface LedgerItem {
@@ -118,36 +118,6 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
 
   const keyExtractor = useCallback((item: LedgerItem) => item.transfer.transferId, []);
 
-  /**
-   * Tasdiq kutayotgan summalar. Server jami raqamlarga faqat tasdiqlangan
-   * yozuvlarni qo'shadi, shuning uchun ularni shu yerda ro'yxatdan yig'amiz —
-   * aks holda ekranda yetti yozuv turib, balans nol ko'rinardi.
-   */
-  const pendingOf = useCallback(
-    (source: GapTransferDTO[] | undefined): GapAmountDTO[] => {
-      const byCode = new Map<string, GapAmountDTO>();
-      for (const transfer of source ?? []) {
-        if (transfer.confirmed || !transfer.unitCode) continue;
-        const existing = byCode.get(transfer.unitCode);
-        const value = Number(transfer.amount) || 0;
-        if (existing) {
-          existing.amount = Number(existing.amount) + value;
-        } else {
-          byCode.set(transfer.unitCode, {
-            unitCode: transfer.unitCode,
-            unitLabel: transfer.unitLabel,
-            unitType: transfer.unitType,
-            amount: value,
-          });
-        }
-      }
-      return [...byCode.values()];
-    },
-    []
-  );
-
-  const pendingReceived = useMemo(() => pendingOf(detail?.incoming), [detail, pendingOf]);
-  const pendingGiven = useMemo(() => pendingOf(detail?.outgoing), [detail, pendingOf]);
 
   const actionError =
     (createMutation.error as Error | null)?.message ??
@@ -162,8 +132,6 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         unit={unit}
         received={detail?.totalReceived ?? []}
         given={detail?.totalGiven ?? []}
-        pendingReceived={pendingReceived}
-        pendingGiven={pendingGiven}
         onBack={navigation.goBack}
       />
 
