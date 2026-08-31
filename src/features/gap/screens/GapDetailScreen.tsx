@@ -12,7 +12,8 @@ import type { GapScreenProps } from '../../../app/navigation/types';
 import { useAddGapMember, useGapGroup, useGapMembers } from '../hooks/useGap';
 import GapMemberRow from '../components/GapMemberRow';
 import GapMemberFormModal from '../components/GapMemberFormModal';
-import { GapMemberDTO, GapUnit } from '../types/gap';
+import GapGroupBalanceCard from '../components/GapGroupBalanceCard';
+import { GapMemberDTO, GapUnit, toAmount } from '../types/gap';
 
 /**
  * Bitta gap kassa: a'zolar ro'yxati.
@@ -98,6 +99,13 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
         title={group?.name ?? name}
         subtitle={t('gap.memberCount', { count: String(members.length) })}
         onBack={navigation.goBack}
+      />
+
+      <GapGroupBalanceCard
+        unit={unit}
+        received={toAmount(group?.myTotalReceived)}
+        given={toAmount(group?.myTotalGiven)}
+        loading={groupQuery.isLoading}
       />
 
       {addError ? <Text style={styles.error}>{addError}</Text> : null}

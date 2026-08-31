@@ -1,17 +1,16 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
-import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import type { GapScreenProps } from '../../../app/navigation/types';
 import type { ROUTES } from '../../../app/navigation/routes';
 import { useConfirmGapTransfer, useCreateGapTransfer, useGapMemberDetail } from '../hooks/useGap';
 import Button from '../../../shared/ui/Button';
 import GapTransferRow from '../components/GapTransferRow';
+import GapMemberBalanceHeader from '../components/GapMemberBalanceHeader';
 import GapTransferFormModal from '../components/GapTransferFormModal';
 import { GapTransferDTO, GapTransferDirection, GapUnit, toAmount } from '../types/gap';
 import { formatGapAmount } from '../model/gapFormat';
@@ -140,9 +139,12 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        title={memberName}
-        subtitle={formatPhoneDisplay(detail?.memberPhone ?? undefined, '')}
+      <GapMemberBalanceHeader
+        memberName={detail?.memberName ?? memberName}
+        memberPhone={detail?.memberPhone ?? null}
+        unit={unit}
+        received={toAmount(detail?.totalReceived)}
+        given={toAmount(detail?.totalGiven)}
         onBack={navigation.goBack}
       />
 

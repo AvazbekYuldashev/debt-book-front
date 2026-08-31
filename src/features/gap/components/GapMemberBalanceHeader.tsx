@@ -1,0 +1,187 @@
+import React, { memo, useCallback, useMemo } from 'react';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '../../../shared/theme';
+import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
+import { useI18n } from '../../../shared/i18n';
+import { buildTelUrl, formatPhoneDisplay } from '../../../shared/lib/phone';
+import BackButton from '../../../shared/ui/BackButton';
+import { formatGapAmount } from '../model/gapFormat';
+import type { GapUnit } from '../types/gap';
+
+interface GapMemberBalanceHeaderProps {
+  memberName: string;
+  memberPhone: string | null;
+  unit: GapUnit;
+  /** Undan olganim. */
+  received: number;
+  /** Unga berganim. */
+  given: number;
+  onBack: () => void;
+}
+
+/**
+ * A'zo ekranining tepasi — Qarzlar bo'limidagi mijoz kartasi bilan bir xil:
+ * chapda ism va telefon, o'ngda hisob.
+ *
+ * O'ngdagi katta raqam — SOF hisob (olganim − berganim): musbat bo'lsa u
+ * menga ko'proq bergan, manfiy bo'lsa men unga. Ostida ikkala tomon alohida
+ * turadi, chunki sof raqamning o'zi "qancha aylandi" degan savolga javob
+ * bermaydi.
+ *
+ * Telefon bosilganda qurilmaning raqam terish oynasi ochiladi.
+ */
+const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
+  memberName,
+  memberPhone,
+  unit,
+  received,
+  given,
+  onBack,
+}) => {
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const { t } = useI18n();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const telUrl = buildTelUrl(memberPhone ?? undefined);
+  const net = received - given;
+
+  const handleDial = useCallback(() => {
+    if (!telUrl) return;
+    Linking.openURL(telUrl).catch(() => {
+      // Dialer ochilmasa (masalan web'da) — jim o'tamiz.
+    });
+  }, [telUrl]);
+
+  return (
+    <View style={styles.wrap}>
+      <View style={styles.topBar}>
+        <BackButton onPress={onBack} />
+      </View>
+
+      <View style={styles.card}>
+        <View style={styles.row}>
+          <View style={styles.identity}>
+            <Text style={styles.name} numberOfLines={2}>
+              {memberName}
+            </Text>
+            {memberPhone ? (
+              <Pressable
+                onPress={handleDial}
+                disabled={!telUrl}
+                style={({ pressed }) => [styles.phoneRow, pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('contact.callNumber')}
+                hitSlop={6}
+              >
+                <Ionicons name="call-outline" size={13} color={colors.primary} />
+                <Text style={styles.phone} numberOfLines={1}>
+                  {formatPhoneDisplay(memberPhone)}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          <View style={styles.balances}>
+            <Text
+              style={[
+                styles.net,
+                { color: net >= 0 ? colors.positive : colors.negative },
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+            >
+              {formatGapAmount(net, unit)}
+            </Text>
+            <View style={styles.breakdown}>
+              <Text style={[styles.small, { color: colors.positive }]} numberOfLines={1}>
+                + {formatGapAmount(received, unit)}
+              </Text>
+              <Text style={[styles.small, { color: colors.negative }]} numberOfLines={1}>
+                − {formatGapAmount(given, unit)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+  StyleSheet.create({
+    wrap: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.md,
+    },
+    topBar: {
+      marginBottom: spacing.xs,
+    },
+    pressed: {
+      opacity: 0.6,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.xl,
+      padding: spacing.md + 2,
+      marginBottom: spacing.md,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.14,
+      shadowRadius: 22,
+      elevation: 8,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    identity: {
+      flex: 1,
+      minWidth: 0,
+    },
+    name: {
+      ...typography.heading2,
+      fontSize: 18,
+      color: colors.textPrimary,
+    },
+    phoneRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: spacing.xxs + 1,
+      marginTop: spacing.xxs,
+    },
+    phone: {
+      ...typography.caption,
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    balances: {
+      flexShrink: 1,
+      maxWidth: '55%',
+      alignItems: 'flex-end',
+    },
+    net: {
+      ...typography.heading1,
+      fontSize: 24,
+      fontWeight: '800',
+      letterSpacing: -0.6,
+      fontVariant: ['tabular-nums'],
+    },
+    breakdown: {
+      alignItems: 'flex-end',
+      marginTop: spacing.xxs,
+    },
+    small: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '700',
+      fontVariant: ['tabular-nums'],
+    },
+  });
+
+export default memo(GapMemberBalanceHeader);
