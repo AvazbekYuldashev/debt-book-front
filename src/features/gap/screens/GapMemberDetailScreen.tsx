@@ -26,9 +26,12 @@ interface Section {
  * Bitta a'zoning hisob-kitobi — Qarzlar bo'limidagi mijoz ekrani bilan bir
  * xil tuzilishda: yuqorida oldi-berdi tarixi, pastda ikkita to'la enli tugma.
  *
- * Ikki bo'lim: unga kim qancha bergan (kirim) va u kimga qancha bergan
- * (chiqim). Bo'lim sarlavhasidagi jami — faqat ikki tomon tasdiqlagan
- * yozuvlardan (TZ 09).
+ * Ro'yxatda FAQAT men shu odam bilan qilgan oldi-berdi turadi — uning
+ * boshqalar bilan hisobi menga aloqador emas. Shuning uchun yo'nalish ham
+ * men tomondan: kirim — undan olganim, chiqim — unga berganim.
+ *
+ * O'z qatorimni ochsam guruhdagi butun hisobim chiqadi.
+ * Bo'lim sarlavhasidagi jami — faqat ikki tomon tasdiqlagan yozuvlardan.
  *
  * "Berdim" va "Oldim" istalgan paytda bosiladi: navbat ham, davr ham yo'q.
  * Yozuvni kiritgan odam uni o'zi tasdiqlamaydi — tasdiq qarama-qarshi
