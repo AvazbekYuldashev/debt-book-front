@@ -1,3 +1,9 @@
+/** Bitta ish maydonidagi o'qilmaganlar soni. businessId = null -> shaxsiy. */
+export interface WorkspaceUnreadDTO {
+  businessId: string | null;
+  unreadCount: number;
+}
+
 export interface NotificationDTO {
   id: string;
   actorName?: string;

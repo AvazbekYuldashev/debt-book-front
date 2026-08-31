@@ -4,8 +4,9 @@ import { AuthContext } from '../../auth/context/AuthContext';
 import {
   NOTIFICATION_POLL_FALLBACK_MS,
   NOTIFICATION_POLL_REALTIME_MS,
-  notificationsQueryKey,
-  unreadCountQueryKey,
+  notificationsKeyPrefix,
+  unreadByWorkspaceQueryKey,
+  unreadCountKeyPrefix,
   useNotifications,
 } from './useNotifications';
 import { NotificationsSocket } from '../realtime/notificationsSocket';
@@ -53,8 +54,11 @@ export function useNotificationWatcher(): void {
     const socket = new NotificationsSocket({
       token: jwt,
       onNotification: () => {
-        queryClient.invalidateQueries({ queryKey: notificationsQueryKey(profileId) });
-        queryClient.invalidateQueries({ queryKey: unreadCountQueryKey(profileId) });
+        // Prefiks bo'yicha: WS xabari qaysi ish maydoniga tegishli ekanini
+        // bilmaydi, shuning uchun shaxsiy ham, barcha bizneslar ham yangilanadi.
+        queryClient.invalidateQueries({ queryKey: notificationsKeyPrefix(profileId) });
+        queryClient.invalidateQueries({ queryKey: unreadCountKeyPrefix(profileId) });
+        queryClient.invalidateQueries({ queryKey: unreadByWorkspaceQueryKey(profileId) });
         // Tranzaksiya bildirishnomasi = balans o'zgardi: ro'yxat va balanslar ham
         // darhol yangilanadi (prefiks bo'yicha — barcha account key'lar).
         queryClient.invalidateQueries({ queryKey: ['contact-balances'] });

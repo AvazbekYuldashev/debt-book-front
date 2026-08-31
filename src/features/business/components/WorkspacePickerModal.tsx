@@ -14,12 +14,29 @@ interface WorkspacePickerModalProps {
   errorText?: string;
   isPersonal: boolean;
   activeBusinessId?: string;
+  /** Maydon id -> o'qilmaganlar soni. Shaxsiy uchun kalit: 'personal'. */
+  unreadByWorkspace?: Record<string, number>;
   onClose: () => void;
   onSelectPersonal: () => void;
   onSelectBusiness: (business: BusinessDTO) => void;
   onManage: () => void;
   onCreate: () => void;
 }
+
+interface UnreadDotProps {
+  count?: number;
+  styles: ReturnType<typeof createStyles>;
+}
+
+/** O'qilmaganlar soni. Nol yoki yo'q bo'lsa umuman chizilmaydi. */
+const UnreadDot: React.FC<UnreadDotProps> = ({ count, styles }) => {
+  if (!count) return null;
+  return (
+    <View style={styles.unreadDot}>
+      <Text style={styles.unreadDotText}>{count > 99 ? '99+' : count}</Text>
+    </View>
+  );
+};
 
 /** Workspace (shaxsiy/biznes) tanlash dropdown modali. */
 const WorkspacePickerModal: React.FC<WorkspacePickerModalProps> = ({
@@ -29,6 +46,7 @@ const WorkspacePickerModal: React.FC<WorkspacePickerModalProps> = ({
   errorText,
   isPersonal,
   activeBusinessId,
+  unreadByWorkspace,
   onClose,
   onSelectPersonal,
   onSelectBusiness,
@@ -61,6 +79,7 @@ const WorkspacePickerModal: React.FC<WorkspacePickerModalProps> = ({
             accessibilityLabel={t('workspace.personal')}
           >
             <Text style={styles.optionText}>{t('workspace.personal')}</Text>
+            <UnreadDot count={unreadByWorkspace?.personal} styles={styles} />
             {isPersonal ? <Ionicons name="checkmark" size={16} color={colors.primary} /> : null}
           </Pressable>
 
@@ -107,6 +126,7 @@ const WorkspacePickerModal: React.FC<WorkspacePickerModalProps> = ({
                       </Text>
                       <Text style={styles.businessSub}>{business.currentRole}</Text>
                     </View>
+                    <UnreadDot count={unreadByWorkspace?.[business.id]} styles={styles} />
                     {isActive ? <Ionicons name="checkmark" size={16} color={colors.primary} /> : null}
                   </Pressable>
                 );
@@ -133,6 +153,23 @@ const WorkspacePickerModal: React.FC<WorkspacePickerModalProps> = ({
 
 const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
+    unreadDot: {
+      minWidth: 20,
+      height: 20,
+      paddingHorizontal: 5,
+      borderRadius: radius.pill,
+      backgroundColor: colors.danger,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.xs,
+    },
+    unreadDotText: {
+      ...typography.caption,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '800',
+      color: colors.textOnPrimary,
+    },
     backdrop: {
       flex: 1,
       backgroundColor: colors.overlay,

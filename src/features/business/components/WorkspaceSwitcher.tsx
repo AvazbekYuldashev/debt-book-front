@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { WorkspaceContext } from '../context/WorkspaceContext';
 import { useMyBusinesses, myBusinessesQueryKey } from '../hooks/useMyBusinesses';
+import { useUnreadByWorkspace } from '../../notifications/hooks/useNotifications';
 import { BusinessDTO } from '../types/business';
 import CreateBusinessModal from './CreateBusinessModal';
 import WorkspacePickerModal from './WorkspacePickerModal';
@@ -71,6 +72,17 @@ const WorkspaceSwitcher: React.FC = () => {
       refetch();
     }, [refetch]),
   );
+
+  // Bildirishnomalar ish maydonlari bo'yicha ajratilgan — boshqa maydonda
+  // yangi xabar borligi faqat shu yerda ko'rinadi.
+  const { data: unreadRows } = useUnreadByWorkspace();
+  const unreadByWorkspace = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const row of unreadRows ?? []) {
+      if (row.unreadCount > 0) map[row.businessId ?? 'personal'] = row.unreadCount;
+    }
+    return map;
+  }, [unreadRows]);
 
   const isBusiness = workspace.mode === 'business';
   const activeBusiness = useMemo(
@@ -165,6 +177,7 @@ const WorkspaceSwitcher: React.FC = () => {
         errorText={error instanceof Error ? error.message : undefined}
         isPersonal={!isBusiness}
         activeBusinessId={isBusiness ? workspace.activeBusinessId ?? undefined : undefined}
+        unreadByWorkspace={unreadByWorkspace}
         onClose={() => setPickerVisible(false)}
         onSelectPersonal={handleSelectPersonal}
         onSelectBusiness={handleSelectBusiness}
