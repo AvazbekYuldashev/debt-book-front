@@ -48,13 +48,16 @@ const GapMemberRow: React.FC<GapMemberRowProps> = ({
 
   return (
     <Pressable
-      onPress={() => onPress?.(item)}
+      onPress={onPress ? () => onPress(item) : undefined}
+      disabled={!onPress}
       style={({ pressed }) => [
         styles.row,
         !isLast && styles.rowBorder,
-        pressed && styles.rowPressed,
+        // Bosish ta'siri faqat ochiladigan qatorlarda: o'z qatorim
+        // bosilmaydi, shuning uchun bosilgandek ham ko'rinmasligi kerak.
+        pressed && onPress && styles.rowPressed,
       ]}
-      accessibilityRole="button"
+      accessibilityRole={onPress ? 'button' : 'text'}
       accessibilityLabel={item.memberName}
     >
       <UserAvatar uri={undefined} size={AVATAR_SIZE} />

@@ -118,7 +118,9 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
         item={item}
         unit={unit}
         isLast={index === members.length - 1}
-        onPress={openMember}
+        // O'z qatorim ochilmaydi: o'zim bilan oldi-berdi qilmayman.
+        // Qatorning o'zi qoladi — undagi son shu guruhdagi umumiy holatim.
+        onPress={item.me ? undefined : openMember}
       />
     ),
     [unit, members.length, openMember]
