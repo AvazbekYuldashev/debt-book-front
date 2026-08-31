@@ -63,39 +63,50 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
    *             belgilangan, lekin men hali tasdiqlamagan (TZ 09).
    */
   /**
-   * O'z hisobim ochilgan bo'lsa amal yo'q.
+   * O'z hisobim ochilgan bo'lsa ham amallar ishlaydi.
    *
-   * Bir odam ikki ulush olishi mumkin, o'shanda uning bir ulushi ikkinchisiga
-   * "to'laydigan" yozuv paydo bo'ladi. Yozuv hisob uchun kerak, lekin uni
-   * o'zimga "berdim / oldim" deb tasdiqlash ma'nosiz.
+   * Bir odam bir guruhda bir nechta ulush olishi mumkin. Navbat uning bitta
+   * ulushiga kelganda qolgan ulushlari o'sha kassaga baribir to'laydi — pul
+   * o'z cho'ntagida qolsa ham, yozuv boshqalar ko'radigan hisobning bir qismi.
+   * Shuning uchun uni ham xuddi boshqalar kabi "Berdim" va "Oldim" bilan
+   * o'tkazamiz: kassa to'liq yig'ilgani hammaga ko'rinib tursin, "bu odam
+   * o'zi to'lamadimi?" degan savol tug'ilmasin.
    *
-   * Boshqalar menga to'lagan pulni tasdiqlash ular ochilganda amalga oshadi:
-   * har bir yozuv o'z egasining ekranida turadi.
+   * Boshqalar menga to'lagan pulni tasdiqlash qator ustiga bosish orqali
+   * (rowConfirmable) — har bir yozuv o'z egasining ekranida turadi.
    */
   const isSelf = detail?.me ?? false;
 
   const payable = useMemo(
     () =>
-      isSelf
-        ? null
-        : detail?.incoming.find(
-            (item) => item.counterpartyMe && !item.confirmed && !item.periodClosed
-          ) ?? null,
-    [detail, isSelf]
+      detail?.incoming.find(
+        (item) => item.counterpartyMe && !item.confirmed && !item.periodClosed
+      ) ?? null,
+    [detail]
   );
   const confirmable = useMemo(
     () =>
-      isSelf
-        ? null
+      // O'z ulushimga to'lovda ikkala tomon ham men — yozuv kirimda turadi.
+      (isSelf
+        ? detail?.incoming.find(
+            (item) =>
+              item.counterpartyMe &&
+              item.status === 'PAID' &&
+              !item.confirmed &&
+              !item.periodClosed
+          )
         : detail?.outgoing.find(
             (item) =>
               item.counterpartyMe &&
               item.status === 'PAID' &&
               !item.confirmed &&
               !item.periodClosed
-          ) ?? null,
+          )) ?? null,
     [detail, isSelf]
   );
+
+  /** Pastdagi panel o'z ulushlarim orasidagi yozuvga tegishlimi. */
+  const selfTransfer = isSelf && (payable != null || confirmable != null);
 
   const activePayment = rowPayment ?? (action === 'give' ? payable : confirmable);
 
@@ -231,29 +242,35 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         />
       )}
 
-      {/* Qarzlar ekranidagi kabi: pastda ikki amal. O'z hisobimda panel yo'q. */}
-      {isSelf ? (
+      {/* Qarzlar ekranidagi kabi: pastda ikki amal. O'z ulushlarim orasidagi
+          yozuvda ham shu panel ishlaydi — ikkala tomon ham men bo'laman. */}
+      {isSelf && payable == null && confirmable == null ? (
         <Text style={styles.actionHint}>
           {detail?.incoming.some(rowConfirmable) ? t('gap.tapToConfirm') : t('gap.selfLedger')}
         </Text>
       ) : (
-      <View style={styles.actionBar}>
-        <View style={styles.actionCell}>
-          <Button
-            title={t('gap.take')}
-            variant="outline"
-            onPress={() => setAction('take')}
-            disabled={confirmable == null}
-          />
-        </View>
-        <View style={styles.actionCell}>
-          <Button
-            title={t('gap.give')}
-            onPress={() => setAction('give')}
-            disabled={payable == null}
-          />
-        </View>
-      </View>
+        <>
+          <View style={styles.actionBar}>
+            <View style={styles.actionCell}>
+              <Button
+                title={t('gap.take')}
+                variant="outline"
+                onPress={() => setAction('take')}
+                disabled={confirmable == null}
+              />
+            </View>
+            <View style={styles.actionCell}>
+              <Button
+                title={t('gap.give')}
+                onPress={() => setAction('give')}
+                disabled={payable == null}
+              />
+            </View>
+          </View>
+          {selfTransfer ? (
+            <Text style={styles.actionHint}>{t('gap.selfTransferHint')}</Text>
+          ) : null}
+        </>
       )}
       {!isSelf && payable == null && confirmable == null ? (
         <Text style={styles.actionHint}>{t('gap.nothingToGive')}</Text>
