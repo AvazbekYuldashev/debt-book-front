@@ -4,15 +4,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
+import GapAmountStack from './GapAmountStack';
 import { formatGapAmount } from '../model/gapFormat';
-import type { GapUnit } from '../types/gap';
+import type { GapAmountDTO, GapUnit } from '../types/gap';
 
 interface GapGroupBalanceCardProps {
+  /** Guruhning odatiy birligi — hech narsa bo'lmaganda nol shu birlikda. */
   unit: GapUnit;
-  /** Shu guruhda jami olganim. */
-  received: number;
-  /** Shu guruhda jami berganim. */
-  given: number;
+  /** Shu guruhda jami olganim, birlik bo'yicha ajratilgan. */
+  received: GapAmountDTO[];
+  /** Shu guruhda jami berganim, birlik bo'yicha ajratilgan. */
+  given: GapAmountDTO[];
   loading?: boolean;
 }
 
@@ -20,6 +22,9 @@ interface GapGroupBalanceCardProps {
  * Guruh ekranining tepasidagi hisob kartasi — Qarzlar bo'limidagi umumiy
  * xulosa bilan bir xil ko'rinishda: chapda olganim (yashil), o'ngda berganim
  * (qizil), o'rtada ajratuvchi chiziq.
+ *
+ * Har birlik alohida qatorda: so'm, dollar va kg go'sht bir-biriga
+ * qo'shilmaydi.
  *
  * Raqamlar faqat ikki tomon tasdiqlagan yozuvlardan (TZ 09) — tasdiq
  * kutayotgani hisobga kirmaydi, aks holda karta haqiqatdan chalg'itardi.
@@ -37,7 +42,7 @@ const GapGroupBalanceCard: React.FC<GapGroupBalanceCardProps> = ({
 
   const renderTile = (
     label: string,
-    value: number,
+    items: GapAmountDTO[],
     color: string,
     softColor: string,
     iconName: keyof typeof Ionicons.glyphMap
@@ -51,9 +56,18 @@ const GapGroupBalanceCard: React.FC<GapGroupBalanceCardProps> = ({
           {label}
         </Text>
       </View>
-      <Text style={[styles.value, { color }]} numberOfLines={2}>
-        {loading ? '—' : formatGapAmount(value, unit)}
-      </Text>
+      {loading ? (
+        <Text style={[styles.value, { color }]}>—</Text>
+      ) : (
+        <GapAmountStack
+          items={items}
+          color={color}
+          align="flex-start"
+          style={styles.value}
+          emptyText={formatGapAmount(0, unit)}
+          emptyColor={color}
+        />
+      )}
     </View>
   );
 

@@ -57,8 +57,13 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
   const items = useMemo(() => {
     const list = listQuery.data?.content ?? [];
     if (!sort) return list;
-    const value = (item: GapResponseDTO) =>
-      toAmount(sort.direction === 'received' ? item.myTotalReceived : item.myTotalGiven);
+    // Bosilgan raqam bitta birlikka tegishli — solishtirish ham faqat
+    // o'sha birlik bo'yicha. So'm bilan dollarni taqqoslab bo'lmaydi.
+    const value = (item: GapResponseDTO) => {
+      const source = sort.direction === 'received' ? item.myTotalReceived : item.myTotalGiven;
+      const match = (source ?? []).find((entry) => entry.unitCode === sort.unitCode);
+      return match ? toAmount(match.amount) : 0;
+    };
     return [...list].sort((a, b) => value(b) - value(a));
   }, [listQuery.data, sort]);
 

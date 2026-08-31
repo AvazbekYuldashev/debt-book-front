@@ -7,16 +7,17 @@ import { useI18n } from '../../../shared/i18n';
 import { buildTelUrl, formatPhoneDisplay } from '../../../shared/lib/phone';
 import BackButton from '../../../shared/ui/BackButton';
 import { formatGapAmount } from '../model/gapFormat';
-import type { GapUnit } from '../types/gap';
+import { amountUnit, GapAmountDTO, GapUnit, nonZero, toAmount } from '../types/gap';
 
 interface GapMemberBalanceHeaderProps {
   memberName: string;
   memberPhone: string | null;
+  /** Guruhning odatiy birligi — hisob bo'sh bo'lganda nol shu birlikda. */
   unit: GapUnit;
-  /** Undan olganim. */
-  received: number;
-  /** Unga berganim. */
-  given: number;
+  /** Undan olganim, birlik bo'yicha. */
+  received: GapAmountDTO[];
+  /** Unga berganim, birlik bo'yicha. */
+  given: GapAmountDTO[];
   onBack: () => void;
 }
 
@@ -25,8 +26,10 @@ interface GapMemberBalanceHeaderProps {
  * chapda ism va telefon, o'ngda hisob.
  *
  * O'ngdagi raqam — SOF hisob (olganim − berganim): musbat bo'lsa u menga
- * ko'proq bergan, manfiy bo'lsa men unga. Yakuniy raqam yolg'iz turadi,
- * chunki oldi-berdining o'zi pastdagi tarixda ko'rinib turadi.
+ * ko'proq bergan, manfiy bo'lsa men unga.
+ *
+ * Har birlik alohida qatorda va o'z ishorasi bilan: so'm bo'yicha qarzdor
+ * bo'lib, dollar bo'yicha haqdor bo'lish mumkin. Ularni qo'shib bo'lmaydi.
  *
  * Telefon bosilganda qurilmaning raqam terish oynasi ochiladi.
  */
@@ -44,7 +47,28 @@ const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const telUrl = buildTelUrl(memberPhone ?? undefined);
-  const net = received - given;
+
+  /**
+   * Har birlik uchun sof hisob. Birlik faqat bitta tomonda uchrasa ham
+   * qatorga tushadi — aks holda "men unga dollar berdim" degan fakt
+   * yo'qolardi.
+   */
+  const nets = useMemo(() => {
+    const byCode = new Map<string, GapAmountDTO>();
+    for (const entry of received) {
+      byCode.set(entry.unitCode, { ...entry, amount: toAmount(entry.amount) });
+    }
+    for (const entry of given) {
+      const existing = byCode.get(entry.unitCode);
+      const value = toAmount(entry.amount);
+      if (existing) {
+        existing.amount = toAmount(existing.amount) - value;
+      } else {
+        byCode.set(entry.unitCode, { ...entry, amount: -value });
+      }
+    }
+    return nonZero([...byCode.values()]);
+  }, [received, given]);
 
   const handleDial = useCallback(() => {
     if (!telUrl) return;
@@ -83,17 +107,35 @@ const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
           </View>
 
           <View style={styles.balances}>
-            <Text
-              style={[
-                styles.net,
-                { color: net >= 0 ? colors.positive : colors.negative },
-              ]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
-              {formatGapAmount(net, unit)}
-            </Text>
+            {nets.length === 0 ? (
+              <Text
+                style={[styles.net, { color: colors.textSecondary }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+              >
+                {formatGapAmount(0, unit)}
+              </Text>
+            ) : (
+              nets.map((entry) => {
+                const value = toAmount(entry.amount);
+                return (
+                  <Text
+                    key={entry.unitCode}
+                    style={[
+                      styles.net,
+                      nets.length > 1 && styles.netCompact,
+                      { color: value >= 0 ? colors.positive : colors.negative },
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.5}
+                  >
+                    {formatGapAmount(value, amountUnit(entry))}
+                  </Text>
+                );
+              })
+            )}
           </View>
         </View>
       </View>
@@ -162,6 +204,11 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontWeight: '800',
       letterSpacing: -0.6,
       fontVariant: ['tabular-nums'],
+    },
+    // Bir nechta birlik chiqsa qatorlar ixchamroq.
+    netCompact: {
+      fontSize: 20,
+      lineHeight: 26,
     },
   });
 

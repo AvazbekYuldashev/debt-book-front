@@ -3,11 +3,15 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, Vie
 import { Ionicons } from '@expo/vector-icons';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
+import ChipSelector from '../../../shared/ui/ChipSelector';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { formatGapAmountInput, parseGapAmountInput } from '../model/gapFormat';
+import { GAP_UNIT_PRESETS, customUnit } from '../model/gapUnits';
 import { GapTransferDirection, GapUnit } from '../types/gap';
+
+const CUSTOM = '__custom__';
 
 interface GapTransferFormModalProps {
   visible: boolean;
@@ -15,18 +19,21 @@ interface GapTransferFormModalProps {
   direction: GapTransferDirection;
   /** Ekranda ochilgan a'zo — hisob-kitob aynan u bilan. */
   memberName: string;
+  /** Guruhning odatiy birligi — oynada oldindan tanlab qo'yiladi. */
   unit: GapUnit;
   loading?: boolean;
   error?: string | null;
   onClose: () => void;
-  onSubmit: (amount: number, note: string | null) => void;
+  onSubmit: (amount: number, note: string | null, unit: GapUnit) => void;
 }
 
 /**
  * "Berdim" / "Oldim" oynasi.
  *
- * Ikkalasi ham bitta yozuvni yaratadi, faqat yo'nalish teskari. Miqdorni har
- * safar foydalanuvchi kiritadi — guruhda belgilangan badal degan narsa yo'q.
+ * Ikkalasi ham bitta yozuvni yaratadi, faqat yo'nalish teskari. Miqdorni va
+ * O'LCHOV BIRLIGINI har safar foydalanuvchi tanlaydi: bitta odam bilan so'm,
+ * dollar va kg go'sht bo'yicha bir vaqtda hisob yuritish mumkin. Guruhning
+ * birligi shunchaki oldindan tanlab qo'yiladi.
  *
  * Yozuvni kiritgan odam uni o'zi tasdiqlamaydi: tasdiq qarama-qarshi tomonda
  * qoladi, shuning uchun oyna pastida shu haqda eslatma turadi.
@@ -49,15 +56,37 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
   const isGive = direction === 'GIVE';
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
+  const [unitCode, setUnitCode] = useState<string>(unit.code);
+  const [customLabel, setCustomLabel] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
       setAmount('');
       setNote('');
+      // Guruhning birligi odatiy tanlov, lekin ro'yxatda bo'lmasa
+      // (masalan qo'lda kiritilgan) uni "boshqa" sifatida ko'rsatamiz.
+      const known = GAP_UNIT_PRESETS.some((preset) => preset.code === unit.code);
+      setUnitCode(known ? unit.code : CUSTOM);
+      setCustomLabel(known ? '' : unit.label ?? '');
       setLocalError(null);
     }
-  }, [visible]);
+  }, [visible, unit]);
+
+  const unitOptions = useMemo(
+    () => [
+      ...GAP_UNIT_PRESETS.map((preset) => ({ value: preset.code, label: preset.label })),
+      { value: CUSTOM, label: t('gap.unitCustom') },
+    ],
+    [t]
+  );
+
+  const selectedUnit: GapUnit | null = useMemo(() => {
+    if (unitCode === CUSTOM) {
+      return customLabel.trim() ? customUnit(customLabel) : null;
+    }
+    return GAP_UNIT_PRESETS.find((preset) => preset.code === unitCode) ?? null;
+  }, [unitCode, customLabel]);
 
   const handleSubmit = useCallback(() => {
     const parsed = parseGapAmountInput(amount);
@@ -65,9 +94,13 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
       setLocalError(t('gap.errAmount'));
       return;
     }
+    if (!selectedUnit) {
+      setLocalError(t('gap.errUnit'));
+      return;
+    }
     setLocalError(null);
-    onSubmit(parsed, note.trim() ? note.trim() : null);
-  }, [amount, note, onSubmit, t]);
+    onSubmit(parsed, note.trim() ? note.trim() : null, selectedUnit);
+  }, [amount, note, selectedUnit, onSubmit, t]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -91,11 +124,28 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
             </Text>
 
             <Input
-              label={`${t('gap.fieldAmount')} (${unit.label})`}
+              label={`${t('gap.fieldAmount')}${selectedUnit ? ` (${selectedUnit.label})` : ''}`}
               value={amount}
               onChangeText={(text) => setAmount(formatGapAmountInput(text))}
               keyboardType="decimal-pad"
             />
+
+            <ChipSelector
+              label={t('gap.fieldUnit')}
+              options={unitOptions}
+              value={unitCode}
+              onChange={setUnitCode}
+              layout="wrap"
+            />
+            {unitCode === CUSTOM ? (
+              <Input
+                label={t('gap.fieldUnitCustom')}
+                value={customLabel}
+                onChangeText={setCustomLabel}
+                placeholder="qop, bosh, quti ..."
+              />
+            ) : null}
+
             <Input
               label={t('gap.fieldNote')}
               value={note}

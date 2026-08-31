@@ -56,16 +56,17 @@ export interface GapSummaryDTO {
 export interface GapResponseDTO {
   id: string;
   name: string;
+  /** Guruhning ODATIY birligi — yangi yozuv formasida oldindan tanlanadi. */
   unitCode: string;
   unitLabel: string;
   unitType: GapUnitType;
   /** Guruhni men yaratganmanmi — a'zo qo'shish va tahrir menga ochiq. */
   organizer: boolean;
   memberCount: number;
-  /** Shu guruhda jami olganim (tasdiqlangan yozuvlar). */
-  myTotalReceived: number | string;
-  /** Shu guruhda jami berganim. */
-  myTotalGiven: number | string;
+  /** Shu guruhda jami olganim, BIRLIK bo'yicha ajratilgan. */
+  myTotalReceived: GapAmountDTO[];
+  /** Shu guruhda jami berganim, BIRLIK bo'yicha ajratilgan. */
+  myTotalGiven: GapAmountDTO[];
   /** Mening tasdig'imni kutayotgan yozuvlar soni. */
   awaitingMyConfirm: number;
 }
@@ -76,10 +77,10 @@ export interface GapMemberDTO {
   memberName: string;
   memberPhone: string | null;
   me: boolean;
-  /** Undan olganim (yashil). */
-  received: number | string;
-  /** Unga berganim (qizil). */
-  given: number | string;
+  /** Undan olganim (yashil), birlik bo'yicha ajratilgan. */
+  received: GapAmountDTO[];
+  /** Unga berganim (qizil), birlik bo'yicha ajratilgan. */
+  given: GapAmountDTO[];
   awaitingMyConfirm: number;
 }
 
@@ -92,6 +93,10 @@ export interface GapTransferDTO {
   /** Qarama-qarshi tomon joriy foydalanuvchimi. */
   counterpartyMe: boolean;
   amount: number | string;
+  /** Yozuvning O'Z birligi — guruhnikidan farq qilishi mumkin. */
+  unitCode: string;
+  unitLabel: string;
+  unitType: GapUnitType;
   note: string | null;
   date: string | null;
   confirmed: boolean;
@@ -111,8 +116,8 @@ export interface GapMemberDetailDTO {
   memberName: string;
   memberPhone: string | null;
   me: boolean;
-  totalReceived: number | string;
-  totalGiven: number | string;
+  totalReceived: GapAmountDTO[];
+  totalGiven: GapAmountDTO[];
   /** Unga kim qancha bergan. */
   incoming: GapTransferDTO[];
   /** U kimga qancha bergan. */
@@ -127,6 +132,10 @@ export interface GapTransferCreateDTO {
   amount: number;
   note?: string;
   direction: GapTransferDirection;
+  /** Berilmasa guruhning odatiy birligi olinadi. */
+  unitType?: GapUnitType;
+  unitCode?: string;
+  unitLabel?: string;
 }
 
 export interface GapGroupCreateDTO {
@@ -169,3 +178,14 @@ export interface GapSort {
   direction: GapSortDirection;
   unitCode: string;
 }
+
+/** `GapAmountDTO` dan `GapUnit` yasaydi — formatlash uchun. */
+export const amountUnit = (entry: GapAmountDTO): GapUnit => ({
+  code: entry.unitCode,
+  label: entry.unitLabel,
+  type: entry.unitType,
+});
+
+/** Noldan farq qiladigan qatorlar. Bo'sh ro'yxat = hisob toza. */
+export const nonZero = (items: GapAmountDTO[] | undefined): GapAmountDTO[] =>
+  (items ?? []).filter((entry) => toAmount(entry.amount) !== 0);

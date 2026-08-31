@@ -5,11 +5,10 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { formatGapAmount, formatGapDate } from '../model/gapFormat';
-import { GapTransferDTO, GapUnit, toAmount } from '../types/gap';
+import { GapTransferDTO, toAmount, unitOf } from '../types/gap';
 
 interface GapTransferRowProps {
   item: GapTransferDTO;
-  unit: GapUnit;
   /** Kirim yashil (pul keldi), chiqim qizil (pul ketdi). */
   direction: 'in' | 'out';
   isLast?: boolean;
@@ -22,12 +21,14 @@ interface GapTransferRowProps {
  * bilan bir xil ko'rinishda: chapda yo'nalish ikonkasi, o'rtada katta rangli
  * summa va ostida sana, o'ngda qarama-qarshi tomon.
  *
+ * Summa yozuvning O'Z birligida chiqadi — bir odam bilan bir vaqtda so'm,
+ * dollar va kg bo'yicha hisob yuritish mumkin.
+ *
  * Ikki tomon tasdiqlamagan yozuv so'niq turadi va "kutilmoqda" deb
  * belgilanadi — TZ 09 ga ko'ra faqat ikki tomonlama tasdiq yakuniy.
  */
 const GapTransferRow: React.FC<GapTransferRowProps> = ({
   item,
-  unit,
   direction,
   isLast = false,
   onPress,
@@ -42,6 +43,9 @@ const GapTransferRow: React.FC<GapTransferRowProps> = ({
   const actionable = onPress != null;
 
   const note = item.note?.trim();
+  // Har yozuv o'z birligida ko'rsatiladi: bitta ro'yxatda so'm ham,
+  // dollar ham, kg ham bo'lishi mumkin.
+  const unit = unitOf(item);
 
   return (
     <Pressable

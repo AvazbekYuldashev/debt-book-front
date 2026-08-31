@@ -13,7 +13,7 @@ import { useAddGapMember, useGapGroup, useGapMembers } from '../hooks/useGap';
 import GapMemberRow from '../components/GapMemberRow';
 import GapMemberFormModal from '../components/GapMemberFormModal';
 import GapGroupBalanceCard from '../components/GapGroupBalanceCard';
-import { GapMemberDTO, GapUnit, toAmount } from '../types/gap';
+import { GapMemberDTO, GapUnit } from '../types/gap';
 
 /**
  * Bitta gap kassa: a'zolar ro'yxati.
@@ -103,8 +103,8 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
 
       <GapGroupBalanceCard
         unit={unit}
-        received={toAmount(group?.myTotalReceived)}
-        given={toAmount(group?.myTotalGiven)}
+        received={group?.myTotalReceived ?? []}
+        given={group?.myTotalGiven ?? []}
         loading={groupQuery.isLoading}
       />
 

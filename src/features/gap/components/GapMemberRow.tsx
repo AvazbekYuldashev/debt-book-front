@@ -5,7 +5,8 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import UserAvatar from '../../../shared/ui/UserAvatar';
-import { GapMemberDTO, GapUnit, toAmount } from '../types/gap';
+import GapAmountStack from './GapAmountStack';
+import { GapMemberDTO, GapUnit, nonZero } from '../types/gap';
 import { formatGapAmount } from '../model/gapFormat';
 
 const AVATAR_SIZE = 46;
@@ -40,8 +41,8 @@ const GapMemberRow: React.FC<GapMemberRowProps> = ({
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const received = toAmount(item.received);
-  const given = toAmount(item.given);
+  const received = nonZero(item.received);
+  const given = nonZero(item.given);
   // Chip faqat ish bo'lsa chiqadi: tasdig'imni kutayotgan yozuvlar.
   const awaiting = item.awaitingMyConfirm ?? 0;
 
@@ -70,28 +71,14 @@ const GapMemberRow: React.FC<GapMemberRowProps> = ({
 
       <View style={styles.right}>
         <View style={styles.amounts}>
-          {received === 0 && given === 0 ? (
+          {received.length === 0 && given.length === 0 ? (
             <Text style={styles.amountMuted} numberOfLines={1}>
               {formatGapAmount(0, unit)}
             </Text>
           ) : (
             <>
-              {received > 0 ? (
-                <Text
-                  style={[styles.amount, { color: colors.positive }]}
-                  numberOfLines={1}
-                >
-                  + {formatGapAmount(received, unit)}
-                </Text>
-              ) : null}
-              {given > 0 ? (
-                <Text
-                  style={[styles.amount, { color: colors.negative }]}
-                  numberOfLines={1}
-                >
-                  − {formatGapAmount(given, unit)}
-                </Text>
-              ) : null}
+              <GapAmountStack items={received} sign="+" color={colors.positive} />
+              <GapAmountStack items={given} sign="−" color={colors.negative} />
             </>
           )}
         </View>

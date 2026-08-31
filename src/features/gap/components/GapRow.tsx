@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
-import { GapResponseDTO, toAmount, unitOf } from '../types/gap';
+import GapAmountStack from './GapAmountStack';
+import { GapResponseDTO, nonZero, unitOf } from '../types/gap';
 import { formatGapAmount } from '../model/gapFormat';
 
 interface GapRowProps {
@@ -30,8 +31,8 @@ const GapRow: React.FC<GapRowProps> = ({ item, isLast = false, onPress }) => {
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const unit = unitOf(item);
-  const received = toAmount(item.myTotalReceived);
-  const given = toAmount(item.myTotalGiven);
+  const received = nonZero(item.myTotalReceived);
+  const given = nonZero(item.myTotalGiven);
   const awaiting = item.awaitingMyConfirm ?? 0;
 
   return (
@@ -68,22 +69,14 @@ const GapRow: React.FC<GapRowProps> = ({ item, isLast = false, onPress }) => {
       </View>
 
       <View style={styles.side}>
-        {received === 0 && given === 0 ? (
+        {received.length === 0 && given.length === 0 ? (
           <Text style={styles.totalMuted} numberOfLines={1}>
             {formatGapAmount(0, unit)}
           </Text>
         ) : (
           <>
-            {received > 0 ? (
-              <Text style={[styles.total, { color: colors.positive }]} numberOfLines={1}>
-                + {formatGapAmount(received, unit)}
-              </Text>
-            ) : null}
-            {given > 0 ? (
-              <Text style={[styles.total, { color: colors.negative }]} numberOfLines={1}>
-                − {formatGapAmount(given, unit)}
-              </Text>
-            ) : null}
+            <GapAmountStack items={received} sign="+" color={colors.positive} />
+            <GapAmountStack items={given} sign="−" color={colors.negative} />
           </>
         )}
       </View>

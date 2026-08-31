@@ -11,7 +11,7 @@ import Button from '../../../shared/ui/Button';
 import GapTransferRow from '../components/GapTransferRow';
 import GapMemberBalanceHeader from '../components/GapMemberBalanceHeader';
 import GapTransferFormModal from '../components/GapTransferFormModal';
-import { GapTransferDTO, GapTransferDirection, GapUnit, toAmount } from '../types/gap';
+import { GapTransferDTO, GapTransferDirection, GapUnit } from '../types/gap';
 
 /** Ro'yxat qatori: yozuv va uning men uchun yo'nalishi. */
 interface LedgerItem {
@@ -64,13 +64,16 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
   const isSelf = detail?.me ?? false;
 
   const submitTransfer = useCallback(
-    (amount: number, note: string | null) => {
+    (amount: number, note: string | null, chosen: GapUnit) => {
       createMutation.mutate(
         {
           counterpartyMemberId: memberId,
           amount,
           note: note ?? undefined,
           direction: direction ?? 'GIVE',
+          unitType: chosen.type,
+          unitCode: chosen.code,
+          unitLabel: chosen.label,
         },
         { onSuccess: () => setDirection(null) }
       );
@@ -105,13 +108,12 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
     ({ item, index }) => (
       <GapTransferRow
         item={item.transfer}
-        unit={unit}
         direction={item.direction}
         isLast={index === items.length - 1}
         onPress={item.transfer.canConfirm ? confirmRow : undefined}
       />
     ),
-    [unit, items.length, confirmRow]
+    [items.length, confirmRow]
   );
 
   const keyExtractor = useCallback((item: LedgerItem) => item.transfer.transferId, []);
@@ -127,8 +129,8 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         memberName={detail?.memberName ?? memberName}
         memberPhone={detail?.memberPhone ?? null}
         unit={unit}
-        received={toAmount(detail?.totalReceived)}
-        given={toAmount(detail?.totalGiven)}
+        received={detail?.totalReceived ?? []}
+        given={detail?.totalGiven ?? []}
         onBack={navigation.goBack}
       />
 
