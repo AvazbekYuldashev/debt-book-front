@@ -83,7 +83,14 @@ const JSON_LD = {
   ],
 };
 
-const HEAD_TAGS = `
+// Qidiruv tizimlari egalikni shu orqali tekshiradi. Tasdiqlangandan KEYIN
+// ham o'chirmaslik kerak: Google/Yandex vaqti-vaqti bilan qayta so'raydi va
+// topmasa tasdiqni bekor qiladi.
+const SITE_VERIFICATION = `
+<meta name="google-site-verification" content="E9AUvWJDp0YFV_yN1IY_Lcme1Yk1VVUxqYqZ-3F0Fl8">
+`;
+
+const HEAD_TAGS = SITE_VERIFICATION + `
 <link rel="canonical" href="${ORIGIN}/">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
 <meta name="application-name" content="Tez Top">
