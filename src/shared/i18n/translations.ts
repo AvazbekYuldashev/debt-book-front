@@ -467,6 +467,20 @@ const uz: Dict = {
   'update.optional.title': 'Yangi versiya mavjud',
   'update.optional.body': 'Ilovaning yangi versiyasi bor. Yangilashni tavsiya qilamiz.',
   'update.optional.later': 'Keyinroq',
+  // dastur haqida
+  'about.title': 'Dastur haqida',
+  'about.version': 'Versiya {version}',
+  'about.teamSection': 'Mualliflar',
+  'about.roleIdea': "G'OYA MUALLIFI",
+  'about.roleDeveloper': 'DASTURCHI',
+  'about.contact': "Bog'lanish",
+  'about.documentsSection': 'Dastur hujjatlari',
+  'about.certificate': 'Guvohnoma raqami',
+  'about.applicationNumber': 'Ariza raqami',
+  'about.applicationDate': 'Ariza sanasi',
+  'about.registeredDate': "Ro'yxatga olingan sana",
+  'about.authority': 'Ro\'yxatga oluvchi organ',
+  'about.rightsHolders': 'Huquq egalari:',
 };
 
 const ru: Dict = {
@@ -908,6 +922,20 @@ const ru: Dict = {
   'update.optional.title': 'Доступна новая версия',
   'update.optional.body': 'Доступна новая версия приложения. Рекомендуем обновить.',
   'update.optional.later': 'Позже',
+  // о программе
+  'about.title': 'О программе',
+  'about.version': 'Версия {version}',
+  'about.teamSection': 'Авторы',
+  'about.roleIdea': 'АВТОР ИДЕИ',
+  'about.roleDeveloper': 'РАЗРАБОТЧИК',
+  'about.contact': 'Связаться',
+  'about.documentsSection': 'Документы программы',
+  'about.certificate': 'Номер свидетельства',
+  'about.applicationNumber': 'Номер заявки',
+  'about.applicationDate': 'Дата заявки',
+  'about.registeredDate': 'Дата регистрации',
+  'about.authority': 'Регистрирующий орган',
+  'about.rightsHolders': 'Правообладатели:',
 };
 
 const en: Dict = {
@@ -1349,6 +1377,20 @@ const en: Dict = {
   'update.optional.title': 'New version available',
   'update.optional.body': 'A new version of the app is available. We recommend updating.',
   'update.optional.later': 'Later',
+  // about the app
+  'about.title': 'About the app',
+  'about.version': 'Version {version}',
+  'about.teamSection': 'Authors',
+  'about.roleIdea': 'IDEA AUTHOR',
+  'about.roleDeveloper': 'DEVELOPER',
+  'about.contact': 'Contact',
+  'about.documentsSection': 'App documents',
+  'about.certificate': 'Certificate number',
+  'about.applicationNumber': 'Application number',
+  'about.applicationDate': 'Application date',
+  'about.registeredDate': 'Registration date',
+  'about.authority': 'Registering authority',
+  'about.rightsHolders': 'Rights holders:',
 };
 
 export const translations: Record<Lang, Dict> = { uz, ru, en };

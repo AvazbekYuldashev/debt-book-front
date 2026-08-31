@@ -57,6 +57,15 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
             onPress={() => navigation.navigate(ROUTES.PRIVACY_POLICY)}
           />
         </Card>
+
+        <Card style={styles.card}>
+          <LegalMenuRow
+            label={t('about.title')}
+            iconName="information-circle-outline"
+            isLast
+            onPress={() => navigation.navigate(ROUTES.ABOUT_APP)}
+          />
+        </Card>
       </ScrollView>
     </View>
   );

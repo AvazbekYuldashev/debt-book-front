@@ -8,6 +8,7 @@ import BusinessMembersScreen from '../../features/business/screens/BusinessMembe
 import OfferScreen from '../../features/legal/screens/OfferScreen';
 import TermsScreen from '../../features/legal/screens/TermsScreen';
 import PrivacyPolicyScreen from '../../features/legal/screens/PrivacyPolicyScreen';
+import AboutAppScreen from '../../features/profile/screens/AboutAppScreen';
 import { ROUTES } from './routes';
 import type { ProfileStackParamList } from './types';
 import { withFadeInScreen } from './withFadeInScreen';
@@ -22,6 +23,7 @@ const BusinessMembersScreenWithFade = withFadeInScreen(BusinessMembersScreen);
 const OfferScreenWithFade = withFadeInScreen(OfferScreen);
 const TermsScreenWithFade = withFadeInScreen(TermsScreen);
 const PrivacyPolicyScreenWithFade = withFadeInScreen(PrivacyPolicyScreen);
+const AboutAppScreenWithFade = withFadeInScreen(AboutAppScreen);
 
 // Har bir ekran o'zining ScreenHeader'ini chizadi (izchil orqaga tugmasi/sarlavha
 // uchun) — shuning uchun native-stack'ning standart headeri barcha ekranlarda
@@ -36,6 +38,7 @@ const ProfileStack: React.FC = () => (
     <Stack.Screen name={ROUTES.OFFER} component={OfferScreenWithFade} />
     <Stack.Screen name={ROUTES.TERMS} component={TermsScreenWithFade} />
     <Stack.Screen name={ROUTES.PRIVACY_POLICY} component={PrivacyPolicyScreenWithFade} />
+    <Stack.Screen name={ROUTES.ABOUT_APP} component={AboutAppScreenWithFade} />
   </Stack.Navigator>
 );
 
