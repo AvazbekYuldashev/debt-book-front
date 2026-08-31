@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
@@ -42,7 +42,19 @@ interface GapSummaryCardProps {
  *
  * Filter chiplari qat'iy ro'yxat emas: foydalanuvchi qatnashayotgan
  * guruhlarda qanday birlik bo'lsa, o'sha chiqadi.
+ *
+ * Birlik ko'p bo'lsa karta ekranni egallab, guruhlar ro'yxatini pastga
+ * surib yuborardi. Shuning uchun yig'iq holatda har katakda ko'pi bilan
+ * ikki qator turadi, qolganini "Yana N ta" ochadi.
  */
+
+/** Yig'iq holatda bitta katakda ko'rinadigan eng ko'p qator soni. */
+const COLLAPSED_LIMIT = 2;
+
+interface AmountEntry {
+  unitCode: string;
+  text: string;
+}
 const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
   summary,
   units,
@@ -56,8 +68,9 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const [expanded, setExpanded] = useState(false);
 
-  const entriesOf = (amounts?: GapAmountDTO[]) =>
+  const entriesOf = (amounts?: GapAmountDTO[]): AmountEntry[] =>
     (amounts ?? [])
       .filter((entry) => toAmount(entry.amount) !== 0)
       .map((entry) => ({
@@ -69,6 +82,20 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
         }),
       }));
 
+  const monthGiven = entriesOf(summary?.currentMonthGiven);
+  const totalGiven = entriesOf(summary?.totalGiven);
+  const monthReceived = entriesOf(summary?.currentMonthReceived);
+  const totalReceived = entriesOf(summary?.totalReceived);
+
+  // Eng "to'la" katak nechta qatorni yashirayotgani.
+  const maxRows = Math.max(
+    monthGiven.length,
+    totalGiven.length,
+    monthReceived.length,
+    totalReceived.length
+  );
+  const hiddenCount = Math.max(0, maxRows - COLLAPSED_LIMIT);
+
   // Bitta birlik tanlangan bo'lsa nol ham o'sha birlikda ko'rsatiladi.
   const selectedUnit = units.find((unit) => unit.code === unitCode);
   const zeroText = selectedUnit ? formatGapAmount(0, selectedUnit) : '0';
@@ -76,12 +103,22 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
   const renderTile = (
     direction: GapSortDirection,
     label: string,
-    amounts: GapAmountDTO[] | undefined,
+    entries: AmountEntry[],
     color: string,
     softColor: string,
     iconName: keyof typeof Ionicons.glyphMap
   ) => {
-    const entries = entriesOf(amounts);
+    // Yig'iq holatda faol saralash qaysi birlikda bo'lsa, o'sha qator albatta
+    // ko'rinib tursin - aks holda ro'yxat ko'rinmaydigan raqam bo'yicha
+    // saralangandek tuyuladi.
+    const activeEntry =
+      sort?.direction === direction
+        ? entries.find((entry) => entry.unitCode === sort.unitCode)
+        : undefined;
+    let shown = expanded ? entries : entries.slice(0, COLLAPSED_LIMIT);
+    if (activeEntry && !shown.includes(activeEntry)) {
+      shown = [...shown.slice(0, COLLAPSED_LIMIT - 1), activeEntry];
+    }
     return (
       <View style={styles.tile}>
         <View style={styles.tileHeader}>
@@ -94,12 +131,12 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
         </View>
         {loading ? (
           <Text style={[styles.value, { color }]}>—</Text>
-        ) : entries.length === 0 ? (
+        ) : shown.length === 0 ? (
           <Text style={[styles.value, { color }]} numberOfLines={1}>
             {zeroText}
           </Text>
         ) : (
-          entries.map((entry) => {
+          shown.map((entry) => {
             const active = sort?.direction === direction && sort?.unitCode === entry.unitCode;
             return (
               <Pressable
@@ -154,7 +191,7 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
         {renderTile(
           'given',
           t('gap.currentMonthGiven'),
-          summary?.currentMonthGiven,
+          monthGiven,
           colors.positive,
           colors.positiveSoft,
           'arrow-up'
@@ -163,7 +200,7 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
         {renderTile(
           'given',
           t('gap.totalGiven'),
-          summary?.totalGiven,
+          totalGiven,
           colors.positive,
           colors.positiveSoft,
           'wallet-outline'
@@ -176,7 +213,7 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
         {renderTile(
           'received',
           t('gap.currentMonthReceived'),
-          summary?.currentMonthReceived,
+          monthReceived,
           colors.negative,
           colors.negativeSoft,
           'arrow-down'
@@ -185,12 +222,30 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
         {renderTile(
           'received',
           t('gap.totalReceived'),
-          summary?.totalReceived,
+          totalReceived,
           colors.negative,
           colors.negativeSoft,
           'time-outline'
         )}
       </View>
+
+      {hiddenCount > 0 ? (
+        <Pressable
+          onPress={() => setExpanded((prev) => !prev)}
+          style={({ pressed }) => [styles.toggle, pressed && styles.togglePressed]}
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+        >
+          <Text style={styles.toggleText}>
+            {expanded ? t('gap.showLess') : t('gap.showMore', { count: hiddenCount })}
+          </Text>
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={13}
+            color={colors.primary}
+          />
+        </Pressable>
+      ) : null}
 
       {/* Birlik soni oldindan noma'lum — chiplar gorizontal siljiydi. */}
       <ScrollView
@@ -211,7 +266,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     card: {
       backgroundColor: colors.surface,
       borderRadius: radius.xl,
-      paddingVertical: spacing.sm,
+      paddingVertical: spacing.xs,
       paddingHorizontal: spacing.md,
       marginHorizontal: spacing.md,
       marginBottom: spacing.sm,
@@ -224,7 +279,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     row: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      paddingVertical: spacing.xs,
+      paddingVertical: spacing.xxs,
     },
     tile: {
       flex: 1,
@@ -233,12 +288,12 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     tileHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
-      marginBottom: spacing.xxs,
+      gap: spacing.xxs + 2,
+      marginBottom: 2,
     },
     icon: {
-      width: 26,
-      height: 26,
+      width: 22,
+      height: 22,
       borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
@@ -252,7 +307,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     value: {
       ...typography.caption,
       fontSize: 15,
-      lineHeight: 20,
+      lineHeight: 19,
       fontWeight: '800',
       letterSpacing: -0.2,
       fontVariant: ['tabular-nums'],
@@ -262,7 +317,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       alignItems: 'center',
       gap: 4,
       alignSelf: 'flex-start',
-      paddingVertical: 2,
+      paddingVertical: 1,
       paddingHorizontal: 6,
       marginLeft: -6,
       borderRadius: radius.sm,
@@ -282,8 +337,25 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       height: 1,
       backgroundColor: colors.border,
     },
+    toggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xxs,
+      paddingTop: spacing.xxs,
+    },
+    togglePressed: {
+      opacity: 0.6,
+    },
+    toggleText: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.primary,
+    },
     filterScroll: {
-      marginTop: spacing.sm,
+      marginTop: spacing.xs,
+      flexGrow: 0,
       borderRadius: radius.pill,
       backgroundColor: colors.surfaceMuted,
     },
@@ -294,7 +366,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     chip: {
       alignItems: 'center',
-      paddingVertical: spacing.xs,
+      paddingVertical: spacing.xxs + 2,
       paddingHorizontal: spacing.sm,
       borderRadius: radius.pill,
     },
