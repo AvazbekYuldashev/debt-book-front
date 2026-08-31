@@ -5,6 +5,7 @@ import {
   BusinessMemberCreateDTO,
   BusinessMemberRole,
   BusinessProfileDTO,
+  BusinessUpdateDTO,
 } from '../types/business';
 
 export type AddMemberErrorCode =
@@ -56,6 +57,21 @@ export const getMyBusinesses = async (token?: string): Promise<BusinessDTO[]> =>
   setApiAuthToken(token);
   const response = await apiClient.get<BusinessDTO[]>('/business/my');
   return response.data ?? [];
+};
+
+/**
+ * Biznes nomi va manzilini yangilash. Faqat OWNER bajara oladi - server ham
+ * shuni tekshiradi. Biznes ish maydonida "Axborotni tahrirlash" shu yerga
+ * keladi, shaxsiy profilga emas.
+ */
+export const updateBusiness = async (
+  businessId: string,
+  dto: BusinessUpdateDTO,
+  token?: string
+): Promise<BusinessDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.put<BusinessDTO>(`/business/${businessId}`, dto);
+  return response.data;
 };
 
 export const createBusiness = async (dto: BusinessCreateDTO, token?: string): Promise<BusinessDTO> => {

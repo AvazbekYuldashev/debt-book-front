@@ -44,3 +44,9 @@ export interface WorkspaceState {
   activeBusinessName: string | null;
   activeBusinessRole: BusinessRole | null;
 }
+
+/** Biznes nomi va manzilini o'zgartirish (faqat OWNER). */
+export interface BusinessUpdateDTO {
+  name: string;
+  address?: string;
+}

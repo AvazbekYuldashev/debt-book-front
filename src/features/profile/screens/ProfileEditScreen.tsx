@@ -1,5 +1,6 @@
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import Card from '../../../shared/ui/Card';
 import Input from '../../../shared/ui/Input';
@@ -8,6 +9,10 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { AuthContext } from '../../auth/context/AuthContext';
+import { WorkspaceContext } from '../../business/context/WorkspaceContext';
+import { useMyBusinesses, myBusinessesQueryKey } from '../../business/hooks/useMyBusinesses';
+import { updateBusiness } from '../../business/services/businessService';
+import type { BusinessDTO } from '../../business/types/business';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
 import type { ROUTES } from '../../../app/navigation/routes';
 import {
@@ -19,11 +24,19 @@ import {
 import { useProfileAction } from '../hooks/useProfileAction';
 
 /**
- * Axborotni tahrirlash: ism-familiya, telefon va parol.
+ * Axborotni tahrirlash.
+ *
+ * Ekran ish maydoniga qarab ikki xil ishlaydi:
+ *   shaxsiy  — ism-familiya, telefon va parol;
+ *   biznes   — o'sha biznesning nomi va manzili.
+ *
+ * Biznesga o'tilganda shaxsiy profilni tahrirlash mantiqsiz bo'lardi: rasm
+ * almashtirish allaqachon shu qoidaga bo'ysunadi (biznes rasmini yangilaydi),
+ * qolgan maydonlar ham shunday. Telefon va parol esa faqat shaxsiy — ular
+ * biznesga tegishli emas.
  *
  * Telefon alohida karta, chunki uni o'zgartirish ikki qadamli — yangi raqamga
- * SMS kod boradi va o'sha tasdiqlangandagina almashadi. Ism-familiya esa
- * darhol saqlanadi.
+ * SMS kod boradi va o'sha tasdiqlangandagina almashadi.
  */
 const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>> = ({
   navigation,
@@ -32,9 +45,54 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { profile, setProfile } = useContext(AuthContext);
+  const { workspace, setBusinessWorkspace } = useContext(WorkspaceContext);
   const { loadingKey, status, statusError, run } = useProfileAction();
+  const queryClient = useQueryClient();
 
   const token = profile?.jwt;
+
+  const isBusiness = workspace.mode === 'business';
+  const isOwner = workspace.activeBusinessRole === 'OWNER';
+  const { data: businesses } = useMyBusinesses(isBusiness);
+  const activeBusiness = useMemo(
+    () => (isBusiness ? businesses?.find((b) => b.id === workspace.activeBusinessId) ?? null : null),
+    [isBusiness, businesses, workspace.activeBusinessId]
+  );
+
+  const [businessName, setBusinessName] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
+
+  // Ro'yxat kechroq kelishi mumkin — kelgach maydonlarni to'ldiramiz.
+  useEffect(() => {
+    if (!activeBusiness) return;
+    setBusinessName(activeBusiness.name ?? '');
+    setBusinessAddress(activeBusiness.address ?? '');
+  }, [activeBusiness]);
+
+  const saveBusiness = () =>
+    run('business', async () => {
+      const businessId = workspace.activeBusinessId;
+      if (!token) throw new Error(t('profile.noToken'));
+      if (!businessId) throw new Error(t('profile.genericError'));
+      const cleanName = businessName.trim();
+      if (!cleanName) throw new Error(t('profile.enterBusinessName'));
+
+      const updated = await updateBusiness(
+        businessId,
+        { name: cleanName, address: businessAddress.trim() },
+        token
+      );
+
+      queryClient.setQueryData<BusinessDTO[]>(myBusinessesQueryKey(profile?.id), (prev) =>
+        prev?.map((b) => (b.id === businessId ? { ...b, ...updated } : b))
+      );
+      // Ish maydoni almashtirgichida ham yangi nom ko'rinsin.
+      setBusinessWorkspace({
+        id: businessId,
+        name: updated.name,
+        role: workspace.activeBusinessRole ?? 'OWNER',
+      });
+    });
 
   const [name, setName] = useState(profile?.name ?? '');
   const [surname, setSurname] = useState(profile?.surname ?? '');
@@ -93,6 +151,54 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
       setNewPassword('');
       setConfirmNewPassword('');
     });
+
+  // Biznes ish maydonida shu biznes tahrirlanadi, shaxsiy profil emas.
+  if (isBusiness) {
+    return (
+      <View style={styles.container}>
+        <ScreenHeader title={t('profile.editBusinessInfo')} onBack={navigation.goBack} />
+
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            {status ? (
+              <Text style={[styles.status, statusError && styles.statusError]}>{status}</Text>
+            ) : null}
+
+            <Card style={styles.card}>
+              <Text style={styles.cardTitle}>{t('profile.businessSection')}</Text>
+              <Input
+                label={t('profile.businessName')}
+                value={businessName}
+                onChangeText={setBusinessName}
+                editable={isOwner}
+              />
+              <Input
+                label={t('profile.businessAddress')}
+                value={businessAddress}
+                onChangeText={setBusinessAddress}
+                editable={isOwner}
+              />
+              {isOwner ? (
+                <Button
+                  title={t('common.save')}
+                  onPress={saveBusiness}
+                  loading={loadingKey === 'business'}
+                />
+              ) : (
+                // Server ham shuni tekshiradi — bu faqat kutishni to'g'rilaydi.
+                <Text style={styles.hint}>{t('profile.businessOwnerOnly')}</Text>
+              )}
+            </Card>
+
+            <Text style={styles.hint}>{t('profile.personalInPersonalWorkspace')}</Text>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -214,6 +320,12 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
     },
     statusError: {
       color: colors.danger,
+    },
+    hint: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center',
     },
   });
 
