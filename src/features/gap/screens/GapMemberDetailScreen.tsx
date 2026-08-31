@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { FlatList, type ListRenderItem, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -13,30 +12,30 @@ import GapTransferRow from '../components/GapTransferRow';
 import GapMemberBalanceHeader from '../components/GapMemberBalanceHeader';
 import GapTransferFormModal from '../components/GapTransferFormModal';
 import { GapTransferDTO, GapTransferDirection, GapUnit, toAmount } from '../types/gap';
-import { formatGapAmount } from '../model/gapFormat';
 
-interface Section {
+/** Ro'yxat qatori: yozuv va uning men uchun yo'nalishi. */
+interface LedgerItem {
+  transfer: GapTransferDTO;
   direction: 'in' | 'out';
-  title: string;
-  total: string;
-  data: GapTransferDTO[];
 }
 
 /**
  * Bitta a'zoning hisob-kitobi — Qarzlar bo'limidagi mijoz ekrani bilan bir
- * xil tuzilishda: yuqorida oldi-berdi tarixi, pastda ikkita to'la enli tugma.
+ * xil tuzilishda: tepada balans kartasi, o'rtada BITTA tekis tarix, pastda
+ * ikkita to'la enli tugma.
+ *
+ * Tarix bo'limlarga bo'linmaydi: oldi ham, berdi ham bitta ro'yxatda, yangisi
+ * birinchi. Yo'nalishni ikonka va rang bildiradi — undan olganim yashil,
+ * unga berganim qizil. Vaqt tartibida o'qilgani hisobni tushunishni
+ * osonlashtiradi: ikki ustunni solishtirib o'tirish shart emas.
  *
  * Ro'yxatda FAQAT men shu odam bilan qilgan oldi-berdi turadi — uning
- * boshqalar bilan hisobi menga aloqador emas. Shuning uchun yo'nalish ham
- * men tomondan: kirim — undan olganim, chiqim — unga berganim.
- *
- * O'z qatorimni ochsam guruhdagi butun hisobim chiqadi.
- * Bo'lim sarlavhasidagi jami — faqat ikki tomon tasdiqlagan yozuvlardan.
+ * boshqalar bilan hisobi menga aloqador emas.
  *
  * "Berdim" va "Oldim" istalgan paytda bosiladi: navbat ham, davr ham yo'q.
  * Yozuvni kiritgan odam uni o'zi tasdiqlamaydi — tasdiq qarama-qarshi
- * tomonda qoladi. Tasdig'imni kutayotgan yozuvni qator ustiga bosib
- * tasdiqlayman.
+ * tomonda qoladi, shu sababli tasdig'imni kutayotgan qator bosiladigan
+ * bo'ladi.
  */
 const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> = ({
   navigation,
@@ -85,55 +84,37 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
     [confirmMutation]
   );
 
-  const sections = useMemo<Section[]>(() => {
+  /**
+   * Ikki oqim bitta ro'yxatga qo'shilib, sana bo'yicha teskari saralanadi —
+   * hisob-kitobni vaqt tartibida o'qish uchun shu tabiiy.
+   */
+  const items = useMemo<LedgerItem[]>(() => {
     if (!detail) return [];
-    return [
-      {
-        direction: 'in',
-        title: isSelf ? t('gap.incomingTitleSelf') : t('gap.incomingTitle'),
-        total: formatGapAmount(toAmount(detail.totalReceived), unit),
-        data: detail.incoming,
-      },
-      {
-        direction: 'out',
-        title: isSelf ? t('gap.outgoingTitleSelf') : t('gap.outgoingTitle'),
-        total: formatGapAmount(toAmount(detail.totalGiven), unit),
-        data: detail.outgoing,
-      },
+    const merged: LedgerItem[] = [
+      ...detail.incoming.map((transfer) => ({ transfer, direction: 'in' as const })),
+      ...detail.outgoing.map((transfer) => ({ transfer, direction: 'out' as const })),
     ];
-  }, [detail, unit, isSelf, t]);
+    return merged.sort((a, b) => {
+      const left = a.transfer.date ? Date.parse(a.transfer.date) : 0;
+      const right = b.transfer.date ? Date.parse(b.transfer.date) : 0;
+      return right - left;
+    });
+  }, [detail]);
 
-  const renderItem = useCallback(
-    ({ item, section, index }: { item: GapTransferDTO; section: Section; index: number }) => (
+  const renderItem: ListRenderItem<LedgerItem> = useCallback(
+    ({ item, index }) => (
       <GapTransferRow
-        item={item}
+        item={item.transfer}
         unit={unit}
-        direction={section.direction}
-        isLast={index === section.data.length - 1}
-        onPress={item.canConfirm ? confirmRow : undefined}
+        direction={item.direction}
+        isLast={index === items.length - 1}
+        onPress={item.transfer.canConfirm ? confirmRow : undefined}
       />
     ),
-    [unit, confirmRow]
+    [unit, items.length, confirmRow]
   );
 
-  const renderSectionHeader = useCallback(
-    ({ section }: { section: Section }) => (
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{section.title}</Text>
-        <Text
-          style={[
-            styles.sectionTotal,
-            { color: section.direction === 'in' ? colors.positive : colors.negative },
-          ]}
-        >
-          {section.total}
-        </Text>
-      </View>
-    ),
-    [styles, colors]
-  );
-
-  const keyExtractor = useCallback((item: GapTransferDTO) => item.transferId, []);
+  const keyExtractor = useCallback((item: LedgerItem) => item.transfer.transferId, []);
 
   const actionError =
     (createMutation.error as Error | null)?.message ??
@@ -151,36 +132,30 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         onBack={navigation.goBack}
       />
 
-      {detailQuery.isLoading ? (
-        <SkeletonCardList count={5} containerStyle={styles.skeleton} />
-      ) : (
-        <SectionList
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          sections={sections}
-          renderItem={renderItem}
-          renderSectionHeader={renderSectionHeader}
-          keyExtractor={keyExtractor}
-          stickySectionHeadersEnabled={false}
-          showsVerticalScrollIndicator={false}
-          initialNumToRender={14}
-          refreshControl={
-            <RefreshControl
-              refreshing={detailQuery.isFetching}
-              onRefresh={detailQuery.refetch}
-              tintColor={colors.primary}
-            />
-          }
-          renderSectionFooter={({ section }) =>
-            section.data.length === 0 ? (
-              <View style={styles.empty}>
-                <Ionicons name="swap-horizontal-outline" size={20} color={colors.textSecondary} />
-                <Text style={styles.emptyText}>{t('gap.noTransfers')}</Text>
-              </View>
-            ) : null
-          }
-        />
-      )}
+      <FlatList
+        style={styles.list}
+        contentContainerStyle={styles.listCard}
+        data={detailQuery.isLoading ? [] : items}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={14}
+        windowSize={11}
+        refreshControl={
+          <RefreshControl
+            refreshing={detailQuery.isFetching && !detailQuery.isLoading}
+            onRefresh={detailQuery.refetch}
+            tintColor={colors.primary}
+          />
+        }
+        ListEmptyComponent={
+          detailQuery.isLoading ? (
+            <SkeletonCardList count={4} containerStyle={styles.skeleton} />
+          ) : (
+            <Text style={styles.emptyText}>{t('gap.noTransfers')}</Text>
+          )
+        }
+      />
 
       {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
 
@@ -188,7 +163,7 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
           "Berdim" yashil. O'z hisobimda amal yo'q. */}
       {isSelf ? (
         <Text style={styles.actionHint}>
-          {detail?.incoming.some((item) => item.canConfirm)
+          {items.some((item) => item.transfer.canConfirm)
             ? t('gap.tapToConfirm')
             : t('gap.selfLedger')}
         </Text>
@@ -230,45 +205,21 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     list: {
       flex: 1,
     },
-    listContent: {
-      paddingBottom: spacing.md,
-    },
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: spacing.sm,
-      marginTop: spacing.sm,
+    listCard: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.xl,
       marginHorizontal: spacing.md,
-      marginBottom: spacing.xs,
-    },
-    sectionTitle: {
-      ...typography.caption,
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.textSecondary,
-      flexShrink: 1,
-    },
-    sectionTotal: {
-      ...typography.caption,
-      fontSize: 14,
-      fontWeight: '800',
-      fontVariant: ['tabular-nums'],
+      marginBottom: spacing.md,
+      overflow: 'hidden',
     },
     skeleton: {
       padding: spacing.md,
     },
-    empty: {
-      alignItems: 'center',
-      gap: spacing.xs,
-      paddingVertical: spacing.lg,
-      marginHorizontal: spacing.md,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surface,
-    },
     emptyText: {
-      ...typography.caption,
+      ...typography.body,
+      textAlign: 'center',
       color: colors.textSecondary,
+      paddingVertical: spacing.lg,
     },
     error: {
       ...typography.caption,

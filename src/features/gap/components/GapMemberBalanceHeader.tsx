@@ -24,10 +24,9 @@ interface GapMemberBalanceHeaderProps {
  * A'zo ekranining tepasi — Qarzlar bo'limidagi mijoz kartasi bilan bir xil:
  * chapda ism va telefon, o'ngda hisob.
  *
- * O'ngdagi katta raqam — SOF hisob (olganim − berganim): musbat bo'lsa u
- * menga ko'proq bergan, manfiy bo'lsa men unga. Ostida ikkala tomon alohida
- * turadi, chunki sof raqamning o'zi "qancha aylandi" degan savolga javob
- * bermaydi.
+ * O'ngdagi raqam — SOF hisob (olganim − berganim): musbat bo'lsa u menga
+ * ko'proq bergan, manfiy bo'lsa men unga. Yakuniy raqam yolg'iz turadi,
+ * chunki oldi-berdining o'zi pastdagi tarixda ko'rinib turadi.
  *
  * Telefon bosilganda qurilmaning raqam terish oynasi ochiladi.
  */
@@ -95,14 +94,6 @@ const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
             >
               {formatGapAmount(net, unit)}
             </Text>
-            <View style={styles.breakdown}>
-              <Text style={[styles.small, { color: colors.positive }]} numberOfLines={1}>
-                + {formatGapAmount(received, unit)}
-              </Text>
-              <Text style={[styles.small, { color: colors.negative }]} numberOfLines={1}>
-                − {formatGapAmount(given, unit)}
-              </Text>
-            </View>
           </View>
         </View>
       </View>
@@ -170,16 +161,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontSize: 24,
       fontWeight: '800',
       letterSpacing: -0.6,
-      fontVariant: ['tabular-nums'],
-    },
-    breakdown: {
-      alignItems: 'flex-end',
-      marginTop: spacing.xxs,
-    },
-    small: {
-      ...typography.caption,
-      fontSize: 12,
-      fontWeight: '700',
       fontVariant: ['tabular-nums'],
     },
   });
