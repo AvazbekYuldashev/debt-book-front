@@ -6,6 +6,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import GapAmountStack from './GapAmountStack';
 import { formatGapAmount } from '../model/gapFormat';
+import { netByUnit, splitNet } from '../types/gap';
 import type { GapAmountDTO, GapUnit } from '../types/gap';
 
 interface GapGroupBalanceCardProps {
@@ -71,24 +72,16 @@ const GapGroupBalanceCard: React.FC<GapGroupBalanceCardProps> = ({
     </View>
   );
 
+  // Yalpi emas, SOF qoldiq: bergan − olgan. 1000 berib 1000 qaytarib
+  // olingan bo'lsa ikkala katak ham nol bo'lishi kerak.
+  const { haq, qarz } = splitNet(netByUnit(given, received));
+
   return (
     <View style={styles.card}>
       <View style={styles.row}>
-        {renderTile(
-          t('gap.totalGiven'),
-          given,
-          colors.positive,
-          colors.positiveSoft,
-          'arrow-up'
-        )}
+        {renderTile(t('gap.totalCredit'), haq, colors.positive, colors.positiveSoft, 'arrow-up')}
         <View style={styles.divider} />
-        {renderTile(
-          t('gap.totalReceived'),
-          received,
-          colors.negative,
-          colors.negativeSoft,
-          'arrow-down'
-        )}
+        {renderTile(t('gap.totalDebt'), qarz, colors.negative, colors.negativeSoft, 'arrow-down')}
       </View>
     </View>
   );

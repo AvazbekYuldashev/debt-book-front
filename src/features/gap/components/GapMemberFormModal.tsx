@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { deviceContactsSupported } from '../../../shared/lib/deviceContacts';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { useAppTheme } from '../../../shared/theme';
@@ -97,7 +98,10 @@ const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
               {t('gap.addMemberTitle')}
             </Text>
 
-            {onOpenDeviceContacts ? (
+            {/* Brauzerda telefon daftariga kirish yo'q — tugma ko'rsatilsa
+                ochilgan oyna doim "Kontakt topilmadi" deb turardi.
+                Qarzlar bo'limidagi oyna ham aynan shunday tekshiradi. */}
+            {onOpenDeviceContacts && deviceContactsSupported ? (
               <TouchableOpacity
                 style={styles.deviceBtn}
                 onPress={onOpenDeviceContacts}

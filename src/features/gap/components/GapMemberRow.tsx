@@ -6,7 +6,7 @@ import { useI18n } from '../../../shared/i18n';
 import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import UserAvatar from '../../../shared/ui/UserAvatar';
 import GapAmountStack from './GapAmountStack';
-import { GapMemberDTO, GapUnit, nonZero } from '../types/gap';
+import { GapMemberDTO, GapUnit, netByUnit, toAmount } from '../types/gap';
 import { formatGapAmount } from '../model/gapFormat';
 
 const AVATAR_SIZE = 46;
@@ -21,12 +21,13 @@ interface GapMemberRowProps {
 
 /**
  * A'zolar ro'yxatidagi bitta qator — Qarzlar bo'limidagi mijoz qatori bilan
- * bir xil ko'rinishda: chapda avatar, ism va telefon; o'ngda shu a'zoning
- * hisobi (bergani yashil, olgani qizil).
+ * bir xil ko'rinishda: chapda avatar, ism va telefon; o'ngda SHU ODAMNING
+ * sof qoldig'i.
  *
- * Ikkala summa ham ko'rsatiladi, chunki gap kassada odam bir vaqtning o'zida
- * ham olgan, ham bergan bo'lishi mumkin — bittasini tanlab ko'rsatish
- * hisobning yarmini yashirardi.
+ * Qoldiq = bergan − olgan. Musbat bo'lsa u haqdor (yashil +), manfiy bo'lsa
+ * qarzdor (qizil −), nol bo'lsa hisob toza. Ilgari bergani va olgani ikki
+ * qatorda YALPI holda turardi: 1000 berib 1000 qaytarib olingan bo'lsa ham
+ * "+1000" va "−1000" bo'lib ko'rinardi, nol emas.
  *
  * O'ng chetdagi qizil belgi — mening tasdig'imni kutayotgan yozuvlar soni.
  */
@@ -41,8 +42,7 @@ const GapMemberRow: React.FC<GapMemberRowProps> = ({
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const received = nonZero(item.received);
-  const given = nonZero(item.given);
+  const net = netByUnit(item.given, item.received);
   // Chip faqat ish bo'lsa chiqadi: tasdig'imni kutayotgan yozuvlar.
   const awaiting = item.awaitingMyConfirm ?? 0;
 
@@ -71,17 +71,26 @@ const GapMemberRow: React.FC<GapMemberRowProps> = ({
 
       <View style={styles.right}>
         <View style={styles.amounts}>
-          {received.length === 0 && given.length === 0 ? (
+          {net.length === 0 ? (
             <Text style={styles.amountMuted} numberOfLines={1}>
               {formatGapAmount(0, unit)}
             </Text>
           ) : (
-            <>
-              {/* Berganim yashil (+), olganim qizil (−). */}
-              <GapAmountStack items={given} sign="+" color={colors.positive} />
-              <GapAmountStack items={received} sign="−" color={colors.negative} />
-            </>
+            // Har birlik o'z qatorida: musbatlari yashil, manfiylari qizil.
+            // Belgi summaning o'zida bo'lgani uchun `sign` berilmaydi.
+            <GapAmountStack
+              items={net.filter((entry) => toAmount(entry.amount) > 0)}
+              sign="+"
+              color={colors.positive}
+            />
           )}
+          <GapAmountStack
+            items={net
+              .filter((entry) => toAmount(entry.amount) < 0)
+              .map((entry) => ({ ...entry, amount: Math.abs(toAmount(entry.amount)) }))}
+            sign="−"
+            color={colors.negative}
+          />
         </View>
 
         {awaiting > 0 ? (

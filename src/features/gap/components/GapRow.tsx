@@ -5,7 +5,8 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import GapAmountStack from './GapAmountStack';
-import { GapResponseDTO, nonZero, unitOf } from '../types/gap';
+import { GapResponseDTO, netByUnit,
+  splitNet, unitOf } from '../types/gap';
 import { formatGapAmount } from '../model/gapFormat';
 
 interface GapRowProps {
@@ -31,8 +32,8 @@ const GapRow: React.FC<GapRowProps> = ({ item, isLast = false, onPress }) => {
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const unit = unitOf(item);
-  const received = nonZero(item.myTotalReceived);
-  const given = nonZero(item.myTotalGiven);
+  // Guruh qatorida ham sof qoldiq: haqim yashil, qarzim qizil.
+  const { haq, qarz } = splitNet(netByUnit(item.myTotalGiven, item.myTotalReceived));
   const awaiting = item.awaitingMyConfirm ?? 0;
 
   return (
@@ -69,15 +70,16 @@ const GapRow: React.FC<GapRowProps> = ({ item, isLast = false, onPress }) => {
       </View>
 
       <View style={styles.side}>
-        {received.length === 0 && given.length === 0 ? (
+        {haq.length === 0 && qarz.length === 0 ? (
+          // Hisob toza: bergan va olgan tenglashgan.
           <Text style={styles.totalMuted} numberOfLines={1}>
             {formatGapAmount(0, unit)}
           </Text>
         ) : (
           <>
-            {/* Berganim yashil (+), olganim qizil (−). */}
-            <GapAmountStack items={given} sign="+" color={colors.positive} />
-            <GapAmountStack items={received} sign="−" color={colors.negative} />
+            {/* Haqim yashil (+), qarzim qizil (−). */}
+            <GapAmountStack items={haq} sign="+" color={colors.positive} />
+            <GapAmountStack items={qarz} sign="−" color={colors.negative} />
           </>
         )}
       </View>

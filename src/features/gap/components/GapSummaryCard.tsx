@@ -12,6 +12,8 @@ import {
   GapSummaryDTO,
   GapUnit,
   GapUnitFilter,
+  netByUnit,
+  splitNet,
   toAmount,
 } from '../types/gap';
 
@@ -28,9 +30,9 @@ interface GapSummaryCardProps {
 }
 
 /**
- * Ekranning yuqori paneli:
- *   yashil qator — men BERGANIM (bu oy / jami): menga qaytishi kerak
- *   qizil  qator — men OLGANIM  (bu oy / jami): mening qarzim
+ * Ekranning yuqori paneli: barcha guruhlar bo'yicha SOF qoldiq.
+ *   yashil — JAMI HAQ:  menga qaytishi kerak
+ *   qizil  — JAMI QARZ: men qaytarishim kerak
  *
  * Raqamlar haqiqatda bo'lib o'tgan, ikki tomon tasdiqlagan oldi-berdilardan:
  * rejalashtirilgan majburiyat degan narsa bu modelda yo'q.
@@ -46,6 +48,9 @@ interface GapSummaryCardProps {
  * Birlik ko'p bo'lsa karta ekranni egallab, guruhlar ro'yxatini pastga
  * surib yuborardi. Shuning uchun yig'iq holatda har katakda ko'pi bilan
  * ikki qator turadi, qolganini "Yana N ta" ochadi.
+ *
+ * Yalpi oqim EMAS, sof qoldiq: 1000 berib 1000 qaytarib olingan bo'lsa
+ * ikkala katak ham nol bo'lishi kerak.
  */
 
 /** Yig'iq holatda bitta katakda ko'rinadigan eng ko'p qator soni. */
@@ -82,18 +87,13 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
         }),
       }));
 
-  const monthGiven = entriesOf(summary?.currentMonthGiven);
-  const totalGiven = entriesOf(summary?.totalGiven);
-  const monthReceived = entriesOf(summary?.currentMonthReceived);
-  const totalReceived = entriesOf(summary?.totalReceived);
+  // Barcha guruhlar bo'yicha sof qoldiq -> haq va qarz.
+  const { haq, qarz } = splitNet(netByUnit(summary?.totalGiven, summary?.totalReceived));
+  const haqRows = entriesOf(haq);
+  const qarzRows = entriesOf(qarz);
 
   // Eng "to'la" katak nechta qatorni yashirayotgani.
-  const maxRows = Math.max(
-    monthGiven.length,
-    totalGiven.length,
-    monthReceived.length,
-    totalReceived.length
-  );
+  const maxRows = Math.max(haqRows.length, qarzRows.length);
   const hiddenCount = Math.max(0, maxRows - COLLAPSED_LIMIT);
 
   // Bitta birlik tanlangan bo'lsa nol ham o'sha birlikda ko'rsatiladi.
@@ -190,42 +190,20 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
       <View style={styles.row}>
         {renderTile(
           'given',
-          t('gap.currentMonthGiven'),
-          monthGiven,
+          t('gap.totalCredit'),
+          haqRows,
           colors.positive,
           colors.positiveSoft,
           'arrow-up'
         )}
         <View style={styles.divider} />
         {renderTile(
-          'given',
-          t('gap.totalGiven'),
-          totalGiven,
-          colors.positive,
-          colors.positiveSoft,
-          'wallet-outline'
-        )}
-      </View>
-
-      <View style={styles.rowDivider} />
-
-      <View style={styles.row}>
-        {renderTile(
           'received',
-          t('gap.currentMonthReceived'),
-          monthReceived,
+          t('gap.totalDebt'),
+          qarzRows,
           colors.negative,
           colors.negativeSoft,
           'arrow-down'
-        )}
-        <View style={styles.divider} />
-        {renderTile(
-          'received',
-          t('gap.totalReceived'),
-          totalReceived,
-          colors.negative,
-          colors.negativeSoft,
-          'time-outline'
         )}
       </View>
 

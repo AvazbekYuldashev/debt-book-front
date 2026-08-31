@@ -77,9 +77,9 @@ export interface GapMemberDTO {
   memberName: string;
   memberPhone: string | null;
   me: boolean;
-  /** Undan olganim (yashil), birlik bo'yicha ajratilgan. */
+  /** SHU ODAM olgan miqdor, birlik bo'yicha ajratilgan. */
   received: GapAmountDTO[];
-  /** Unga berganim (qizil), birlik bo'yicha ajratilgan. */
+  /** SHU ODAM bergan miqdor. Sof qoldiq = given - received. */
   given: GapAmountDTO[];
   awaitingMyConfirm: number;
 }
@@ -184,6 +184,49 @@ export const amountUnit = (entry: GapAmountDTO): GapUnit => ({
   code: entry.unitCode,
   label: entry.unitLabel,
   type: entry.unitType,
+});
+
+/**
+ * Sof qoldiq: bergan - olgan, har birlik bo'yicha alohida.
+ *
+ * Birliklar QO'SHILMAYDI (so'm, dollar va kg go'sht bir-biriga aylanmaydi),
+ * shuning uchun ayirish faqat bir xil birlik ichida bajariladi.
+ *
+ * Musbat -> bu odam ko'proq bergan, ya'ni HAQDOR.
+ * Manfiy -> ko'proq olgan, ya'ni QARZDOR.
+ * Nolga teng birliklar tushib qoladi: 1000 berib 1000 qaytarib olingan
+ * bo'lsa hisob toza, qatorda hech narsa turmasligi kerak.
+ */
+export const netByUnit = (
+  given: GapAmountDTO[] | undefined,
+  received: GapAmountDTO[] | undefined,
+): GapAmountDTO[] => {
+  const byUnit = new Map<string, GapAmountDTO>();
+  for (const entry of given ?? []) {
+    byUnit.set(entry.unitCode, { ...entry, amount: toAmount(entry.amount) });
+  }
+  for (const entry of received ?? []) {
+    const existing = byUnit.get(entry.unitCode);
+    if (existing) {
+      existing.amount = toAmount(existing.amount) - toAmount(entry.amount);
+    } else {
+      byUnit.set(entry.unitCode, { ...entry, amount: -toAmount(entry.amount) });
+    }
+  }
+  return [...byUnit.values()].filter((entry) => toAmount(entry.amount) !== 0);
+};
+
+/**
+ * Sof qoldiqni ikkiga ajratadi: HAQ (musbat) va QARZ (manfiy, moduli bilan).
+ *
+ * Ekranda ikkala tomon alohida katakda turadi, shuning uchun manfiy
+ * qiymatlar musbatga aylantiriladi — belgi katakning o'zida ("−").
+ */
+export const splitNet = (net: GapAmountDTO[]) => ({
+  haq: net.filter((entry) => toAmount(entry.amount) > 0),
+  qarz: net
+    .filter((entry) => toAmount(entry.amount) < 0)
+    .map((entry) => ({ ...entry, amount: Math.abs(toAmount(entry.amount)) })),
 });
 
 /** Noldan farq qiladigan qatorlar. Bo'sh ro'yxat = hisob toza. */
