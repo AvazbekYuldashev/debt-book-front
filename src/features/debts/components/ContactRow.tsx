@@ -31,12 +31,13 @@ interface ContactRowProps {
 /**
  * Ro'yxatdagi bitta mijoz qatori.
  *
- * Qator BALANDLIGI DOIMIY: ism + izoh, o'ngda bitta summa. Mijozda bir
- * nechta valyuta bo'lsa faqat asosiysi chiqadi, qolgani "yana N ta"
- * bo'lib turadi - to'liq taqsimot mijoz ochilganda.
+ * O'ngda mijozning BARCHA valyutalardagi qoldig'i: har biri o'z qatorida,
+ * bergani yashil, olgani qizil. Qaysi valyutada qancha qolganini bilish
+ * uchun mijozni ochish shart emas.
  *
  * Valyutalar bir-biriga QO'SHILMAYDI: dollarni bugungi kurs bo'yicha
- * so'mga aylantirish qarzning haqiqiy ma'nosini buzadi.
+ * so'mga aylantirish qarzning haqiqiy ma'nosini buzadi. Shu sababli
+ * ular alohida qatorlarda turadi, yig'indi ko'rsatilmaydi.
  */
 const ContactRow: React.FC<ContactRowProps> = ({
   contact,
@@ -68,26 +69,21 @@ const ContactRow: React.FC<ContactRowProps> = ({
   const secondaryLabel = isBusiness ? t('debts.businessLabel') : contact.phone || '';
 
   /**
-   * Qaysi summa asosiy bo'lib chiqadi: foydalanuvchining asosiy valyutasidagisi,
-   * u bo'lmasa QIYMATI eng kattasi.
+   * Tartib: avval asosiy valyuta, keyin QIYMATI bo'yicha kamayish tartibida.
    *
-   * Qiymat solishtirish uchun kursga aylantiriladi, lekin EKRANDA baribir
-   * o'z valyutasida ko'rsatiladi. Xom raqamlarni solishtirsak 20 000 ₽
-   * 1 000 $ dan "katta" bo'lib chiqardi — bu noto'g'ri.
+   * Solishtirish uchun kursga aylantiriladi, lekin EKRANDA har summa o'z
+   * valyutasida qoladi. Xom raqamlarni solishtirsak 20 000 rubl 1 000
+   * dollardan "katta" bo'lib chiqardi.
    */
-  const primary = useMemo(() => {
-    const rows = balances ?? [];
-    if (rows.length === 0) return null;
-    const inBase = rows.find((row) => row.currency === baseCurrency);
-    if (inBase) return inBase;
-    return rows.reduce((max, row) =>
-      Math.abs(toBase(row.amount, row.currency)) > Math.abs(toBase(max.amount, max.currency))
-        ? row
-        : max,
-    );
+  const rows = useMemo(() => {
+    const items = [...(balances ?? [])];
+    items.sort((a, b) => {
+      if (a.currency === baseCurrency) return -1;
+      if (b.currency === baseCurrency) return 1;
+      return Math.abs(toBase(b.amount, b.currency)) - Math.abs(toBase(a.amount, a.currency));
+    });
+    return items;
   }, [balances, baseCurrency, toBase]);
-
-  const extraCount = (balances?.length ?? 0) - (primary ? 1 : 0);
 
   return (
     <View style={[styles.row, !isLast && styles.rowBorder]}>
@@ -149,28 +145,24 @@ const ContactRow: React.FC<ContactRowProps> = ({
         >
           {balances === undefined ? (
             <Text style={styles.amountMuted}>{totalsLoading ? '…' : '--'}</Text>
-          ) : primary === null ? (
+          ) : rows.length === 0 ? (
             <Text style={styles.amountMuted}>{formatMoney(0)}</Text>
           ) : (
-            <>
+            rows.map((row) => (
               <Text
+                key={row.currency}
                 style={[
                   styles.amount,
-                  { color: primary.amount > 0 ? colors.positive : colors.negative },
+                  { color: row.amount > 0 ? colors.positive : colors.negative },
                 ]}
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                minimumFontScale={0.75}
+                minimumFontScale={0.7}
               >
-                {primary.amount > 0 ? '+' : ''}
-                {formatMoney(primary.amount, primary.currency)}
+                {row.amount > 0 ? '+' : ''}
+                {formatMoney(row.amount, row.currency)}
               </Text>
-              {extraCount > 0 ? (
-                <Text style={styles.amountMuted} numberOfLines={1}>
-                  {t('debts.moreCurrencies', { count: extraCount })}
-                </Text>
-              ) : null}
-            </>
+            ))
           )}
         </Pressable>
         {canEdit ? (
@@ -248,7 +240,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     right: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
+      // Summa bilan tugma orasi tor: ular bitta guruh bo'lib ko'rinsin.
+      gap: spacing.xxs,
       // Summa qanchalik katta bo'lmasin, qator enining shuncha ulushidan oshmaydi —
       // qolgan joy mijoz ismiga tegishli (ism summadan muhimroq).
       maxWidth: '55%',
@@ -260,8 +253,12 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexShrink: 1,
       gap: 1,
     },
+    // Bir nechta valyuta ustma-ust turadi — qator oralig'i tor, aks holda
+    // ikki valyutali mijoz qatori qo'shnisidan ikki barobar baland bo'lardi.
     amount: {
-      ...typography.label,
+      ...typography.caption,
+      fontSize: 13,
+      lineHeight: 16,
       fontWeight: '800',
       fontVariant: ['tabular-nums'],
     },

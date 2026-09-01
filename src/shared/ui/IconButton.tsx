@@ -32,10 +32,12 @@ interface IconButtonProps {
   style?: StyleProp<ViewStyle>;
 }
 
-const BOX = { sm: 32, md: 40 } as const;
-const GLYPH = { sm: 17, md: 20 } as const;
-/** Ko'rinadigan quti kichik bo'lsa ham barmoq uchun 44px yetib borsin. */
-const HIT = { sm: 6, md: 2 } as const;
+// Ko'rinadigan o'lcham ataylab kichik: ro'yxatda tugma emas, ISM va SUMMA
+// yetakchi bo'lishi kerak. Teginish maydoni esa hitSlop bilan 44px ga
+// yetkaziladi — ko'z uchun ixcham, barmoq uchun keng.
+const BOX = { sm: 28, md: 36 } as const;
+const GLYPH = { sm: 15, md: 18 } as const;
+const HIT = { sm: 8, md: 4 } as const;
 
 /**
  * Ikonkali tugma — butun ilova bo'ylab yagona ko'rinish.
