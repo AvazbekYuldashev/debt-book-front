@@ -6,8 +6,20 @@ import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n';
 import { modalCardLayout } from './modalLayout';
-
-type Operator = '+' | '-' | '*' | '/';
+import {
+  calcResult,
+  clean,
+  formatDisplay,
+  initialCalcState,
+  pressBackspace,
+  pressClear,
+  pressDigit,
+  pressDot,
+  pressEquals,
+  pressOperator,
+  type CalcState,
+  type Operator,
+} from './calculator';
 
 interface CalculatorModalProps {
   visible: boolean;
@@ -24,26 +36,6 @@ const SYMBOL: Record<Operator, string> = {
   '-': '−',
   '*': '×',
   '/': '÷',
-};
-
-const apply = (left: number, right: number, op: Operator): number => {
-  switch (op) {
-    case '+':
-      return left + right;
-    case '-':
-      return left - right;
-    case '*':
-      return left * right;
-    case '/':
-      return right === 0 ? left : right && left / right;
-  }
-};
-
-/** Suzuvchi nuqta xatolarini yig'ishtiradi: 0.1+0.2 -> 0.3, 12 -> 12. */
-const clean = (value: number): string => {
-  if (!Number.isFinite(value)) return '0';
-  const rounded = Math.round(value * 1e6) / 1e6;
-  return String(rounded);
 };
 
 /**
@@ -67,83 +59,26 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  /** Ekranda turgan son. */
-  const [current, setCurrent] = useState('0');
-  /** Amal bosilgunga qadar to'plangan chap tomon. */
-  const [pending, setPending] = useState<{ value: number; op: Operator } | null>(null);
-  /** Amaldan keyin birinchi raqam eskisining ustiga yozilishi kerak. */
-  const [replaceNext, setReplaceNext] = useState(true);
+  // Butun hisob mantiqi `calculator.ts` da — u yerda testlar bilan
+  // qulflangan. Bu komponent faqat chizadi va bosilishlarni uzatadi.
+  const [state, setState] = useState<CalcState>(() => initialCalcState(initialValue));
 
   useEffect(() => {
-    if (!visible) return;
-    const start = (initialValue ?? '').replace(/\s/g, '').replace(',', '.');
-    setCurrent(start && Number.isFinite(Number(start)) && Number(start) !== 0 ? start : '0');
-    setPending(null);
-    setReplaceNext(true);
+    if (visible) setState(initialCalcState(initialValue));
   }, [visible, initialValue]);
 
-  const pressDigit = useCallback(
-    (digit: string) => {
-      setCurrent((prev) => {
-        if (replaceNext) return digit;
-        if (prev === '0') return digit;
-        return prev + digit;
-      });
-      setReplaceNext(false);
-    },
-    [replaceNext]
-  );
+  const digit = useCallback((value: string) => setState((s) => pressDigit(s, value)), []);
+  const dot = useCallback(() => setState((s) => pressDot(s)), []);
+  const operator = useCallback((op: Operator) => setState((s) => pressOperator(s, op)), []);
+  const equals = useCallback(() => setState((s) => pressEquals(s)), []);
+  const clearAll = useCallback(() => setState(pressClear()), []);
+  const backspace = useCallback(() => setState((s) => pressBackspace(s)), []);
 
-  const pressDot = useCallback(() => {
-    setCurrent((prev) => {
-      if (replaceNext) return '0.';
-      return prev.includes('.') ? prev : `${prev}.`;
-    });
-    setReplaceNext(false);
-  }, [replaceNext]);
-
-  const pressOperator = useCallback(
-    (op: Operator) => {
-      const value = Number(current) || 0;
-      // Ketma-ket amal bosilsa avvalgisi darhol hisoblanadi: 2+3× -> 5×
-      const left = pending && !replaceNext ? apply(pending.value, value, pending.op) : value;
-      setPending({ value: left, op });
-      setCurrent(clean(left));
-      setReplaceNext(true);
-    },
-    [current, pending, replaceNext]
-  );
-
-  const pressEquals = useCallback(() => {
-    if (!pending) return;
-    const result = apply(pending.value, Number(current) || 0, pending.op);
-    setCurrent(clean(result));
-    setPending(null);
-    setReplaceNext(true);
-  }, [current, pending]);
-
-  const pressClear = useCallback(() => {
-    setCurrent('0');
-    setPending(null);
-    setReplaceNext(true);
-  }, []);
-
-  const pressBackspace = useCallback(() => {
-    setCurrent((prev) => {
-      if (replaceNext || prev.length <= 1) return '0';
-      return prev.slice(0, -1);
-    });
-    setReplaceNext(false);
-  }, [replaceNext]);
-
-  /** Kiritish: kutilayotgan amal bo'lsa avval uni yakunlaymiz. */
+  /** "Kiritish": kutilayotgan amal faqat undan keyin raqam kiritilgan bo'lsa yakunlanadi. */
   const handleApply = useCallback(() => {
-    const result = pending
-      ? apply(pending.value, Number(current) || 0, pending.op)
-      : Number(current) || 0;
-    onApply(clean(Math.abs(result)));
+    onApply(calcResult(state));
     onClose();
-  }, [current, pending, onApply, onClose]);
+  }, [state, onApply, onClose]);
 
   const renderKey = (
     label: string,
@@ -193,38 +128,38 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
           </View>
 
           <View style={styles.display}>
-            {pending ? (
+            {state.pending ? (
               <Text style={styles.pending} numberOfLines={1}>
-                {clean(pending.value)} {SYMBOL[pending.op]}
+                {formatDisplay(clean(state.pending.value))} {SYMBOL[state.pending.op]}
               </Text>
             ) : null}
             <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.4}>
-              {current}
+              {formatDisplay(state.current)}
             </Text>
           </View>
 
           <View style={styles.grid}>
             <View style={styles.row}>
-              {renderKey('C', pressClear, 'muted')}
-              {renderKey('⌫', pressBackspace, 'muted')}
-              {renderKey(SYMBOL['/'], () => pressOperator('/'), 'op')}
-              {renderKey(SYMBOL['*'], () => pressOperator('*'), 'op')}
+              {renderKey('C', clearAll, 'muted')}
+              {renderKey('⌫', backspace, 'muted')}
+              {renderKey(SYMBOL['/'], () => operator('/'), 'op')}
+              {renderKey(SYMBOL['*'], () => operator('*'), 'op')}
             </View>
             <View style={styles.row}>
-              {['7', '8', '9'].map((d) => renderKey(d, () => pressDigit(d)))}
-              {renderKey(SYMBOL['-'], () => pressOperator('-'), 'op')}
+              {['7', '8', '9'].map((d) => renderKey(d, () => digit(d)))}
+              {renderKey(SYMBOL['-'], () => operator('-'), 'op')}
             </View>
             <View style={styles.row}>
-              {['4', '5', '6'].map((d) => renderKey(d, () => pressDigit(d)))}
-              {renderKey(SYMBOL['+'], () => pressOperator('+'), 'op')}
+              {['4', '5', '6'].map((d) => renderKey(d, () => digit(d)))}
+              {renderKey(SYMBOL['+'], () => operator('+'), 'op')}
             </View>
             <View style={styles.row}>
-              {['1', '2', '3'].map((d) => renderKey(d, () => pressDigit(d)))}
-              {renderKey('=', pressEquals, 'op')}
+              {['1', '2', '3'].map((d) => renderKey(d, () => digit(d)))}
+              {renderKey('=', equals, 'op')}
             </View>
             <View style={styles.row}>
-              {renderKey('0', () => pressDigit('0'), 'digit', true)}
-              {renderKey('.', pressDot)}
+              {renderKey('0', () => digit('0'), 'digit', true)}
+              {renderKey('.', dot)}
             </View>
           </View>
 

@@ -33,10 +33,29 @@ describe('formatAmountInput', () => {
     expect(formatAmountInput('1234567')).toBe('1 234 567');
   });
   it('raqam bo‘lmagan belgilarni tashlab yuboradi', () => {
-    expect(formatAmountInput('12a3,45')).toBe('12 345');
+    expect(formatAmountInput('12a345')).toBe('12 345');
   });
   it('bo‘sh kiritish -> bo‘sh satr', () => {
     expect(formatAmountInput('abc')).toBe('');
+  });
+
+  // Kalkulyator natijasi shu maydonga tushadi. Ilgari nuqta yo‘qolib,
+  // summa o‘n yoki yuz barobar oshib ketardi.
+  it('kasr qismini SAQLAYDI', () => {
+    expect(formatAmountInput('1500.5')).toBe('1 500.5');
+    expect(formatAmountInput('10.25')).toBe('10.25');
+  });
+  it('vergulni nuqta deb qabul qiladi', () => {
+    expect(formatAmountInput('12,5')).toBe('12.5');
+  });
+  it('kasr qismi ikki xonagacha — pulda undan ortig‘i ma’nosiz', () => {
+    expect(formatAmountInput('1.23456')).toBe('1.23');
+  });
+  it('ikkinchi nuqtani e’tiborsiz qoldiradi', () => {
+    expect(formatAmountInput('1.2.3')).toBe('1.23');
+  });
+  it('kasrli qiymat o‘qilganda ham o‘zgarmaydi (borib-kelish)', () => {
+    expect(parseAmountInput(formatAmountInput('1500.5'))).toBe(1500.5);
   });
 });
 

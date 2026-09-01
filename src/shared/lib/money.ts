@@ -85,10 +85,27 @@ export const extractCurrencyTotals = (
 export const formatMoney = (value: number, currency: Currency = DEFAULT_CURRENCY): string =>
   formatCurrency(value, currency);
 
-// Kiritilayotgan summani "100 000" ko'rinishida (har 3 raqamda bo'sh joy) formatlaydi.
+/**
+ * Kiritilayotgan summani "100 000" ko'rinishida (har 3 raqamda bo'sh joy) formatlaydi.
+ *
+ * Kasr qismi SAQLANADI. Ilgari `\D` bilan raqam bo'lmagan hamma narsa
+ * tashlanardi va nuqta ham yo'qolardi: "1500.5" -> "15 005" (o'n barobar),
+ * "10.25" -> "1 025" (yuz barobar). Odam klaviaturadan nuqta kirita
+ * olmagani uchun bu ko'zga tashlanmagan — kalkulyator natijani shu
+ * maydonga yozganda chiqdi.
+ *
+ * Vergul ham nuqta deb qabul qilinadi (klaviaturaga qarab ikkalasi ham
+ * uchraydi), kasr qismi ikki xonagacha: pulda undan ortig'i ma'nosiz.
+ */
 export const formatAmountInput = (raw: string): string => {
-  const digits = raw.replace(/\D/g, '');
-  return digits ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : '';
+  const cleaned = raw.replace(/,/g, '.').replace(/[^\d.]/g, '');
+  const firstDot = cleaned.indexOf('.');
+  const intRaw = firstDot === -1 ? cleaned : cleaned.slice(0, firstDot);
+  const decRaw = firstDot === -1 ? null : cleaned.slice(firstDot + 1).replace(/\./g, '').slice(0, 2);
+
+  const intText = intRaw.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  if (decRaw === null) return intText;
+  return `${intText || '0'}.${decRaw}`;
 };
 
 // Formatlangan summa matnini musbat songa o'giradi; noto'g'ri qiymatda null.
