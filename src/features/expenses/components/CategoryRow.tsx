@@ -3,6 +3,7 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
+import IconButton from '../../../shared/ui/IconButton';
 import { useI18n } from '../../../shared/i18n';
 import { formatMoney } from '../../../shared/lib/money';
 import { getInitials, pickAvatarColor } from '../../../shared/ui/avatar';
@@ -102,56 +103,37 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
       {allowManage ? (
         expanded ? (
           <View style={styles.actions}>
-            <IconButton onPress={handlePin} styles={styles} disabled={pinning}>
-              {pinning ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons
-                  name={category.pin ? 'bookmark' : 'bookmark-outline'}
-                  size={17}
-                  color={category.pin ? colors.primary : colors.textSecondary}
-                />
-              )}
-            </IconButton>
-            <IconButton onPress={handleEdit} styles={styles}>
-              <Ionicons name="create-outline" size={17} color={colors.textSecondary} />
-            </IconButton>
-            <IconButton onPress={handleDelete} styles={styles} disabled={deleting}>
-              {deleting ? (
-                <ActivityIndicator size="small" color={colors.danger} />
-              ) : (
-                <Ionicons name="trash-outline" size={17} color={colors.danger} />
-              )}
-            </IconButton>
+            <IconButton
+              name={category.pin ? 'bookmark' : 'bookmark-outline'}
+              onPress={handlePin}
+              loading={pinning}
+              color={category.pin ? colors.primary : colors.textSecondary}
+              accessibilityLabel={t('expenses.pin')}
+            />
+            <IconButton
+              name="pencil"
+              onPress={handleEdit}
+              accessibilityLabel={t('common.edit')}
+            />
+            <IconButton
+              name="trash-outline"
+              onPress={handleDelete}
+              loading={deleting}
+              color={colors.danger}
+              accessibilityLabel={t('common.delete')}
+            />
           </View>
         ) : (
-          <IconButton onPress={handleToggleExpand} styles={styles}>
-            <Ionicons name="ellipsis-horizontal" size={16} color={colors.textSecondary} />
-          </IconButton>
+          <IconButton
+            name="ellipsis-horizontal"
+            onPress={handleToggleExpand}
+            accessibilityLabel={t('expenses.chooseFilter')}
+          />
         )
       ) : null}
     </View>
   );
 };
-
-interface IconButtonProps {
-  onPress: () => void;
-  disabled?: boolean;
-  styles: ReturnType<typeof createStyles>;
-  children: React.ReactNode;
-}
-
-const IconButton: React.FC<IconButtonProps> = ({ onPress, disabled, styles, children }) => (
-  <Pressable
-    style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-    onPress={onPress}
-    disabled={disabled}
-    accessibilityRole="button"
-    hitSlop={4}
-  >
-    {children}
-  </Pressable>
-);
 
 const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
@@ -218,14 +200,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xxs,
-    },
-    iconBtn: {
-      width: 30,
-      height: 30,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surfaceMuted,
     },
   });
 

@@ -175,7 +175,7 @@ const ContactRow: React.FC<ContactRowProps> = ({
         </Pressable>
         {canEdit ? (
           <IconButton
-            name="create-outline"
+            name="pencil"
             onPress={handleEdit}
             accessibilityLabel={t('common.edit')}
           />

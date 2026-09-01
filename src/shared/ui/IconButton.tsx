@@ -1,5 +1,12 @@
 import React, { memo, useMemo } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
@@ -18,6 +25,10 @@ interface IconButtonProps {
   variant?: 'ghost' | 'soft' | 'accent';
   size?: 'sm' | 'md';
   disabled?: boolean;
+  /** Amal bajarilmoqda: ikonka o'rniga aylanma chiqadi va tugma bloklanadi. */
+  loading?: boolean;
+  /** Ikonka rangi — odatiy: ikkinchi darajali matn rangi. */
+  color?: string;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -45,6 +56,8 @@ const IconButton: React.FC<IconButtonProps> = ({
   variant = 'ghost',
   size = 'sm',
   disabled = false,
+  loading = false,
+  color,
   style,
 }) => {
   const theme = useAppTheme();
@@ -52,12 +65,12 @@ const IconButton: React.FC<IconButtonProps> = ({
 
   const box = BOX[size];
   const tint =
-    variant === 'accent' ? theme.colors.primary : theme.colors.textSecondary;
+    color ?? (variant === 'accent' ? theme.colors.primary : theme.colors.textSecondary);
 
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled}
+      disabled={disabled || loading}
       hitSlop={HIT[size]}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
@@ -76,7 +89,11 @@ const IconButton: React.FC<IconButtonProps> = ({
               pressed && styles.pressed,
             ]}
           />
-          <Ionicons name={name} size={GLYPH[size]} color={tint} />
+          {loading ? (
+            <ActivityIndicator size="small" color={tint} />
+          ) : (
+            <Ionicons name={name} size={GLYPH[size]} color={tint} />
+          )}
         </>
       )}
     </Pressable>
