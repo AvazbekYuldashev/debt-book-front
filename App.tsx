@@ -13,6 +13,7 @@ import { ContactAvatarsProvider } from './src/features/debts/context/contactAvat
 import { AppThemeProvider, useAppTheme } from './src/shared/theme';
 import { LanguageProvider } from './src/shared/i18n';
 import ErrorBoundary from './src/shared/ui/ErrorBoundary';
+import AppFrame from './src/shared/ui/AppFrame';
 import UpdateGate from './src/features/app-update/UpdateGate';
 import { WEB_FONT_STACK } from './src/shared/theme/fonts';
 
@@ -95,9 +96,13 @@ const AppShell: React.FC = () => {
                     kirmasligi uchun yuqoridan xavfsiz-zona (top inset) qo'llaymiz.
                     Pastki inset tab bar ichida alohida boshqariladi. */}
                 <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
-                  <UpdateGate>
-                    <RootNavigator />
-                  </UpdateGate>
+                  {/* Keng brauzer oynasida ilova markazga yig'iladi — telefonda
+                      va tor oynada hech narsa o'zgarmaydi. */}
+                  <AppFrame>
+                    <UpdateGate>
+                      <RootNavigator />
+                    </UpdateGate>
+                  </AppFrame>
                 </SafeAreaView>
               </NavigationContainer>
             </ContactAvatarsProvider>

@@ -85,6 +85,8 @@ const GapMemberRow: React.FC<GapMemberRowProps> = ({
               items={net.filter((entry) => toAmount(entry.amount) > 0)}
               sign="+"
               color={colors.positive}
+              maxRows={2}
+              moreLabel={(count) => t('gap.moreUnits', { count })}
             />
           )}
           <GapAmountStack
@@ -93,6 +95,8 @@ const GapMemberRow: React.FC<GapMemberRowProps> = ({
               .map((entry) => ({ ...entry, amount: Math.abs(toAmount(entry.amount)) }))}
             sign="−"
             color={colors.negative}
+            maxRows={2}
+            moreLabel={(count) => t('gap.moreUnits', { count })}
           />
         </View>
 

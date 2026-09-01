@@ -13,6 +13,14 @@ interface GapAmountStackProps {
   color: string;
   /** Hech narsa bo'lmasa ko'rsatiladigan matn (odatda "0 so'm"). */
   emptyText?: string;
+  /**
+   * Ko'pi bilan shuncha qator chiziladi, qolgani "yana N ta" bo'lib turadi.
+   * Ro'yxat qatorlarida kerak: 5 ta birlikli a'zo qatorni raqam devoriga
+   * aylantirardi. Berilmasa cheklov yo'q (batafsil ekranlar uchun).
+   */
+  maxRows?: number;
+  /** "yana N ta" matnini yasaydi — tarjima chaqiruvchi tomonda. */
+  moreLabel?: (count: number) => string;
   emptyColor?: string;
   style?: StyleProp<TextStyle>;
   align?: 'flex-start' | 'flex-end';
@@ -34,6 +42,8 @@ const GapAmountStack: React.FC<GapAmountStackProps> = ({
   emptyColor,
   style,
   align = 'flex-end',
+  maxRows,
+  moreLabel,
 }) => {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -52,9 +62,14 @@ const GapAmountStack: React.FC<GapAmountStackProps> = ({
     );
   }
 
+  // Ro'yxat qatorlarida cheklov bor: birlik ko'p bo'lsa qator raqam
+  // devoriga aylanib, ro'yxatni ko'z bilan kuzatib bo'lmay qolardi.
+  const shown = maxRows ? entries.slice(0, maxRows) : entries;
+  const hidden = entries.length - shown.length;
+
   return (
     <View style={[styles.stack, { alignItems: align }]}>
-      {entries.map((entry) => (
+      {shown.map((entry) => (
         <Text
           key={entry.unitCode}
           style={[styles.value, { color }, style]}
@@ -64,11 +79,16 @@ const GapAmountStack: React.FC<GapAmountStackProps> = ({
           {formatGapAmount(toAmount(entry.amount), amountUnit(entry))}
         </Text>
       ))}
+      {hidden > 0 && moreLabel ? (
+        <Text style={styles.more} numberOfLines={1}>
+          {moreLabel(hidden)}
+        </Text>
+      ) : null}
     </View>
   );
 };
 
-const createStyles = ({ typography }: ThemeValue) =>
+const createStyles = ({ colors, typography }: ThemeValue) =>
   StyleSheet.create({
     stack: {
       minWidth: 0,
@@ -80,6 +100,13 @@ const createStyles = ({ typography }: ThemeValue) =>
       lineHeight: 17,
       fontWeight: '800',
       fontVariant: ['tabular-nums'],
+    },
+    // Summalardan sezilarli darajada past kontrastda: bu raqam emas, eslatma.
+    more: {
+      ...typography.caption,
+      fontSize: 11,
+      lineHeight: 14,
+      color: colors.textSecondary,
     },
   });
 
