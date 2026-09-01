@@ -1,6 +1,7 @@
 import React, { memo, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconButton from '../../../shared/ui/IconButton';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
@@ -40,15 +41,11 @@ const ExpenseTotalCard: React.FC<ExpenseTotalCardProps> = ({ label, amount, onMe
         <Text style={styles.label} numberOfLines={1}>
           {label}
         </Text>
-        <Pressable
-          style={({ pressed }) => [styles.menuBtn, pressed && styles.pressed]}
+        <IconButton
+          name="ellipsis-horizontal"
           onPress={onMenuPress}
-          accessibilityRole="button"
           accessibilityLabel={t('expenses.chooseFilter')}
-          hitSlop={6}
-        >
-          <Ionicons name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
-        </Pressable>
+        />
       </View>
 
       <Text style={[styles.value, { fontSize: valueFontSize(valueText.length) }]} numberOfLines={1}>
@@ -98,17 +95,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       letterSpacing: -0.2,
       color: colors.primary,
     },
-    menuBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surfaceMuted,
-    },
-    pressed: {
-      opacity: 0.6,
-    },
+
   });
 
 export default memo(ExpenseTotalCard);

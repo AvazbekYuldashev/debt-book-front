@@ -1,10 +1,10 @@
 import React, { memo, useCallback, useContext, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import UserAvatar from '../../../shared/ui/UserAvatar';
+import IconButton from '../../../shared/ui/IconButton';
 import { formatMoney } from '../../../shared/lib/money';
 import type { CurrencyNet } from '../../../shared/lib/currency';
 import type { Contact } from '../context/ContactsContext';
@@ -174,15 +174,11 @@ const ContactRow: React.FC<ContactRowProps> = ({
           )}
         </Pressable>
         {canEdit ? (
-          <Pressable
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
+          <IconButton
+            name="create-outline"
             onPress={handleEdit}
-            accessibilityRole="button"
             accessibilityLabel={t('common.edit')}
-            hitSlop={6}
-          >
-            <Ionicons name="create-outline" size={16} color={colors.textSecondary} />
-          </Pressable>
+          />
         ) : null}
       </View>
     </View>
@@ -275,14 +271,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       color: colors.textSecondary,
       marginTop: 1,
     },
-    iconBtn: {
-      width: 28,
-      height: 28,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surfaceMuted,
-    },
+
     // Telegram uslubidagi o'qilmaganlar soni — avatar burchagida.
     unreadBadge: {
       position: 'absolute',
@@ -303,9 +292,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontSize: 10,
       fontWeight: '800',
       color: colors.textOnPrimary,
-    },
-    iconBtnPressed: {
-      opacity: 0.6,
     },
   });
 
