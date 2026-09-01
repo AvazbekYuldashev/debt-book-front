@@ -17,6 +17,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 type Mode = 'create' | 'edit';
 
@@ -146,6 +147,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       paddingBottom: spacing.lg,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,

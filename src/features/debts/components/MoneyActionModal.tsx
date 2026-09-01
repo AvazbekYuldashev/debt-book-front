@@ -31,6 +31,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 export interface MoneyActionPayload {
   amount: number;
@@ -321,6 +322,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       paddingBottom: spacing.lg,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,

@@ -6,6 +6,7 @@ import { BusinessDTO } from '../types/business';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 interface WorkspacePickerModalProps {
   visible: boolean;
@@ -177,6 +178,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       paddingHorizontal: spacing.md,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.sm,

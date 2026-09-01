@@ -6,6 +6,7 @@ import { useI18n } from '../../../shared/i18n';
 import Button from '../../../shared/ui/Button';
 import { LOCAL_PHONE_DIGITS, sanitizeLocalPhone } from '../../../shared/lib/phone';
 import type { BusinessMemberRole } from '../types/business';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 export interface AddMemberResult {
   ok: boolean;
@@ -143,6 +144,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       paddingHorizontal: spacing.md,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,

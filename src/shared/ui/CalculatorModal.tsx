@@ -5,6 +5,7 @@ import Button from './Button';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n';
+import { modalCardLayout } from './modalLayout';
 
 type Operator = '+' | '-' | '*' | '/';
 
@@ -243,12 +244,11 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       padding: spacing.md,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.background,
       borderRadius: radius.xl,
       padding: spacing.md,
       gap: spacing.sm,
-      maxWidth: 420,
-      width: '100%',
       alignSelf: 'center',
     },
     header: {

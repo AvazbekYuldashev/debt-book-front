@@ -8,6 +8,7 @@ import { formatMoney } from '../../../shared/lib/money';
 import { normalizeCurrency } from '../../../shared/lib/currency';
 import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import { formatDateLong, MappedTransaction } from '../model/transactionMapping';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 interface TransactionDetailModalProps {
   tx: MappedTransaction | null;
@@ -97,6 +98,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       padding: spacing.md,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,

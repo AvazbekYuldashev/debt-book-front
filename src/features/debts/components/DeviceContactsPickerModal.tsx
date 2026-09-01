@@ -21,6 +21,7 @@ import {
   loadDeviceContacts,
 } from '../../../shared/lib/deviceContacts';
 import DeviceContactRow from './DeviceContactRow';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 interface Props {
   visible: boolean;
@@ -270,6 +271,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       justifyContent: 'flex-end',
     },
     sheet: {
+      ...modalCardLayout,
       backgroundColor: colors.background,
       borderTopLeftRadius: radius.xl,
       borderTopRightRadius: radius.xl,

@@ -8,6 +8,7 @@ import { BusinessDTO } from '../types/business';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 interface CreateBusinessModalProps {
   visible: boolean;
@@ -118,6 +119,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       padding: spacing.md,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,

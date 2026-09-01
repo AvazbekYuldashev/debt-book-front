@@ -79,7 +79,6 @@ export type GapStackParamList = {
     unitLabel: string;
     unitType: 'MONEY' | 'GOODS';
   };
-  [ROUTES.GAP_CREATE]: undefined;
 };
 
 export type GapNavigation = NativeStackNavigationProp<GapStackParamList>;

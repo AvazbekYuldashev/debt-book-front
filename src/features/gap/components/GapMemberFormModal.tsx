@@ -17,6 +17,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { normalizePhone } from '../../../shared/lib/phone';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 export interface GapMemberFormValue {
   name: string;
@@ -161,6 +162,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       paddingBottom: spacing.lg,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,

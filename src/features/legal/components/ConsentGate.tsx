@@ -7,6 +7,7 @@ import { useI18n } from '../../../shared/i18n';
 import { getAcceptedConsentVersion, setConsentAccepted, LEGAL_CONSENT_VERSION } from '../lib/consentStorage';
 import LegalDocumentView from './LegalDocumentView';
 import type { LegalDocKey } from '../lib/legalContent';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 interface CheckboxRowProps {
   checked: boolean;
@@ -138,8 +139,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       padding: spacing.md,
     },
     card: {
-      width: '100%',
-      maxWidth: 420,
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,

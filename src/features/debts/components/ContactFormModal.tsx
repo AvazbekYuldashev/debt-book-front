@@ -23,6 +23,7 @@ import type { ContactFormInput } from '../context/ContactsContext';
 import type { PartyType } from '../../../shared/types/money';
 import { getPhoneValidationError } from '../../../shared/lib/phone';
 import { deviceContactsSupported } from '../../../shared/lib/deviceContacts';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 type Mode = 'create' | 'edit';
 
@@ -259,6 +260,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       paddingBottom: spacing.lg,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,

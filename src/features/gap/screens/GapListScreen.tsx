@@ -19,6 +19,7 @@ import type { GapNavigation } from '../../../app/navigation/types';
 import { useGapSummary, useGapUnits, useMyGaps } from '../hooks/useGap';
 import GapSummaryCard from '../components/GapSummaryCard';
 import GapRow from '../components/GapRow';
+import GapCreateModal from '../components/GapCreateModal';
 import {
   GapResponseDTO,
   GapSort,
@@ -42,6 +43,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
 
   const [unitCode, setUnitCode] = useState<GapUnitFilter>('ALL');
   const [sort, setSort] = useState<GapSort | null>(null);
+  const [createVisible, setCreateVisible] = useState(false);
 
   const unitsQuery = useGapUnits();
   const summaryQuery = useGapSummary(unitCode);
@@ -162,12 +164,14 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
         }
       />
 
-      {/* Yangi gap kassa. Tugma barcha ekranlar bilan bitta komponentdan. */}
+      {/* Yangi gap to'yona. Tugma barcha ekranlar bilan bitta komponentdan. */}
       <FloatingActionButton
-        onPress={() => navigation.navigate(ROUTES.GAP_CREATE)}
+        onPress={() => setCreateVisible(true)}
         accessibilityLabel={t('gap.createTitle')}
         pulse={!isBusy && items.length === 0}
       />
+
+      <GapCreateModal visible={createVisible} onClose={() => setCreateVisible(false)} />
     </View>
   );
 };

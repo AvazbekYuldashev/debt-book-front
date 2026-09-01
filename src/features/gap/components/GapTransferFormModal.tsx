@@ -19,6 +19,7 @@ import CalculatorModal from '../../../shared/ui/CalculatorModal';
 import GapUnitPicker from './GapUnitPicker';
 import { formatGapAmountInput, parseGapAmountInput } from '../model/gapFormat';
 import { GapTransferDirection, GapUnit } from '../types/gap';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 interface GapTransferFormModalProps {
   visible: boolean;
@@ -191,6 +192,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       paddingBottom: spacing.lg,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,

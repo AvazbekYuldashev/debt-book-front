@@ -4,6 +4,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import Button from '../../../shared/ui/Button';
+import { modalCardLayout } from '../../../shared/ui/modalLayout';
 
 interface ConfirmDialogProps {
   visible: boolean;
@@ -62,6 +63,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       padding: spacing.md,
     },
     card: {
+      ...modalCardLayout,
       backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,

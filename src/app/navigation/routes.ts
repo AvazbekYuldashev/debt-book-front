@@ -6,7 +6,6 @@ export const ROUTES = {
   GAP_LIST: 'GapList',
   GAP_DETAIL: 'GapDetail',
   GAP_MEMBER: 'GapMember',
-  GAP_CREATE: 'GapCreate',
   EXPENSES: 'Expenses',
   PROFILE: 'Profile',
   PROFILE_HOME: 'ProfileHome',
