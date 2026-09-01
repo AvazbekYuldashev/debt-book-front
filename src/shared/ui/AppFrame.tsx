@@ -1,10 +1,8 @@
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 
-/** Shundan keng ekranda ilova markazga yig'iladi. */
-const WIDE_BREAKPOINT = 720;
 /** Yig'ilgan ustun eni: uzun ro'yxatlar uchun qulay, cho'zilib ketmaydigan. */
 const COLUMN_WIDTH = 560;
 
@@ -14,9 +12,12 @@ const COLUMN_WIDTH = 560;
  * Bu mobil ilova: barcha ekranlar bitta ustunga mo'ljallangan. Brauzerda u
  * butun monitor eniga cho'zilib, kirish maydonlari 900px bo'lib ketardi,
  * ro'yxat qatorlarida esa ism chapda, summa o'ng chetda — orasi bo'm-bo'sh.
- * O'qish uchun ham, ko'rinish uchun ham yomon.
  *
- * Telefonda (va tor oynada) hech narsa o'zgarmaydi — to'liq en.
+ * Cheklov FAQAT CSS orqali: `maxWidth` tor ekranda o'z-o'zidan ta'sir
+ * qilmaydi, shuning uchun telefonda hech narsa o'zgarmaydi va JS bilan
+ * ekran o'lchash kerak emas. Ilgari bu `useWindowDimensions()` sharti bilan
+ * qilingandi va brauzerda ishlamay qoldi — o'lchov qaytargan qiymat
+ * kutilganidan boshqa edi.
  *
  * Ataylab desktop uchun alohida (yon menyu, ko'p ustunli) maket qilinmadi:
  * u boshqa ilova bo'lib qolardi va har ekranni qaytadan loyihalashni talab
@@ -25,10 +26,8 @@ const COLUMN_WIDTH = 560;
 const AppFrame: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const { width } = useWindowDimensions();
 
-  const framed = Platform.OS === 'web' && width > WIDE_BREAKPOINT;
-  if (!framed) return <>{children}</>;
+  if (Platform.OS !== 'web') return <>{children}</>;
 
   return (
     <View style={styles.page}>
@@ -43,6 +42,7 @@ const createStyles = ({ colors }: ThemeValue) =>
       flex: 1,
       alignItems: 'center',
       // Ustun tashqarisi biroz to'qroq — ustun "varaq" bo'lib ajralib tursin.
+      // Tor ekranda bu fon ko'rinmaydi: ustun butun enni egallaydi.
       backgroundColor: colors.surfaceMuted,
     },
     column: {
@@ -50,9 +50,12 @@ const createStyles = ({ colors }: ThemeValue) =>
       width: '100%',
       maxWidth: COLUMN_WIDTH,
       backgroundColor: colors.background,
-      borderLeftWidth: StyleSheet.hairlineWidth,
-      borderRightWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
+      // Chegara emas, soya: ustun ekranga teng bo'lganda soya ko'rinmaydi,
+      // chegara esa telefon brauzerida chetlarda ingichka chiziq qoldirardi.
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.10,
+      shadowRadius: 24,
     },
   });
 
