@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
@@ -27,6 +27,10 @@ interface GapSummaryCardProps {
   /** Raqamga bosilganda: shu birlik bo'yicha eng kattadan saralash. */
   onAmountPress: (direction: GapSortDirection, unitCode: string) => void;
   loading?: boolean;
+  /** Ochiq/yopiq holat GapListScreen'da — bitta tugma kartani ham,
+   *  guruh qatorlarini ham boshqaradi. */
+  expanded: boolean;
+  onToggleExpand: () => void;
 }
 
 /**
@@ -68,12 +72,13 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
   sort,
   onAmountPress,
   loading,
+  expanded,
+  onToggleExpand,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [expanded, setExpanded] = useState(false);
 
   const entriesOf = (amounts?: GapAmountDTO[]): AmountEntry[] =>
     (amounts ?? [])
@@ -209,7 +214,7 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
 
       {hiddenCount > 0 ? (
         <Pressable
-          onPress={() => setExpanded((prev) => !prev)}
+          onPress={onToggleExpand}
           style={({ pressed }) => [styles.toggle, pressed && styles.togglePressed]}
           accessibilityRole="button"
           accessibilityState={{ expanded }}

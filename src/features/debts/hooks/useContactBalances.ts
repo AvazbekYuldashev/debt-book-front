@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { useRealtimeConnected } from '../../notifications/realtime/realtimeStatus';
@@ -30,6 +30,40 @@ const HISTORY_PAGE_SIZE = 100;
 // Har render'da bir xil bo'sh havola qaytarish — keraksiz re-render/effekt qo'zg'atmaslik uchun.
 const EMPTY_TOTALS: ContactBalances['totalsByContact'] = {};
 const EMPTY_DATES: ContactBalances['latestDateByContact'] = {};
+
+// ------------------------------------------------------------------
+//  Balanslarni brauzerda saqlab turish (refresh'da darhol ko'rsatish)
+//
+//  React Query keshi XOTIRADA — sahifa yangilanganda yo'qoladi va barcha
+//  kontakt balansi noldan qayta yuklanardi (~130 mijoz × 1-3 so'rov). Shu
+//  paytda umumiy summa "0 so'm" bo'lib turardi. Endi oxirgi natija
+//  localStorage'ga yoziladi: refresh'dan keyin darhol ko'rinadi, fonda
+//  yangilanadi. Faqat web'da (localStorage bor); native'da ilova
+//  yopilmaguncha xotiradagi kesh baribir saqlanadi.
+// ------------------------------------------------------------------
+const BAL_CACHE_PREFIX = 'debt-book.balances.';
+
+function readBalCache(accountKey: string): ContactBalances | undefined {
+  if (typeof localStorage === 'undefined') return undefined;
+  try {
+    const raw = localStorage.getItem(BAL_CACHE_PREFIX + accountKey);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as ContactBalances;
+    if (parsed && parsed.totalsByContact) return parsed;
+  } catch {
+    // Buzilgan qiymat — e'tiborsiz qoldiramiz, qaytadan yuklanadi.
+  }
+  return undefined;
+}
+
+function writeBalCache(accountKey: string, data: ContactBalances): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(BAL_CACHE_PREFIX + accountKey, JSON.stringify(data));
+  } catch {
+    // Kvota to'lgan yoki ruxsat yo'q — jim o'tamiz.
+  }
+}
 
 const maxCreatedDate = (items: MoneyResponseDTO[]): number => {
   let max = 0;
@@ -200,12 +234,25 @@ export function useContactBalances(contacts: Contact[]) {
     refetchInterval: realtimeConnected ? 120_000 : 20_000,
     refetchOnWindowFocus: false,
     queryFn: () => loadContactBalances(contacts, profile!.jwt!, accountType, actor),
+    // Refresh'dan keyin oxirgi ma'lum balansni DARHOL ko'rsatamiz.
+    // updatedAt=0 -> React Query uni eskirgan deb biladi va fonda qayta yuklaydi:
+    // ya'ni darhol ko'rinadi, so'ng jimgina yangilanadi ("0 so'm" chaqnashi yo'q).
+    initialData: () => readBalCache(accountKey),
+    initialDataUpdatedAt: 0,
   });
+
+  // Har muvaffaqiyatli yuklashdan keyin brauzerga saqlaymiz.
+  const data = query.data;
+  useEffect(() => {
+    if (data) writeBalCache(accountKey, data);
+  }, [data, accountKey]);
 
   return {
     totalsByContact: query.data?.totalsByContact ?? EMPTY_TOTALS,
     latestDateByContact: query.data?.latestDateByContact ?? EMPTY_DATES,
     isFetching: query.isFetching,
+    // Hech qanday ma'lumot yo'q va yuklanyapti — "0" emas, yuklanish holati ko'rsatiladi.
+    isInitialLoading: query.isLoading && query.data === undefined,
     refetch: query.refetch,
   };
 }

@@ -12,6 +12,8 @@ import { formatGapAmount } from '../model/gapFormat';
 interface GapRowProps {
   item: GapResponseDTO;
   isLast?: boolean;
+  /** Ochiq bo'lsa barcha valyutalar ko'rinadi (yuqoridagi tugma boshqaradi). */
+  expanded?: boolean;
   onPress?: (item: GapResponseDTO) => void;
 }
 
@@ -25,7 +27,7 @@ interface GapRowProps {
  * Tasdig'imni kutayotgan yozuv bo'lsa qizil belgi chiqadi — bu qatorda
  * bajarilmagan ish borligini bildiradi.
  */
-const GapRow: React.FC<GapRowProps> = ({ item, isLast = false, onPress }) => {
+const GapRow: React.FC<GapRowProps> = ({ item, isLast = false, expanded = false, onPress }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
@@ -82,14 +84,14 @@ const GapRow: React.FC<GapRowProps> = ({ item, isLast = false, onPress }) => {
               items={haq}
               sign="+"
               color={colors.positive}
-              maxRows={2}
+              maxRows={expanded ? undefined : 2}
               moreLabel={(count) => t('gap.moreUnits', { count })}
             />
             <GapAmountStack
               items={qarz}
               sign="−"
               color={colors.negative}
-              maxRows={2}
+              maxRows={expanded ? undefined : 2}
               moreLabel={(count) => t('gap.moreUnits', { count })}
             />
           </>

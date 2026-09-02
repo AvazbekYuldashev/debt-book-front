@@ -9,6 +9,20 @@
 </IfModule>
 
 <IfModule mod_headers.c>
+  # --- Xavfsizlik headerlari (barcha javoblarga) ---
+  # HTTPS'ni majburiy qiladi: brauzer bir yil davomida faqat https bilan ochadi
+  # (sayt allaqachon to'liq HTTPS, Let's Encrypt sertifikati bilan).
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  # Brauzer fayl turini "taxmin qilib" bajarmasin (MIME sniffing hujumi).
+  Header always set X-Content-Type-Options "nosniff"
+  # Saytni boshqa domen iframe'iga joylashtirib bo'lmaydi (clickjacking).
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Content-Security-Policy "frame-ancestors 'self'"
+  # Boshqa saytga o'tilganda to'liq manzil (query bilan) yuborilmasin.
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  # Kerak bo'lmagan qurilma imkoniyatlarini o'chiramiz.
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+
   # Nomida hash bor fayllar (_expo/static/...) — abadiy kesh.
   <FilesMatch "\.(js|css|woff2?|png|jpe?g|svg|gif)$">
     Header set Cache-Control "public, max-age=31536000, immutable"

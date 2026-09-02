@@ -17,6 +17,8 @@ export interface ActiveSort {
 interface BalanceSummaryProps {
   totalDebt: CurrencyAmounts;
   totalCredit: CurrencyAmounts;
+  /** Balanslar hali birinchi marta yuklanyapti — "0" o'rniga yuklanish belgisi. */
+  loading?: boolean;
   activeSort: ActiveSort | null;
   onSelect: (direction: SortDirection, currency: Currency) => void;
   onReset: () => void;
@@ -74,6 +76,7 @@ const valueFontSize = (longestLength: number, availWidth: number): number => {
 const BalanceSummary: React.FC<BalanceSummaryProps> = ({
   totalDebt,
   totalCredit,
+  loading = false,
   activeSort,
   onSelect,
   onReset,
@@ -122,7 +125,12 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
         </Text>
       </View>
 
-      {entries.length === 0 ? (
+      {loading && entries.length === 0 ? (
+        // Balanslar hali yuklanmagan — "0" ko'rsatib chalg'itmaymiz.
+        <Text style={[styles.value, styles.valueIdle, { color }]} numberOfLines={1}>
+          …
+        </Text>
+      ) : entries.length === 0 ? (
         <Text
           style={[styles.value, styles.valueIdle, { color, fontSize: valueFont }]}
           numberOfLines={1}

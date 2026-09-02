@@ -71,6 +71,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     totalsByContact,
     latestDateByContact,
     isFetching: totalsLoading,
+    isInitialLoading: balancesInitialLoading,
     refetch: refetchBalances,
   } = useContactBalances(contacts);
 
@@ -453,6 +454,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         <BalanceSummary
           totalDebt={aggregateTotals.totalDebt}
           totalCredit={aggregateTotals.totalCredit}
+          loading={balancesInitialLoading}
           activeSort={sort}
           onSelect={handleSelectSort}
           onReset={handleResetSort}

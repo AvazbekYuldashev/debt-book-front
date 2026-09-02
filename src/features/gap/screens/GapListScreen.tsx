@@ -43,6 +43,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
 
   const [unitCode, setUnitCode] = useState<GapUnitFilter>('ALL');
   const [sort, setSort] = useState<GapSort | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const [createVisible, setCreateVisible] = useState(false);
 
   const unitsQuery = useGapUnits();
@@ -104,9 +105,14 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
 
   const renderItem: ListRenderItem<GapResponseDTO> = useCallback(
     ({ item, index }) => (
-      <GapRow item={item} isLast={index === items.length - 1} onPress={openDetail} />
+      <GapRow
+        item={item}
+        isLast={index === items.length - 1}
+        expanded={expanded}
+        onPress={openDetail}
+      />
     ),
-    [openDetail, items.length]
+    [openDetail, items.length, expanded]
   );
 
   const keyExtractor = useCallback((item: GapResponseDTO) => item.id, []);
@@ -131,6 +137,8 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
           sort={sort}
           onAmountPress={handleAmountPress}
           loading={summaryQuery.isLoading}
+          expanded={expanded}
+          onToggleExpand={() => setExpanded((prev) => !prev)}
         />
       </View>
 
