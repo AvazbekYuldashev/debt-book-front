@@ -7,6 +7,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ContactsProvider } from './src/features/debts/context/ContactsContext';
 import { AuthProvider } from './src/features/auth/context/AuthContext';
+import { PinProvider } from './src/features/auth/pin/PinContext';
 import { WorkspaceProvider } from './src/features/business/context/WorkspaceContext';
 import { CurrencyProvider } from './src/features/debts/context/CurrencyContext';
 import { ContactAvatarsProvider } from './src/features/debts/context/contactAvatars';
@@ -86,6 +87,9 @@ const AppShell: React.FC = () => {
 
   return (
     <AuthProvider>
+      {/* Ilova-qulfi (PIN) AuthProvider ICHIDA: profil holatini kuzatadi
+          (chiqishda PIN o'chadi) va RootNavigator qulf darvozasini ko'rsatadi. */}
+      <PinProvider>
       <CurrencyProvider>
         <WorkspaceProvider>
           <ContactsProvider>
@@ -109,6 +113,7 @@ const AppShell: React.FC = () => {
           </ContactsProvider>
         </WorkspaceProvider>
       </CurrencyProvider>
+      </PinProvider>
     </AuthProvider>
   );
 };

@@ -8,6 +8,8 @@ import { buildAttachUrl } from '../../shared/lib/attachUrl';
 import AuthStack from './AuthStack';
 import BottomTabNavigator from './BottomTabNavigator';
 import ConsentGate from '../../features/legal/components/ConsentGate';
+import { useAppPin } from '../../features/auth/pin/PinContext';
+import PinGate from '../../features/auth/pin/PinGate';
 
 const CenteredLoader: React.FC = () => (
   <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -18,6 +20,7 @@ const CenteredLoader: React.FC = () => (
 const RootNavigator: React.FC = () => {
   const { profile, isAuthReady, setProfile } = useContext(AuthContext);
   const { isWorkspaceReady } = useContext(WorkspaceContext);
+  const { status: pinStatus } = useAppPin();
 
   useEffect(() => {
     if (!profile?.jwt) return;
@@ -44,6 +47,18 @@ const RootNavigator: React.FC = () => {
   }
   if (!profile) {
     return <AuthStack />;
+  }
+  // Kirilgan, lekin ilova-qulfi ochilmagan: PIN darvozasi (bank ilovalaridek).
+  //   unset  -> PIN yaratish, locked -> PIN kiritish.
+  // Qulf holati o'qilguncha loader.
+  if (pinStatus === 'loading') {
+    return <CenteredLoader />;
+  }
+  if (pinStatus === 'unset') {
+    return <PinGate mode="setup" />;
+  }
+  if (pinStatus === 'locked') {
+    return <PinGate mode="unlock" />;
   }
   return (
     <>

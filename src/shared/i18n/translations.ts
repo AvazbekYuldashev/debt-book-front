@@ -473,6 +473,15 @@ const uz: Dict = {
   'update.optional.title': 'Yangi versiya mavjud',
   'update.optional.body': 'Ilovaning yangi versiyasi bor. Yangilashni tavsiya qilamiz.',
   'update.optional.later': 'Keyinroq',
+  // ilova-qulfi (PIN)
+  'pin.createTitle': 'PIN kod yarating',
+  'pin.confirmTitle': 'PIN kodni takrorlang',
+  'pin.enterTitle': 'PIN kodni kiriting',
+  'pin.subtitle': 'Ilovaga kirish uchun 4 xonali kod',
+  'pin.mismatch': 'Kodlar mos kelmadi, qaytadan',
+  'pin.wrong': "Noto'g'ri kod. {left} ta urinish qoldi",
+  'pin.delete': "O'chirish",
+  'pin.forgot': "PIN kodni unutdingizmi? Chiqish",
   // dastur haqida
   'about.title': 'Dastur haqida',
   'about.version': 'Versiya {version}',
@@ -934,6 +943,15 @@ const ru: Dict = {
   'update.optional.title': 'Доступна новая версия',
   'update.optional.body': 'Доступна новая версия приложения. Рекомендуем обновить.',
   'update.optional.later': 'Позже',
+  // app-lock (PIN)
+  'pin.createTitle': 'Создайте PIN-код',
+  'pin.confirmTitle': 'Повторите PIN-код',
+  'pin.enterTitle': 'Введите PIN-код',
+  'pin.subtitle': '4-значный код для входа в приложение',
+  'pin.mismatch': 'Коды не совпали, попробуйте снова',
+  'pin.wrong': 'Неверный код. Осталось попыток: {left}',
+  'pin.delete': 'Удалить',
+  'pin.forgot': 'Забыли PIN? Выйти',
   // о программе
   'about.title': 'О программе',
   'about.version': 'Версия {version}',
@@ -1395,6 +1413,15 @@ const en: Dict = {
   'update.optional.title': 'New version available',
   'update.optional.body': 'A new version of the app is available. We recommend updating.',
   'update.optional.later': 'Later',
+  // app-lock (PIN)
+  'pin.createTitle': 'Create a PIN',
+  'pin.confirmTitle': 'Repeat the PIN',
+  'pin.enterTitle': 'Enter your PIN',
+  'pin.subtitle': '4-digit code to open the app',
+  'pin.mismatch': 'PINs did not match, try again',
+  'pin.wrong': 'Wrong code. {left} attempts left',
+  'pin.delete': 'Delete',
+  'pin.forgot': 'Forgot PIN? Log out',
   // about the app
   'about.title': 'About the app',
   'about.version': 'Version {version}',

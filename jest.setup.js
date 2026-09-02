@@ -20,6 +20,20 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+// expo-crypto — PIN xeshlash testlari uchun. Determinastik soxta xesh
+// (haqiqiy SHA-256 shart emas: bir xil kirish -> bir xil chiqish yetarli).
+jest.mock('expo-crypto', () => ({
+  CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
+  // Determinastik, lekin kirishni QAYTARMAYDIGAN soxta digest (haqiqiy
+  // SHA-256 kabi: PIN xeshdan ko'rinib qolmasin).
+  digestStringAsync: jest.fn(async (_algo, data) => {
+    let h = 0;
+    for (let i = 0; i < data.length; i += 1) h = (h * 31 + data.charCodeAt(i)) >>> 0;
+    return h.toString(16).padStart(8, '0');
+  }),
+  getRandomBytes: jest.fn((n) => Uint8Array.from({ length: n }, (_, i) => (i * 7) % 256)),
+}));
+
 // expo-image-picker — ProfileScreen testlari uchun.
 jest.mock('expo-image-picker', () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(async () => ({ granted: true })),
