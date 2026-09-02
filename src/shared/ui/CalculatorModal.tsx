@@ -8,8 +8,8 @@ import { useI18n } from '../i18n';
 import { modalCardLayout } from './modalLayout';
 import {
   calcResult,
-  clean,
-  formatDisplay,
+  displayExpression,
+  displayResult,
   initialCalcState,
   pressBackspace,
   pressClear,
@@ -29,14 +29,6 @@ interface CalculatorModalProps {
   /** "Kiritish" bosilganda natijani qaytaradi (faqat raqam, formatsiz). */
   onApply: (value: string) => void;
 }
-
-/** Ekranda ko'rinadigan belgi — foydalanuvchi × va ÷ ni tanish deb biladi. */
-const SYMBOL: Record<Operator, string> = {
-  '+': '+',
-  '-': '−',
-  '*': '×',
-  '/': '÷',
-};
 
 /**
  * Oddiy kalkulyator.
@@ -79,6 +71,8 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
     onApply(calcResult(state));
     onClose();
   }, [state, onApply, onClose]);
+
+  const result = displayResult(state);
 
   const renderKey = (
     label: string,
@@ -128,30 +122,37 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
           </View>
 
           <View style={styles.display}>
-            {state.pending ? (
-              <Text style={styles.pending} numberOfLines={1}>
-                {formatDisplay(clean(state.pending.value))} {SYMBOL[state.pending.op]}
+            {/* Yuqorida butun ifoda, pastda uning joriy natijasi —
+                telefon kalkulyatorlaridagi kabi. */}
+            <Text
+              style={styles.value}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.35}
+            >
+              {displayExpression(state)}
+            </Text>
+            {result !== null ? (
+              <Text style={styles.result} numberOfLines={1}>
+                = {result}
               </Text>
             ) : null}
-            <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.4}>
-              {formatDisplay(state.current)}
-            </Text>
           </View>
 
           <View style={styles.grid}>
             <View style={styles.row}>
               {renderKey('C', clearAll, 'muted')}
               {renderKey('⌫', backspace, 'muted')}
-              {renderKey(SYMBOL['/'], () => operator('/'), 'op')}
-              {renderKey(SYMBOL['*'], () => operator('*'), 'op')}
+              {renderKey('÷', () => operator('÷'), 'op')}
+              {renderKey('×', () => operator('×'), 'op')}
             </View>
             <View style={styles.row}>
               {['7', '8', '9'].map((d) => renderKey(d, () => digit(d)))}
-              {renderKey(SYMBOL['-'], () => operator('-'), 'op')}
+              {renderKey('−', () => operator('−'), 'op')}
             </View>
             <View style={styles.row}>
               {['4', '5', '6'].map((d) => renderKey(d, () => digit(d)))}
-              {renderKey(SYMBOL['+'], () => operator('+'), 'op')}
+              {renderKey('+', () => operator('+'), 'op')}
             </View>
             <View style={styles.row}>
               {['1', '2', '3'].map((d) => renderKey(d, () => digit(d)))}
@@ -205,14 +206,18 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       minHeight: 74,
       justifyContent: 'center',
     },
-    pending: {
-      ...typography.caption,
+    // Natija ifodadan past kontrastda: yetakchi element — kiritilayotgan ifoda.
+    result: {
+      ...typography.heading2,
+      fontSize: 20,
+      fontWeight: '700',
       color: colors.textSecondary,
       fontVariant: ['tabular-nums'],
+      marginTop: 2,
     },
     value: {
       ...typography.heading1,
-      fontSize: 30,
+      fontSize: 26,
       fontWeight: '800',
       color: colors.textPrimary,
       fontVariant: ['tabular-nums'],
