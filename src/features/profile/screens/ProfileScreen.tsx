@@ -14,6 +14,7 @@ import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import { deleteProfile, getMyProfile, updateProfilePhoto } from '../api/profile';
 import { updateBusinessPhoto } from '../../business/services/businessService';
 import { useMyBusinesses, myBusinessesQueryKey } from '../../business/hooks/useMyBusinesses';
+import { useUserStats } from '../hooks/useUserStats';
 import { useProfileAction } from '../hooks/useProfileAction';
 import { BusinessDTO } from '../../business/types/business';
 import { ROUTES } from '../../../app/navigation/routes';
@@ -46,6 +47,7 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
   const token = profile?.jwt;
 
   const { data: businesses } = useMyBusinesses(isBusiness);
+  const { data: userStats } = useUserStats();
   const activeBusiness = useMemo(
     () => (isBusiness ? businesses?.find((b) => b.id === workspace.activeBusinessId) ?? null : null),
     [isBusiness, businesses, workspace.activeBusinessId]
@@ -178,10 +180,15 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Avatar va ism — ekranning yagona yetakchi elementi. Ilgari uning
-            ikki yonida platformaning umumiy sonlari turardi: foydalanuvchi
-            ular bilan hech nima qila olmasdi, lekin eng katta shriftda edi. */}
+        {/* Avatar o'rtada, ikki yonida umumiy sonlar:
+            chapda — ro'yxatdan to'liq o'tganlar, o'ngda — raqami kiritilgan-u
+            hali ro'yxatdan o'tmaganlar. */}
         <View style={styles.headRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{userStats?.registeredUsers ?? '—'}</Text>
+            <Text style={styles.statLabel}>{t('stats.registered')}</Text>
+          </View>
+
           <ProfileAvatar
             isBusiness={isBusiness}
             activeBusiness={activeBusiness}
@@ -195,6 +202,11 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
               setPhotoModalVisible(true);
             }}
           />
+
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{userStats?.pendingUsers ?? '—'}</Text>
+            <Text style={styles.statLabel}>{t('stats.pending')}</Text>
+          </View>
         </View>
 
         {profile ? (
@@ -312,7 +324,28 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       gap: spacing.sm,
     },
     headRow: {
+      flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    stat: {
+      flex: 1,
+      minWidth: 0,
+      alignItems: 'center',
+      gap: 2,
+    },
+    statValue: {
+      ...typography.heading2,
+      fontSize: 20,
+      color: colors.textPrimary,
+      fontVariant: ['tabular-nums'],
+    },
+    statLabel: {
+      ...typography.caption,
+      fontSize: 10,
+      color: colors.textSecondary,
+      textAlign: 'center',
     },
     fullName: {
       ...typography.heading2,
