@@ -241,13 +241,14 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     list: {
       flex: 1,
     },
+    // Ro'yxat ekran ostigacha davom etadi; "+" tugmasi uning USTIDA suzadi.
+    // Pastki bo'shliq karta ICHIDA beriladi — shunda oxirgi qator tugma
+    // ostidan surib chiqariladi, lekin ro'yxat pastdan kesilmaydi.
     listCard: {
       backgroundColor: colors.surface,
       borderRadius: radius.xxl,
       marginHorizontal: spacing.md,
-      // Pastdan bo'shliq: aks holda "+" tugmasi oxirgi qatorning summasini
-      // yopib turadi (tugma ro'yxat USTIDA suzadi).
-      marginBottom: 96,
+      paddingBottom: 88,
       overflow: 'hidden',
       ...shadows.card,
     },

@@ -687,8 +687,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     scroll: {
       flex: 1,
-      paddingBottom: 96,
     },
+    // Ro'yxat ekran ostigacha davom etadi; "+" tugmasi uning USTIDA suzadi.
+    // Pastki bo'shliq karta ICHIDA beriladi — shunda oxirgi qator tugma
+    // ostidan surib chiqariladi, lekin ro'yxat pastdan kesilmaydi.
     listCard: {
       backgroundColor: colors.surface,
       borderRadius: radius.xxl,
@@ -696,7 +698,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       // react-native-web uni tashqi va ichki blokka ikki marta qollab,
       // karta boshqa ekranlardagidan ikki barobar ichkariga tushib qolardi.
       marginHorizontal: spacing.md,
-      marginBottom: spacing.md,
+      paddingBottom: 88,
       overflow: 'hidden',
       ...shadows.card,
     },
