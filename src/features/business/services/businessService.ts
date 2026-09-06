@@ -80,6 +80,23 @@ export const createBusiness = async (dto: BusinessCreateDTO, token?: string): Pr
   return response.data;
 };
 
+/**
+ * Biznes username'ini o'zgartirish (faqat OWNER).
+ *
+ * Alohida endpoint — nom/manzil bilan birga emas: username YAGONA bo'lishi
+ * kerak, ya'ni server tomonda bandlik tekshiruvi va 409 javobi bor.
+ * Talablar: docs/business-username.md
+ */
+export const updateBusinessUsername = async (
+  businessId: string,
+  username: string,
+  token?: string
+): Promise<BusinessDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.put<BusinessDTO>(`/business/${businessId}/username`, { username });
+  return response.data;
+};
+
 export const getBusinessMembers = async (businessId: string, token?: string): Promise<BusinessProfileDTO[]> => {
   setApiAuthToken(token);
   const response = await apiClient.get<BusinessProfileDTO[]>(`/business/${businessId}/members`);

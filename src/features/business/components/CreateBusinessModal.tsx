@@ -4,6 +4,12 @@ import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { createBusiness } from '../services/businessService';
+import { useMyBusinesses } from '../hooks/useMyBusinesses';
+import {
+  isBusinessUsernameSupported,
+  normalizeBusinessUsername,
+  validateBusinessUsername,
+} from '../lib/businessUsername';
 import { BusinessDTO } from '../types/business';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
@@ -25,14 +31,22 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
 
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Username maydoni FAQAT backend uni qo'llab-quvvatlaganda so'raladi.
+  // Qo'llab-quvvatlamasa, majburiy maydon biznes yaratishni butunlay
+  // bloklab qo'yardi — ishlayotgan funksiyani buzish mumkin emas.
+  const { data: businesses } = useMyBusinesses();
+  const usernameSupported = isBusinessUsernameSupported(businesses);
 
   // Har ochilishda toza forma — oldingi urinish qoldiqlari ko'rinmaydi.
   useEffect(() => {
     if (!visible) return;
     setName('');
     setAddress('');
+    setUsername('');
     setError('');
   }, [visible]);
 
@@ -49,6 +63,10 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
     setError('');
     setAddress(value);
   }, []);
+  const handleUsernameChange = useCallback((value: string) => {
+    setError('');
+    setUsername(normalizeBusinessUsername(value));
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!profile?.jwt) {
@@ -59,11 +77,27 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
       setError(t('business.enterName'));
       return;
     }
+    // Qo'llab-quvvatlansa — MAJBURIY: biznes username'siz yaratilsa,
+    // uni keyin boshqalar topa olmaydi va egasi qayta kirib to'ldirishi kerak.
+    if (usernameSupported) {
+      const invalidKey = validateBusinessUsername(username);
+      if (invalidKey) {
+        setError(t(invalidKey));
+        return;
+      }
+    }
 
     setLoading(true);
     setError('');
     try {
-      const created = await createBusiness({ name: name.trim(), address: address.trim() }, profile.jwt);
+      const created = await createBusiness(
+        {
+          name: name.trim(),
+          address: address.trim(),
+          ...(usernameSupported ? { username: username.trim() } : null),
+        },
+        profile.jwt,
+      );
       onCreated?.(created);
       onClose();
     } catch (e) {
@@ -71,7 +105,7 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
     } finally {
       setLoading(false);
     }
-  }, [profile?.jwt, name, address, onCreated, onClose, t]);
+  }, [profile?.jwt, name, address, username, usernameSupported, onCreated, onClose, t]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
@@ -95,6 +129,19 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
             onChangeText={handleAddressChange}
             placeholder={t('business.addressPlaceholder')}
           />
+          {usernameSupported ? (
+            <>
+              <Input
+                label={t('profile.businessUsername')}
+                value={username}
+                onChangeText={handleUsernameChange}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="salom_market"
+              />
+              <Text style={styles.hint}>{t('profile.businessUsernameHint')}</Text>
+            </>
+          ) : null}
           {error ? (
             <Text style={styles.error} accessibilityLiveRegion="polite">
               {error}
@@ -134,6 +181,11 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.caption,
       color: colors.danger,
       marginBottom: spacing.xs,
+    },
+    hint: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
     },
     actions: {
       flexDirection: 'row',

@@ -3,6 +3,14 @@ export type BusinessRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 export interface BusinessDTO {
   id: string;
   name: string;
+  /**
+   * Odam o'qiy oladigan yagona nom (UUID o'rniga ulashish uchun).
+   *
+   * IXTIYORIY: backend bu maydonni hali qaytarmaydi. Kelgan kuni UI o'zi
+   * ishlatib ketadi — `businessHandle()` ga qarang. Talablar:
+   * docs/business-username.md
+   */
+  username?: string;
   address: string;
   ownerId: string;
   ownerName: string;
@@ -30,6 +38,8 @@ export interface BusinessProfileDTO {
 export interface BusinessCreateDTO {
   name: string;
   address: string;
+  /** Backend qo'llab-quvvatlagandagina yuboriladi (docs/business-username.md). */
+  username?: string;
 }
 
 export interface BusinessMemberCreateDTO {

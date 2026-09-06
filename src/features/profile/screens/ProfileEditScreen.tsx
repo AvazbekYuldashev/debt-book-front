@@ -12,7 +12,11 @@ import { useI18n } from '../../../shared/i18n';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import { useMyBusinesses, myBusinessesQueryKey } from '../../business/hooks/useMyBusinesses';
-import { updateBusiness } from '../../business/services/businessService';
+import { updateBusiness, updateBusinessUsername } from '../../business/services/businessService';
+import {
+  normalizeBusinessUsername,
+  validateBusinessUsername,
+} from '../../business/lib/businessUsername';
 import type { BusinessDTO } from '../../business/types/business';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
 import type { ROUTES } from '../../../app/navigation/routes';
@@ -62,12 +66,25 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
 
   const [businessName, setBusinessName] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
+  const [businessUsername, setBusinessUsername] = useState('');
+
+  /**
+   * Username maydoni FAQAT backend uni qo'llab-quvvatlaganda ko'rinadi.
+   *
+   * Kalitning mavjudligiga qaraymiz, qiymatiga emas: server maydonni
+   * qaytara boshlagan, lekin biznesda hali username yo'q bo'lishi mumkin
+   * (`null`) — aynan o'shanda maydon eng kerak. Server umuman yubormasa
+   * (`undefined`), foydalanuvchiga hech narsa qilmaydigan maydon
+   * ko'rsatilmaydi. Talablar: docs/business-username.md
+   */
+  const supportsUsername = Boolean(activeBusiness && 'username' in activeBusiness);
 
   // Ro'yxat kechroq kelishi mumkin — kelgach maydonlarni to'ldiramiz.
   useEffect(() => {
     if (!activeBusiness) return;
     setBusinessName(activeBusiness.name ?? '');
     setBusinessAddress(activeBusiness.address ?? '');
+    setBusinessUsername(activeBusiness.username ?? '');
   }, [activeBusiness]);
 
   const saveBusiness = () =>
@@ -78,11 +95,27 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
       const cleanName = businessName.trim();
       if (!cleanName) throw new Error(t('profile.enterBusinessName'));
 
-      const updated = await updateBusiness(
+      let updated = await updateBusiness(
         businessId,
         { name: cleanName, address: businessAddress.trim() },
         token
       );
+
+      // Username ALOHIDA endpoint bilan saqlanadi (yagonalik tekshiruvi
+      // server tomonda). Faqat haqiqatan o'zgargan bo'lsa yuboriladi —
+      // aks holda har saqlashda bekorga bandlik tekshiruvi ketardi.
+      const cleanUsername = businessUsername.trim();
+      if (supportsUsername) {
+        // MAJBURIY: eski bizneslarda username bo'sh (`null`) bo'lishi mumkin —
+        // egasi shu ekranga kirganda uni to'ldirmasdan saqlay olmaydi.
+        // Aks holda biznes topilmaydigan holatda qolib ketardi.
+        const invalidKey = validateBusinessUsername(cleanUsername);
+        if (invalidKey) throw new Error(t(invalidKey));
+
+        if (cleanUsername !== (activeBusiness?.username ?? '')) {
+          updated = await updateBusinessUsername(businessId, cleanUsername, token);
+        }
+      }
 
       queryClient.setQueryData<BusinessDTO[]>(myBusinessesQueryKey(profile?.id), (prev) =>
         prev?.map((b) => (b.id === businessId ? { ...b, ...updated } : b))
@@ -184,6 +217,22 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
                 onChangeText={setBusinessAddress}
                 editable={isOwner}
               />
+              {supportsUsername ? (
+                <>
+                  <Input
+                    label={t('profile.businessUsername')}
+                    value={businessUsername}
+                    // Server lowercase saqlaydi — kiritishda ham darhol
+                    // shunga keltiriladi, aks holda yozgani bilan
+                    // saqlangani farq qilib ko'rinardi.
+                    onChangeText={(value) => setBusinessUsername(normalizeBusinessUsername(value))}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={isOwner}
+                  />
+                  <Text style={styles.hint}>{t('profile.businessUsernameHint')}</Text>
+                </>
+              ) : null}
               {isOwner ? (
                 <Button
                   title={t('common.save')}

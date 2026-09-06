@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useMemo } from 'react';
+import { businessHandle, businessHandleLabelKey } from '../lib/businessUsername';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -37,12 +38,14 @@ const BusinessCard: React.FC<BusinessCardProps> = ({ business, isActive, onOpen,
         {t('business.ownerLabel')}: {business.ownerName || '--'}
       </Text>
 
-      {/* Biznes ID — boshqalar sizni mijoz sifatida qo'shishi uchun ulashiladi. */}
+      {/* Boshqalar sizni mijoz sifatida qo'shishi uchun ulashiladigan belgi.
+          Backend `username` yubora boshlagach o'zi UUID o'rniga o'shani
+          ko'rsatadi — docs/business-username.md */}
       <View style={styles.idRow}>
         <Text style={[styles.meta, styles.idText]} numberOfLines={1}>
-          {t('business.idLabel')}: {business.id}
+          {t(businessHandleLabelKey(business))}: {businessHandle(business)}
         </Text>
-        <CopyButton value={business.id} size={16} />
+        <CopyButton value={businessHandle(business)} size={16} />
       </View>
 
       <View style={styles.actions}>
