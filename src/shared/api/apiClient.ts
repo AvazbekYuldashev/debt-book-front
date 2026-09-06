@@ -3,6 +3,7 @@ import { API_BASE } from './baseUrl';
 import { BUSINESS_HEADER_KEY, getActiveBusinessId } from './workspaceHeaders';
 import { getApiLanguage } from '../i18n';
 import { extractErrorMessage, ApiErrorBody } from '../lib/apiError';
+import { networkStatus } from '../lib/networkStatus';
 
 export class ApiClientError extends Error {
   status?: number;
@@ -93,9 +94,18 @@ function notifyUnauthorized() {
 }
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Server javob berdi => onlaynmiz (UI'dagi oflayn banner yopiladi).
+    networkStatus.markOnline();
+    return response;
+  },
   async (error: AxiosError<{ message?: string; error?: string; detail?: string }>) => {
     const status = error.response?.status;
+
+    // Javobning O'ZI yo'q (timeout / DNS / uzilgan tarmoq) => oflayn.
+    // 4xx/5xx bunga kirmaydi: ular serverga yetib borgan, ya'ni aloqa bor.
+    if (!error.response) networkStatus.markOffline();
+    else networkStatus.markOnline();
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     // Try token refresh on 401 or 403

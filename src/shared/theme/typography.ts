@@ -2,8 +2,14 @@ import { TextStyle } from 'react-native';
 import { fontFamily } from './fonts';
 
 export interface TypographyTokens {
+  /** Ekran sarlavhasi (page title) — 30px, qalin. */
+  display: TextStyle;
   heading1: TextStyle;
   heading2: TextStyle;
+  /** Bo'lim (section) sarlavhasi — 22px, qalin. */
+  heading3: TextStyle;
+  /** Asosiy summa (balans kartasi) — katta, tabular raqamlar. */
+  amount: TextStyle;
   body: TextStyle;
   bodySmall: TextStyle;
   label: TextStyle;
@@ -12,6 +18,13 @@ export interface TypographyTokens {
 }
 
 export const typography: TypographyTokens = {
+  display: {
+    fontFamily: fontFamily.bold,
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '700',
+    letterSpacing: -0.6,
+  },
   heading1: {
     fontFamily: fontFamily.bold,
     fontSize: 32,
@@ -25,6 +38,21 @@ export const typography: TypographyTokens = {
     lineHeight: 32,
     fontWeight: '600',
     letterSpacing: -0.2,
+  },
+  heading3: {
+    fontFamily: fontFamily.bold,
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+  },
+  amount: {
+    fontFamily: fontFamily.bold,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+    fontVariant: ['tabular-nums'],
   },
   body: {
     fontFamily: fontFamily.regular,

@@ -85,6 +85,27 @@ export const extractCurrencyTotals = (
 export const formatMoney = (value: number, currency: Currency = DEFAULT_CURRENCY): string =>
   formatCurrency(value, currency);
 
+// Tipografik minus (U+2212) — defisdan kengroq va raqam balandligiga mos, shuning
+// uchun "-125 000" emas, "−125 000" ko'rinadi. Faqat KO'RSATISH uchun.
+const MINUS_SIGN = '−';
+
+/**
+ * Balans qiymati uchun ishorali format: musbat "+125 000 so'm", manfiy
+ * "−125 000 so'm". `formatCurrency` ning o'zi ham manfiylikni belgilaydi
+ * (ASCII defis bilan), shuning uchun bu yerda MODUL formatlanadi va ishora
+ * qo'lda qo'yiladi — ikkilangan belgi chiqmaydi.
+ */
+export const formatSignedMoney = (
+  value: number,
+  currency: Currency = DEFAULT_CURRENCY
+): string => {
+  const safe = Number.isFinite(value) ? value : 0;
+  const body = formatCurrency(Math.abs(safe), currency);
+  if (safe > 0) return `+${body}`;
+  if (safe < 0) return `${MINUS_SIGN}${body}`;
+  return body;
+};
+
 /**
  * Kiritilayotgan summani "100 000" ko'rinishida (har 3 raqamda bo'sh joy) formatlaydi.
  *

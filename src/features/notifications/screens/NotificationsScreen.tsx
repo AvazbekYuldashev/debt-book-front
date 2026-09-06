@@ -69,9 +69,26 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   const handlePress = useCallback(
     (notification: NotificationDTO) => {
       if (!notification.read) markReadMutate(notification.id);
+      // Avval ANIQ tomon bo'yicha: bildirishnoma o'zi qaysi kontaktga
+      // tegishli ekanini aytadi. Telefon bo'yicha qidirish yaramaydi -
+      // odam biznes nomidan ish ko'rgan bo'lsa, tranzaksiya BIZNES
+      // kontaktida yotadi, biznesning esa telefoni yo'q.
+      const byParty = notification.counterpartyId
+        ? contacts.find(
+            (item) =>
+              item.partyId === notification.counterpartyId
+              && (!notification.counterpartyType
+                || item.partyType === notification.counterpartyType),
+          )
+        : undefined;
+
+      // Eski bildirishnomalarda tomon saqlanmagan - o'shanda telefonga qaytamiz.
       const actorPhone = notification.actorPhone ? normalizePhone(notification.actorPhone) : '';
-      if (!actorPhone) return;
-      const contact = contacts.find((item) => item.phone && normalizePhone(item.phone) === actorPhone);
+      const byPhone = actorPhone
+        ? contacts.find((item) => item.phone && normalizePhone(item.phone) === actorPhone)
+        : undefined;
+
+      const contact = byParty ?? byPhone;
       if (contact) {
         navigation.navigate(ROUTES.CONTACT_DETAIL, { id: contact.id });
       }

@@ -83,9 +83,58 @@ export const SkeletonCardList: React.FC<{ count?: number; containerStyle?: Style
   );
 };
 
+/**
+ * Kontaktlar ro'yxati uchun skelet. O'lchamlari HAQIQIY qator bilan bir xil
+ * (avatar 48, paddingVertical 12 => 72px) — ma'lumot kelganda "layout shift"
+ * bo'lmaydi, ro'yxat sakramaydi.
+ */
+export const SkeletonContactList: React.FC<{ count?: number }> = ({ count = 6 }) => {
+  const { spacing, colors } = useAppTheme();
+
+  return (
+    <View>
+      {Array.from({ length: count }, (_, index) => (
+        <View key={`skeleton-row-${index}`}>
+          <View style={styles.row}>
+            <SkeletonShimmer height={48} width={48} borderRadius={24} />
+            <View style={styles.rowInfo}>
+              <SkeletonShimmer height={15} width={`${58 + ((index * 11) % 26)}%`} borderRadius={7} />
+              <SkeletonShimmer
+                height={12}
+                width={`${38 + ((index * 7) % 18)}%`}
+                borderRadius={6}
+                style={{ marginTop: spacing.xs }}
+              />
+            </View>
+            <SkeletonShimmer height={26} width={84} borderRadius={13} />
+          </View>
+          {index < count - 1 ? (
+            <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+          ) : null}
+        </View>
+      ))}
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   base: {
     overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  rowInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  rowDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 76,
   },
   shimmerBar: {
     position: 'absolute',

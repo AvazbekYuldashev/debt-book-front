@@ -2,7 +2,9 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { Appearance, ColorSchemeName, useColorScheme } from 'react-native';
 import { ColorTokens, darkColors, lightColors } from './colors';
 import { applyAutofillStyle } from './applyAutofillStyle';
+import { makeShadows, ShadowTokens } from './elevation';
 import { loadAppFonts } from './fonts';
+import { iconSize } from './iconSizes';
 import { radius, spacing } from './spacing';
 import { typography } from './typography';
 import { storage } from '../lib/storage';
@@ -23,6 +25,10 @@ export interface ThemeValue {
   spacing: typeof spacing;
   radius: typeof radius;
   typography: typeof typography;
+  /** Soya presetlari (card / raised / floating / nav) — mavzuga moslashgan. */
+  shadows: ShadowTokens;
+  /** Ikonka o'lchamlari shkalasi. */
+  iconSize: typeof iconSize;
   fontsLoaded: boolean;
   setMode: (nextMode: ThemeMode) => void;
   toggleTheme: () => void;
@@ -88,6 +94,10 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   }, []);
 
+  // Soya rangi mavzudan keladi (light: ko'kimtir navy, dark: qora) — presetlar
+  // faqat shu rang o'zgarganda qayta yasaladi.
+  const shadows = useMemo(() => makeShadows(colors.shadow), [colors.shadow]);
+
   const value = useMemo<ThemeValue>(() => ({
     mode,
     activeTheme,
@@ -95,10 +105,12 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     spacing,
     radius,
     typography,
+    shadows,
+    iconSize,
     fontsLoaded,
     setMode: applyMode,
     toggleTheme,
-  }), [mode, activeTheme, colors, toggleTheme, applyMode, fontsLoaded]);
+  }), [mode, activeTheme, colors, shadows, toggleTheme, applyMode, fontsLoaded]);
 
   // Saqlangan mavzu o'qilmaguncha render qilmaymiz — light->dark "miltillash"ning oldini oladi.
   if (!hydrated) {
