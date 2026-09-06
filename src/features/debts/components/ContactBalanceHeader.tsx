@@ -11,7 +11,7 @@ import type { Contact } from '../context/ContactsContext';
 import BackButton from '../../../shared/ui/BackButton';
 import UserAvatar from '../../../shared/ui/UserAvatar';
 
-const AVATAR_SIZE = 52;
+const AVATAR_SIZE = 44;
 
 interface ContactBalanceHeaderProps {
   contact: Contact;
@@ -139,10 +139,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
   StyleSheet.create({
     wrap: {
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.xs,
+      paddingTop: spacing.xxs,
     },
     topBar: {
-      marginBottom: spacing.sm,
+      marginBottom: spacing.xs,
     },
     pressed: {
       opacity: 0.6,
@@ -150,8 +150,8 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     card: {
       backgroundColor: colors.surface,
       borderRadius: radius.xxl,
-      padding: spacing.md + 2,
-      marginBottom: spacing.md,
+      padding: spacing.sm + 2,
+      marginBottom: spacing.sm,
       ...shadows.raised,
     },
     identityRow: {
@@ -171,8 +171,8 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     name: {
       ...typography.body,
-      fontSize: 19,
-      lineHeight: 24,
+      fontSize: 17,
+      lineHeight: 22,
       fontWeight: '700',
       letterSpacing: -0.3,
       color: colors.textPrimary,
@@ -207,10 +207,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     divider: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.border,
-      marginVertical: spacing.sm + 2,
+      marginVertical: spacing.sm,
     },
     balances: {
-      gap: spacing.xs,
+      gap: spacing.xxs + 2,
     },
     balanceRow: {
       flexDirection: 'row',
@@ -225,8 +225,8 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       flexShrink: 1,
     },
     balanceIcon: {
-      width: 28,
-      height: 28,
+      width: 24,
+      height: 24,
       borderRadius: radius.pill,
       alignItems: 'center',
       justifyContent: 'center',
@@ -239,8 +239,8 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     balanceValue: {
       ...typography.amount,
-      fontSize: 24,
-      lineHeight: 30,
+      fontSize: 20,
+      lineHeight: 26,
       flexShrink: 1,
     },
   });

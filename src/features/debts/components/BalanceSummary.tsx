@@ -39,8 +39,10 @@ const currencyEntries = (amounts: CurrencyAmounts): CurrencyEntry[] => {
   return list;
 };
 
-// Asosiy summa: keng ekranda 30px gacha, tor ekranda 13px gacha kichrayadi.
-const VALUE_FONT_MAX = 30;
+// Asosiy summa: keng ekranda 24px gacha, tor ekranda 13px gacha kichrayadi.
+// Yuqori chegara ATAYIN pasaytirilgan — bir nechta valyuta ko'rsatilganda
+// karta ekranning yarmini egallab, ro'yxatga joy qoldirmasdi.
+const VALUE_FONT_MAX = 24;
 const VALUE_FONT_MIN = 13;
 // Qalin, tabular-nums summa satri uchun o'rtacha belgi eni ≈ shriftning shuncha ulushi.
 const AVG_CHAR_RATIO = 0.58;
@@ -126,7 +128,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
     <View style={styles.tile}>
       <View style={styles.tileHeader}>
         <View style={[styles.icon, { backgroundColor: softColor }]}>
-          <Ionicons name={iconName} size={iconSize.md} color={color} />
+          <Ionicons name={iconName} size={iconSize.sm} color={color} />
         </View>
         <Text style={styles.label} numberOfLines={2}>
           {label}
@@ -223,8 +225,8 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     card: {
       backgroundColor: colors.surface,
       borderRadius: radius.xxl,
-      paddingVertical: spacing.md + 2,
-      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.sm + 2,
       marginHorizontal: spacing.md,
       ...shadows.raised,
     },
@@ -239,19 +241,19 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     tileHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs + 2,
-      marginBottom: spacing.xs,
+      gap: spacing.xs,
+      marginBottom: spacing.xxs,
     },
     icon: {
-      width: 44,
-      height: 44,
+      width: 34,
+      height: 34,
       borderRadius: radius.pill,
       alignItems: 'center',
       justifyContent: 'center',
     },
     label: {
       ...typography.bodySmall,
-      fontSize: 15,
+      fontSize: 13,
       color: colors.textSecondary,
       flexShrink: 1,
     },
@@ -271,7 +273,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     value: {
       ...typography.amount,
-      lineHeight: 38,
+      lineHeight: 30,
       flexShrink: 1,
     },
     valueIdle: {
@@ -279,10 +281,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     description: {
       ...typography.caption,
-      fontSize: 13,
-      lineHeight: 17,
+      fontSize: 12,
+      lineHeight: 16,
       color: colors.textSecondary,
-      marginTop: spacing.xxs,
+      marginTop: spacing.xxs / 2,
     },
     // Ikki katak orasidagi vertikal ajratgich — juda nozik, "qattiq" border emas.
     divider: {

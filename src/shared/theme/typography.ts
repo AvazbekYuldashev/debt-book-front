@@ -2,7 +2,8 @@ import { TextStyle } from 'react-native';
 import { fontFamily } from './fonts';
 
 export interface TypographyTokens {
-  /** Ekran sarlavhasi (page title) — 30px, qalin. */
+  /** Ekran sarlavhasi (page title). Telefon ekranida sarlavha bloki
+   *  ro'yxatdan joy o'g'irlamasligi kerak — shuning uchun 26px. */
   display: TextStyle;
   heading1: TextStyle;
   heading2: TextStyle;
@@ -20,10 +21,10 @@ export interface TypographyTokens {
 export const typography: TypographyTokens = {
   display: {
     fontFamily: fontFamily.bold,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 26,
+    lineHeight: 32,
     fontWeight: '700',
-    letterSpacing: -0.6,
+    letterSpacing: -0.5,
   },
   heading1: {
     fontFamily: fontFamily.bold,
@@ -41,10 +42,10 @@ export const typography: TypographyTokens = {
   },
   heading3: {
     fontFamily: fontFamily.bold,
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 19,
+    lineHeight: 24,
     fontWeight: '700',
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   amount: {
     fontFamily: fontFamily.bold,

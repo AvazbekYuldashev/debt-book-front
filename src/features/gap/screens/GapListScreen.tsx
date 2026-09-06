@@ -134,7 +134,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
             <Text style={styles.title} numberOfLines={1}>
               {t('gap.title')}
             </Text>
-            <Text style={styles.subtitle} numberOfLines={2}>
+            <Text style={styles.subtitle} numberOfLines={1}>
               {t('gap.subtitle')}
             </Text>
           </View>
@@ -216,9 +216,9 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: spacing.md,
+      marginBottom: spacing.sm,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.xs,
+      paddingTop: spacing.xxs,
     },
     titleWrap: {
       flexShrink: 1,
@@ -230,11 +230,13 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     subtitle: {
       ...typography.bodySmall,
+      fontSize: 13,
+      lineHeight: 17,
       color: colors.textSecondary,
-      marginTop: spacing.xxs / 2,
+      marginTop: 1,
     },
     sectionWrap: {
-      marginTop: spacing.lg,
+      marginTop: spacing.sm,
     },
     list: {
       flex: 1,

@@ -11,7 +11,7 @@ import type { CurrencyNet } from '../../../shared/lib/currency';
 import type { Contact } from '../context/ContactsContext';
 import { CurrencyContext } from '../context/CurrencyContext';
 
-const AVATAR_SIZE = 52;
+const AVATAR_SIZE = 44;
 
 const AMOUNT_FONT_MAX = 14;
 const AMOUNT_FONT_MIN = 11;
@@ -228,10 +228,11 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+      paddingVertical: spacing.xs + 2,
       gap: spacing.sm,
-      // 52 (avatar) + 2*12 = 76px — 44px teginish talabidan ancha yuqori.
-      minHeight: 76,
+      // 44 (avatar) + 2*10 = 64px — 44px teginish talabidan baland, lekin
+      // ekranga sezilarli ko'proq qator sig'adi.
+      minHeight: 64,
     },
     // Android'da android_ripple ishlaydi; iOS/web uchun fon o'zgaradi.
     rowPressed: Platform.OS === 'android' ? {} : { backgroundColor: colors.surfaceMuted },
@@ -247,8 +248,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     name: {
       ...typography.body,
-      fontSize: 17,
-      lineHeight: 22,
+      fontSize: 16,
+      lineHeight: 21,
       fontWeight: '700',
       letterSpacing: -0.2,
       color: colors.textPrimary,
@@ -256,8 +257,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     secondary: {
       ...typography.bodySmall,
-      fontSize: 14,
-      marginTop: 2,
+      fontSize: 13,
+      marginTop: 1,
       color: colors.textSecondary,
       flexShrink: 1,
     },

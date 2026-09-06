@@ -54,7 +54,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
             <Ionicons name={icon} size={iconSize.sm} color={colors.primary} />
           </View>
         ) : (
-          <Ionicons name={icon} size={iconSize.lg} color={colors.textPrimary} />
+          <Ionicons name={icon} size={iconSize.md} color={colors.textPrimary} />
         )}
         <Text style={styles.title} numberOfLines={1}>
           {title}
@@ -86,7 +86,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       justifyContent: 'space-between',
       gap: spacing.xs,
       paddingHorizontal: spacing.md,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.xs,
     },
     left: {
       flexDirection: 'row',

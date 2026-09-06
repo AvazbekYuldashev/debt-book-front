@@ -184,7 +184,7 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
             <Text style={styles.title} numberOfLines={1}>
               {t('profile.title')}
             </Text>
-            <Text style={styles.subtitle} numberOfLines={2}>
+            <Text style={styles.subtitle} numberOfLines={1}>
               {t('profile.settingsSubtitle')}
             </Text>
           </View>
@@ -323,9 +323,9 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: spacing.md,
+      marginBottom: spacing.sm,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.xs,
+      paddingTop: spacing.xxs,
     },
     titleWrap: {
       flexShrink: 1,
@@ -337,8 +337,10 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     subtitle: {
       ...typography.bodySmall,
+      fontSize: 13,
+      lineHeight: 17,
       color: colors.textSecondary,
-      marginTop: spacing.xxs / 2,
+      marginTop: 1,
     },
     content: {
       paddingHorizontal: spacing.md,

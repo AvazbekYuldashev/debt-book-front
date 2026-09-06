@@ -39,7 +39,7 @@ const createStyles = ({ spacing }: ThemeValue) =>
       gap: spacing.sm,
       // Chapdagi gorizontal chekinishni WorkspaceSwitcher o'zi beradi.
       paddingRight: spacing.md,
-      paddingTop: spacing.sm,
+      paddingTop: spacing.xxs + 2,
     },
   });
 

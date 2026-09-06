@@ -417,7 +417,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
             <Text style={styles.title} numberOfLines={1}>
               {t('tab.debts')}
             </Text>
-            <Text style={styles.subtitle} numberOfLines={2}>
+            <Text style={styles.subtitle} numberOfLines={1}>
               {t('debts.listSubtitle')}
             </Text>
           </View>
@@ -623,9 +623,9 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       justifyContent: 'space-between',
       alignItems: 'center',
       gap: spacing.sm,
-      marginBottom: spacing.md,
+      marginBottom: spacing.sm,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.xs,
+      paddingTop: spacing.xxs,
     },
     titleWrap: {
       flexShrink: 1,
@@ -637,8 +637,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     subtitle: {
       ...typography.bodySmall,
+      fontSize: 13,
+      lineHeight: 17,
       color: colors.textSecondary,
-      marginTop: spacing.xxs / 2,
+      marginTop: 1,
     },
     headerTools: {
       flexDirection: 'row',
@@ -681,7 +683,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       marginTop: spacing.md,
     },
     sectionWrap: {
-      marginTop: spacing.lg,
+      marginTop: spacing.sm,
     },
     scroll: {
       flex: 1,
