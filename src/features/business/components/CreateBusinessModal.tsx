@@ -4,9 +4,7 @@ import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { createBusiness } from '../services/businessService';
-import { useMyBusinesses } from '../hooks/useMyBusinesses';
 import {
-  isBusinessUsernameSupported,
   normalizeBusinessUsername,
   validateBusinessUsername,
 } from '../lib/businessUsername';
@@ -34,12 +32,6 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Username maydoni FAQAT backend uni qo'llab-quvvatlaganda so'raladi.
-  // Qo'llab-quvvatlamasa, majburiy maydon biznes yaratishni butunlay
-  // bloklab qo'yardi — ishlayotgan funksiyani buzish mumkin emas.
-  const { data: businesses } = useMyBusinesses();
-  const usernameSupported = isBusinessUsernameSupported(businesses);
 
   // Har ochilishda toza forma — oldingi urinish qoldiqlari ko'rinmaydi.
   useEffect(() => {
@@ -77,25 +69,19 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
       setError(t('business.enterName'));
       return;
     }
-    // Qo'llab-quvvatlansa — MAJBURIY: biznes username'siz yaratilsa,
-    // uni keyin boshqalar topa olmaydi va egasi qayta kirib to'ldirishi kerak.
-    if (usernameSupported) {
-      const invalidKey = validateBusinessUsername(username);
-      if (invalidKey) {
-        setError(t(invalidKey));
-        return;
-      }
+    // MAJBURIY: biznes username'siz yaratilsa, uni keyin boshqalar topa
+    // olmaydi va egasi qayta kirib to'ldirishiga to'g'ri kelardi.
+    const invalidKey = validateBusinessUsername(username);
+    if (invalidKey) {
+      setError(t(invalidKey));
+      return;
     }
 
     setLoading(true);
     setError('');
     try {
       const created = await createBusiness(
-        {
-          name: name.trim(),
-          address: address.trim(),
-          ...(usernameSupported ? { username: username.trim() } : null),
-        },
+        { name: name.trim(), address: address.trim(), username: username.trim() },
         profile.jwt,
       );
       onCreated?.(created);
@@ -105,7 +91,7 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
     } finally {
       setLoading(false);
     }
-  }, [profile?.jwt, name, address, username, usernameSupported, onCreated, onClose, t]);
+  }, [profile?.jwt, name, address, username, onCreated, onClose, t]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
@@ -129,19 +115,15 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
             onChangeText={handleAddressChange}
             placeholder={t('business.addressPlaceholder')}
           />
-          {usernameSupported ? (
-            <>
-              <Input
-                label={t('profile.businessUsername')}
-                value={username}
-                onChangeText={handleUsernameChange}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="salom_market"
-              />
-              <Text style={styles.hint}>{t('profile.businessUsernameHint')}</Text>
-            </>
-          ) : null}
+          <Input
+            label={t('profile.businessUsername')}
+            value={username}
+            onChangeText={handleUsernameChange}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="salom_market"
+          />
+          <Text style={styles.hint}>{t('profile.businessUsernameHint')}</Text>
           {error ? (
             <Text style={styles.error} accessibilityLiveRegion="polite">
               {error}

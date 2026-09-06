@@ -12,20 +12,6 @@ export const USERNAME_MIN = 4;
 export const USERNAME_MAX = 30;
 
 /**
- * Backend username maydonini umuman qo'llab-quvvatlaydimi?
- *
- * Yuklangan bizneslardan birortasida `username` KALITI bor-yo'qligiga
- * qaraladi — qiymatiga emas. Server maydonni qo'shgan, lekin biznesda hali
- * username yo'q bo'lishi mumkin (`null`), va aynan o'shanda uni so'rash kerak.
- *
- * Biznes umuman bo'lmasa `false`: aniqlashning iloji yo'q, shu sababli
- * birinchi biznes yaratishni majburiy maydon bilan bloklab qo'ymaymiz.
- */
-export const isBusinessUsernameSupported = (
-  businesses: readonly BusinessDTO[] | undefined,
-): boolean => Boolean(businesses?.some((business) => 'username' in business));
-
-/**
  * Kiritilgan username to'g'rimi? Xato bo'lsa i18n KALITI, to'g'ri bo'lsa ''.
  *
  * Server baribir qayta tekshiradi (va yagonalikni faqat u biladi) — bu

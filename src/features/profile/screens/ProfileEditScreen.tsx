@@ -17,6 +17,7 @@ import {
   normalizeBusinessUsername,
   validateBusinessUsername,
 } from '../../business/lib/businessUsername';
+import { ApiClientError } from '../../../shared/api/apiClient';
 import type { BusinessDTO } from '../../business/types/business';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
 import type { ROUTES } from '../../../app/navigation/routes';
@@ -68,16 +69,9 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
   const [businessAddress, setBusinessAddress] = useState('');
   const [businessUsername, setBusinessUsername] = useState('');
 
-  /**
-   * Username maydoni FAQAT backend uni qo'llab-quvvatlaganda ko'rinadi.
-   *
-   * Kalitning mavjudligiga qaraymiz, qiymatiga emas: server maydonni
-   * qaytara boshlagan, lekin biznesda hali username yo'q bo'lishi mumkin
-   * (`null`) — aynan o'shanda maydon eng kerak. Server umuman yubormasa
-   * (`undefined`), foydalanuvchiga hech narsa qilmaydigan maydon
-   * ko'rsatilmaydi. Talablar: docs/business-username.md
-   */
-  const supportsUsername = Boolean(activeBusiness && 'username' in activeBusiness);
+  // Username maydoni DOIM ko'rsatiladi (egasi uchun). Backend endpointi hali
+  // bo'lmasligi mumkin — u holda saqlashda aniq xabar chiqadi, jim qolmaydi.
+  // Talablar: docs/business-username.md
 
   // Ro'yxat kechroq kelishi mumkin — kelgach maydonlarni to'ldiramiz.
   useEffect(() => {
@@ -104,16 +98,23 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
       // Username ALOHIDA endpoint bilan saqlanadi (yagonalik tekshiruvi
       // server tomonda). Faqat haqiqatan o'zgargan bo'lsa yuboriladi —
       // aks holda har saqlashda bekorga bandlik tekshiruvi ketardi.
+      // MAJBURIY: eski bizneslarda username bo'sh bo'lishi mumkin — egasi
+      // shu ekranga kirganda uni to'ldirmasdan saqlay olmaydi, aks holda
+      // biznes boshqalar topa olmaydigan holatda qolib ketardi.
       const cleanUsername = businessUsername.trim();
-      if (supportsUsername) {
-        // MAJBURIY: eski bizneslarda username bo'sh (`null`) bo'lishi mumkin —
-        // egasi shu ekranga kirganda uni to'ldirmasdan saqlay olmaydi.
-        // Aks holda biznes topilmaydigan holatda qolib ketardi.
-        const invalidKey = validateBusinessUsername(cleanUsername);
-        if (invalidKey) throw new Error(t(invalidKey));
+      const invalidKey = validateBusinessUsername(cleanUsername);
+      if (invalidKey) throw new Error(t(invalidKey));
 
-        if (cleanUsername !== (activeBusiness?.username ?? '')) {
+      if (cleanUsername !== (activeBusiness?.username ?? '')) {
+        try {
           updated = await updateBusinessUsername(businessId, cleanUsername, token);
+        } catch (e) {
+          // Endpoint hali yo'q — nom/manzil ALLAQACHON saqlangan, shuning
+          // uchun umumiy xato o'rniga aniq sabab ko'rsatiladi.
+          if (e instanceof ApiClientError && e.status === 404) {
+            throw new Error(t('business.usernameNotSupported'));
+          }
+          throw e;
         }
       }
 
@@ -217,22 +218,19 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
                 onChangeText={setBusinessAddress}
                 editable={isOwner}
               />
-              {supportsUsername ? (
-                <>
-                  <Input
-                    label={t('profile.businessUsername')}
-                    value={businessUsername}
-                    // Server lowercase saqlaydi — kiritishda ham darhol
-                    // shunga keltiriladi, aks holda yozgani bilan
-                    // saqlangani farq qilib ko'rinardi.
-                    onChangeText={(value) => setBusinessUsername(normalizeBusinessUsername(value))}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={isOwner}
-                  />
-                  <Text style={styles.hint}>{t('profile.businessUsernameHint')}</Text>
-                </>
-              ) : null}
+              <Input
+                label={t('profile.businessUsername')}
+                value={businessUsername}
+                // Server lowercase saqlaydi — kiritishda ham darhol shunga
+                // keltiriladi, aks holda yozgani bilan saqlangani farq
+                // qilib ko'rinardi.
+                onChangeText={(value) => setBusinessUsername(normalizeBusinessUsername(value))}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="salom_market"
+                editable={isOwner}
+              />
+              <Text style={styles.hint}>{t('profile.businessUsernameHint')}</Text>
               {isOwner ? (
                 <Button
                   title={t('common.save')}
