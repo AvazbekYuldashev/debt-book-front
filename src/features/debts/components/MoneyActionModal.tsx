@@ -307,7 +307,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
@@ -324,25 +324,26 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     card: {
       ...modalCardLayout,
       backgroundColor: colors.surface,
-      borderRadius: radius.lg,
-      padding: spacing.md,
+      borderRadius: radius.xxl,
+      padding: spacing.md + 4,
+      ...shadows.raised,
     },
     titleRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: spacing.sm,
+      gap: spacing.sm,
+      marginBottom: spacing.md,
     },
     title: {
-      ...typography.heading2,
-      fontSize: 18,
+      ...typography.heading3,
       color: colors.textPrimary,
       flexShrink: 1,
     },
     calcBtn: {
-      width: 34,
-      height: 34,
-      borderRadius: radius.sm,
+      width: 44,
+      height: 44,
+      borderRadius: radius.lg,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primarySoft,
@@ -360,7 +361,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     actions: {
       flexDirection: 'row',
-      gap: spacing.xs,
+      gap: spacing.sm,
+      marginTop: spacing.xs,
     },
     actionBtn: {
       flex: 1,

@@ -10,15 +10,21 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import Input from '../../../shared/ui/Input';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
+import EmptyState from '../../../shared/ui/EmptyState';
+import EntranceView from '../../../shared/ui/EntranceView';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
-import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
-import WorkspaceSwitcher from '../../business/components/WorkspaceSwitcher';
+import SearchField from '../../../shared/ui/SearchField';
+import SectionHeader from '../../../shared/ui/SectionHeader';
+import StatusBanner from '../../../shared/ui/StatusBanner';
+import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
+import { useOnlineStatus } from '../../../shared/lib/networkStatus';
+import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import DeviceContactsPickerModal from '../components/DeviceContactsPickerModal';
 import { ContactsContext, type Contact } from '../context/ContactsContext';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import { useContactBalances } from '../hooks/useContactBalances';
-import { useNotifications, useUnreadNotificationCount } from '../../notifications/hooks/useNotifications';
+import { useNotifications } from '../../notifications/hooks/useNotifications';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { ROUTES } from '../../../app/navigation/routes';
@@ -76,9 +82,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   } = useContactBalances(contacts);
 
   const canEdit = canWrite(workspace.activeBusinessRole);
-
-  const unreadQuery = useUnreadNotificationCount();
-  const unreadCount = unreadQuery.data ?? 0;
+  const isOnline = useOnlineStatus();
 
   // Telegram uslubida: har kontaktning o'zida o'qilmagan xabarlar soni.
   // Inbox query'si keshdan ulashiladi (watcher baribir yangilab turadi).
@@ -113,12 +117,16 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     [contacts, selectedId],
   );
 
-  const filteredContacts = useMemo(() => {
-    const nameQuery = filterName.trim();
-    const phoneQuery = filterPhone.replace(/\D/g, '');
-    if (nameQuery.length < MIN_QUERY_LENGTH && phoneQuery.length < MIN_QUERY_LENGTH) return contacts;
-    return searchResults;
-  }, [contacts, filterName, filterPhone, searchResults]);
+  // Qidiruv haqiqatan faolmi (kamida 3 belgi kiritilgan). Bo'sh natija
+  // "hali kontakt yo'q" dan boshqa holat — ularni ajratish uchun kerak.
+  const hasActiveQuery =
+    filterName.trim().length >= MIN_QUERY_LENGTH ||
+    filterPhone.replace(/\D/g, '').length >= MIN_QUERY_LENGTH;
+
+  const filteredContacts = useMemo(
+    () => (hasActiveQuery ? searchResults : contacts),
+    [hasActiveQuery, contacts, searchResults],
+  );
 
   // ---- Saralash holati ----
   // null = odatiy tartib (oxirgi amal bajargan kontakt birinchi, Telegram uslubi).
@@ -271,12 +279,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     setModalVisible(true);
   }, []);
 
-  const openNotifications = useCallback(() => {
-    requestNotificationPermission();
-    primeNotificationAudio();
-    navigation.navigate(ROUTES.NOTIFICATIONS);
-  }, [navigation]);
-
   const openEdit = useCallback((id: string) => {
     setMode('edit');
     setSelectedId(id);
@@ -384,34 +386,43 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
 
   const isEmpty = sortedContacts.length === 0;
   const isBusy = loading || searchLoading;
+  // Skeleton FAQAT ko'rsatadigan narsa bo'lmaganda chiqadi.
+  //
+  // Ilgari har qanday yangilanishda ro'yxat butunlay bo'shatilardi: modal
+  // yopilgach (kontakt qo'shildi/tahrirlandi) fon yangilanishi boshlanar va
+  // mavjud kontaktlar o'rnini kulrang skeleton egallardi. So'rov sekin
+  // bo'lsa yoki uzilib qolsa, o'sha "chiziqlar" ekranda qolib ketardi.
+  // Endi mavjud ma'lumot joyida turadi, yangilanish esa RefreshControl
+  // aylanasi orqali ko'rinadi.
+  const showSkeleton = isBusy && sortedContacts.length === 0;
+  const hasBanner = Boolean(!isOnline || error || searchError);
 
   // FAB pulsatsiyasi — faqat ro'yxat bo'sh bo'lganda (birinchi mijozga undov) va
   // CHEKLI takror bilan. Avval cheksiz loop edi: web'da bu har frame'da style
   // yozadigan doimiy rAF ishi (batareya + Performance panelida uzluksiz faollik).
-  const shouldPulseFab = canEdit && isEmpty && !isBusy;
+  const shouldPulseFab = canEdit && isEmpty && !isBusy && !hasActiveQuery;
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <WorkspaceSwitcher />
+      {/* Dekorativ fon — bosishni ushlamaydi, kontent ustidan o'tmaydi. */}
+      <AmbientBackground />
+
+      <EntranceView style={styles.header} duration={300} fromY={12}>
+        <ScreenTopBar />
+
         <View style={styles.headerRow}>
-          {/* Sarlavha tab nomi bilan BIR XIL: ilgari tabda "Qarzlar",
-              ekranda "Mijozlar" turardi va foydalanuvchi qayerdaligini
-              anglash uchun ikki xil lug'atni bog'lashiga to'g'ri kelardi. */}
-          <Text style={styles.title}>{t('tab.debts')}</Text>
+          <View style={styles.titleWrap}>
+            {/* Sarlavha tab nomi bilan BIR XIL: ilgari tabda "Qarzlar",
+                ekranda "Mijozlar" turardi va foydalanuvchi qayerdaligini
+                anglash uchun ikki xil lug'atni bog'lashiga to'g'ri kelardi. */}
+            <Text style={styles.title} numberOfLines={1}>
+              {t('tab.debts')}
+            </Text>
+            <Text style={styles.subtitle} numberOfLines={2}>
+              {t('debts.listSubtitle')}
+            </Text>
+          </View>
+
           <View style={styles.headerTools}>
-            <Pressable
-              style={({ pressed }) => [styles.bellBtn, pressed && styles.searchTogglePressed]}
-              onPress={openNotifications}
-              accessibilityRole="button"
-              accessibilityLabel={t('notifications.title')}
-            >
-              <Ionicons name="notifications-outline" size={18} color={colors.textSecondary} />
-              {unreadCount > 0 ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-                </View>
-              ) : null}
-            </Pressable>
             <SearchToggle
               label="ABC"
               active={activeSearch === 'name'}
@@ -429,26 +440,27 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           </View>
         </View>
 
-        {activeSearch === 'name' ? (
-          <Input
-            label={t('debts.filterName')}
-            value={filterName}
-            onChangeText={setFilterName}
-            placeholder={t('debts.min3letters')}
-            containerStyle={styles.searchInput}
-            autoFocus
-          />
-        ) : null}
-        {activeSearch === 'phone' ? (
-          <Input
-            label={t('debts.filterPhone')}
-            value={filterPhone}
-            onChangeText={(value) => setFilterPhone(value.replace(/\D/g, '').slice(0, 12))}
-            keyboardType="phone-pad"
-            placeholder={t('debts.min3digits')}
-            containerStyle={styles.searchInput}
-            autoFocus
-          />
+        {activeSearch ? (
+          <EntranceView duration={200} fromY={-6} style={styles.searchWrap}>
+            {activeSearch === 'name' ? (
+              <SearchField
+                value={filterName}
+                onChangeText={setFilterName}
+                placeholder={t('debts.min3letters')}
+                accessibilityLabel={t('debts.filterName')}
+                autoFocus
+              />
+            ) : (
+              <SearchField
+                value={filterPhone}
+                onChangeText={(value) => setFilterPhone(value.replace(/\D/g, '').slice(0, 12))}
+                keyboardType="phone-pad"
+                placeholder={t('debts.min3digits')}
+                accessibilityLabel={t('debts.filterPhone')}
+                autoFocus
+              />
+            )}
+          </EntranceView>
         ) : null}
 
         <BalanceSummary
@@ -460,17 +472,33 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           onReset={handleResetSort}
         />
 
-        {error ? (
-          <View style={styles.errorRow}>
-            <Text style={styles.errorText}>{error}</Text>
+        {/* Holat bannerlari — bo'lmasa konteyner ham chizilmaydi. */}
+        {hasBanner ? (
+          <View style={styles.banners}>
+            {!isOnline ? <StatusBanner tone="warning" message={t('common.offline')} /> : null}
+            {error ? (
+              <StatusBanner
+                tone="error"
+                message={error}
+                actionLabel={t('common.retry')}
+                onAction={handleRefresh}
+              />
+            ) : null}
+            {searchError && !error ? <StatusBanner tone="error" message={searchError} /> : null}
           </View>
         ) : null}
-        {searchError && !error ? (
-          <View style={styles.errorRow}>
-            <Text style={styles.errorText}>{searchError}</Text>
-          </View>
-        ) : null}
-      </View>
+
+        {/* Bo'lim sarlavhasida "qo'shish" tugmasi ATAYIN yo'q: pastdagi
+            suzuvchi "+" tugmasi aynan shu amalni bajaradi va ikkita bir xil
+            harakat ekranda raqobatlashib turardi. */}
+        <View style={styles.sectionWrap}>
+          <SectionHeader
+            icon="people"
+            iconBadge={false}
+            title={t('debts.contactsSection')}
+          />
+        </View>
+      </EntranceView>
 
       {/* Ro'yxat virtualizatsiyalangan (FlatList) — faqat ko'rinadigan qatorlar
           render qilinadi. Avval ScrollView + .map() barcha kontaktni bir vaqtda
@@ -479,7 +507,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       <FlatList
         style={styles.scroll}
         contentContainerStyle={styles.listCard}
-        data={isBusy ? [] : sortedContacts}
+        data={sortedContacts}
         renderItem={renderContact}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
@@ -489,15 +517,23 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
         ListEmptyComponent={
-          isBusy ? (
-            <SkeletonCardList count={5} containerStyle={styles.listSkeleton} />
+          showSkeleton ? (
+            <SkeletonContactList count={6} />
+          ) : hasActiveQuery ? (
+            // Qidiruvning bo'sh natijasi — "hali kontakt yo'q" dan BOSHQA holat.
+            <EmptyState
+              icon="search-outline"
+              title={t('debts.noSearchResults')}
+              description={t('debts.min3letters')}
+            />
           ) : (
-            <View style={styles.empty}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="people-outline" size={26} color={colors.textSecondary} />
-              </View>
-              <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
-            </View>
+            <EmptyState
+              icon="people-outline"
+              title={t('debts.emptyAccount')}
+              description={t('debts.emptyDescription')}
+              actionLabel={canEdit ? t('debts.addNew') : undefined}
+              onAction={canEdit ? openCreate : undefined}
+            />
           )
         }
       />
@@ -566,151 +602,101 @@ const SearchToggle: React.FC<SearchToggleProps> = ({ label, active, onPress, sty
     accessibilityRole="button"
     accessibilityState={{ selected: active }}
   >
-    <Ionicons name="search" size={16} color={active ? colors.primary : colors.textSecondary} />
+    <Ionicons name="search-outline" size={18} color={active ? colors.primary : colors.textSecondary} />
     <Text style={[styles.searchToggleText, active && styles.searchToggleTextActive]}>{label}</Text>
   </Pressable>
 );
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      // Fon AmbientBackground'dan keladi — bu yerda tekis rang BERILMAYDI.
+      backgroundColor: 'transparent',
     },
     header: {
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
+    // Qidiruv tugmalari sarlavha bloki bilan vertikal MARKAZDA tekislanadi.
     headerRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      gap: spacing.sm,
       marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
+      paddingTop: spacing.xs,
+    },
+    titleWrap: {
+      flexShrink: 1,
+      minWidth: 0,
     },
     title: {
-      ...typography.heading2,
+      ...typography.display,
       color: colors.textPrimary,
+    },
+    subtitle: {
+      ...typography.bodySmall,
+      color: colors.textSecondary,
+      marginTop: spacing.xxs / 2,
     },
     headerTools: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
     },
-    bellBtn: {
-      width: 34,
-      height: 34,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    badge: {
-      position: 'absolute',
-      top: -5,
-      right: -5,
-      minWidth: 18,
-      height: 18,
-      borderRadius: radius.pill,
-      paddingHorizontal: 4,
-      backgroundColor: colors.danger,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1.5,
-      borderColor: colors.background,
-    },
-    badgeText: {
-      ...typography.caption,
-      fontSize: 10,
-      fontWeight: '800',
-      color: colors.textOnPrimary,
-    },
+    // Qidiruv almashtirgichlari — alohida oq kartachalar.
     searchToggle: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 3,
-      paddingHorizontal: spacing.xs,
-      paddingVertical: spacing.xxs + 2,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
+      gap: spacing.xxs + 1,
+      height: 48,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.lg,
       backgroundColor: colors.surface,
+      ...shadows.card,
     },
     searchToggleActive: {
-      borderColor: colors.primary,
       backgroundColor: colors.primarySoft,
+      shadowOpacity: 0,
+      elevation: 0,
     },
     searchTogglePressed: {
       opacity: 0.6,
     },
     searchToggleText: {
-      ...typography.caption,
+      ...typography.label,
+      fontSize: 14,
       fontWeight: '700',
-      color: colors.textSecondary,
+      color: colors.textPrimary,
     },
     searchToggleTextActive: {
       color: colors.primary,
     },
-    searchInput: {
-      marginBottom: spacing.sm,
+    searchWrap: {
       marginHorizontal: spacing.md,
+      marginBottom: spacing.md,
+    },
+    banners: {
+      marginTop: spacing.md,
+    },
+    sectionWrap: {
+      marginTop: spacing.lg,
     },
     scroll: {
       flex: 1,
-      paddingTop: spacing.md,
       paddingBottom: 96,
-    },
-    errorRow: {
-      padding: spacing.sm,
-      marginHorizontal: spacing.md,
-      borderWidth: 1,
-      borderColor: colors.danger,
-      backgroundColor: colors.dangerMuted,
-      borderRadius: radius.sm,
-      marginBottom: spacing.md,
-    },
-    errorText: {
-      ...typography.caption,
-      fontSize: 13,
-      color: colors.negative,
     },
     listCard: {
       backgroundColor: colors.surface,
-      borderRadius: radius.xl,
+      borderRadius: radius.xxl,
       // Chetdan chekinish KARTAning ozida — FlatList style'iga qoyilsa
       // react-native-web uni tashqi va ichki blokka ikki marta qollab,
       // karta boshqa ekranlardagidan ikki barobar ichkariga tushib qolardi.
       marginHorizontal: spacing.md,
-      paddingVertical: spacing.xxs,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.12,
-      shadowRadius: 20,
-      elevation: 6,
+      marginBottom: spacing.md,
       overflow: 'hidden',
-    },
-    listSkeleton: {
-      padding: spacing.sm,
-    },
-    empty: {
-      alignItems: 'center',
-      paddingVertical: spacing.xl,
-      gap: spacing.sm,
-    },
-    emptyIcon: {
-      width: 56,
-      height: 56,
-      borderRadius: radius.pill,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surfaceMuted,
-    },
-    emptyText: {
-      ...typography.body,
-      textAlign: 'center',
-      color: colors.textSecondary,
+      ...shadows.card,
     },
   });
 

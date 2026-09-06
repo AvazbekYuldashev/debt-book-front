@@ -6,7 +6,9 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import Card from '../../../shared/ui/Card';
 import Button from '../../../shared/ui/Button';
-import WorkspaceSwitcher from '../../business/components/WorkspaceSwitcher';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
+import EntranceView from '../../../shared/ui/EntranceView';
+import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import { useI18n } from '../../../shared/i18n';
 import { confirmAction } from '../../../shared/lib/confirm';
 import { AuthContext } from '../../auth/context/AuthContext';
@@ -171,13 +173,23 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
 
   return (
     <View style={styles.container}>
+      {/* Dekorativ fon — barcha bosh ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
+
       {/* Boshqa bosh ekranlardagi kabi: chetdan chetga, kontent paddingidan tashqarida. */}
-      <View style={styles.header}>
-        <WorkspaceSwitcher />
+      <EntranceView style={styles.header} duration={300} fromY={12}>
+        <ScreenTopBar />
         <View style={styles.headerRow}>
-          <Text style={styles.title}>{t('profile.title')}</Text>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title} numberOfLines={1}>
+              {t('profile.title')}
+            </Text>
+            <Text style={styles.subtitle} numberOfLines={2}>
+              {t('profile.settingsSubtitle')}
+            </Text>
+          </View>
         </View>
-      </View>
+      </EntranceView>
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Avatar o'rtada, ikki yonida umumiy sonlar:
@@ -301,10 +313,11 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      // Fon AmbientBackground'dan keladi — tekis rang berilmaydi.
+      backgroundColor: 'transparent',
     },
     header: {
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     headerRow: {
       flexDirection: 'row',
@@ -312,11 +325,20 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       justifyContent: 'space-between',
       marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
+      paddingTop: spacing.xs,
+    },
+    titleWrap: {
+      flexShrink: 1,
+      minWidth: 0,
     },
     title: {
-      ...typography.heading2,
+      ...typography.display,
       color: colors.textPrimary,
+    },
+    subtitle: {
+      ...typography.bodySmall,
+      color: colors.textSecondary,
+      marginTop: spacing.xxs / 2,
     },
     content: {
       paddingHorizontal: spacing.md,

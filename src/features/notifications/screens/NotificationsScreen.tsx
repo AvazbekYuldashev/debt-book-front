@@ -6,7 +6,10 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import type { DebtsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
-import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
+import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
+import EmptyState from '../../../shared/ui/EmptyState';
+import EntranceView from '../../../shared/ui/EntranceView';
 import { useNotifications, useMarkNotificationRead } from '../hooks/useNotifications';
 import { ContactsContext } from '../../debts/context/ContactsContext';
 import { normalizePhone } from '../../../shared/lib/phone';
@@ -109,6 +112,10 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Dekorativ fon — boshqa ekranlar bilan bir xil "imzo" qatlami. */}
+      <AmbientBackground />
+
+      <EntranceView duration={300} fromY={12}>
       <View style={styles.header}>
         <Pressable
           style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
@@ -153,11 +160,12 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </Pressable>
       ) : null}
+      </EntranceView>
 
       <FlatList
         style={styles.scroll}
         contentContainerStyle={styles.listCard}
-        data={isLoading ? [] : items}
+        data={items}
         renderItem={renderNotification}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
@@ -167,15 +175,12 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />
         }
         ListEmptyComponent={
+          // Skeleton faqat BIRINCHI yuklashda: mavjud ro'yxat fon
+          // yangilanishida kulrang chiziqlarga almashmaydi.
           isLoading ? (
-            <SkeletonCardList count={5} containerStyle={styles.skeleton} />
+            <SkeletonContactList count={5} />
           ) : (
-            <View style={styles.empty}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="notifications-outline" size={26} color={colors.textSecondary} />
-              </View>
-              <Text style={styles.emptyText}>{t('notifications.empty')}</Text>
-            </View>
+            <EmptyState icon="notifications-outline" title={t('notifications.empty')} />
           )
         }
       />
@@ -183,11 +188,12 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      // Fon AmbientBackground'dan keladi — tekis rang berilmaydi.
+      backgroundColor: 'transparent',
     },
     header: {
       flexDirection: 'row',
@@ -252,14 +258,9 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     listCard: {
       backgroundColor: colors.surface,
-      borderRadius: radius.xl,
-      paddingVertical: spacing.xxs,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.12,
-      shadowRadius: 20,
-      elevation: 6,
+      borderRadius: radius.xxl,
       overflow: 'hidden',
+      ...shadows.card,
     },
     skeleton: {
       padding: spacing.sm,

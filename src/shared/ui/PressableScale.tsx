@@ -14,7 +14,17 @@ const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 interface PressableScaleProps extends Omit<PressableProps, 'style'> {
   children: React.ReactNode;
+  /** Tugmaning O'ZI uchun stil (fon, radius, ichki bo'shliq). */
   style?: StyleProp<ViewStyle>;
+  /**
+   * Tashqi (animatsiya) konteyneri uchun stil.
+   *
+   * `flex: 1` kabi joylashuvga ta'sir qiluvchi qoidalar SHU YERGA berilishi
+   * kerak: `style` ichkaridagi `Pressable`ga tushadi, uni o'rab turgan
+   * `Animated.View` esa kontent bo'yicha kichrayib qoladi va tugma
+   * qatorga cho'zilmaydi.
+   */
+  containerStyle?: StyleProp<ViewStyle>;
   /** Bosilgandagi masshtab (1 dan kichik). */
   scaleTo?: number;
 }
@@ -28,6 +38,7 @@ interface PressableScaleProps extends Omit<PressableProps, 'style'> {
 const PressableScale: React.FC<PressableScaleProps> = ({
   children,
   style,
+  containerStyle,
   scaleTo = 0.96,
   onPressIn,
   onPressOut,
@@ -62,7 +73,7 @@ const PressableScale: React.FC<PressableScaleProps> = ({
   );
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View style={[containerStyle, { transform: [{ scale }] }]}>
       <Pressable style={style} onPressIn={handlePressIn} onPressOut={handlePressOut} {...rest}>
         {children}
       </Pressable>

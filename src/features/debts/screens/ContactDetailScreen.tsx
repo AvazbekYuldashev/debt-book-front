@@ -2,8 +2,14 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { FlatList, type ListRenderItem, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import MoneyActionModal, { MoneyActionPayload } from '../components/MoneyActionModal';
-import Button from '../../../shared/ui/Button';
-import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
+import { Ionicons } from '@expo/vector-icons';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
+import EmptyState from '../../../shared/ui/EmptyState';
+import EntranceView from '../../../shared/ui/EntranceView';
+import PressableScale from '../../../shared/ui/PressableScale';
+import SectionHeader from '../../../shared/ui/SectionHeader';
+import StatusBanner from '../../../shared/ui/StatusBanner';
+import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { ContactsContext } from '../context/ContactsContext';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
@@ -144,49 +150,84 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
   return (
     <View style={styles.container}>
-      <ContactBalanceHeader contact={contact} balances={balances} onBack={navigation.goBack} />
+      {/* Dekorativ fon — Qarzlar ro'yxati bilan bir xil "imzo" qatlami. */}
+      <AmbientBackground />
 
-      {error ? (
-        <Pressable style={styles.errorBox} onPress={loadScreenData}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.retryText}>{t('common.retry')}</Text>
-        </Pressable>
-      ) : null}
+      <EntranceView duration={300} fromY={12}>
+        <ContactBalanceHeader contact={contact} balances={balances} onBack={navigation.goBack} />
 
-      <FlatList
-        style={styles.scroll}
-        contentContainerStyle={styles.listCard}
-        data={mappedHistory}
-        renderItem={renderTransaction}
-        keyExtractor={keyExtractor}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={14}
-        windowSize={11}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={loadScreenData} tintColor={colors.primary} />
-        }
-        ListEmptyComponent={
-          loading ? (
-            <SkeletonCardList count={4} containerStyle={styles.listSkeleton} />
-          ) : (
-            <Text style={styles.emptyText}>{t('debts.emptyAccount')}</Text>
-          )
-        }
-      />
+        {error ? (
+          <View style={styles.banner}>
+            <StatusBanner
+              tone="error"
+              message={error}
+              actionLabel={t('common.retry')}
+              onAction={loadScreenData}
+            />
+          </View>
+        ) : null}
+
+        <SectionHeader icon="time" iconBadge={false} title={t('debts.history')} />
+      </EntranceView>
+
+      <EntranceView delay={90} duration={320} fromY={14} style={styles.listWrap}>
+        <FlatList
+          contentContainerStyle={styles.listCard}
+          data={mappedHistory}
+          renderItem={renderTransaction}
+          keyExtractor={keyExtractor}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={14}
+          windowSize={11}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={loadScreenData}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+              progressBackgroundColor={colors.surface}
+            />
+          }
+          ListEmptyComponent={
+            // Skeleton faqat BIRINCHI yuklashda: tarix allaqachon ekranda
+            // bo'lsa, modal yopilgandan keyingi fon yangilanishi uni
+            // kulrang chiziqlarga almashtirmaydi.
+            loading && mappedHistory.length === 0 ? (
+              <SkeletonContactList count={5} />
+            ) : (
+              <EmptyState
+                icon="swap-horizontal-outline"
+                title={t('debts.emptyAccount')}
+                description={allowWrite ? t('contact.emptyHint') : undefined}
+              />
+            )
+          }
+        />
+      </EntranceView>
 
       {allowWrite ? (
-        <View style={styles.bottomActions}>
-          <Button
-            title={t('contact.took')}
-            onPress={() => openModal('TAKE')}
+        <EntranceView delay={180} duration={300} fromY={16} style={styles.bottomActions}>
+          <PressableScale
+            containerStyle={styles.actionSlot}
             style={[styles.actionBtn, styles.takeBtn]}
-          />
-          <Button
-            title={t('contact.gave')}
-            onPress={() => openModal('GIVE')}
+            onPress={() => openModal('TAKE')}
+            accessibilityRole="button"
+            accessibilityLabel={t('contact.took')}
+          >
+            <Ionicons name="arrow-down" size={18} color={colors.textOnPrimary} />
+            <Text style={styles.actionText}>{t('contact.took')}</Text>
+          </PressableScale>
+          <PressableScale
+            containerStyle={styles.actionSlot}
             style={[styles.actionBtn, styles.giveBtn]}
-          />
-        </View>
+            onPress={() => openModal('GIVE')}
+            accessibilityRole="button"
+            accessibilityLabel={t('contact.gave')}
+          >
+            <Ionicons name="arrow-up" size={18} color={colors.textOnPrimary} />
+            <Text style={styles.actionText}>{t('contact.gave')}</Text>
+          </PressableScale>
+        </EntranceView>
       ) : (
         <Text style={styles.readOnlyNote}>{t('contact.readOnly')}</Text>
       )}
@@ -211,79 +252,61 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      // Fon AmbientBackground'dan keladi — tekis rang berilmaydi.
+      backgroundColor: 'transparent',
     },
-    scroll: {
+    listWrap: {
       flex: 1,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.xxs,
-      paddingBottom: spacing.md,
     },
-    errorBox: {
-      borderWidth: 1,
-      borderColor: colors.danger,
-      backgroundColor: colors.dangerMuted,
-      borderRadius: radius.sm,
-      padding: spacing.sm,
-      marginHorizontal: spacing.md,
-      marginTop: spacing.xxs,
+    banner: {
       marginBottom: spacing.sm,
-    },
-    errorText: {
-      ...typography.caption,
-      fontSize: 13,
-      color: colors.negative,
-    },
-    retryText: {
-      ...typography.caption,
-      marginTop: spacing.xxs,
-      fontWeight: '600',
-      color: colors.primary,
     },
     listCard: {
       backgroundColor: colors.surface,
-      borderRadius: radius.xl,
-      paddingVertical: spacing.xxs,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.12,
-      shadowRadius: 20,
-      elevation: 6,
+      borderRadius: radius.xxl,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.md,
       overflow: 'hidden',
+      ...shadows.card,
     },
-    listSkeleton: {
-      padding: spacing.sm,
-    },
-    emptyText: {
-      ...typography.body,
-      textAlign: 'center',
-      color: colors.textSecondary,
-      paddingVertical: spacing.lg,
-    },
+    // Ikki asosiy amal — ekranning eng pastida, bosh barmoq yetadigan joyda.
+    // Ustki "qattiq" chegara olib tashlandi: ajratishni soya va bo'shliq beradi.
     bottomActions: {
       flexDirection: 'row',
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
       paddingBottom: spacing.md,
-      backgroundColor: colors.background,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
+    },
+    // Ikkala tugma qatorni TENG ikkiga bo'ladi. `flex` animatsiya
+    // konteyneriga beriladi — tugmaning o'ziga berilsa, uni o'rab turgan
+    // konteyner kontent bo'yicha kichrayib qolardi.
+    actionSlot: {
+      flex: 1,
     },
     actionBtn: {
-      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.xs,
+      minHeight: 52,
+      borderRadius: radius.lg,
+      ...shadows.card,
+    },
+    actionText: {
+      ...typography.button,
+      fontSize: 16,
+      color: colors.textOnPrimary,
     },
     takeBtn: {
       backgroundColor: colors.danger,
-      borderWidth: 0,
     },
     giveBtn: {
       backgroundColor: colors.primary,
-      borderWidth: 0,
     },
     readOnlyNote: {
       ...typography.bodySmall,
@@ -297,6 +320,12 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.background,
+    },
+    emptyText: {
+      ...typography.body,
+      textAlign: 'center',
+      color: colors.textSecondary,
+      paddingVertical: spacing.lg,
     },
   });
 

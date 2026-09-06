@@ -12,6 +12,18 @@ interface SectionHeaderProps {
   actionLabel?: string;
   actionIcon?: keyof typeof Ionicons.glyphMap;
   onAction?: () => void;
+  /**
+   * `soft`  — pastel yashil fon, yashil matn: ikkinchi darajali amal.
+   * `solid` — to'q yashil fon, oq matn: bo'limning ASOSIY amali
+   *           (masalan "Yangi qo'shish" — foydalanuvchi eng ko'p bosadigan tugma).
+   */
+  actionVariant?: 'soft' | 'solid';
+  /**
+   * Ikonka pastel doiracha ichidami (`true`) yoki sarlavha yonida ochiq
+   * turadimi (`false`). Ochiq variant sarlavhani kuchliroq qiladi — bo'lim
+   * bitta bo'lsa doiracha ortiqcha bezak bo'lib qoladi.
+   */
+  iconBadge?: boolean;
 }
 
 /**
@@ -24,17 +36,26 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   actionLabel,
   actionIcon = 'add',
   onAction,
+  actionVariant = 'soft',
+  iconBadge = true,
 }) => {
   const theme = useAppTheme();
   const { colors, iconSize } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  const isSolid = actionVariant === 'solid';
+  const actionTint = isSolid ? colors.textOnPrimary : colors.primary;
+
   return (
     <View style={styles.row}>
       <View style={styles.left}>
-        <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={iconSize.sm} color={colors.primary} />
-        </View>
+        {iconBadge ? (
+          <View style={styles.iconWrap}>
+            <Ionicons name={icon} size={iconSize.sm} color={colors.primary} />
+          </View>
+        ) : (
+          <Ionicons name={icon} size={iconSize.lg} color={colors.textPrimary} />
+        )}
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
@@ -42,13 +63,13 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
 
       {actionLabel && onAction ? (
         <PressableScale
-          style={styles.action}
+          style={[styles.action, isSolid && styles.actionSolid]}
           onPress={onAction}
           accessibilityRole="button"
           accessibilityLabel={actionLabel}
         >
-          <Ionicons name={actionIcon} size={iconSize.xs} color={colors.primary} />
-          <Text style={styles.actionText} numberOfLines={1}>
+          <Ionicons name={actionIcon} size={iconSize.sm} color={actionTint} />
+          <Text style={[styles.actionText, { color: actionTint }]} numberOfLines={1}>
             {actionLabel}
           </Text>
         </PressableScale>
@@ -57,7 +78,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
@@ -92,14 +113,19 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xxs,
-      minHeight: 36,
+      minHeight: 44,
       paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.md,
       borderRadius: radius.pill,
       backgroundColor: colors.primarySoft,
     },
+    actionSolid: {
+      backgroundColor: colors.primary,
+      ...shadows.card,
+    },
     actionText: {
       ...typography.label,
+      fontSize: 15,
       fontWeight: '700',
       color: colors.primary,
     },

@@ -39,14 +39,15 @@ const currencyEntries = (amounts: CurrencyAmounts): CurrencyEntry[] => {
   return list;
 };
 
-const VALUE_FONT_MAX = 15;
-const VALUE_FONT_MIN = 11;
+// Asosiy summa: keng ekranda 30px gacha, tor ekranda 13px gacha kichrayadi.
+const VALUE_FONT_MAX = 30;
+const VALUE_FONT_MIN = 13;
 // Qalin, tabular-nums summa satri uchun o'rtacha belgi eni ≈ shriftning shuncha ulushi.
 const AVG_CHAR_RATIO = 0.58;
-// Blok ichki bo'shlig'i + ramka + (aktiv bo'lsa) saralash o'qi uchun ajratma.
-const BLOCK_RESERVED = 30;
-// Ajratuvchi chiziq va uning yon bo'shliqlari (tile eni hisobi uchun).
-const DIVIDER_SPACE = 17;
+// Summa blokining ichki gorizontal bo'shlig'i (aktiv holatda ham o'zgarmaydi).
+const BLOCK_RESERVED = 16;
+// Ajratuvchi chiziq va uning yon bo'shliqlari (katak eni hisobi uchun).
+const DIVIDER_SPACE = 33;
 
 /**
  * Summa shriftini MAVJUD ENGA qarab hisoblaydi: keng ekranda to'liq o'lcham
@@ -65,13 +66,19 @@ const valueFontSize = (longestLength: number, availWidth: number): number => {
 };
 
 /**
- * Umumiy qarz/haq xulosasi. Har valyuta hisobi ALOHIDA — so'm va dollar
- * bir-biriga aylantirilmaydi (foydalanuvchi talabi: mustaqil hisoblar).
+ * Umumiy qarz/haq xulosasi — ekranning asosiy kartasi.
  *
- * Joylashuv: yuqorida ikonka + sarlavha, ostida esa summalar butun katak enini
- * egallaydi (katta raqamlar siqilib ketmasligi uchun). Har summa bosiladigan blok:
- * qarz tomonini bossang eng katta qarzdan haqgacha, haq tomonini bossang teskarisiga
- * saralanadi. "Standart" tugmasi yoki aktiv blokni qayta bosish odatiy tartibga qaytaradi.
+ * Har valyuta hisobi ALOHIDA: so'm va dollar bir-biriga aylantirilmaydi
+ * (foydalanuvchi talabi — mustaqil hisoblar).
+ *
+ * Har katakda: pastel doiradagi yo'nalish ikonkasi + sarlavha, ostida katta
+ * summa, eng ostida izoh. Summa ATAYIN katakning TO'LIQ enini oladi (ikonka
+ * ostidan boshlanadi, uning yonidan emas): "1 250 000 so'm" kabi haqiqiy
+ * qiymatlar ikonka eniga siqilsa, shrift o'qib bo'lmas darajada kichrayardi.
+ *
+ * Summani bosish saralaydi: qarz tomonini bossang eng katta qarzdan haqgacha,
+ * haq tomonini bossang teskarisiga. "Standart tartib" yoki aktiv blokni qayta
+ * bosish odatiy tartibga qaytaradi.
  */
 const BalanceSummary: React.FC<BalanceSummaryProps> = ({
   totalDebt,
@@ -82,7 +89,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
   onReset,
 }) => {
   const theme = useAppTheme();
-  const { colors } = theme;
+  const { colors, iconSize } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -114,13 +121,14 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
     softColor: string,
     iconName: keyof typeof Ionicons.glyphMap,
     label: string,
+    description: string,
   ) => (
     <View style={styles.tile}>
       <View style={styles.tileHeader}>
         <View style={[styles.icon, { backgroundColor: softColor }]}>
-          <Ionicons name={iconName} size={15} color={color} />
+          <Ionicons name={iconName} size={iconSize.md} color={color} />
         </View>
-        <Text style={styles.label} numberOfLines={1}>
+        <Text style={styles.label} numberOfLines={2}>
           {label}
         </Text>
       </View>
@@ -147,26 +155,27 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
               onPress={() => onSelect(direction, entry.currency)}
               style={({ pressed }) => [
                 styles.amountBlock,
-                active && { backgroundColor: softColor, borderColor: color },
+                active && { backgroundColor: softColor },
                 pressed && styles.amountBlockPressed,
               ]}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               accessibilityLabel={`${label}: ${entry.text}`}
             >
-              <Text
-                style={[styles.value, { color, fontSize: valueFont }]}
-                numberOfLines={2}
-              >
+              <Text style={[styles.value, { color, fontSize: valueFont }]} numberOfLines={1}>
                 {entry.text}
               </Text>
               {active ? (
-                <Ionicons name="swap-vertical" size={12} color={color} />
+                <Ionicons name="swap-vertical" size={iconSize.xs - 2} color={color} />
               ) : null}
             </Pressable>
           );
         })
       )}
+
+      <Text style={styles.description} numberOfLines={2}>
+        {description}
+      </Text>
     </View>
   );
 
@@ -180,6 +189,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
           colors.negativeSoft,
           'arrow-down',
           t('debts.currentDebt'),
+          t('debts.debtDescription'),
         )}
         <View style={styles.divider} />
         {renderTile(
@@ -189,6 +199,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
           colors.positiveSoft,
           'arrow-up',
           t('debts.currentCredit'),
+          t('debts.creditDescription'),
         )}
       </View>
 
@@ -199,7 +210,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
           accessibilityRole="button"
           accessibilityLabel={t('debts.sortReset')}
         >
-          <Ionicons name="refresh" size={12} color={colors.textSecondary} />
+          <Ionicons name="refresh" size={iconSize.xs - 2} color={colors.textSecondary} />
           <Text style={styles.resetText}>{t('debts.sortReset')}</Text>
         </Pressable>
       ) : null}
@@ -207,24 +218,19 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     card: {
       backgroundColor: colors.surface,
-      borderRadius: radius.xl,
-      paddingVertical: spacing.sm,
+      borderRadius: radius.xxl,
+      paddingVertical: spacing.md + 2,
       paddingHorizontal: spacing.md,
-      marginBottom: spacing.xs,
       marginHorizontal: spacing.md,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.12,
-      shadowRadius: 20,
-      elevation: 6,
+      ...shadows.raised,
     },
     tilesRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'stretch',
     },
     tile: {
       flex: 1,
@@ -233,63 +239,67 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     tileHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
-      marginBottom: spacing.xxs,
+      gap: spacing.xs + 2,
+      marginBottom: spacing.xs,
     },
     icon: {
-      width: 28,
-      height: 28,
-      borderRadius: radius.sm,
+      width: 44,
+      height: 44,
+      borderRadius: radius.pill,
       alignItems: 'center',
       justifyContent: 'center',
     },
     label: {
-      ...typography.caption,
-      fontSize: 11,
+      ...typography.bodySmall,
+      fontSize: 15,
       color: colors.textSecondary,
       flexShrink: 1,
     },
     amountBlock: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      alignSelf: 'stretch',
-      paddingVertical: 3,
-      paddingHorizontal: 6,
-      marginTop: spacing.xxs,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: 'transparent',
+      gap: spacing.xxs,
+      alignSelf: 'flex-start',
+      maxWidth: '100%',
+      paddingVertical: spacing.xxs / 2,
+      paddingHorizontal: spacing.xxs,
+      marginLeft: -spacing.xxs,
+      borderRadius: radius.md,
     },
     amountBlockPressed: {
       opacity: 0.55,
     },
     value: {
-      ...typography.caption,
-      lineHeight: 19,
-      fontWeight: '800',
-      letterSpacing: -0.2,
-      fontVariant: ['tabular-nums'],
+      ...typography.amount,
+      lineHeight: 38,
       flexShrink: 1,
     },
     valueIdle: {
-      marginTop: spacing.xxs,
-      paddingHorizontal: 6,
+      paddingVertical: spacing.xxs / 2,
     },
+    description: {
+      ...typography.caption,
+      fontSize: 13,
+      lineHeight: 17,
+      color: colors.textSecondary,
+      marginTop: spacing.xxs,
+    },
+    // Ikki katak orasidagi vertikal ajratgich — juda nozik, "qattiq" border emas.
     divider: {
-      width: 1,
+      width: StyleSheet.hairlineWidth,
       alignSelf: 'stretch',
       backgroundColor: colors.border,
-      marginHorizontal: spacing.sm,
+      marginHorizontal: spacing.md,
     },
     resetChip: {
       flexDirection: 'row',
       alignItems: 'center',
       alignSelf: 'center',
-      gap: 4,
+      gap: spacing.xxs,
+      minHeight: 36,
       marginTop: spacing.sm,
-      paddingVertical: spacing.xxs + 1,
-      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.md,
       borderRadius: radius.pill,
       backgroundColor: colors.surfaceMuted,
     },

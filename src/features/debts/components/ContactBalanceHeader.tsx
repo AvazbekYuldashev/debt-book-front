@@ -4,11 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
-import { formatMoney } from '../../../shared/lib/money';
+import { formatMoney, formatSignedMoney } from '../../../shared/lib/money';
 import { buildTelUrl, formatPhoneDisplay } from '../../../shared/lib/phone';
 import type { CurrencyNet } from '../../../shared/lib/currency';
 import type { Contact } from '../context/ContactsContext';
 import BackButton from '../../../shared/ui/BackButton';
+import UserAvatar from '../../../shared/ui/UserAvatar';
+
+const AVATAR_SIZE = 52;
 
 interface ContactBalanceHeaderProps {
   contact: Contact;
@@ -18,19 +21,25 @@ interface ContactBalanceHeaderProps {
 }
 
 /**
- * Kontakt detali ekranining tepasi: orqaga tugma va bitta ixcham kartochka —
- * chapda ism/telefon, o'ng tomonida joriy balanslar HAR VALYUTA ALOHIDA
- * qatorda (so'm/dollar aralashtirilmaydi). Rasm (avatar) yo'q.
+ * Kontakt detali ekranining tepasi: orqaga tugma va bitta premium kartochka —
+ * avatar, ism/telefon, ostida joriy balanslar HAR VALYUTA ALOHIDA qatorda
+ * (so'm/dollar aralashtirilmaydi).
+ *
+ * Balans kartaning PASTKI qismida, to'liq enda: ilgari u ism bilan yonma-yon
+ * turardi va uzun summa ("1 250 000 so'm") ismni siqib, ikkalasi ham
+ * o'qilmaydigan darajada kichrayardi.
+ *
  * Telefon raqam bosilganda telefonning o'z raqam terish oynasi ochiladi
  * (ilova ichidan qo'ng'iroq qilinmaydi).
  */
 const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, balances, onBack }) => {
   const theme = useAppTheme();
-  const { colors } = theme;
+  const { colors, iconSize } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const telUrl = buildTelUrl(contact.phone);
+  const isBusiness = contact.partyType === 'BUSINESS_ACCOUNT';
 
   const handleDial = useCallback(() => {
     if (!telUrl) return;
@@ -46,11 +55,21 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
       </View>
 
       <View style={styles.card}>
-        <View style={styles.row}>
+        <View style={styles.identityRow}>
+          <UserAvatar uri={undefined} size={AVATAR_SIZE} name={contact.fullName} />
+
           <View style={styles.identity}>
-            <Text style={styles.name} numberOfLines={2}>
-              {contact.fullName}
-            </Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>
+                {contact.fullName}
+              </Text>
+              {isBusiness ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{t('debts.businessLabel')}</Text>
+                </View>
+              ) : null}
+            </View>
+
             {contact.phone ? (
               <Pressable
                 onPress={handleDial}
@@ -60,83 +79,117 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
                 accessibilityLabel={t('contact.callNumber')}
                 hitSlop={6}
               >
-                <Ionicons name="call-outline" size={13} color={colors.primary} />
+                <Ionicons name="call-outline" size={iconSize.xs} color={colors.primary} />
                 <Text style={styles.phone} numberOfLines={1}>
                   {formatPhoneDisplay(contact.phone)}
                 </Text>
               </Pressable>
             ) : null}
           </View>
+        </View>
 
-          <View style={styles.balances}>
-            {balances.length === 0 ? (
-              <Text
-                style={[styles.balanceValue, { color: colors.textSecondary }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.5}
-              >
+        <View style={styles.divider} />
+
+        <View style={styles.balances}>
+          {balances.length === 0 ? (
+            <View style={styles.balanceRow}>
+              <Text style={styles.balanceLabel}>{t('contact.currentBalance')}</Text>
+              <Text style={[styles.balanceValue, { color: colors.textSecondary }]} numberOfLines={1}>
                 {formatMoney(0)}
               </Text>
-            ) : (
-              balances.map(({ currency, amount }) => (
-                <Text
-                  key={currency}
-                  style={[
-                    styles.balanceValue,
-                    balances.length > 1 && styles.balanceValueCompact,
-                    { color: amount >= 0 ? colors.positive : colors.negative },
-                  ]}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.5}
-                >
-                  {formatMoney(amount, currency)}
-                </Text>
-              ))
-            )}
-          </View>
+            </View>
+          ) : (
+            balances.map(({ currency, amount }) => {
+              const positive = amount >= 0;
+              const color = positive ? colors.positive : colors.negative;
+              return (
+                <View key={currency} style={styles.balanceRow}>
+                  <View style={styles.balanceLabelRow}>
+                    {/* Ma'no faqat rangda emas: yo'nalish ikonkasi va +/- belgisi ham bor. */}
+                    <View style={[styles.balanceIcon, { backgroundColor: positive ? colors.positiveSoft : colors.negativeSoft }]}>
+                      <Ionicons
+                        name={positive ? 'arrow-up' : 'arrow-down'}
+                        size={iconSize.xs - 2}
+                        color={color}
+                      />
+                    </View>
+                    <Text style={styles.balanceLabel}>
+                      {positive ? t('debts.currentCredit') : t('debts.currentDebt')}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[styles.balanceValue, { color }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.6}
+                  >
+                    {formatSignedMoney(amount, currency)}
+                  </Text>
+                </View>
+              );
+            })
+          )}
         </View>
       </View>
     </View>
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     wrap: {
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
+      paddingTop: spacing.xs,
     },
     topBar: {
-      marginBottom: spacing.xs,
+      marginBottom: spacing.sm,
     },
     pressed: {
       opacity: 0.6,
     },
     card: {
       backgroundColor: colors.surface,
-      borderRadius: radius.xl,
+      borderRadius: radius.xxl,
       padding: spacing.md + 2,
       marginBottom: spacing.md,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.14,
-      shadowRadius: 22,
-      elevation: 8,
+      ...shadows.raised,
     },
-    row: {
+    identityRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.sm,
     },
     identity: {
       flex: 1,
+      minWidth: 0,
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      minWidth: 0,
     },
     name: {
-      ...typography.heading2,
-      fontSize: 18,
+      ...typography.body,
+      fontSize: 19,
+      lineHeight: 24,
+      fontWeight: '700',
+      letterSpacing: -0.3,
       color: colors.textPrimary,
+      flexShrink: 1,
+    },
+    badge: {
+      paddingHorizontal: spacing.xs,
+      paddingVertical: 2,
+      borderRadius: radius.xs,
+      backgroundColor: colors.infoSoft,
+    },
+    badgeText: {
+      ...typography.caption,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: '700',
+      color: colors.info,
     },
     phoneRow: {
       flexDirection: 'row',
@@ -146,26 +199,49 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       marginTop: spacing.xxs,
     },
     phone: {
-      ...typography.caption,
-      fontSize: 13,
+      ...typography.bodySmall,
+      fontSize: 14,
       fontWeight: '600',
       color: colors.primary,
     },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+      marginVertical: spacing.sm + 2,
+    },
     balances: {
+      gap: spacing.xs,
+    },
+    balanceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    balanceLabelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
       flexShrink: 1,
-      maxWidth: '60%',
-      alignItems: 'flex-end',
+    },
+    balanceIcon: {
+      width: 28,
+      height: 28,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    balanceLabel: {
+      ...typography.bodySmall,
+      fontSize: 14,
+      color: colors.textSecondary,
+      flexShrink: 1,
     },
     balanceValue: {
-      ...typography.heading1,
+      ...typography.amount,
       fontSize: 24,
-      fontWeight: '800',
-      letterSpacing: -0.6,
-    },
-    // Ikki va undan ko'p valyuta ko'rsatilganda qatorlar ixchamroq.
-    balanceValueCompact: {
-      fontSize: 20,
-      lineHeight: 26,
+      lineHeight: 30,
+      flexShrink: 1,
     },
   });
 

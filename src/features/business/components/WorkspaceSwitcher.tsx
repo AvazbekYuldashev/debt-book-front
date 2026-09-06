@@ -19,7 +19,7 @@ import UserAvatar from '../../../shared/ui/UserAvatar';
 import InitialsAvatar from '../../../shared/ui/InitialsAvatar';
 import { buildAttachUrl, normalizeAttachUrl } from '../../../shared/lib/attachUrl';
 
-const BADGE_AVATAR_SIZE = 38;
+const BADGE_AVATAR_SIZE = 44;
 
 interface BadgeAvatarProps {
   isBusiness: boolean;
@@ -166,7 +166,7 @@ const WorkspaceSwitcher: React.FC = () => {
             ) : null}
           </View>
         </View>
-        <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
+        <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
       </Pressable>
 
       <WorkspacePickerModal
@@ -199,7 +199,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       paddingHorizontal: spacing.md,
       paddingTop: spacing.xs,
       paddingBottom: spacing.xxs,
-      backgroundColor: colors.background,
+      // Shaffof: ekran ostidagi ambient fon ko'rinib tursin.
+      backgroundColor: 'transparent',
     },
     // Fonsiz, soyasiz: bu navigatsiya emas, kontekst ko'rsatkichi.
     trigger: {
@@ -235,10 +236,15 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       alignItems: 'center',
       gap: spacing.xs,
     },
+    // Sahifa sarlavhasi ostida turadi, shuning uchun undan kichik — lekin
+    // ikkinchi darajali kulrang emas: bu foydalanuvchi ALMASHTIRA oladigan
+    // kontekst, o'qilishi kerak.
     label: {
-      ...typography.label,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      ...typography.body,
+      fontSize: 17,
+      lineHeight: 22,
+      fontWeight: '600',
+      color: colors.textPrimary,
       flexShrink: 1,
     },
     roleBadge: {

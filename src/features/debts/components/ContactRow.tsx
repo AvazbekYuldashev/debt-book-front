@@ -1,16 +1,39 @@
-import React, { memo, useCallback, useContext, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useCallback, useContext, useMemo, useState } from 'react';
+import { LayoutChangeEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import UserAvatar from '../../../shared/ui/UserAvatar';
 import IconButton from '../../../shared/ui/IconButton';
-import { formatMoney } from '../../../shared/lib/money';
+import BalanceBadge from '../../../shared/ui/BalanceBadge';
+import { formatMoney, formatSignedMoney } from '../../../shared/lib/money';
 import type { CurrencyNet } from '../../../shared/lib/currency';
 import type { Contact } from '../context/ContactsContext';
 import { CurrencyContext } from '../context/CurrencyContext';
 
-const AVATAR_SIZE = 46;
+const AVATAR_SIZE = 52;
+
+const AMOUNT_FONT_MAX = 14;
+const AMOUNT_FONT_MIN = 11;
+// Qalin, tabular-nums summa satri uchun o'rtacha belgi eni ≈ shriftning shuncha ulushi.
+const AVG_CHAR_RATIO = 0.58;
+// "Pill" ichki bo'shlig'i + yo'nalish ikonkasi + oraliqlar.
+const BADGE_CHROME = 34;
+// Summalar yonidagi "uch nuqta" tugmasi + oraliqlar uchun ajratma.
+const RIGHT_RESERVED = 40;
+const RIGHT_RESERVED_NO_MENU = 8;
+
+/**
+ * Summa shriftini MAVJUD ENGA qarab hisoblaydi. `adjustsFontSizeToFit` web'da
+ * (react-native-web) umuman ishlamaydi — shuning uchun qo'lda hisoblaymiz.
+ * Qatordagi BARCHA valyuta bir xil shrift oladi: aks holda uzun satr
+ * yonidagilardan kichik bo'lib, qator notekis ko'rinardi.
+ */
+const amountFontSize = (longestLength: number, availWidth: number): number => {
+  if (!longestLength || availWidth <= 0) return AMOUNT_FONT_MAX;
+  const fitted = Math.floor(availWidth / (longestLength * AVG_CHAR_RATIO));
+  return Math.max(AMOUNT_FONT_MIN, Math.min(AMOUNT_FONT_MAX, fitted));
+};
 
 interface ContactRowProps {
   contact: Contact;
@@ -31,13 +54,17 @@ interface ContactRowProps {
 /**
  * Ro'yxatdagi bitta mijoz qatori.
  *
- * O'ngda mijozning BARCHA valyutalardagi qoldig'i: har biri o'z qatorida,
- * bergani yashil, olgani qizil. Qaysi valyutada qancha qolganini bilish
- * uchun mijozni ochish shart emas.
+ * O'ngda mijozning BARCHA valyutalardagi qoldig'i: har biri o'z "pill"ida,
+ * bergani yashil, olgani qizil, hisob yopiq bo'lsa neytral kulrang. Qaysi
+ * valyutada qancha qolganini bilish uchun mijozni ochish shart emas.
  *
- * Valyutalar bir-biriga QO'SHILMAYDI: dollarni bugungi kurs bo'yicha
- * so'mga aylantirish qarzning haqiqiy ma'nosini buzadi. Shu sababli
- * ular alohida qatorlarda turadi, yig'indi ko'rsatilmaydi.
+ * Valyutalar bir-biriga QO'SHILMAYDI: dollarni bugungi kurs bo'yicha so'mga
+ * aylantirish qarzning haqiqiy ma'nosini buzadi. Shu sababli ular alohida
+ * qatorlarda turadi, yig'indi ko'rsatilmaydi.
+ *
+ * Butun qator bosiladi (mijozni ochadi); o'ngdagi "uch nuqta" esa tahrirlash
+ * menyusini chaqiradi. Ilgari bu qalam ikonkasi edi — bitta amal doimiy
+ * ikonkaga aylanib, har qatorda takrorlanardi va ism bilan raqobatlashardi.
  */
 const ContactRow: React.FC<ContactRowProps> = ({
   contact,
@@ -59,14 +86,24 @@ const ContactRow: React.FC<ContactRowProps> = ({
 
   const avatarKey = contact.partyId || contact.id;
 
+  // Summa shrifti mavjud enga qarab hisoblanadi — qator enini o'lchab olamiz.
+  const [rowWidth, setRowWidth] = useState(0);
+  const handleRowLayout = useCallback(
+    (event: LayoutChangeEvent) => setRowWidth(event.nativeEvent.layout.width),
+    [],
+  );
+  const amountsWidth =
+    rowWidth > 0
+      ? rowWidth * 0.46 - (canEdit ? RIGHT_RESERVED : RIGHT_RESERVED_NO_MENU) - BADGE_CHROME
+      : 0;
+
   const handlePress = useCallback(() => onPress(contact.id), [onPress, contact.id]);
   const handleEdit = useCallback(() => onEdit(contact.id), [onEdit, contact.id]);
   const handleViewPhoto = useCallback(() => onViewPhoto(avatarKey), [onViewPhoto, avatarKey]);
 
   const isBusiness = contact.partyType === 'BUSINESS_ACCOUNT';
-  // Biznes mijozda telefon yo'q. Ilgari uning o'rniga UUID chiqardi — endi
-  // shunchaki "Biznes" deb belgilanadi, to'liq id mijoz kartasida.
-  const secondaryLabel = isBusiness ? t('debts.businessLabel') : contact.phone || '';
+  // Biznes mijozda telefon yo'q — uning o'rniga "Biznes" yorlig'i ism yonida turadi.
+  const phoneLabel = isBusiness ? '' : contact.phone || '';
 
   /**
    * Tartib: avval asosiy valyuta, keyin QIYMATI bo'yicha kamayish tartibida.
@@ -85,10 +122,26 @@ const ContactRow: React.FC<ContactRowProps> = ({
     return items;
   }, [balances, baseCurrency, toBase]);
 
+  const amountFont = useMemo(() => {
+    const longest = rows.reduce(
+      (max, item) => Math.max(max, formatSignedMoney(item.amount, item.currency).length),
+      0,
+    );
+    return amountFontSize(longest, amountsWidth);
+  }, [rows, amountsWidth]);
+
+  const unreadBadge =
+    unreadCount > 0 ? (
+      <View style={styles.unreadBadge}>
+        <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+      </View>
+    ) : null;
+
   return (
-    <View style={[styles.row, !isLast && styles.rowBorder]}>
+    <View onLayout={handleRowLayout}>
       <Pressable
-        style={({ pressed }) => [styles.main, pressed && styles.mainPressed]}
+        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        android_ripple={{ color: colors.surfaceMuted }}
         onPress={handlePress}
         accessibilityRole="button"
         accessibilityLabel={contact.fullName}
@@ -103,76 +156,68 @@ const ContactRow: React.FC<ContactRowProps> = ({
             hitSlop={6}
           >
             <UserAvatar uri={localPhoto} size={AVATAR_SIZE} />
-            {unreadCount > 0 ? (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-              </View>
-            ) : null}
+            {unreadBadge}
           </Pressable>
         ) : (
           <View>
-            <UserAvatar uri={undefined} size={AVATAR_SIZE} />
-            {unreadCount > 0 ? (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            <UserAvatar uri={undefined} size={AVATAR_SIZE} name={contact.fullName} />
+            {unreadBadge}
+          </View>
+        )}
+
+        <View style={styles.info}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {contact.fullName}
+            </Text>
+            {isBusiness ? (
+              // Kategoriya yorlig'i — pastel ko'k, ism yonida.
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{t('debts.businessLabel')}</Text>
               </View>
             ) : null}
           </View>
-        )}
-        <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>
-            {contact.fullName}
-          </Text>
-          {isBusiness ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{secondaryLabel}</Text>
-            </View>
-          ) : secondaryLabel ? (
+          {phoneLabel ? (
             <Text style={styles.secondary} numberOfLines={1}>
-              {secondaryLabel}
+              {phoneLabel}
             </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.right}>
+          <View style={styles.amounts}>
+            {balances === undefined ? (
+              <Text style={styles.amountMuted}>{totalsLoading ? '…' : '--'}</Text>
+            ) : rows.length === 0 ? (
+              // Hisob yopiq: neytral kulrang "pill" — yashil ham, qizil ham emas.
+              <View style={styles.zeroBadge}>
+                <Text style={styles.zeroText}>{formatMoney(0)}</Text>
+              </View>
+            ) : (
+              rows.map((row) => (
+                <BalanceBadge
+                  key={row.currency}
+                  amount={row.amount}
+                  currency={row.currency}
+                  fontSize={amountFont}
+                />
+              ))
+            )}
+          </View>
+
+          {canEdit ? (
+            <IconButton
+              name="ellipsis-vertical"
+              onPress={handleEdit}
+              accessibilityLabel={t('common.edit')}
+            />
           ) : null}
         </View>
       </Pressable>
 
-      <View style={styles.right}>
-        {/* Summalar bloki ham mijozni ochadi — ism/avatar bilan bir xil (onPress). */}
-        <Pressable
-          style={({ pressed }) => [styles.amounts, pressed && styles.mainPressed]}
-          onPress={handlePress}
-          accessibilityRole="button"
-          accessibilityLabel={contact.fullName}
-        >
-          {balances === undefined ? (
-            <Text style={styles.amountMuted}>{totalsLoading ? '…' : '--'}</Text>
-          ) : rows.length === 0 ? (
-            <Text style={styles.amountMuted}>{formatMoney(0)}</Text>
-          ) : (
-            rows.map((row) => (
-              <Text
-                key={row.currency}
-                style={[
-                  styles.amount,
-                  { color: row.amount > 0 ? colors.positive : colors.negative },
-                ]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-              >
-                {row.amount > 0 ? '+' : ''}
-                {formatMoney(row.amount, row.currency)}
-              </Text>
-            ))
-          )}
-        </Pressable>
-        {canEdit ? (
-          <IconButton
-            name="pencil"
-            onPress={handleEdit}
-            accessibilityLabel={t('common.edit')}
-          />
-        ) : null}
-      </View>
+      {/* Qatorlar orasidagi juda nozik ajratgich — avatardan keyin boshlanadi
+          (zamonaviy "inset divider"), oxirgi qatordan keyin chizilmaydi. */}
+      {!isLast ? <View style={styles.divider} /> : null}
     </View>
   );
 };
@@ -182,93 +227,98 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     row: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
-      gap: spacing.xs,
-    },
-    rowBorder: {
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
-    },
-    main: {
-      flex: 1,
-      minWidth: 0,
-      flexDirection: 'row',
-      alignItems: 'center',
       gap: spacing.sm,
-      borderRadius: radius.md,
+      // 52 (avatar) + 2*12 = 76px — 44px teginish talabidan ancha yuqori.
+      minHeight: 76,
     },
-    mainPressed: {
-      opacity: 0.6,
-    },
+    // Android'da android_ripple ishlaydi; iOS/web uchun fon o'zgaradi.
+    rowPressed: Platform.OS === 'android' ? {} : { backgroundColor: colors.surfaceMuted },
     info: {
       flex: 1,
       minWidth: 0,
     },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      minWidth: 0,
+    },
     name: {
-      ...typography.label,
-      fontSize: 15,
+      ...typography.body,
+      fontSize: 17,
+      lineHeight: 22,
       fontWeight: '700',
+      letterSpacing: -0.2,
       color: colors.textPrimary,
+      flexShrink: 1,
     },
     secondary: {
-      ...typography.caption,
-      marginTop: spacing.xxs / 2,
-      fontSize: 13,
+      ...typography.bodySmall,
+      fontSize: 14,
+      marginTop: 2,
       color: colors.textSecondary,
       flexShrink: 1,
     },
-    // "Biznes" belgisi — UUID o'rniga. Kichik, past kontrastli: qatorda
-    // ism eng muhim element bo'lib qolishi kerak.
+    // "Biznes" belgisi — pastel ko'k, ism yonida. Kichik: qatorda ism eng
+    // muhim element bo'lib qolishi kerak.
     badge: {
-      alignSelf: 'flex-start',
-      marginTop: spacing.xxs / 2,
       paddingHorizontal: spacing.xs,
-      paddingVertical: 1,
-      borderRadius: radius.pill,
-      backgroundColor: colors.surfaceMuted,
+      paddingVertical: 2,
+      borderRadius: radius.xs,
+      backgroundColor: colors.infoSoft,
     },
     badgeText: {
       ...typography.caption,
       fontSize: 11,
+      lineHeight: 14,
       fontWeight: '700',
-      color: colors.textSecondary,
+      color: colors.info,
     },
-    // Summalar (fonsiz, o'ngga tekis) va tahrir tugmasi YONMA-YON, vertikal
-    // markazda — qator bo'yi avatar balandligidan oshmaydi, o'ng chet tekis.
+    // Summalar va menyu YONMA-YON, vertikal markazda — qator bo'yi avatar
+    // balandligidan oshmaydi, o'ng chet tekis turadi.
     right: {
       flexDirection: 'row',
       alignItems: 'center',
-      // Summa bilan tugma orasi tor: ular bitta guruh bo'lib ko'rinsin.
       gap: spacing.xxs,
       // Summa qanchalik katta bo'lmasin, qator enining shuncha ulushidan oshmaydi —
       // qolgan joy mijoz ismiga tegishli (ism summadan muhimroq).
-      maxWidth: '55%',
+      maxWidth: '46%',
       flexShrink: 1,
     },
     amounts: {
       alignItems: 'flex-end',
       minWidth: 0,
       flexShrink: 1,
-      gap: 1,
-    },
-    // Bir nechta valyuta ustma-ust turadi — qator oralig'i tor, aks holda
-    // ikki valyutali mijoz qatori qo'shnisidan ikki barobar baland bo'lardi.
-    amount: {
-      ...typography.caption,
-      fontSize: 13,
-      lineHeight: 16,
-      fontWeight: '800',
-      fontVariant: ['tabular-nums'],
+      gap: spacing.xxs,
     },
     amountMuted: {
       ...typography.caption,
-      fontSize: 11,
+      fontSize: 13,
+      fontWeight: '600',
       color: colors.textSecondary,
-      marginTop: 1,
     },
-
+    zeroBadge: {
+      paddingVertical: 5,
+      paddingHorizontal: spacing.xs + 2,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surfaceMuted,
+    },
+    zeroText: {
+      ...typography.caption,
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: '700',
+      color: colors.textSecondary,
+      fontVariant: ['tabular-nums'],
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+      marginLeft: spacing.md + AVATAR_SIZE + spacing.sm,
+      marginRight: spacing.md,
+    },
     // Telegram uslubidagi o'qilmaganlar soni — avatar burchagida.
     unreadBadge: {
       position: 'absolute',
@@ -281,12 +331,13 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.primary,
-      borderWidth: 1.5,
+      borderWidth: 2,
       borderColor: colors.surface,
     },
     unreadBadgeText: {
       ...typography.caption,
       fontSize: 10,
+      lineHeight: 13,
       fontWeight: '800',
       color: colors.textOnPrimary,
     },

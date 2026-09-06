@@ -7,12 +7,15 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
-import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
-import WorkspaceSwitcher from '../../business/components/WorkspaceSwitcher';
+import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
+import EmptyState from '../../../shared/ui/EmptyState';
+import EntranceView from '../../../shared/ui/EntranceView';
+import SectionHeader from '../../../shared/ui/SectionHeader';
+import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { GapNavigation } from '../../../app/navigation/types';
@@ -119,12 +122,22 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      {/* Dekorativ fon — barcha bosh ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
+
+      <EntranceView style={styles.header} duration={300} fromY={12}>
         {/* Ish maydoni almashtirgichi barcha bosh ekranlarda bir xil joyda va
             bir xil ko'rinishda turadi — chetdan chetga, sarlavhadan yuqorida. */}
-        <WorkspaceSwitcher />
+        <ScreenTopBar />
         <View style={styles.headerRow}>
-          <Text style={styles.title}>{t('gap.title')}</Text>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title} numberOfLines={1}>
+              {t('gap.title')}
+            </Text>
+            <Text style={styles.subtitle} numberOfLines={2}>
+              {t('gap.subtitle')}
+            </Text>
+          </View>
         </View>
         <GapSummaryCard
           summary={summaryQuery.data}
@@ -140,12 +153,16 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
           expanded={expanded}
           onToggleExpand={() => setExpanded((prev) => !prev)}
         />
-      </View>
+
+        <View style={styles.sectionWrap}>
+          <SectionHeader icon="people" iconBadge={false} title={t('gap.section')} />
+        </View>
+      </EntranceView>
 
       <FlatList
         style={styles.list}
         contentContainerStyle={styles.listCard}
-        data={isBusy ? [] : items}
+        data={items}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
@@ -159,15 +176,16 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
           />
         }
         ListEmptyComponent={
+          // Skeleton faqat BIRINCHI yuklashda: mavjud ro'yxat fon
+          // yangilanishida kulrang chiziqlarga almashmaydi.
           isBusy ? (
-            <SkeletonCardList count={4} containerStyle={styles.listSkeleton} />
+            <SkeletonContactList count={4} />
           ) : (
-            <View style={styles.empty}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="people-outline" size={26} color={colors.textSecondary} />
-              </View>
-              <Text style={styles.emptyText}>{t('gap.empty')}</Text>
-            </View>
+            <EmptyState
+              icon="people-outline"
+              title={t('gap.empty')}
+              description={t('gap.emptyHint')}
+            />
           )
         }
       />
@@ -184,14 +202,15 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      // Fon AmbientBackground'dan keladi — tekis rang berilmaydi.
+      backgroundColor: 'transparent',
     },
     header: {
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     headerRow: {
       flexDirection: 'row',
@@ -199,43 +218,36 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       justifyContent: 'space-between',
       marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
+      paddingTop: spacing.xs,
+    },
+    titleWrap: {
+      flexShrink: 1,
+      minWidth: 0,
     },
     title: {
-      ...typography.heading2,
+      ...typography.display,
       color: colors.textPrimary,
+    },
+    subtitle: {
+      ...typography.bodySmall,
+      color: colors.textSecondary,
+      marginTop: spacing.xxs / 2,
+    },
+    sectionWrap: {
+      marginTop: spacing.lg,
     },
     list: {
       flex: 1,
     },
     listCard: {
       backgroundColor: colors.surface,
-      borderRadius: radius.xl,
+      borderRadius: radius.xxl,
       marginHorizontal: spacing.md,
       // Pastdan bo'shliq: aks holda "+" tugmasi oxirgi qatorning summasini
       // yopib turadi (tugma ro'yxat USTIDA suzadi).
       marginBottom: 96,
       overflow: 'hidden',
-    },
-    listSkeleton: {
-      padding: spacing.md,
-    },
-    empty: {
-      alignItems: 'center',
-      paddingVertical: spacing.xl,
-      gap: spacing.sm,
-    },
-    emptyIcon: {
-      width: 52,
-      height: 52,
-      borderRadius: radius.pill,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surfaceMuted,
-    },
-    emptyText: {
-      ...typography.caption,
-      color: colors.textSecondary,
+      ...shadows.card,
     },
   });
 

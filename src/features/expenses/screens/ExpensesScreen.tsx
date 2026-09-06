@@ -1,8 +1,13 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
-import WorkspaceSwitcher from '../../business/components/WorkspaceSwitcher';
+import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
+import EmptyState from '../../../shared/ui/EmptyState';
+import EntranceView from '../../../shared/ui/EntranceView';
+import SectionHeader from '../../../shared/ui/SectionHeader';
+import StatusBanner from '../../../shared/ui/StatusBanner';
+import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -440,10 +445,20 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <WorkspaceSwitcher />
+      {/* Dekorativ fon — barcha bosh ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
+
+      <EntranceView style={styles.header} duration={300} fromY={12}>
+        <ScreenTopBar />
         <View style={styles.headerRow}>
-          <Text style={styles.title}>{t('expenses.dailyTitle')}</Text>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title} numberOfLines={1}>
+              {t('expenses.dailyTitle')}
+            </Text>
+            <Text style={styles.subtitle} numberOfLines={2}>
+              {t('expenses.listSubtitle')}
+            </Text>
+          </View>
         </View>
 
         <ExpenseTotalCard
@@ -469,21 +484,36 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
           onShowEndPicker={setShowEndPicker}
           onApply={handleApplyFilter}
         />
-      </View>
+      </EntranceView>
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
+          />
+        }
       >
         {error ? (
-          <View style={styles.errorRow}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={styles.banner}>
+            <StatusBanner
+              tone="error"
+              message={error}
+              actionLabel={t('common.retry')}
+              onAction={handleRefresh}
+            />
           </View>
         ) : null}
 
-        <Text style={styles.sectionTitle}>{t('expenses.categories')}</Text>
+        <View style={styles.sectionWrap}>
+          <SectionHeader icon="pricetags" iconBadge={false} title={t('expenses.categories')} />
+        </View>
 
         {!loading && sortedCategories.length > 0 ? (
           <ExpenseSortBar
@@ -496,10 +526,16 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         ) : null}
 
         <View style={styles.listCard}>
-          {loading ? (
-            <SkeletonCardList count={5} containerStyle={styles.listSkeleton} />
+          {/* Skeleton faqat BIRINCHI yuklashda: mavjud kategoriyalar fon
+              yangilanishida kulrang chiziqlarga almashmaydi. */}
+          {loading && sortedCategories.length === 0 ? (
+            <SkeletonContactList count={5} />
           ) : sortedCategories.length === 0 ? (
-            <Text style={styles.emptyText}>{t('expenses.noCategories')}</Text>
+            <EmptyState
+              icon="pricetags-outline"
+              title={t('expenses.noCategories')}
+              description={allowCategoryManage ? t('expenses.emptyHint') : undefined}
+            />
           ) : (
             sortedCategories.map((item, index) => (
               <CategoryRow
@@ -579,14 +615,15 @@ function toAmount(value: number | string | null | undefined): number {
   return 0;
 }
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      // Fon AmbientBackground'dan keladi — tekis rang berilmaydi.
+      backgroundColor: 'transparent',
     },
     header: {
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     headerRow: {
       flexDirection: 'row',
@@ -594,11 +631,29 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       justifyContent: 'space-between',
       marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
+      paddingTop: spacing.xs,
+    },
+    titleWrap: {
+      flexShrink: 1,
+      minWidth: 0,
     },
     title: {
-      ...typography.heading2,
+      ...typography.display,
       color: colors.textPrimary,
+    },
+    subtitle: {
+      ...typography.bodySmall,
+      color: colors.textSecondary,
+      marginTop: spacing.xxs / 2,
+    },
+    banner: {
+      marginBottom: spacing.sm,
+    },
+    sectionWrap: {
+      // SectionHeader o'z gorizontal chekinishini beradi; bu yerda faqat
+      // vertikal ritm (kontent allaqachon spacing.md ichida).
+      marginHorizontal: -spacing.md,
+      marginBottom: spacing.xs,
     },
     scroll: {
       flex: 1,
@@ -629,14 +684,9 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     listCard: {
       backgroundColor: colors.surface,
-      borderRadius: radius.xl,
-      paddingVertical: spacing.xxs,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.06,
-      shadowRadius: 16,
-      elevation: 3,
+      borderRadius: radius.xxl,
       overflow: 'hidden',
+      ...shadows.card,
     },
     listSkeleton: {
       padding: spacing.sm,
