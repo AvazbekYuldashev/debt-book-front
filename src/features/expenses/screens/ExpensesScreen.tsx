@@ -660,9 +660,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     scroll: {
       flex: 1,
     },
-    // Ro'yxat ekran ostigacha davom etadi; "+" tugmasi uning USTIDA suzadi.
-    // Pastki bo'shliq karta ICHIDA beriladi — shunda oxirgi qator tugma
-    // ostidan surib chiqariladi, lekin ro'yxat pastdan kesilmaydi.
+    // Ro'yxat tugagach karta ham tugaydi, ostida fon ko'rinadi va "+" tugmasi
+    // o'sha bo'sh joyda suzadi. Bo'shliq karta TASHQARISIDA (margin) —
+    // ichkarida (padding) berilsa oq karta ekran ostigacha cho'zilib,
+    // tugma uni bosib turardi.
     content: {
       padding: spacing.md,
       paddingBottom: 88,
