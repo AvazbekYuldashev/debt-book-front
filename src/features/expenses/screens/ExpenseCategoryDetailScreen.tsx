@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -168,6 +169,8 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
 
   return (
     <View style={styles.container}>
+      {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
       <View style={styles.header}>
         {/* Qo'shish tugmasi pastdagi suzuvchi "+" da — Qarzlar va
             Xarajatlar ro'yxatidagi bilan bir xil joyda. */}
@@ -236,10 +239,10 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     header: {
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     searchRow: {
       marginHorizontal: spacing.md,

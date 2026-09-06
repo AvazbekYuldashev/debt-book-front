@@ -23,6 +23,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FOCUS_GAP, focusScrollTarget, keyboardOverlap } from '../model/keyboardScroll';
 import { useAppTheme } from '../../../shared/theme';
 import { ColorTokens } from '../../../shared/theme/colors';
@@ -139,6 +140,9 @@ const AuthShell: React.FC<AuthShellProps> = ({ emoji, icon, title, subtitle, onB
 
   return (
     <View ref={rootRef} style={styles.screen} collapsable={false} onLayout={handleLayout}>
+      {/* Dekorativ fon — kirish ekranlari ham ilovaning umumiy "imzo"
+          qatlamiga ega bo'ladi: birinchi taassurot bir xil boshlanadi. */}
+      <AmbientBackground />
       <ScrollView
         ref={scrollRef}
         style={styles.screen}
@@ -185,7 +189,8 @@ const AuthShell: React.FC<AuthShellProps> = ({ emoji, icon, title, subtitle, onB
 const createStyles = (colors: ColorTokens) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
+    // Fon AmbientBackground'dan keladi — tekis rang berilmaydi.
+    backgroundColor: 'transparent',
   },
   content: {
     flexGrow: 1,

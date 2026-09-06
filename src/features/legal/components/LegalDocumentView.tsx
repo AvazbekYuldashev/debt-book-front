@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -21,6 +22,8 @@ const LegalDocumentView: React.FC<Props> = ({ docKey, onBack }) => {
 
   return (
     <View style={styles.flex}>
+      {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
       {onBack ? <ScreenHeader title={t(doc.titleKey)} onBack={onBack} /> : null}
       <ScrollView contentContainerStyle={styles.container}>
         {!onBack ? <Text style={styles.title}>{t(doc.titleKey)}</Text> : null}
@@ -43,12 +46,12 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
   StyleSheet.create({
     flex: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     container: {
       padding: spacing.md,
       paddingBottom: spacing.xl,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     title: {
       ...typography.heading1,

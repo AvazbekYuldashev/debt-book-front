@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import Card from '../../../shared/ui/Card';
@@ -26,6 +27,8 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
 
   return (
     <View style={styles.container}>
+      {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
       <ScreenHeader title={t('profile.settings')} onBack={navigation.goBack} />
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -66,7 +69,7 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     content: {
       padding: spacing.md,

@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FlatList, type ListRenderItem, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
@@ -137,6 +138,8 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
 
   return (
     <View style={styles.container}>
+      {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
       <ScreenHeader
         title={group?.name ?? name}
         subtitle={t('gap.memberCount', { count: String(members.length) })}
@@ -220,7 +223,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     list: {
       flex: 1,

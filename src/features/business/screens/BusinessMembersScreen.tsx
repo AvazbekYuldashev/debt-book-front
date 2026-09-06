@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import BusinessMembersTable from '../components/BusinessMembersTable';
@@ -151,6 +152,8 @@ const BusinessMembersScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
       <View style={styles.header}>
         <ScreenHeader title={t('members.title')} subtitle={businessName} onBack={navigation.goBack} />
         <WorkspaceSwitcher />
@@ -194,10 +197,10 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     header: {
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     scroll: {
       flex: 1,

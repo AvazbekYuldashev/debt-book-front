@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
@@ -156,6 +157,8 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
   if (isBusiness) {
     return (
       <View style={styles.container}>
+        {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
+        <AmbientBackground />
         <ScreenHeader title={t('profile.editBusinessInfo')} onBack={navigation.goBack} />
 
         <KeyboardAvoidingView
@@ -202,6 +205,8 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
 
   return (
     <View style={styles.container}>
+      {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
       <ScreenHeader title={t('profile.editInfo')} onBack={navigation.goBack} />
 
       <KeyboardAvoidingView
@@ -294,7 +299,7 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     flex: {
       flex: 1,

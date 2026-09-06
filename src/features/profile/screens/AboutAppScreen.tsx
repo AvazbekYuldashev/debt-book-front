@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
@@ -44,6 +45,8 @@ const AboutAppScreen: React.FC<ProfileScreenProps<typeof ROUTES.ABOUT_APP>> = ({
 
   return (
     <View style={styles.container}>
+      {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
       <ScreenHeader title={t('about.title')} onBack={navigation.goBack} />
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -133,7 +136,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     content: {
       padding: spacing.md,

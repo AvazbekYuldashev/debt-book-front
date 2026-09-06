@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FlatList, type ListRenderItem, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import { useAppTheme } from '../../../shared/theme';
@@ -126,6 +127,8 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
 
   return (
     <View style={styles.container}>
+      {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
+      <AmbientBackground />
       <GapMemberBalanceHeader
         memberName={detail?.memberName ?? memberName}
         memberPhone={detail?.memberPhone ?? null}
@@ -203,7 +206,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: 'transparent',
     },
     list: {
       flex: 1,
