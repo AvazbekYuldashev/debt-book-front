@@ -194,7 +194,7 @@ const createStyles = ({ colors, radius, typography, shadows, glass }: ThemeValue
     bar: {
       flexDirection: 'row',
       alignItems: 'stretch',
-      ...glass.pane,
+      ...glass.flush,
       borderTopLeftRadius: radius.xxl,
       borderTopRightRadius: radius.xxl,
       ...shadows.nav,

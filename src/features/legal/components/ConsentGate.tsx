@@ -140,7 +140,11 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     card: {
       ...modalCardLayout,
-      ...glass.pane,
+      // ATAYIN QUYUQ, shisha emas: bu huquqiy rozilik matni. Ortidagi
+      // ro'yxat matn ostidan o'tsa, foydalanuvchi nimaga rozi
+      // bo'layotganini o'qiy olmaydi — bezak bu yerda o'qilishdan
+      // ustun turmaydi.
+      backgroundColor: colors.surface,
       borderRadius: radius.lg,
       padding: spacing.md,
     },

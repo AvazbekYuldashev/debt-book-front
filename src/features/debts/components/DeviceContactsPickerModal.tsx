@@ -273,6 +273,10 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     sheet: {
       ...modalCardLayout,
       ...glass.raised,
+      // Blur va soya qoladi, CHEGARA esa olib tashlanadi: sheet ekranning
+      // yon va pastki chetiga tegib turadi, o'rab olgan chegara esa radius
+      // tugagan nuqtada "siniq" bo'lib ko'rinardi (glass.flush izohiga qarang).
+      borderWidth: 0,
       borderTopLeftRadius: radius.xl,
       borderTopRightRadius: radius.xl,
       paddingHorizontal: spacing.md,

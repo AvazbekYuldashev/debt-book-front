@@ -30,6 +30,16 @@ export interface GlassTokens {
    * `surface` ni ustiga qo'yish ikkinchi soya qatlamini qo'shib yuborardi.
    */
   pane: ViewStyle;
+  /**
+   * Ekran CHETIGA tekkan sirt uchun: shaffof fon, lekin CHEGARASIZ.
+   *
+   * Chegara faqat to'rt tomoni ham ko'rinadigan blokda ma'noli. Pastki
+   * navigatsiya yoki pastdan chiqadigan sheet esa ekranning yon va pastki
+   * chetiga tegib turadi va faqat YUQORI burchaklari yumaloq: o'rab olgan
+   * chegara yon tomonlarda pastga ketadi va radius tugagan nuqtada ko'zga
+   * tashlanadigan "siniq" hosil qiladi. Bu sirtlarni fondan soya ajratadi.
+   */
+  flush: ViewStyle;
   /** Modal ortidagi qatlam: qoraytirish + xiralashtirish. */
   scrim: ViewStyle;
 }
@@ -85,6 +95,9 @@ export const makeGlass = (colors: ColorTokens, shadows: ShadowTokens): GlassToke
     backgroundColor: colors.glassSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
+  },
+  flush: {
+    backgroundColor: colors.glassSurface,
   },
   // Modal ochilganda ortdagi ekran ko'rinib turadi, lekin o'qilmaydi — diqqat
   // dialogda qoladi, kontekst esa yo'qolmaydi.
