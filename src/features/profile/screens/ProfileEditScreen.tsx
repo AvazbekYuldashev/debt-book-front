@@ -95,6 +95,23 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
         token
       );
 
+      // Nom/manzil serverda ALLAQACHON saqlandi. Username bosqichi yiqilishi
+      // mumkin (band, noto'g'ri, endpoint yo'q) — shuning uchun ilovadagi
+      // nusxa aynan shu yerda yangilanadi. Aks holda "nom saqlandi" deb
+      // yozilardi-yu, ro'yxatda va ish maydoni almashtirgichida eski nom
+      // qolib ketardi.
+      const applyLocally = (business: BusinessDTO) => {
+        queryClient.setQueryData<BusinessDTO[]>(myBusinessesQueryKey(profile?.id), (prev) =>
+          prev?.map((b) => (b.id === businessId ? { ...b, ...business } : b))
+        );
+        setBusinessWorkspace({
+          id: businessId,
+          name: business.name,
+          role: workspace.activeBusinessRole ?? 'OWNER',
+        });
+      };
+      applyLocally(updated);
+
       // Username ALOHIDA endpoint bilan saqlanadi (yagonalik tekshiruvi
       // server tomonda). Faqat haqiqatan o'zgargan bo'lsa yuboriladi —
       // aks holda har saqlashda bekorga bandlik tekshiruvi ketardi.
@@ -116,17 +133,8 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
           }
           throw e;
         }
+        applyLocally(updated);
       }
-
-      queryClient.setQueryData<BusinessDTO[]>(myBusinessesQueryKey(profile?.id), (prev) =>
-        prev?.map((b) => (b.id === businessId ? { ...b, ...updated } : b))
-      );
-      // Ish maydoni almashtirgichida ham yangi nom ko'rinsin.
-      setBusinessWorkspace({
-        id: businessId,
-        name: updated.name,
-        role: workspace.activeBusinessRole ?? 'OWNER',
-      });
     });
 
   const [name, setName] = useState(profile?.name ?? '');
