@@ -171,17 +171,18 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
+    // Ortdagi ekran xira ko'rinib turadi — kalkulyator ustida "suzadi".
     backdrop: {
       flex: 1,
-      backgroundColor: colors.overlay,
+      ...glass.scrim,
       justifyContent: 'center',
       padding: spacing.md,
     },
     card: {
       ...modalCardLayout,
-      backgroundColor: colors.background,
+      ...glass.raised,
       borderRadius: radius.xl,
       padding: spacing.md,
       gap: spacing.sm,
@@ -198,7 +199,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       color: colors.textPrimary,
     },
     display: {
-      backgroundColor: colors.surface,
+      ...glass.muted,
       borderRadius: radius.lg,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
@@ -229,23 +230,25 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       gap: spacing.xs,
     },
+    // Har bir klavisha ham shisha — ular karta ichida "o'yilgan" emas,
+    // ustida turgandek ko'rinsin.
     key: {
       flex: 1,
+      ...glass.muted,
       paddingVertical: spacing.md,
       borderRadius: radius.lg,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.surface,
     },
     // "0" ikki katak enida — telefon kalkulyatorlaridagi odatiy joylashuv.
     keyWide: {
       flex: 2.08,
     },
     keyOp: {
-      backgroundColor: colors.primarySoft,
+      backgroundColor: colors.glassPrimarySoft,
     },
     keyMuted: {
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: colors.glassMuted,
     },
     keyPressed: {
       opacity: 0.6,

@@ -607,7 +607,7 @@ const SearchToggle: React.FC<SearchToggleProps> = ({ label, active, onPress, sty
   </Pressable>
 );
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -655,8 +655,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       height: 48,
       paddingHorizontal: spacing.sm,
       borderRadius: radius.lg,
-      backgroundColor: colors.surface,
-      ...shadows.card,
+      ...glass.surface,
     },
     searchToggleActive: {
       backgroundColor: colors.primarySoft,
@@ -693,7 +692,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     // ichkarida (padding) berilsa oq karta ekran ostigacha cho'zilib,
     // tugma uni bosib turardi.
     listCard: {
-      backgroundColor: colors.surface,
+      ...glass.surface,
       borderRadius: radius.xxl,
       // Chetdan chekinish KARTAning ozida — FlatList style'iga qoyilsa
       // react-native-web uni tashqi va ichki blokka ikki marta qollab,
@@ -701,7 +700,6 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       marginHorizontal: spacing.md,
       marginBottom: 88,
       overflow: 'hidden',
-      ...shadows.card,
     },
   });
 

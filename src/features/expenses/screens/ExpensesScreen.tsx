@@ -615,7 +615,7 @@ function toAmount(value: number | string | null | undefined): number {
   return 0;
 }
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -689,7 +689,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       marginBottom: spacing.xs,
     },
     listCard: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.xxl,
       overflow: 'hidden',
       ...shadows.card,

@@ -135,7 +135,7 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     wrap: {
       paddingHorizontal: spacing.md,
@@ -148,7 +148,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       opacity: 0.6,
     },
     card: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.xxl,
       padding: spacing.sm + 2,
       marginBottom: spacing.sm,

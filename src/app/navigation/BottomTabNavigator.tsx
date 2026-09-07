@@ -189,12 +189,12 @@ const BottomTabNavigator: React.FC = () => {
   );
 };
 
-const createStyles = ({ colors, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     bar: {
       flexDirection: 'row',
       alignItems: 'stretch',
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderTopLeftRadius: radius.xxl,
       borderTopRightRadius: radius.xxl,
       ...shadows.nav,

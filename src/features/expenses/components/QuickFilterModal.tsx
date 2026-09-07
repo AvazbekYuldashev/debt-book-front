@@ -47,17 +47,17 @@ const QuickFilterModal: React.FC<QuickFilterModalProps> = ({ visible, onClose, o
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
-      backgroundColor: colors.overlay,
+      ...glass.scrim,
       justifyContent: 'center',
       paddingHorizontal: spacing.lg,
     },
     card: {
       ...modalCardLayout,
-      backgroundColor: colors.surface,
+      ...glass.raised,
       borderRadius: radius.lg,
       paddingVertical: spacing.xs,
       overflow: 'hidden',

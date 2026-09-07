@@ -152,7 +152,7 @@ const WorkspacePickerModal: React.FC<WorkspacePickerModalProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     unreadDot: {
       minWidth: 20,
@@ -173,13 +173,13 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     backdrop: {
       flex: 1,
-      backgroundColor: colors.overlay,
+      ...glass.scrim,
       justifyContent: 'center',
       paddingHorizontal: spacing.md,
     },
     card: {
       ...modalCardLayout,
-      backgroundColor: colors.surface,
+      ...glass.raised,
       borderRadius: radius.lg,
       padding: spacing.sm,
       maxHeight: '75%',
@@ -220,7 +220,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: colors.surface,
+      ...glass.muted,
     },
     optionActive: {
       borderColor: colors.primary,

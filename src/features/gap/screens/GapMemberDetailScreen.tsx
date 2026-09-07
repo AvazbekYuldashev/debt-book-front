@@ -202,7 +202,7 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -212,7 +212,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flex: 1,
     },
     listCard: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.xl,
       marginHorizontal: spacing.md,
       marginBottom: spacing.md,
@@ -261,7 +261,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       color: colors.textSecondary,
       textAlign: 'center',
       paddingVertical: spacing.sm,
-      backgroundColor: colors.surface,
+      ...glass.muted,
     },
   });
 

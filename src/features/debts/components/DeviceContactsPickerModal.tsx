@@ -263,16 +263,16 @@ const DeviceContactsPickerModal: React.FC<Props> = ({ visible, onClose, existing
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
-      backgroundColor: colors.overlay,
+      ...glass.scrim,
       justifyContent: 'flex-end',
     },
     sheet: {
       ...modalCardLayout,
-      backgroundColor: colors.background,
+      ...glass.raised,
       borderTopLeftRadius: radius.xl,
       borderTopRightRadius: radius.xl,
       paddingHorizontal: spacing.md,
@@ -341,7 +341,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderRadius: radius.sm,
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xs,
-      backgroundColor: colors.surface,
+      ...glass.muted,
       marginBottom: spacing.xs,
     },
     searchInput: {

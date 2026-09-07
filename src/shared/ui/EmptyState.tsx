@@ -58,7 +58,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     wrap: {
       alignItems: 'center',
@@ -81,7 +81,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       borderRadius: radius.pill,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.surface,
+      ...glass.muted,
     },
     title: {
       ...typography.body,

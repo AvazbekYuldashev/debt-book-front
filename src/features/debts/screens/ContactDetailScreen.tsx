@@ -252,7 +252,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -266,7 +266,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       marginBottom: spacing.sm,
     },
     listCard: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.xxl,
       marginHorizontal: spacing.md,
       marginBottom: spacing.md,

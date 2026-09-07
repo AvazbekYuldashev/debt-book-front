@@ -60,7 +60,7 @@ const FieldWithAction: React.FC<FieldWithActionProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, glass }: ThemeValue) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
@@ -79,7 +79,7 @@ const createStyles = ({ colors, spacing, radius }: ThemeValue) =>
       justifyContent: 'center',
       borderWidth: 1,
       borderColor: colors.border,
-      backgroundColor: colors.surface,
+      ...glass.muted,
     },
     actionPressed: {
       opacity: 0.6,

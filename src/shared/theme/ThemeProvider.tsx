@@ -3,6 +3,7 @@ import { Appearance, ColorSchemeName, useColorScheme } from 'react-native';
 import { ColorTokens, darkColors, lightColors } from './colors';
 import { applyAutofillStyle } from './applyAutofillStyle';
 import { makeShadows, ShadowTokens } from './elevation';
+import { makeGlass, GlassTokens } from './glass';
 import { loadAppFonts } from './fonts';
 import { iconSize } from './iconSizes';
 import { radius, spacing } from './spacing';
@@ -27,6 +28,8 @@ export interface ThemeValue {
   typography: typeof typography;
   /** Soya presetlari (card / raised / floating / nav) — mavzuga moslashgan. */
   shadows: ShadowTokens;
+  /** Yarim shaffof "shisha" sirtlar (surface / raised / muted). */
+  glass: GlassTokens;
   /** Ikonka o'lchamlari shkalasi. */
   iconSize: typeof iconSize;
   fontsLoaded: boolean;
@@ -98,6 +101,9 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // faqat shu rang o'zgarganda qayta yasaladi.
   const shadows = useMemo(() => makeShadows(colors.shadow), [colors.shadow]);
 
+  // Shisha sirtlar soyaga tayanadi — shuning uchun soyalardan KEYIN yasaladi.
+  const glass = useMemo(() => makeGlass(colors, shadows), [colors, shadows]);
+
   const value = useMemo<ThemeValue>(() => ({
     mode,
     activeTheme,
@@ -106,11 +112,12 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     radius,
     typography,
     shadows,
+    glass,
     iconSize,
     fontsLoaded,
     setMode: applyMode,
     toggleTheme,
-  }), [mode, activeTheme, colors, shadows, toggleTheme, applyMode, fontsLoaded]);
+  }), [mode, activeTheme, colors, shadows, glass, toggleTheme, applyMode, fontsLoaded]);
 
   // Saqlangan mavzu o'qilmaguncha render qilmaymiz — light->dark "miltillash"ning oldini oladi.
   if (!hydrated) {

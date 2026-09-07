@@ -84,7 +84,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     block: {
       alignItems: 'center',
@@ -106,7 +106,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       justifyContent: 'center',
       borderWidth: 1,
       borderColor: colors.border,
-      backgroundColor: colors.surface,
+      ...glass.muted,
     },
     pressed: {
       opacity: 0.6,

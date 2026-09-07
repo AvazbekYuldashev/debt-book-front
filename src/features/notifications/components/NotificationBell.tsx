@@ -57,13 +57,14 @@ const NotificationBell: React.FC = () => {
   );
 };
 
-const createStyles = ({ colors, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
+    // Fon ustida SUZADI, karta ichida emas — shuning uchun shisha sirt.
     button: {
       width: 48,
       height: 48,
       borderRadius: radius.lg,
-      backgroundColor: colors.surface,
+      ...glass.surface,
       alignItems: 'center',
       justifyContent: 'center',
       ...shadows.card,

@@ -129,7 +129,7 @@ const ConsentGate: React.FC = () => {
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
@@ -140,7 +140,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     card: {
       ...modalCardLayout,
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.lg,
       padding: spacing.md,
     },

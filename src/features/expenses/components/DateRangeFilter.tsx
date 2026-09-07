@@ -207,10 +207,10 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.lg,
       padding: spacing.md,
       marginBottom: spacing.xs,
@@ -269,7 +269,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: radius.sm,
-      backgroundColor: colors.surface,
+      ...glass.muted,
       color: colors.textPrimary,
       paddingHorizontal: spacing.xs,
       paddingVertical: spacing.xs,

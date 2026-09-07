@@ -186,7 +186,7 @@ const PinGate: React.FC<{ mode: 'setup' | 'unlock' }> = ({ mode: gateMode }) => 
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -272,7 +272,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderRadius: radius.lg,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.surface,
+      ...glass.muted,
     },
     keyPressed: {
       backgroundColor: colors.surfaceMuted,

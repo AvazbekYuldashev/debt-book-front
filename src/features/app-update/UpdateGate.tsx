@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../shared/theme';
+import type { GlassTokens } from '../../shared/theme/glass';
 import { ColorTokens } from '../../shared/theme/colors';
 import { useI18n } from '../../shared/i18n';
 import { APP_VERSION_CODE } from '../../shared/appVersion';
@@ -20,9 +21,9 @@ type UpdateState = 'ok' | 'required' | 'optional';
  * ham bloklanmaydi (fail-open).
  */
 const UpdateGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { colors } = useAppTheme();
+  const { colors, glass } = useAppTheme();
   const { t } = useI18n();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, glass), [colors, glass]);
 
   const [state, setState] = useState<UpdateState>('ok');
   const [updateUrl, setUpdateUrl] = useState('');
@@ -89,7 +90,7 @@ const UpdateGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
+const createStyles = (colors: ColorTokens, glass: GlassTokens) => StyleSheet.create({
   root: {
     flex: 1,
   },
@@ -108,7 +109,7 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: colors.surface,
+    ...glass.pane,
     borderRadius: 24,
     paddingVertical: 32,
     paddingHorizontal: 24,

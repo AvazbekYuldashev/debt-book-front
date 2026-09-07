@@ -104,10 +104,10 @@ const BusinessMemberCard: React.FC<BusinessMemberCardProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.border,

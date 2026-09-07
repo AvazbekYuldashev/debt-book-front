@@ -87,10 +87,10 @@ const GapGroupBalanceCard: React.FC<GapGroupBalanceCardProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.xl,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,

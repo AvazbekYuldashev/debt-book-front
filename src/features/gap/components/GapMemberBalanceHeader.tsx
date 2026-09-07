@@ -151,7 +151,7 @@ const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     wrap: {
       paddingHorizontal: spacing.md,
@@ -164,7 +164,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       opacity: 0.6,
     },
     card: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.xl,
       padding: spacing.md + 2,
       marginBottom: spacing.md,

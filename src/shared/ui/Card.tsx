@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { StyleProp, StyleSheet, View, ViewProps, ViewStyle } from 'react-native';
+import { StyleProp, View, ViewProps, ViewStyle } from 'react-native';
 import { useAppTheme } from '../theme';
 
 export type CardVariant = 'primary' | 'secondary' | 'outline';
@@ -9,23 +9,30 @@ export interface CardProps extends ViewProps {
   style?: StyleProp<ViewStyle>;
 }
 
+/**
+ * Ilovaning asosiy bloki — yarim shaffof "shisha" sirt.
+ *
+ * Fon rangi va soyasi `theme.glass` dan keladi: retsept bitta joyda tursin,
+ * aks holda har bir ekran o'z alfasini tanlab, kartalar bir-biridan farq
+ * qilib ketardi.
+ */
 const Card: React.FC<CardProps> = ({ children, style, variant = 'primary', ...props }) => {
-  const { colors, spacing, radius } = useAppTheme();
+  const { spacing, glass, colors } = useAppTheme();
 
   const variantStyle: ViewStyle = variant === 'secondary'
-    ? { backgroundColor: colors.surfaceMuted, borderWidth: 0 }
+    ? glass.muted
     : variant === 'outline'
-      ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.outline }
-      : { backgroundColor: colors.surface, borderWidth: 0 };
+      // 'outline' da chegara KO'RINADIGAN bo'lishi kerak — shisha qirrasi
+      // o'rniga aniq kontur beriladi.
+      ? { ...glass.surface, borderColor: colors.outline }
+      : glass.surface;
 
   return (
     <View
       style={[
-        styles.card,
         {
           borderRadius: 16,
           padding: spacing.md,
-          shadowColor: '#000',
         },
         variantStyle,
         style,
@@ -36,14 +43,5 @@ const Card: React.FC<CardProps> = ({ children, style, variant = 'primary', ...pr
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 14,
-    elevation: 5,
-  },
-});
 
 export default memo(Card);

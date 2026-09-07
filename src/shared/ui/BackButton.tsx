@@ -32,7 +32,7 @@ const BackButton: React.FC<BackButtonProps> = ({ onPress }) => {
   );
 };
 
-const createStyles = ({ colors, radius }: ThemeValue) =>
+const createStyles = ({ colors, radius, glass }: ThemeValue) =>
   StyleSheet.create({
     button: {
       width: 32,
@@ -40,7 +40,7 @@ const createStyles = ({ colors, radius }: ThemeValue) =>
       borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.surface,
+      ...glass.surface,
       borderWidth: 1,
       borderColor: colors.border,
     },

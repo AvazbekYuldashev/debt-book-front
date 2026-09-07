@@ -309,7 +309,7 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -398,7 +398,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.outline,
-      backgroundColor: colors.surface,
+      ...glass.muted,
     },
     actionPressed: {
       opacity: 0.6,

@@ -60,7 +60,7 @@ const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, allowDelete, deleting,
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     card: {
       flexDirection: 'row',
@@ -103,7 +103,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.surface,
+      ...glass.muted,
     },
     iconBtnPressed: {
       opacity: 0.6,

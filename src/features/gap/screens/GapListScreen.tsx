@@ -202,7 +202,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -246,7 +246,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     // ichkarida (padding) berilsa oq karta ekran ostigacha cho'zilib,
     // tugma uni bosib turardi.
     listCard: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.xxl,
       marginHorizontal: spacing.md,
       marginBottom: 88,

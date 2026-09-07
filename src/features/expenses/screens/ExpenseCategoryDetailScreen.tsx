@@ -235,7 +235,7 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -250,7 +250,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: radius.sm,
-      backgroundColor: colors.surface,
+      ...glass.pane,
       paddingHorizontal: spacing.xs,
       minHeight: 40,
       flexDirection: 'row',

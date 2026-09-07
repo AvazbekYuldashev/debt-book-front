@@ -244,10 +244,10 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.xl,
       paddingVertical: spacing.xs,
       paddingHorizontal: spacing.md,

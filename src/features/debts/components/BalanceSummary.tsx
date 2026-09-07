@@ -220,15 +220,14 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.surface,
+      ...glass.raised,
       borderRadius: radius.xxl,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm + 2,
       marginHorizontal: spacing.md,
-      ...shadows.raised,
     },
     tilesRow: {
       flexDirection: 'row',
@@ -303,7 +302,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       paddingVertical: spacing.xxs,
       paddingHorizontal: spacing.md,
       borderRadius: radius.pill,
-      backgroundColor: colors.surfaceMuted,
+      ...glass.muted,
     },
     resetChipPressed: {
       opacity: 0.6,

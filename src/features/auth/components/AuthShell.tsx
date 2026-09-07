@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FOCUS_GAP, focusScrollTarget, keyboardOverlap } from '../model/keyboardScroll';
 import { useAppTheme } from '../../../shared/theme';
+import type { GlassTokens } from '../../../shared/theme/glass';
 import { ColorTokens } from '../../../shared/theme/colors';
 import LanguageSwitcher from '../../../shared/ui/LanguageSwitcher';
 
@@ -47,8 +48,8 @@ const AuthKeyboardContext = createContext<(input: TextInput | null) => void>(() 
 export const useAuthKeyboardScroll = () => useContext(AuthKeyboardContext);
 
 const AuthShell: React.FC<AuthShellProps> = ({ emoji, icon, title, subtitle, onBack, children }) => {
-  const { colors } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { colors, glass } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors, glass), [colors, glass]);
 
   const rootRef = useRef<View>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -186,7 +187,7 @@ const AuthShell: React.FC<AuthShellProps> = ({ emoji, icon, title, subtitle, onB
   );
 };
 
-const createStyles = (colors: ColorTokens) => StyleSheet.create({
+const createStyles = (colors: ColorTokens, glass: GlassTokens) => StyleSheet.create({
   screen: {
     flex: 1,
     // Fon AmbientBackground'dan keladi — tekis rang berilmaydi.
@@ -198,18 +199,15 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
+  // Kirish kartasi ham qolgan bloklar bilan bir tilda — shisha. Bu ekran
+  // STATIK (scroll qilinmaydi), shuning uchun `raised`: haqiqiy blur bilan.
   card: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: colors.surface,
+    ...glass.raised,
     borderRadius: 24,
     paddingVertical: 32,
     paddingHorizontal: 24,
-    shadowColor: '#1E293B',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 28,
-    elevation: 4,
   },
   langSwitch: {
     position: 'absolute',

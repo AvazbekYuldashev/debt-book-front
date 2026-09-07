@@ -55,7 +55,7 @@ const SearchField: React.FC<SearchFieldProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     wrap: {
       flexDirection: 'row',
@@ -64,7 +64,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       minHeight: 48,
       paddingHorizontal: spacing.md,
       borderRadius: radius.lg,
-      backgroundColor: colors.surface,
+      ...glass.pane,
       ...shadows.card,
     },
     input: {

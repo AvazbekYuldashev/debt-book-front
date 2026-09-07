@@ -36,6 +36,23 @@ export interface ColorTokens {
   ambientGreen: string;
   ambientBlue: string;
   ambientGlow: string;
+  // ---- "Shisha" sirtlar (glass) ----
+  // Kartalar TEKIS rang emas: yarim shaffof qatlam — ostidagi ambient fon
+  // (barglar, tepaliklar) ular ORQALI xira ko'rinib turadi. Fill ATAYIN past
+  // alfada: shakl asosan CHEGARA bilan ushlanadi, shuning uchun `glassBorder`
+  // fill'dan yuqoriroq alfaga ega — aks holda karta "chetsiz dog'" bo'lardi. Web'da ustiga
+  // `backdrop-filter` blur qo'shiladi, native'da esa xiralik shaffoflikning
+  // o'zidan chiqadi. Alfa qiymatlari matn kontrasti buzilmaydigan darajada
+  // yuqori tanlangan — bezak hech qachon o'qishdan ustun turmaydi.
+  glassSurface: string;
+  /** Matn zich joylar uchun to'yingroq variant (modal, summary karta). */
+  glassSurfaceStrong: string;
+  /** Ichki bo'lak: kalkulyator klavishi, chip, ajratilgan maydon. */
+  glassMuted: string;
+  /** Nozik chegara — shisha qirrasi shu chiziq bilan "ushlanadi". */
+  glassBorder: string;
+  /** Shisha ustidagi brand tusi (kalkulyator amal klavishlari). */
+  glassPrimarySoft: string;
   // Moliyaviy balans semantikasi: "haq/kredit" (musbat) va "qarz" (manfiy).
   // Brand 'primary' dan ATAYIN ajratilgan — ma'no boshqacha bo'lsa mustaqil o'zgaradi.
   positive: string;
@@ -57,7 +74,10 @@ export const lightColors: ColorTokens = {
   surface: '#FFFFFF',
   surfaceMuted: '#F2F5FA',
   textPrimary: '#101C36',
-  textSecondary: '#5C6C8A',
+  // Shisha sirtlar ostidan fon o'tib turadi — eski '#5C6C8A' eng yomon
+  // nuqtada (yashil to'lqin + barg ustma-ust) 4.23 gacha tushardi, ya'ni
+  // AA chegarasidan (4.5) past. Bir oz quyuqlashtirildi: 5.55.
+  textSecondary: '#4A5A78',
   textOnPrimary: '#FFFFFF',
   textOnSecondary: '#FFFFFF',
   onPrimarySoft: 'rgba(255, 255, 255, 0.22)',
@@ -74,6 +94,11 @@ export const lightColors: ColorTokens = {
   ambientGreen: 'rgba(21, 128, 61, 0.05)',
   ambientBlue: 'rgba(46, 95, 191, 0.045)',
   ambientGlow: 'rgba(255, 255, 255, 0.7)',
+  glassSurface: 'rgba(255, 255, 255, 0.42)',
+  glassSurfaceStrong: 'rgba(255, 255, 255, 0.60)',
+  glassMuted: 'rgba(255, 255, 255, 0.30)',
+  glassBorder: 'rgba(255, 255, 255, 0.78)',
+  glassPrimarySoft: 'rgba(21, 128, 61, 0.10)',
   positive: '#15803D',
   positiveSoft: '#EBF7EF',
   negative: '#C4384B',
@@ -110,6 +135,13 @@ export const darkColors: ColorTokens = {
   ambientGreen: 'rgba(74, 222, 128, 0.05)',
   ambientBlue: 'rgba(96, 145, 240, 0.05)',
   ambientGlow: 'rgba(120, 160, 215, 0.06)',
+  // Qorong'i mavzuda shisha OQ emas, sovuq kulrang-ko'k: oq qatlam qora fonda
+  // "tuman" bo'lib ko'rinardi va matn kontrastini yeb qo'yardi.
+  glassSurface: 'rgba(30, 41, 64, 0.40)',
+  glassSurfaceStrong: 'rgba(22, 32, 50, 0.58)',
+  glassMuted: 'rgba(148, 170, 200, 0.07)',
+  glassBorder: 'rgba(255, 255, 255, 0.15)',
+  glassPrimarySoft: 'rgba(74, 222, 128, 0.14)',
   positive: '#4ADE80',
   positiveSoft: '#14532D',
   negative: '#F87171',

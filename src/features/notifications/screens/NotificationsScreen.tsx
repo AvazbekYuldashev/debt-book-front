@@ -188,7 +188,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -210,7 +210,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       borderRadius: radius.sm,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderWidth: 1,
       borderColor: colors.border,
     },
@@ -248,7 +248,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       borderRadius: radius.md,
       borderWidth: 1,
       borderColor: colors.border,
-      backgroundColor: colors.surface,
+      ...glass.pane,
     },
     permissionText: {
       ...typography.caption,
@@ -257,7 +257,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       color: colors.textPrimary,
     },
     listCard: {
-      backgroundColor: colors.surface,
+      ...glass.pane,
       borderRadius: radius.xxl,
       overflow: 'hidden',
       ...shadows.card,

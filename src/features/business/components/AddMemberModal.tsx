@@ -135,17 +135,17 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ visible, saving, onClos
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
-      backgroundColor: colors.overlay,
+      ...glass.scrim,
       justifyContent: 'center',
       paddingHorizontal: spacing.md,
     },
     card: {
       ...modalCardLayout,
-      backgroundColor: colors.surface,
+      ...glass.raised,
       borderRadius: radius.lg,
       padding: spacing.md,
     },

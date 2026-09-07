@@ -74,7 +74,7 @@ function ChipSelector<T extends string>({
   );
 }
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     label: {
       ...typography.label,
@@ -97,7 +97,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderRadius: radius.pill,
       borderWidth: 1,
       borderColor: colors.border,
-      backgroundColor: colors.surface,
+      ...glass.pane,
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: spacing.xxs,

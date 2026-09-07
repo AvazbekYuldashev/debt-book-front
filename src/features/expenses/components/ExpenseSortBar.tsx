@@ -85,7 +85,7 @@ const ExpenseSortBar: React.FC<ExpenseSortBarProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     bar: {
       flexDirection: 'row',
@@ -102,7 +102,7 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       borderRadius: radius.sm,
       borderWidth: 1,
       borderColor: colors.border,
-      backgroundColor: colors.surface,
+      ...glass.pane,
     },
     chipActive: {
       borderColor: colors.primary,
