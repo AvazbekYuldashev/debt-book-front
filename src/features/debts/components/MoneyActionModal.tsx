@@ -32,6 +32,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 
 export interface MoneyActionPayload {
   amount: number;
@@ -75,6 +76,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   const { t } = useI18n();
   const { baseCurrency } = useCurrency();
   const theme = useAppTheme();
+  const keyboardInset = useKeyboardInset();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -209,7 +211,11 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            // Klaviatura ochilganda "markaz" uning ustidagi maydonga suriladi.
+            { paddingBottom: theme.spacing.lg + keyboardInset },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -307,26 +313,24 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
-      backgroundColor: colors.overlay,
+      ...glass.scrim,
     },
-    // Modal yuqoriroqda ochilsin — telefon klaviaturasi maydonlarni to'smasligi uchun.
     scrollContent: {
       flexGrow: 1,
-      justifyContent: 'flex-start',
+      justifyContent: 'center',
       paddingHorizontal: spacing.md,
       paddingTop: spacing.lg,
       paddingBottom: spacing.lg,
     },
     card: {
       ...modalCardLayout,
-      backgroundColor: colors.surface,
+      ...glass.raised,
       borderRadius: radius.xxl,
       padding: spacing.md + 4,
-      ...shadows.raised,
     },
     titleRow: {
       flexDirection: 'row',

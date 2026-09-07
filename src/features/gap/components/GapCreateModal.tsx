@@ -17,6 +17,7 @@ import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useCreateGap } from '../hooks/useGap';
 import GapUnitPicker from './GapUnitPicker';
 import type { GapUnit } from '../types/gap';
+import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 
 interface GapCreateModalProps {
   visible: boolean;
@@ -37,6 +38,7 @@ interface GapCreateModalProps {
  */
 const GapCreateModal: React.FC<GapCreateModalProps> = ({ visible, onClose }) => {
   const theme = useAppTheme();
+  const keyboardInset = useKeyboardInset();
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -85,7 +87,11 @@ const GapCreateModal: React.FC<GapCreateModalProps> = ({ visible, onClose }) => 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            // Klaviatura ochilganda "markaz" uning ustidagi maydonga suriladi.
+            { paddingBottom: theme.spacing.lg + keyboardInset },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -123,23 +129,23 @@ const GapCreateModal: React.FC<GapCreateModalProps> = ({ visible, onClose }) => 
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
-      backgroundColor: colors.overlay,
+      ...glass.scrim,
     },
     // Oyna yuqoriroqda ochilsin — klaviatura maydonlarni to'smasligi uchun.
     scrollContent: {
       flexGrow: 1,
-      justifyContent: 'flex-start',
+      justifyContent: 'center',
       paddingHorizontal: spacing.md,
       paddingTop: spacing.lg,
       paddingBottom: spacing.lg,
     },
     card: {
       ...modalCardLayout,
-      backgroundColor: colors.surface,
+      ...glass.raised,
       borderRadius: radius.lg,
       padding: spacing.md,
       gap: spacing.sm,

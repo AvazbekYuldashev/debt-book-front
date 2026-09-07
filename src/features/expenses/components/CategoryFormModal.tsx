@@ -18,6 +18,7 @@ import { useI18n } from '../../../shared/i18n';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 
 type Mode = 'create' | 'edit';
 
@@ -47,6 +48,7 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   onChangePhoto,
 }) => {
   const theme = useAppTheme();
+  const keyboardInset = useKeyboardInset();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -73,7 +75,11 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            // Klaviatura ochilganda "markaz" uning ustidagi maydonga suriladi.
+            { paddingBottom: theme.spacing.lg + keyboardInset },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -133,22 +139,22 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
-      backgroundColor: colors.overlay,
+      ...glass.scrim,
     },
     scrollContent: {
       flexGrow: 1,
-      justifyContent: 'flex-start',
+      justifyContent: 'center',
       paddingHorizontal: spacing.md,
       paddingTop: spacing.lg,
       paddingBottom: spacing.lg,
     },
     card: {
       ...modalCardLayout,
-      backgroundColor: colors.surface,
+      ...glass.raised,
       borderRadius: radius.lg,
       padding: spacing.md,
     },
@@ -176,7 +182,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       width: 52,
       height: 52,
       borderRadius: radius.md,
-      backgroundColor: colors.surface,
+      // Image ustida ViewStyle spread qilinmaydi — faqat rang.
+      backgroundColor: colors.glassMuted,
     },
     photoAvatarEmpty: {
       alignItems: 'center',
