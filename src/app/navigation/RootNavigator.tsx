@@ -8,6 +8,7 @@ import { buildAttachUrl } from '../../shared/lib/attachUrl';
 import AuthStack from './AuthStack';
 import BottomTabNavigator from './BottomTabNavigator';
 import ConsentGate from '../../features/legal/components/ConsentGate';
+import BusinessUsernameGate from '../../features/business/components/BusinessUsernameGate';
 import { useAppPin } from '../../features/auth/pin/PinContext';
 import PinGate from '../../features/auth/pin/PinGate';
 
@@ -65,6 +66,8 @@ const RootNavigator: React.FC = () => {
       <NotificationWatcher />
       <BottomTabNavigator />
       <ConsentGate />
+      {/* Username'siz biznesga kirgan egasini to'ldirishga majburlaydi. */}
+      <BusinessUsernameGate />
     </>
   );
 };

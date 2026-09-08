@@ -60,3 +60,16 @@ export interface BusinessUpdateDTO {
   name: string;
   address?: string;
 }
+
+/**
+ * Username bo'yicha topilgan biznesning OMMAVIY ko'rinishi.
+ *
+ * Bu so'rov begona biznesga ham ochiq, shuning uchun server ataylab kam
+ * maydon qaytaradi — ownerId, address va a'zolar ma'lumoti chiqmaydi.
+ */
+export interface BusinessPublicDTO {
+  id: string;
+  name: string;
+  username: string;
+  photoId?: string | null;
+}

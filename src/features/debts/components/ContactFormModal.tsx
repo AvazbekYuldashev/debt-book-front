@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -25,6 +25,13 @@ import { getPhoneValidationError } from '../../../shared/lib/phone';
 import { deviceContactsSupported } from '../../../shared/lib/deviceContacts';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
+import { findBusinessByUsername } from '../../business/services/businessService';
+import {
+  normalizeBusinessUsername,
+  validateBusinessUsername,
+} from '../../business/lib/businessUsername';
+import { ApiClientError } from '../../../shared/api/apiClient';
+import { AuthContext } from '../../auth/context/AuthContext';
 
 type Mode = 'create' | 'edit';
 
@@ -69,6 +76,7 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
   onChangePhoto,
 }) => {
   const theme = useAppTheme();
+  const { profile } = useContext(AuthContext);
   const keyboardInset = useKeyboardInset();
   const { colors } = theme;
   const { t } = useI18n();
@@ -77,7 +85,8 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [targetType, setTargetType] = useState<PartyType>('PROFILE');
-  const [targetBusinessId, setTargetBusinessId] = useState('');
+  const [businessUsername, setBusinessUsername] = useState('');
+  const [lookingUp, setLookingUp] = useState(false);
   const [localError, setLocalError] = useState('');
 
   // Modal ochilganda maydonlarni rejim/boshlang'ich qiymatga tiklaymiz.
@@ -86,7 +95,7 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
     setName(mode === 'edit' ? initialName ?? '' : '');
     setPhone('');
     setTargetType('PROFILE');
-    setTargetBusinessId('');
+    setBusinessUsername('');
     setLocalError('');
   }, [visible, mode, initialName]);
 
@@ -95,7 +104,12 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
     if (mode === 'edit') return '';
 
     if (targetType === 'BUSINESS_ACCOUNT') {
-      return targetBusinessId.trim() ? '' : t('debts.businessIdRequired');
+      const clean = businessUsername.trim();
+      if (!clean) return t('debts.businessUsernameRequired');
+      // Format xatosini serverga bormasdan aytamiz — 404 "topilmadi" degan
+      // xabar noto'g'ri yozilgan nom uchun chalg'ituvchi bo'lardi.
+      const invalidKey = validateBusinessUsername(clean);
+      return invalidKey ? t(invalidKey) : '';
     }
 
     const phoneError = getPhoneValidationError(phone);
@@ -103,7 +117,7 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
     if (phoneError === 'prefix') return t('debts.phone998');
     if (phoneError === 'length') return t('debts.phoneLength');
     return '';
-  }, [name, mode, targetType, targetBusinessId, phone, t]);
+  }, [name, mode, targetType, businessUsername, phone, t]);
 
   const handleSubmit = useCallback(async () => {
     const error = validate();
@@ -118,15 +132,35 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
       return;
     }
 
-    const input: ContactFormInput =
-      targetType === 'BUSINESS_ACCOUNT'
-        ? { name: name.trim(), targetType, targetBusinessId: targetBusinessId.trim() }
-        : { name: name.trim(), targetType, phone: phone.replace(/\D/g, '') };
+    let input: ContactFormInput;
+    if (targetType === 'BUSINESS_ACCOUNT') {
+      // Server mijozni UUID bo'yicha bog'laydi, foydalanuvchi esa username
+      // yozadi — shuning uchun avval nomni biznesga aylantiramiz. Topilmasa
+      // umumiy "saqlanmadi" emas, ANIQ sabab ko'rsatiladi.
+      setLookingUp(true);
+      try {
+        const found = await findBusinessByUsername(businessUsername, profile?.jwt);
+        input = { name: name.trim(), targetType, targetBusinessId: found.id };
+      } catch (e) {
+        setLookingUp(false);
+        setLocalError(
+          e instanceof ApiClientError && e.status === 404
+            ? t('business.usernameNotFound')
+            : e instanceof Error
+              ? e.message
+              : t('debts.saveFailed'),
+        );
+        return;
+      }
+      setLookingUp(false);
+    } else {
+      input = { name: name.trim(), targetType, phone: phone.replace(/\D/g, '') };
+    }
 
     const ok = await onCreate(input);
     if (ok) onClose();
     else if (targetType === 'PROFILE') setLocalError(t('debts.saveFailed'));
-  }, [validate, mode, onUpdate, name, onClose, targetType, targetBusinessId, phone, onCreate, t]);
+  }, [validate, mode, onUpdate, name, onClose, targetType, businessUsername, phone, onCreate, profile?.jwt, t]);
 
   const showDeviceContacts = mode === 'create' && deviceContactsSupported;
 
@@ -197,10 +231,15 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
 
             {mode === 'create' && targetType === 'BUSINESS_ACCOUNT' ? (
               <Input
-                label={t('debts.targetBusinessId')}
-                value={targetBusinessId}
-                onChangeText={setTargetBusinessId}
-                placeholder="business-id"
+                label={t('debts.targetBusinessUsername')}
+                value={businessUsername}
+                onChangeText={(value) => {
+                  setLocalError('');
+                  setBusinessUsername(normalizeBusinessUsername(value));
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="salom_market"
               />
             ) : null}
 

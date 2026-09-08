@@ -5,6 +5,7 @@ import {
   BusinessMemberCreateDTO,
   BusinessMemberRole,
   BusinessProfileDTO,
+  BusinessPublicDTO,
   BusinessUpdateDTO,
 } from '../types/business';
 
@@ -94,6 +95,24 @@ export const updateBusinessUsername = async (
 ): Promise<BusinessDTO> => {
   setApiAuthToken(token);
   const response = await apiClient.put<BusinessDTO>(`/business/${businessId}/username`, { username });
+  return response.data;
+};
+
+/**
+ * Username bo'yicha biznesni topish — uni mijoz sifatida qo'shish uchun.
+ *
+ * A'zolik TALAB QILINMAYDI: begona biznes ham topilishi kerak. Shu sababli
+ * server faqat OMMAVIY maydonlarni qaytaradi (id, name, username, photoId).
+ * Topilmasa 404 — chaqiruvchi buni "biznes topilmadi" deb ko'rsatadi.
+ */
+export const findBusinessByUsername = async (
+  username: string,
+  token?: string
+): Promise<BusinessPublicDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.get<BusinessPublicDTO>(
+    `/business/by-username/${encodeURIComponent(username.trim().toLowerCase())}`
+  );
   return response.data;
 };
 
