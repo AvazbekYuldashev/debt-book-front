@@ -70,7 +70,19 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
               ) : null}
             </View>
 
-            {contact.phone ? (
+            {/* Ism ostidagi qator: biznesda username, shaxsda telefon raqami.
+                Username ATAYIN bosilmaydi — u telefon emas, qo'ng'iroq
+                qilib bo'lmaydi; bosiladigan ko'rinish yolg'on va'da berardi. */}
+            {isBusiness ? (
+              contact.username ? (
+                <View style={styles.phoneRow}>
+                  <Ionicons name="at-outline" size={iconSize.xs} color={colors.primary} />
+                  <Text style={styles.phone} numberOfLines={1}>
+                    {contact.username}
+                  </Text>
+                </View>
+              ) : null
+            ) : contact.phone ? (
               <Pressable
                 onPress={handleDial}
                 disabled={!telUrl}
