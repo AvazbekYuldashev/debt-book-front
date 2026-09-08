@@ -2,14 +2,22 @@ import apiClient, { setApiAuthToken } from '../../../shared/api/apiClient';
 import { PageResponse } from '../../../shared/types/money';
 import { NotificationDTO, WorkspaceUnreadDTO } from '../types/notification';
 
+/**
+ * Bildirishnomalar ro'yxati.
+ *
+ * `read` berilmasa hammasi qaytadi. Ajratish SERVER tomonda: ro'yxat 50 tadan
+ * keladi va o'qilganlar aralash bo'lsa, ular o'qilmaganlarni sahifadan siqib
+ * chiqarardi — eng kerakli xabar ko'rinmay qolardi.
+ */
 export const getNotifications = async (
   page: number,
   size: number,
+  read?: boolean,
   token?: string,
 ): Promise<PageResponse<NotificationDTO>> => {
   setApiAuthToken(token);
   const response = await apiClient.get<PageResponse<NotificationDTO>>('/notification', {
-    params: { page, size },
+    params: read === undefined ? { page, size } : { page, size, read },
   });
   return response.data;
 };

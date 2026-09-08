@@ -28,8 +28,12 @@ const UNREAD_POLL_FALLBACK_MS = 30_000;
 // qaysi maydonga tegishli ekanini bilmaydi).
 const workspaceKey = (businessId?: string | null) => businessId ?? 'personal';
 
-export const notificationsQueryKey = (profileId?: string, businessId?: string | null) =>
-  ['notifications', profileId, workspaceKey(businessId)] as const;
+/** `read` ham kalitga kiradi: o'qilgan va o'qilmagan ro'yxatlar alohida keshlanadi. */
+export const notificationsQueryKey = (
+  profileId?: string,
+  businessId?: string | null,
+  read?: boolean,
+) => ['notifications', profileId, workspaceKey(businessId), read ?? 'all'] as const;
 export const unreadCountQueryKey = (profileId?: string, businessId?: string | null) =>
   ['notifications-unread', profileId, workspaceKey(businessId)] as const;
 
@@ -55,6 +59,8 @@ export function useUnreadNotificationCount() {
 interface UseNotificationsOptions {
   refetchInterval?: number | false;
   refetchOnWindowFocus?: boolean;
+  /** Berilmasa hammasi — watcher aynan shu holatda ishlatadi. */
+  read?: boolean;
 }
 
 /** Bildirishnomalar ro'yxati (inbox). Watcher ham AYNAN shu query'ni ulashadi. */
@@ -62,12 +68,12 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   return useQuery({
-    queryKey: notificationsQueryKey(profile?.id, workspace.activeBusinessId),
+    queryKey: notificationsQueryKey(profile?.id, workspace.activeBusinessId, options.read),
     enabled: Boolean(profile?.jwt),
     staleTime: 10_000,
     refetchInterval: options.refetchInterval,
     refetchOnWindowFocus: options.refetchOnWindowFocus,
-    queryFn: () => getNotifications(1, NOTIFICATIONS_PAGE_SIZE, profile!.jwt),
+    queryFn: () => getNotifications(1, NOTIFICATIONS_PAGE_SIZE, options.read, profile!.jwt),
   });
 }
 
@@ -80,6 +86,13 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: (id: string) => markNotificationRead(id, profile?.jwt),
     onMutate: (id: string) => {
+      // O'qilmaganlar ro'yxatidan DARHOL olib tashlanadi — u yerda qolib
+      // ketishi ro'yxat nomiga zid bo'lardi.
+      queryClient.setQueryData<PageResponse<NotificationDTO>>(
+        notificationsQueryKey(profile?.id, businessId, false),
+        (prev) => (prev ? { ...prev, content: prev.content.filter((n) => n.id !== id) } : prev),
+      );
+      // Aralash ro'yxat (watcher) faqat belgilanadi — u yerdan yo'qolmasligi kerak.
       queryClient.setQueryData<PageResponse<NotificationDTO>>(
         notificationsQueryKey(profile?.id, businessId),
         (prev) =>
@@ -91,6 +104,8 @@ export function useMarkNotificationRead() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: unreadCountQueryKey(profile?.id, businessId) });
       queryClient.invalidateQueries({ queryKey: unreadByWorkspaceQueryKey(profile?.id) });
+      // O'qilganlar ro'yxatida endi bittaga ko'p — u ham yangilansin.
+      queryClient.invalidateQueries({ queryKey: notificationsKeyPrefix(profile?.id) });
     },
   });
 }

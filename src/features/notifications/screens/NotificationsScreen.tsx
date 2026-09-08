@@ -31,7 +31,10 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const { data, isLoading, isRefetching, refetch } = useNotifications();
+  // Standart ko'rinish — O'QILMAGANLAR. Aynan ular uchun bu ekranga kiriladi;
+  // o'qilganlar tarix sifatida qo'shni bo'limda qoladi.
+  const [showRead, setShowRead] = useState(false);
+  const { data, isLoading, isRefetching, refetch } = useNotifications({ read: showRead });
   const { mutate: markReadMutate } = useMarkNotificationRead();
   const { contacts } = useContext(ContactsContext);
 
@@ -162,6 +165,28 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
       ) : null}
       </EntranceView>
 
+      {/* Ikki bo'lim: o'qilmaganlar va o'qilganlar. Ro'yxat SERVERDA
+          ajratiladi — aralash kelsa, o'qilganlar 50 talik sahifada
+          o'qilmaganlarni siqib chiqarardi. */}
+      <View style={styles.segments}>
+        {([false, true] as const).map((value) => {
+          const active = showRead === value;
+          return (
+            <Pressable
+              key={String(value)}
+              onPress={() => setShowRead(value)}
+              style={[styles.segment, active && styles.segmentActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+            >
+              <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                {value ? t('notifications.tabRead') : t('notifications.tabUnread')}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <FlatList
         style={styles.scroll}
         contentContainerStyle={styles.listCard}
@@ -180,7 +205,12 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
           isLoading ? (
             <SkeletonContactList count={5} />
           ) : (
-            <EmptyState icon="notifications-outline" title={t('notifications.empty')} />
+            <EmptyState
+              icon="notifications-outline"
+              // Bo'sh holat bo'limga qarab: "bildirishnoma yo'q" deyish
+              // qo'shni bo'limda xabar turgan paytda chalg'ituvchi bo'lardi.
+              title={showRead ? t('notifications.emptyRead') : t('notifications.empty')}
+            />
           )
         }
       />
@@ -213,6 +243,32 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       ...glass.pane,
       borderWidth: 1,
       borderColor: colors.border,
+    },
+    segments: {
+      flexDirection: 'row',
+      gap: spacing.xs,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.xs,
+    },
+    segment: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.xs,
+      borderRadius: radius.pill,
+      ...glass.pane,
+    },
+    segmentActive: {
+      backgroundColor: colors.primarySoft,
+      borderColor: colors.primary,
+    },
+    segmentText: {
+      ...typography.bodySmall,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    segmentTextActive: {
+      color: colors.primary,
     },
     markAllBtn: {
       width: 34,
