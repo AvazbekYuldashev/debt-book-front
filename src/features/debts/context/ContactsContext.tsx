@@ -13,6 +13,14 @@ export interface Contact {
   firstName: string;
   lastName: string;
   phone: string;
+  /**
+   * Biznes kontaktning username'i.
+   *
+   * Ro'yxatda shaxs uchun telefon raqami turadi; biznesda telefon yo'q va
+   * uning o'rniga shu nom ko'rsatiladi. Server bermasa bo'sh qoladi —
+   * u holda qator ilgarigidek faqat ism bilan chiqadi.
+   */
+  username: string;
   fullName: string;
   partyType: PartyType;
   partyId: string;
@@ -133,6 +141,7 @@ const toContact = (input: ClientDTO, actorType: PartyType, actorId?: string | nu
     firstName,
     lastName,
     phone: input.phoneNumber || '',
+    username: input.partyUsername || '',
     fullName: input.name || `${firstName} ${lastName}`.trim(),
     partyType: counterparty.partyId ? counterparty.partyType : fallbackPartyType,
     partyId: counterparty.partyId,

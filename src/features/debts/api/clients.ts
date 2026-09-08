@@ -11,6 +11,8 @@ export interface ClientDTO {
   createdByProfileId?: string | null;
   name: string;
   phoneNumber?: string | null;
+  /** Qarshi tomon BIZNES bo'lganda uning username'i (hali qo'yilmagan bo'lsa null). */
+  partyUsername?: string | null;
   creditorType?: PartyType;
   debtorType?: PartyType;
   creditorId?: string;

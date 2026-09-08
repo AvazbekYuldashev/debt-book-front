@@ -102,8 +102,10 @@ const ContactRow: React.FC<ContactRowProps> = ({
   const handleViewPhoto = useCallback(() => onViewPhoto(avatarKey), [onViewPhoto, avatarKey]);
 
   const isBusiness = contact.partyType === 'BUSINESS_ACCOUNT';
-  // Biznes mijozda telefon yo'q — uning o'rniga "Biznes" yorlig'i ism yonida turadi.
-  const phoneLabel = isBusiness ? '' : contact.phone || '';
+  // Ism ostidagi qator: shaxsda telefon raqami, biznesda esa username —
+  // biznesni aynan shu nom bilan qo'shishadi va topishadi. Biznesda telefon
+  // umuman yo'q, username hali qo'yilmagan bo'lsa qator bo'sh qoladi.
+  const subtitle = isBusiness ? contact.username || '' : contact.phone || '';
 
   /**
    * Tartib: avval asosiy valyuta, keyin QIYMATI bo'yicha kamayish tartibida.
@@ -177,9 +179,9 @@ const ContactRow: React.FC<ContactRowProps> = ({
               </View>
             ) : null}
           </View>
-          {phoneLabel ? (
+          {subtitle ? (
             <Text style={styles.secondary} numberOfLines={1}>
-              {phoneLabel}
+              {subtitle}
             </Text>
           ) : null}
         </View>
