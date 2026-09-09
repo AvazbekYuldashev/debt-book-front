@@ -417,9 +417,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
             <Text style={styles.title} numberOfLines={1}>
               {t('tab.debts')}
             </Text>
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {t('debts.listSubtitle')}
-            </Text>
           </View>
 
           <View style={styles.headerTools}>
@@ -634,13 +631,6 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     title: {
       ...typography.display,
       color: colors.textPrimary,
-    },
-    subtitle: {
-      ...typography.bodySmall,
-      fontSize: 13,
-      lineHeight: 17,
-      color: colors.textSecondary,
-      marginTop: 1,
     },
     headerTools: {
       flexDirection: 'row',

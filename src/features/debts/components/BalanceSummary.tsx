@@ -123,7 +123,6 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
     softColor: string,
     iconName: keyof typeof Ionicons.glyphMap,
     label: string,
-    description: string,
   ) => (
     <View style={styles.tile}>
       <View style={styles.tileHeader}>
@@ -174,10 +173,6 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
           );
         })
       )}
-
-      <Text style={styles.description} numberOfLines={2}>
-        {description}
-      </Text>
     </View>
   );
 
@@ -191,7 +186,6 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
           colors.negativeSoft,
           'arrow-down',
           t('debts.currentDebt'),
-          t('debts.debtDescription'),
         )}
         <View style={styles.divider} />
         {renderTile(
@@ -201,7 +195,6 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
           colors.positiveSoft,
           'arrow-up',
           t('debts.currentCredit'),
-          t('debts.creditDescription'),
         )}
       </View>
 
@@ -277,13 +270,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     valueIdle: {
       paddingVertical: spacing.xxs / 2,
-    },
-    description: {
-      ...typography.caption,
-      fontSize: 12,
-      lineHeight: 16,
-      color: colors.textSecondary,
-      marginTop: spacing.xxs / 2,
     },
     // Ikki katak orasidagi vertikal ajratgich — juda nozik, "qattiq" border emas.
     divider: {
