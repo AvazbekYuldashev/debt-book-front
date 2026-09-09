@@ -35,8 +35,8 @@ interface GapSummaryCardProps {
 
 /**
  * Ekranning yuqori paneli: barcha guruhlar bo'yicha SOF qoldiq.
- *   yashil — JAMI HAQ:  menga qaytishi kerak
- *   qizil  — JAMI QARZ: men qaytarishim kerak
+ *   yashil — HOZIRGI HAQ:  menga qaytishi kerak
+ *   qizil  — HOZIRGI QARZ: men qaytarishim kerak
  *
  * Raqamlar haqiqatda bo'lib o'tgan, ikki tomon tasdiqlagan oldi-berdilardan:
  * rejalashtirilgan majburiyat degan narsa bu modelda yo'q.

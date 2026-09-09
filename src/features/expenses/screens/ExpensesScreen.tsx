@@ -455,9 +455,6 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
             <Text style={styles.title} numberOfLines={1}>
               {t('expenses.dailyTitle')}
             </Text>
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {t('expenses.listSubtitle')}
-            </Text>
           </View>
         </View>
 
@@ -640,13 +637,6 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     title: {
       ...typography.display,
       color: colors.textPrimary,
-    },
-    subtitle: {
-      ...typography.bodySmall,
-      fontSize: 13,
-      lineHeight: 17,
-      color: colors.textSecondary,
-      marginTop: 1,
     },
     banner: {
       marginBottom: spacing.sm,
