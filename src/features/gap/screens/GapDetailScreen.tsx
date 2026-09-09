@@ -29,6 +29,11 @@ import { GapMemberDTO, GapUnit } from '../types/gap';
  *
  * Navbat, qur'a va davr yo'q: istalgan a'zo istalgan paytda istalgan a'zo
  * bilan hisob-kitob qiladi.
+ *
+ * Ro'yxatda O'ZIM ko'rinmayman — faqat men bilan hisob-kitob qiladigan
+ * odamlar turadi. O'z qatorim baribir ochilmasdi (o'zim bilan oldi-berdi
+ * qilmayman) va faqat joy egallab turardi. Bu har kim uchun o'zicha
+ * ishlaydi: guruhdoshlarim ro'yxatida men ko'rinaveraman.
  */
 const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
   navigation,
@@ -49,6 +54,14 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
 
   const membersQuery = useGapMembers(id);
   const members = useMemo(() => membersQuery.data ?? [], [membersQuery.data]);
+
+  /**
+   * Ro'yxatda ko'rsatiladigan a'zolar — o'zimdan boshqasi.
+   *
+   * To'liq `members` baribir kerak: a'zolar SONI (o'zim ham a'zoman) va
+   * takror qo'shishning oldini olish shu ro'yxatga tayanadi.
+   */
+  const visibleMembers = useMemo(() => members.filter((member) => !member.me), [members]);
 
   const addMemberMutation = useAddGapMember(id);
   const [memberModalOpen, setMemberModalOpen] = useState(false);
@@ -118,13 +131,11 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
       <GapMemberRow
         item={item}
         unit={unit}
-        isLast={index === members.length - 1}
-        // O'z qatorim ochilmaydi: o'zim bilan oldi-berdi qilmayman.
-        // Qatorning o'zi qoladi — undagi son shu guruhdagi umumiy holatim.
-        onPress={item.me ? undefined : openMember}
+        isLast={index === visibleMembers.length - 1}
+        onPress={openMember}
       />
     ),
-    [unit, members.length, openMember]
+    [unit, visibleMembers.length, openMember]
   );
 
   const keyExtractor = useCallback((item: GapMemberDTO) => item.memberId, []);
@@ -158,7 +169,7 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
       <FlatList
         style={styles.list}
         contentContainerStyle={styles.listCard}
-        data={membersQuery.isLoading ? [] : members}
+        data={membersQuery.isLoading ? [] : visibleMembers}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
@@ -191,7 +202,7 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
         <FloatingActionButton
           onPress={() => setMemberModalOpen(true)}
           accessibilityLabel={t('gap.addMemberTitle')}
-          pulse={members.length === 0}
+          pulse={visibleMembers.length === 0}
         />
       ) : null}
 
