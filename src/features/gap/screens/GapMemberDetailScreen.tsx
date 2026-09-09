@@ -12,6 +12,7 @@ import Button from '../../../shared/ui/Button';
 import GapTransferRow from '../components/GapTransferRow';
 import GapMemberBalanceHeader from '../components/GapMemberBalanceHeader';
 import GapTransferFormModal from '../components/GapTransferFormModal';
+import GapTransferDetailModal from '../components/GapTransferDetailModal';
 import { GapTransferDTO, GapTransferDirection, GapUnit } from '../types/gap';
 
 /** Ro'yxat qatori: yozuv va uning men uchun yo'nalishi. */
@@ -35,8 +36,12 @@ interface LedgerItem {
  *
  * "Berdim" va "Oldim" istalgan paytda bosiladi: navbat ham, davr ham yo'q.
  * Yozuvni kiritgan odam uni o'zi tasdiqlamaydi — tasdiq qarama-qarshi
- * tomonda qoladi, shu sababli tasdig'imni kutayotgan qator bosiladigan
- * bo'ladi.
+ * tomonda qoladi.
+ *
+ * Qatorga bosilsa tafsilot modali ochiladi va tasdiq ham o'sha yerdan
+ * beriladi. Ilgari bosishning o'zi yozuvni tasdiqlab yuborardi: tasodifiy
+ * tegib ketish ortga qaytmas edi va telefon, to'liq izoh kabi ma'lumotni
+ * ko'rishning iloji yo'q edi.
  */
 const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> = ({
   navigation,
@@ -60,6 +65,8 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
   const confirmMutation = useConfirmGapTransfer();
 
   const [direction, setDirection] = useState<GapTransferDirection | null>(null);
+  /** Tafsilot modalida ochilgan yozuv. Nusxa emas, faqat ID saqlanadi. */
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   /** O'z hisobimda oldi-berdi tugmalari ma'nosiz — pul o'zimda qoladi. */
   const isSelf = detail?.me ?? false;
@@ -82,9 +89,13 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
     [createMutation, memberId, direction]
   );
 
-  /** Tasdig'imni kutayotgan yozuvni qator ustiga bosib tasdiqlash. */
-  const confirmRow = useCallback(
-    (item: GapTransferDTO) => confirmMutation.mutate(item.transferId),
+  /**
+   * Tasdiq tafsilot modalidan beriladi. Muvaffaqiyatli bo'lsa modal yopiladi:
+   * ochiq qolsa ekrandagi yozuv eskirgan holatni ko'rsatib turardi.
+   */
+  const confirmTransfer = useCallback(
+    (item: GapTransferDTO) =>
+      confirmMutation.mutate(item.transferId, { onSuccess: () => setSelectedId(null) }),
     [confirmMutation]
   );
 
@@ -105,25 +116,39 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
     });
   }, [detail]);
 
+  /**
+   * Modalga ko'rsatiladigan yozuv ro'yxatdan TOPIB olinadi, nusxasi
+   * saqlanmaydi: ro'yxat yangilansa (masalan tortib yangilash) modal ham
+   * yangi ma'lumotni ko'rsatadi, yozuv yo'qolsa o'zi yopiladi.
+   *
+   * Yo'nalish ham shu yerdan keladi — rang va "Oldim / Berdim" yozuvi
+   * qator bilan bir xil bo'lishi uchun.
+   */
+  const selected = useMemo(
+    () => items.find((it) => it.transfer.transferId === selectedId) ?? null,
+    [items, selectedId]
+  );
+
+  const openDetail = useCallback((transfer: GapTransferDTO) => setSelectedId(transfer.transferId), []);
+
   const renderItem: ListRenderItem<LedgerItem> = useCallback(
     ({ item, index }) => (
       <GapTransferRow
         item={item.transfer}
         direction={item.direction}
         isLast={index === items.length - 1}
-        onPress={item.transfer.canConfirm ? confirmRow : undefined}
+        onPress={openDetail}
       />
     ),
-    [items.length, confirmRow]
+    [items.length, openDetail]
   );
 
   const keyExtractor = useCallback((item: LedgerItem) => item.transfer.transferId, []);
 
 
-  const actionError =
-    (createMutation.error as Error | null)?.message ??
-    (confirmMutation.error as Error | null)?.message ??
-    null;
+  // Tasdiq xatosi tafsilot modalining o'zida chiqadi — bu yerda faqat yangi
+  // yozuv qo'shishdagi xato qoladi, aks holda bitta xabar ikki joyda turardi.
+  const actionError = (createMutation.error as Error | null)?.message ?? null;
 
   return (
     <View style={styles.container}>
@@ -197,6 +222,18 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         error={(createMutation.error as Error | null)?.message ?? null}
         onClose={() => setDirection(null)}
         onSubmit={submitTransfer}
+      />
+
+      <GapTransferDetailModal
+        transfer={selected?.transfer ?? null}
+        direction={selected?.direction ?? 'in'}
+        confirming={confirmMutation.isPending}
+        error={(confirmMutation.error as Error | null)?.message ?? null}
+        onConfirm={confirmTransfer}
+        onClose={() => {
+          setSelectedId(null);
+          confirmMutation.reset();
+        }}
       />
     </View>
   );

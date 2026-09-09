@@ -12,7 +12,7 @@ interface GapTransferRowProps {
   /** Kirim yashil (pul keldi), chiqim qizil (pul ketdi). */
   direction: 'in' | 'out';
   isLast?: boolean;
-  /** Berilsa qator bosiladigan bo'ladi — tasdiqlash shu yerdan qilinadi. */
+  /** Berilsa qator bosiladigan bo'ladi — tafsilot modali shu yerdan ochiladi. */
   onPress?: (item: GapTransferDTO) => void;
 }
 
@@ -31,6 +31,9 @@ interface GapTransferRowProps {
  * ko'chgan va hisobga kirgan. Ikkinchi tomon hali tasdiqlamagan bo'lsa,
  * qator o'ng chetida "kutilmoqda" belgisi turadi — bu roziliq haqida,
  * pul haqida emas.
+ *
+ * Qator bosilganda to'liq tafsilot modali ochiladi: telefon, butun izoh va
+ * tasdiq holati bu yerga sig'maydi.
  */
 const GapTransferRow: React.FC<GapTransferRowProps> = ({
   item,
@@ -48,6 +51,9 @@ const GapTransferRow: React.FC<GapTransferRowProps> = ({
   const isIn = direction === 'in';
   const color = isIn ? colors.negative : colors.positive;
   const actionable = onPress != null;
+  // Yashil belgi "bosiladi" degani EMAS — qator baribir bosiladi (tafsilot
+  // ochiladi). U faqat MENING tasdig'imni kutayotgan yozuvni ajratadi.
+  const awaitsMyConfirm = item.canConfirm;
 
   const note = item.note?.trim();
   // Har yozuv o'z birligida ko'rsatiladi: bitta ro'yxatda so'm ham,
@@ -104,7 +110,7 @@ const GapTransferRow: React.FC<GapTransferRowProps> = ({
         ) : null}
       </View>
 
-      {actionable ? (
+      {awaitsMyConfirm ? (
         <Ionicons name="checkmark-circle-outline" size={20} color={colors.positive} />
       ) : null}
     </Pressable>
