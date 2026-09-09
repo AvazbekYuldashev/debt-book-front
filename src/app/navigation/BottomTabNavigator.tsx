@@ -189,14 +189,19 @@ const BottomTabNavigator: React.FC = () => {
   );
 };
 
-const createStyles = ({ colors, radius, typography, shadows, glass }: ThemeValue) =>
+const createStyles = ({ colors, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
+    // Yuqori burchaklar ATAYIN yumaloqlanmagan: panel yarim shaffof, burchak
+    // kesilgan joyda esa uning ortidagi tekis `background` ochilib qolardi.
+    // Ekranning o'zi ambient gradient bilan bo'yalgani uchun o'sha ikki
+    // uchburchak oq "tishcha" bo'lib ko'rinardi. Ambient qatlam har ekranning
+    // ICHIDA — panel ostiga yetib bormaydi, shuning uchun burchakni fonga
+    // moslashning iloji yo'q. Panelni chetdan chetga tekis qoldiramiz;
+    // ajratishni yuqoriga tushadigan soya beradi.
     bar: {
       flexDirection: 'row',
       alignItems: 'stretch',
       ...glass.flush,
-      borderTopLeftRadius: radius.xxl,
-      borderTopRightRadius: radius.xxl,
       ...shadows.nav,
     },
     // `justifyContent` ATAYIN 'center' emas: markazlashtirilganda pastdagi
