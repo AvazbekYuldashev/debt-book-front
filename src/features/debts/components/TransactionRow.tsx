@@ -5,7 +5,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { formatMoney } from '../../../shared/lib/money';
 import { normalizeCurrency } from '../../../shared/lib/currency';
-import { splitCalcNote } from '../../../shared/lib/calcNote';
+import { splitLegacyCalcNote } from '../../../shared/lib/calcNote';
 import { formatDateShort, MappedTransaction } from '../model/transactionMapping';
 
 interface TransactionRowProps {
@@ -28,8 +28,8 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, onPress }) 
 
   const isCredit = tx.kind === 'credit';
   const currency = normalizeCurrency(tx.currency);
-  // Izohdagi kalkulyator ifodasi qatorga chiqmaydi — u tafsilot modalida.
-  const { note: description } = splitCalcNote(tx.description);
+  // Eski yozuvlarda ifoda izoh ichida qolgan — qatorga chiqmasin.
+  const { note: description } = splitLegacyCalcNote(tx.description);
 
   const handlePress = useCallback(() => onPress(tx), [onPress, tx]);
 

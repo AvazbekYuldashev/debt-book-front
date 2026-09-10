@@ -33,7 +33,6 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
-import { attachCalcExpression } from '../../../shared/lib/calcNote';
 
 export interface MoneyActionPayload {
   amount: number;
@@ -41,6 +40,8 @@ export interface MoneyActionPayload {
   targetPartyType: PartyType;
   targetPartyId?: string;
   description: string;
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda. */
+  calcNote?: string;
   fromAccountType: AccountType;
   toAccountType: AccountType;
   moneyFlowType: MoneyFlowType;
@@ -193,7 +194,8 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
         targetPartyType: effectiveType,
         targetPartyId: effectiveCounterpartyId,
         targetBusinessProfileId: selectedMemberId || undefined,
-        description: attachCalcExpression(description, calcExpression),
+        description: description.trim(),
+        calcNote: calcExpression || undefined,
         fromAccountType,
         toAccountType,
         moneyFlowType: flowForAccounts(fromAccountType, toAccountType),

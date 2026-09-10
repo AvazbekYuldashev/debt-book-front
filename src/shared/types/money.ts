@@ -40,6 +40,8 @@ export interface MoneyResponseDTO {
   debtorBusinessProfilePhone?: string;
   debtorBusinessProfileId?: string;
   description: string;
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99"). */
+  calcNote?: string;
 }
 
 export interface MoneyCreditorProfileCreatedDTO {
@@ -47,6 +49,8 @@ export interface MoneyCreditorProfileCreatedDTO {
   currency?: Currency;
   debtorId: string;
   description: string;
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99"). */
+  calcNote?: string;
   fromAccountType?: AccountType;
   toAccountType?: AccountType;
   moneyFlowType?: MoneyFlowType;
@@ -57,6 +61,8 @@ export interface MoneyDebtorProfileCreatedDTO {
   currency?: Currency;
   creditorId: string;
   description: string;
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99"). */
+  calcNote?: string;
   fromAccountType?: AccountType;
   toAccountType?: AccountType;
   moneyFlowType?: MoneyFlowType;
@@ -68,6 +74,8 @@ export interface MoneyBusinessTargetDTO {
   amount: number;
   currency?: Currency;
   description: string;
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99"). */
+  calcNote?: string;
   fromAccountType?: AccountType;
   toAccountType?: AccountType;
   moneyFlowType?: MoneyFlowType;

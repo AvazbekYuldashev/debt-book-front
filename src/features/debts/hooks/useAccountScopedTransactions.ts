@@ -26,6 +26,8 @@ interface CreateMoneyInput {
   targetPartyId?: string;
   targetPhone?: string;
   description: string;
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda; alohida ustunda saqlanadi. */
+  calcNote?: string;
   // Counterparty business bo'lsa: tanlangan a'zo (profileId)
   targetBusinessProfileId?: string;
 }
@@ -160,6 +162,7 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
           amount: payload.amount,
           currency: payload.currency,
           description: payload.description || 'Transaction',
+          calcNote: payload.calcNote || undefined,
           fromAccountType,
           toAccountType,
           moneyFlowType,

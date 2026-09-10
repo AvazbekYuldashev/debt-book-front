@@ -4,7 +4,6 @@ import GapTransferDetailModal from '../GapTransferDetailModal';
 import { AppThemeProvider } from '../../../../shared/theme';
 import { LanguageProvider } from '../../../../shared/i18n';
 import type { GapTransferDTO } from '../../types/gap';
-import { attachCalcExpression } from '../../../../shared/lib/calcNote';
 
 const transfer = (overrides: Partial<GapTransferDTO> = {}): GapTransferDTO => ({
   transferId: 't-1',
@@ -76,9 +75,10 @@ describe('GapTransferDetailModal', () => {
     expect(await on.findByText('Tasdiqlash')).toBeTruthy();
   });
 
-  // Summa kalkulyatorda hisoblangan bo'lsa, qaysi amal bajarilgani ko'rinadi.
-  it("izoh va kalkulyator ifodasini alohida ko'rsatadi", async () => {
-    const saved = attachCalcExpression('qarz', '10×2+55÷99');
+  // Gap'da backend ustuni hali yo'q; ifoda faqat ESKI yozuvlarda, izoh
+  // ichida uchraydi — ular ham xizmat belgilarisiz ko'rinishi kerak.
+  it("eski yozuvdagi ifodani izohdan ajratib ko'rsatadi", async () => {
+    const saved = 'qarz\n⟪=10×2+55÷99⟫';
     const { findByText, getByText, queryByText } = renderModal({
       transfer: transfer({ note: saved }),
     });

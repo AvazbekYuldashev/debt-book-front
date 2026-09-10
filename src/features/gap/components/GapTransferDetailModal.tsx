@@ -8,7 +8,7 @@ import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import Button from '../../../shared/ui/Button';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { formatGapAmount, formatGapDate } from '../model/gapFormat';
-import { splitCalcNote } from '../../../shared/lib/calcNote';
+import { splitLegacyCalcNote } from '../../../shared/lib/calcNote';
 import { GapTransferDTO, toAmount, unitOf } from '../types/gap';
 
 interface GapTransferDetailModalProps {
@@ -51,8 +51,9 @@ const GapTransferDetailModal: React.FC<GapTransferDetailModalProps> = ({
   const isIn = direction === 'in';
   const amountColor = isIn ? colors.negative : colors.positive;
 
-  // Izoh ichida kalkulyator ifodasi saqlangan bo'lishi mumkin — ajratamiz.
-  const { note, expression } = splitCalcNote(transfer?.note);
+  // Gap'da backend ustuni hali yo'q — ifoda faqat ESKI yozuvlarda,
+  // izoh ichida uchraydi. Yangilarida `expression` null bo'ladi.
+  const { note, expression } = splitLegacyCalcNote(transfer?.note);
   const phone = transfer?.counterpartyPhone?.trim();
 
   return (

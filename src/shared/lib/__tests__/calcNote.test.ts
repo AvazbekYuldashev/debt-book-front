@@ -1,4 +1,8 @@
-import { attachCalcExpression, hasOperation, splitCalcNote } from '../calcNote';
+import { hasOperation, resolveCalcNote, splitLegacyCalcNote } from '../calcNote';
+
+/** Eski (izoh ichiga yozilgan) ko'rinishni testda qayta yasash. */
+const legacy = (note: string, expression: string) =>
+  note ? `${note}\n⟪=${expression}⟫` : `⟪=${expression}⟫`;
 
 describe('hasOperation', () => {
   it('yakka son amal emas', () => {
@@ -8,7 +12,7 @@ describe('hasOperation', () => {
     expect(hasOperation('-300')).toBe(false);
   });
 
-  it('amal belgisi bo\'lsa rost', () => {
+  it("amal belgisi bo'lsa rost", () => {
     expect(hasOperation('10×2')).toBe(true);
     expect(hasOperation('10*2+55/99')).toBe(true);
     expect(hasOperation('100−40')).toBe(true);
@@ -16,46 +20,62 @@ describe('hasOperation', () => {
   });
 });
 
-describe('attachCalcExpression', () => {
-  it('izoh va ifodani birga saqlaydi', () => {
-    const saved = attachCalcExpression('Hejeje', '10×2+55÷99');
-    expect(splitCalcNote(saved)).toEqual({ note: 'Hejeje', expression: '10×2+55÷99' });
+describe('resolveCalcNote', () => {
+  // Asosiy yo'l: ifoda ALOHIDA ustundan keladi, izoh toza qoladi.
+  it('alohida ustundagi ifodani oladi', () => {
+    expect(resolveCalcNote('Hejeje', '10×2+55÷99')).toEqual({
+      note: 'Hejeje',
+      expression: '10×2+55÷99',
+    });
   });
 
-  it('izoh bo\'sh bo\'lsa ham ifoda saqlanadi', () => {
-    const saved = attachCalcExpression('', '10×2');
-    expect(splitCalcNote(saved)).toEqual({ note: '', expression: '10×2' });
+  it("kalkulyatorsiz yozuvda ifoda bo'lmaydi", () => {
+    expect(resolveCalcNote('Oddiy izoh', null)).toEqual({
+      note: 'Oddiy izoh',
+      expression: null,
+    });
+    expect(resolveCalcNote('Oddiy izoh', '   ')).toEqual({
+      note: 'Oddiy izoh',
+      expression: null,
+    });
   });
 
-  it('amalsiz ifoda saqlanmaydi', () => {
-    expect(attachCalcExpression('Hejeje', '5000')).toBe('Hejeje');
-    expect(attachCalcExpression('Hejeje', '')).toBe('Hejeje');
-    expect(attachCalcExpression('Hejeje', null)).toBe('Hejeje');
+  it("izoh bo'sh bo'lsa ham ifoda ko'rinadi", () => {
+    expect(resolveCalcNote('', '300×4')).toEqual({ note: '', expression: '300×4' });
+    expect(resolveCalcNote(null, '300×4')).toEqual({ note: '', expression: '300×4' });
   });
 
-  // Izoh ifoda tufayli backend chegarasida kesilib qolmasin.
-  it('juda uzun ifoda saqlanmaydi', () => {
-    const long = Array.from({ length: 40 }, (_, i) => String(i)).join('+');
-    expect(long.length).toBeGreaterThan(60);
-    expect(attachCalcExpression('Hejeje', long)).toBe('Hejeje');
+  // Ustun paydo bo'lishidan oldin yaratilgan yozuvlar bazada qolgan —
+  // ular ham to'g'ri ko'rinishi kerak, xizmat belgilarisiz.
+  it('eski yozuvda ifodani izoh ichidan oladi', () => {
+    expect(resolveCalcNote(legacy('Hejeje', '10×2'), undefined)).toEqual({
+      note: 'Hejeje',
+      expression: '10×2',
+    });
+  });
+
+  it('ustun ustunroq: ikkalasi bo\'lsa ustundagisi olinadi', () => {
+    expect(resolveCalcNote(legacy('Hejeje', '1+1'), '10×2')).toEqual({
+      note: 'Hejeje',
+      expression: '10×2',
+    });
   });
 });
 
-describe('splitCalcNote', () => {
+describe('splitLegacyCalcNote', () => {
   it('oddiy izohga tegmaydi', () => {
-    expect(splitCalcNote('Qarz')).toEqual({ note: 'Qarz', expression: null });
+    expect(splitLegacyCalcNote('Qarz')).toEqual({ note: 'Qarz', expression: null });
   });
 
-  it('bo\'sh qiymatlarni ko\'taradi', () => {
-    expect(splitCalcNote(null)).toEqual({ note: '', expression: null });
-    expect(splitCalcNote(undefined)).toEqual({ note: '', expression: null });
-    expect(splitCalcNote('   ')).toEqual({ note: '', expression: null });
+  it("bo'sh qiymatlarni ko'taradi", () => {
+    expect(splitLegacyCalcNote(null)).toEqual({ note: '', expression: null });
+    expect(splitLegacyCalcNote(undefined)).toEqual({ note: '', expression: null });
+    expect(splitLegacyCalcNote('   ')).toEqual({ note: '', expression: null });
   });
 
   // Ko'p qatorli izoh: ifoda faqat OXIRIDAN olinadi, izoh butun qoladi.
-  it('ko\'p qatorli izohni buzmaydi', () => {
-    const saved = attachCalcExpression('Birinchi qator\nIkkinchi qator', '10×2');
-    expect(splitCalcNote(saved)).toEqual({
+  it("ko'p qatorli izohni buzmaydi", () => {
+    expect(splitLegacyCalcNote(legacy('Birinchi qator\nIkkinchi qator', '10×2'))).toEqual({
       note: 'Birinchi qator\nIkkinchi qator',
       expression: '10×2',
     });

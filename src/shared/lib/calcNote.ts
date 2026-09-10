@@ -1,69 +1,62 @@
 // ============================================================
-//  Kalkulyatorda kiritilgan IFODANI yozuv izohi ichida saqlash.
+//  Kalkulyatorda kiritilgan IFODA ("10×2+55÷99").
 //
-//  NIMA UCHUN SHUNDAY: backend'da ifoda uchun alohida maydon YO'Q —
-//  oldi-berdi DTO'sida faqat `description` bor. Shuning uchun ifoda
-//  izohning oxiriga MAXSUS BELGILAR ichida qo'shiladi va ko'rsatishda
-//  qaytadan ajratib olinadi. Foydalanuvchi hech qachon bu belgilarni
-//  ko'rmaydi: izoh chiqadigan har bir joy `splitCalcNote` orqali o'tadi.
+//  Ifoda backend'da ALOHIDA ustunda saqlanadi (`money.calc_note`) —
+//  izoh odam yozgan matn, ifoda esa hisob tarixi. Ularni bitta maydonga
+//  qo'shish qidiruvni ham, eksportni ham buzardi.
 //
-//  Ajratgich `⟪=` … `⟫` ATAYIN shunday tanlangan — bu belgilar telefon
-//  klaviaturasida yo'q, ya'ni foydalanuvchi ularni tasodifan yozib,
-//  o'z izohini "ifoda" qilib yubora olmaydi.
-//
-//  Backend maydon qo'shsa, shu fayl olib tashlanadi va `expression`
-//  to'g'ridan-to'g'ri DTO'dan o'qiladi — qolgan kod o'zgarmaydi.
+//  Bu fayl ikki narsa uchun qoladi:
+//    1. `hasOperation` — yakka sonni "amal" deb saqlab qo'ymaslik uchun;
+//    2. `splitLegacyCalcNote` — QISQA MUDDAT ichida izoh ichiga yozilgan
+//       eski yozuvlarni to'g'ri ko'rsatish uchun (pastga qarang).
 // ============================================================
 
-const OPEN = '⟪=';
-const CLOSE = '⟫';
-
-/** Oxirgi qatordagi ifoda bloki. */
-const PATTERN = /\n?⟪=([^⟫]*)⟫\s*$/;
-
 /**
- * Ifodaning eng katta uzunligi.
+ * ESKI USUL bilan yozilgan yozuvlar uchun ajratgich.
  *
- * `description` backend'da cheklangan bo'lishi mumkin, ifoda esa uzun
- * bo'lib ketishi mumkin ("1000+2000+3000+…"). Izoh ifoda tufayli
- * kesilib qolmasin — juda uzun ifoda umuman saqlanmaydi.
+ * `calc_note` ustuni paydo bo'lishidan oldin ifoda izohning oxiriga shu
+ * belgilar ichida qo'shilardi. O'sha davrda yaratilgan yozuvlar bazada
+ * qolgan — ularni endi FAQAT O'QIYMIZ, yangisini bu ko'rinishda hech
+ * qachon yozmaymiz. Agar bu tozalansa (yoki migratsiya bilan ustunga
+ * ko'chirilsa), shu funksiyani olib tashlash mumkin.
  */
-const MAX_EXPRESSION = 60;
+const LEGACY_PATTERN = /\n?⟪=([^⟫]*)⟫\s*$/;
 
 /** Ifodada haqiqiy amal bormi (yakka son "amal" hisoblanmaydi). */
 export const hasOperation = (expression: string): boolean =>
   /[+\-−*×/÷]/.test(expression.replace(/^-/, ''));
 
 /**
- * Izohga ifodani biriktiradi.
+ * Izohni foydalanuvchi matni va (bo'lsa) ESKI USULDAGI ifodaga ajratadi.
  *
- * Ifoda bo'sh, amalsiz (yakka son) yoki juda uzun bo'lsa izoh
- * o'zgarishsiz qaytadi.
+ * Yangi yozuvlarda ifoda izoh ichida bo'lmaydi — bunda `expression` null
+ * qaytadi va izoh o'zgarishsiz o'tadi.
  */
-export const attachCalcExpression = (note: string, expression: string | null): string => {
-  const trimmedNote = note.trim();
-  const expr = (expression ?? '').trim();
-  if (!expr || !hasOperation(expr) || expr.length > MAX_EXPRESSION) return trimmedNote;
-  const block = `${OPEN}${expr}${CLOSE}`;
-  return trimmedNote ? `${trimmedNote}\n${block}` : block;
-};
-
-/**
- * Izohni foydalanuvchi matni va ifodaga ajratadi.
- *
- * Izoh chiqadigan HAR BIR joy shu funksiyadan o'tishi kerak, aks holda
- * ekranda `⟪=…⟫` ko'rinib qoladi.
- */
-export const splitCalcNote = (
+export const splitLegacyCalcNote = (
   raw: string | null | undefined,
 ): { note: string; expression: string | null } => {
   const text = (raw ?? '').trim();
   if (!text) return { note: '', expression: null };
 
-  const match = PATTERN.exec(text);
+  const match = LEGACY_PATTERN.exec(text);
   if (!match) return { note: text, expression: null };
 
   const expression = match[1].trim();
-  const note = text.slice(0, match.index).trim();
-  return { note, expression: expression || null };
+  return { note: text.slice(0, match.index).trim(), expression: expression || null };
+};
+
+/**
+ * Ko'rsatish uchun yakuniy juftlik: izoh va ifoda.
+ *
+ * Avval ALOHIDA ustunga qaraydi (yangi yozuvlar), u bo'sh bo'lsa izoh
+ * ichidagi eski ko'rinishga tushadi. Shu sababli ikkala davrda yaratilgan
+ * yozuv ham bir xil ko'rinadi va xizmat belgilari ekranga chiqmaydi.
+ */
+export const resolveCalcNote = (
+  description: string | null | undefined,
+  calcNote?: string | null,
+): { note: string; expression: string | null } => {
+  const legacy = splitLegacyCalcNote(description);
+  const stored = (calcNote ?? '').trim();
+  return { note: legacy.note, expression: stored || legacy.expression };
 };

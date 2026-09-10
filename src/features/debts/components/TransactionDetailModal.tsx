@@ -9,7 +9,7 @@ import { normalizeCurrency } from '../../../shared/lib/currency';
 import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import { formatDateLong, MappedTransaction } from '../model/transactionMapping';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
-import { splitCalcNote } from '../../../shared/lib/calcNote';
+import { resolveCalcNote } from '../../../shared/lib/calcNote';
 
 interface TransactionDetailModalProps {
   tx: MappedTransaction | null;
@@ -35,8 +35,8 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
   const isCredit = tx?.kind === 'credit';
   const amountColor = isCredit ? colors.positive : colors.negative;
 
-  // Izoh ichida kalkulyator ifodasi saqlangan bo'lishi mumkin — ajratamiz.
-  const { note, expression } = splitCalcNote(tx?.description);
+  // Ifoda alohida ustunda keladi; eski yozuvlarda izoh ichida bo'lishi mumkin.
+  const { note, expression } = resolveCalcNote(tx?.description, tx?.calcNote);
 
   return (
     <Modal visible={Boolean(tx)} transparent animationType="fade" onRequestClose={onClose}>
