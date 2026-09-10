@@ -75,8 +75,18 @@ describe('GapTransferDetailModal', () => {
     expect(await on.findByText('Tasdiqlash')).toBeTruthy();
   });
 
-  // Gap'da backend ustuni hali yo'q; ifoda faqat ESKI yozuvlarda, izoh
-  // ichida uchraydi — ular ham xizmat belgilarisiz ko'rinishi kerak.
+  // Asosiy yo'l: ifoda ALOHIDA ustundan keladi, izoh toza qoladi.
+  it("izoh va kalkulyator ifodasini alohida ko'rsatadi", async () => {
+    const { findByText, getByText } = renderModal({
+      transfer: transfer({ note: 'qarz', calcNote: '10×2+55÷99' }),
+    });
+
+    expect(await findByText('qarz')).toBeTruthy();
+    expect(getByText('10×2+55÷99')).toBeTruthy();
+  });
+
+  // Ustun paydo bo'lishidan oldin izoh ichiga yozilgan yozuvlar bazada
+  // qolgan — ular ham xizmat belgilarisiz ko'rinishi kerak.
   it("eski yozuvdagi ifodani izohdan ajratib ko'rsatadi", async () => {
     const saved = 'qarz\n⟪=10×2+55÷99⟫';
     const { findByText, getByText, queryByText } = renderModal({

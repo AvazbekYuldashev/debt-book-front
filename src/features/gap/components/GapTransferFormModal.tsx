@@ -33,7 +33,7 @@ interface GapTransferFormModalProps {
   loading?: boolean;
   error?: string | null;
   onClose: () => void;
-  onSubmit: (amount: number, note: string | null, unit: GapUnit) => void;
+  onSubmit: (amount: number, note: string | null, unit: GapUnit, calcNote: string | null) => void;
 }
 
 /**
@@ -70,6 +70,8 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
   const isGive = direction === 'GIVE';
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99"). */
+  const [calcExpression, setCalcExpression] = useState('');
   const [selectedUnit, setSelectedUnit] = useState<GapUnit | null>(unit);
   const [localError, setLocalError] = useState<string | null>(null);
   const [calcOpen, setCalcOpen] = useState(false);
@@ -78,6 +80,7 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
     if (visible) {
       setAmount('');
       setNote('');
+      setCalcExpression('');
       setLocalError(null);
     }
   }, [visible]);
@@ -93,8 +96,8 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
       return;
     }
     setLocalError(null);
-    onSubmit(parsed, note.trim() ? note.trim() : null, selectedUnit);
-  }, [amount, note, selectedUnit, onSubmit, t]);
+    onSubmit(parsed, note.trim() ? note.trim() : null, selectedUnit, calcExpression || null);
+  }, [amount, note, calcExpression, selectedUnit, onSubmit, t]);
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -134,7 +137,11 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
             <Input
               label={`${t('gap.fieldAmount')}${selectedUnit ? ` (${selectedUnit.label})` : ''}`}
               value={amount}
-              onChangeText={(text) => setAmount(formatGapAmountInput(text))}
+              onChangeText={(text) => {
+                setAmount(formatGapAmountInput(text));
+                // Summa qo'lda o'zgartirildi — saqlangan ifoda endi unga mos emas.
+                setCalcExpression('');
+              }}
               keyboardType="decimal-pad"
             />
 
@@ -175,7 +182,10 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
             visible={calcOpen}
             initialValue={amount}
             onClose={() => setCalcOpen(false)}
-            onApply={(value) => setAmount(formatGapAmountInput(value))}
+            onApply={(value, expression) => {
+              setAmount(formatGapAmountInput(value));
+              setCalcExpression(expression);
+            }}
           />
         </ScrollView>
       </KeyboardAvoidingView>

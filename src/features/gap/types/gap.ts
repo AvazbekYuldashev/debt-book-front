@@ -98,6 +98,8 @@ export interface GapTransferDTO {
   unitLabel: string;
   unitType: GapUnitType;
   note: string | null;
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda; alohida ustun. */
+  calcNote?: string | null;
   date: string | null;
   confirmed: boolean;
   status: GapTransferStatus;
@@ -131,6 +133,8 @@ export interface GapTransferCreateDTO {
   counterpartyMemberId: string;
   amount: number;
   note?: string;
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda. */
+  calcNote?: string;
   direction: GapTransferDirection;
   /** Berilmasa guruhning odatiy birligi olinadi. */
   unitType?: GapUnitType;

@@ -72,12 +72,13 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
   const isSelf = detail?.me ?? false;
 
   const submitTransfer = useCallback(
-    (amount: number, note: string | null, chosen: GapUnit) => {
+    (amount: number, note: string | null, chosen: GapUnit, calcNote: string | null) => {
       createMutation.mutate(
         {
           counterpartyMemberId: memberId,
           amount,
           note: note ?? undefined,
+          calcNote: calcNote ?? undefined,
           direction: direction ?? 'GIVE',
           unitType: chosen.type,
           unitCode: chosen.code,
