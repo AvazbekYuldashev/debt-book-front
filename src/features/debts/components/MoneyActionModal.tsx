@@ -33,6 +33,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
+import { attachCalcExpression } from '../../../shared/lib/calcNote';
 
 export interface MoneyActionPayload {
   amount: number;
@@ -82,6 +83,11 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
 
   const [amount, setAmount] = useState('');
   const [calcOpen, setCalcOpen] = useState(false);
+  /**
+   * Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99").
+   * Yozuv bilan birga saqlanadi va tafsilotda ko'rinadi.
+   */
+  const [calcExpression, setCalcExpression] = useState('');
   const [currency, setCurrency] = useState<Currency>(baseCurrency);
   const [counterpartyId, setCounterpartyId] = useState('');
   const [targetType, setTargetType] = useState<PartyType>('PROFILE');
@@ -94,6 +100,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   useEffect(() => {
     if (!visible) return;
     setAmount('');
+    setCalcExpression('');
     setCurrency(baseCurrency);
     setCounterpartyId('');
     setTargetType('PROFILE');
@@ -132,6 +139,9 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   const handleAmountChange = useCallback((value: string) => {
     setError('');
     setAmount(formatAmountInput(value));
+    // Summa QO'LDA o'zgartirilsa ifoda endi unga mos kelmaydi — saqlangan
+    // "10×2" yonida boshqa son turishi yolg'on tarix bo'lardi.
+    setCalcExpression('');
   }, []);
   const handleCurrencyChange = useCallback((value: Currency) => {
     setError('');
@@ -183,7 +193,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
         targetPartyType: effectiveType,
         targetPartyId: effectiveCounterpartyId,
         targetBusinessProfileId: selectedMemberId || undefined,
-        description: description.trim(),
+        description: attachCalcExpression(description, calcExpression),
         fromAccountType,
         toAccountType,
         moneyFlowType: flowForAccounts(fromAccountType, toAccountType),
@@ -193,6 +203,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     }
   }, [
     amount,
+    calcExpression,
     effectiveCounterpartyId,
     effectiveType,
     selectedMemberId,
@@ -305,7 +316,10 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
             visible={calcOpen}
             initialValue={amount}
             onClose={() => setCalcOpen(false)}
-            onApply={(value) => handleAmountChange(value)}
+            onApply={(value, expression) => {
+              handleAmountChange(value);
+              setCalcExpression(expression);
+            }}
           />
         </ScrollView>
       </KeyboardAvoidingView>

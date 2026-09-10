@@ -6,6 +6,7 @@ import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n';
 import { modalCardLayout } from './modalLayout';
+import { hasOperation } from '../lib/calcNote';
 import {
   calcResult,
   displayExpression,
@@ -26,8 +27,14 @@ interface CalculatorModalProps {
   /** Oyna ochilganda kalkulyatorga qo'yiladigan boshlang'ich son. */
   initialValue?: string;
   onClose: () => void;
-  /** "Kiritish" bosilganda natijani qaytaradi (faqat raqam, formatsiz). */
-  onApply: (value: string) => void;
+  /**
+   * "Kiritish" bosilganda natijani qaytaradi (faqat raqam, formatsiz).
+   *
+   * `expression` — foydalanuvchi kiritgan IFODANING o'zi ("10×2+55÷99").
+   * Yakka son kiritilgan bo'lsa (amal yo'q) bo'sh satr keladi: saqlashga
+   * arziydigan "amal" yo'q.
+   */
+  onApply: (value: string, expression: string) => void;
 }
 
 /**
@@ -68,7 +75,8 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
 
   /** "Kiritish": kutilayotgan amal faqat undan keyin raqam kiritilgan bo'lsa yakunlanadi. */
   const handleApply = useCallback(() => {
-    onApply(calcResult(state));
+    // Ifoda ham uzatiladi: yozuvda "qanday hisoblangani" ko'rinib tursin.
+    onApply(calcResult(state), hasOperation(state.expression) ? state.expression : '');
     onClose();
   }, [state, onApply, onClose]);
 

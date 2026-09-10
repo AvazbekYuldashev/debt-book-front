@@ -9,6 +9,7 @@ import { normalizeCurrency } from '../../../shared/lib/currency';
 import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import { formatDateLong, MappedTransaction } from '../model/transactionMapping';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import { splitCalcNote } from '../../../shared/lib/calcNote';
 
 interface TransactionDetailModalProps {
   tx: MappedTransaction | null;
@@ -33,6 +34,9 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
   const isCredit = tx?.kind === 'credit';
   const amountColor = isCredit ? colors.positive : colors.negative;
+
+  // Izoh ichida kalkulyator ifodasi saqlangan bo'lishi mumkin — ajratamiz.
+  const { note, expression } = splitCalcNote(tx?.description);
 
   return (
     <Modal visible={Boolean(tx)} transparent animationType="fade" onRequestClose={onClose}>
@@ -81,7 +85,18 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
           <View style={styles.descriptionBox}>
             <Text style={styles.label}>{t('contact.comment')}</Text>
-            <Text style={styles.description}>{tx?.description?.trim() || t('contact.noComment')}</Text>
+            <Text style={styles.description}>{note || t('contact.noComment')}</Text>
+
+            {/* Summa kalkulyatorda hisoblangan bo'lsa — qanday hisoblangani.
+                Faqat shu yerda: qatorga sig'maydi va har doim ham kerak emas. */}
+            {expression ? (
+              <View style={styles.calcRow}>
+                <Ionicons name="calculator-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.calcExpression} numberOfLines={2}>
+                  {expression}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
       </View>
@@ -158,6 +173,21 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.bodySmall,
       marginTop: spacing.xxs,
       color: colors.textPrimary,
+    },
+    calcRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xxs,
+      marginTop: spacing.xs,
+      paddingTop: spacing.xs,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
+    calcExpression: {
+      ...typography.caption,
+      flexShrink: 1,
+      color: colors.textSecondary,
+      fontVariant: ['tabular-nums'],
     },
   });
 

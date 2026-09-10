@@ -8,6 +8,7 @@ import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import Button from '../../../shared/ui/Button';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { formatGapAmount, formatGapDate } from '../model/gapFormat';
+import { splitCalcNote } from '../../../shared/lib/calcNote';
 import { GapTransferDTO, toAmount, unitOf } from '../types/gap';
 
 interface GapTransferDetailModalProps {
@@ -50,7 +51,8 @@ const GapTransferDetailModal: React.FC<GapTransferDetailModalProps> = ({
   const isIn = direction === 'in';
   const amountColor = isIn ? colors.negative : colors.positive;
 
-  const note = transfer?.note?.trim();
+  // Izoh ichida kalkulyator ifodasi saqlangan bo'lishi mumkin — ajratamiz.
+  const { note, expression } = splitCalcNote(transfer?.note);
   const phone = transfer?.counterpartyPhone?.trim();
 
   return (
@@ -118,6 +120,16 @@ const GapTransferDetailModal: React.FC<GapTransferDetailModalProps> = ({
           <View style={styles.descriptionBox}>
             <Text style={styles.label}>{t('gap.detailNote')}</Text>
             <Text style={styles.description}>{note || t('gap.noNote')}</Text>
+
+            {/* Summa kalkulyatorda hisoblangan bo'lsa — qanday hisoblangani. */}
+            {expression ? (
+              <View style={styles.calcRow}>
+                <Ionicons name="calculator-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.calcExpression} numberOfLines={2}>
+                  {expression}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -209,6 +221,21 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.bodySmall,
       marginTop: spacing.xxs,
       color: colors.textPrimary,
+    },
+    calcRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xxs,
+      marginTop: spacing.xs,
+      paddingTop: spacing.xs,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+    },
+    calcExpression: {
+      ...typography.caption,
+      flexShrink: 1,
+      color: colors.textSecondary,
+      fontVariant: ['tabular-nums'],
     },
     error: {
       ...typography.caption,

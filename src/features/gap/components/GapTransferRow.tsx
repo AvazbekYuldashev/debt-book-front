@@ -5,6 +5,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { formatGapAmount, formatGapDate } from '../model/gapFormat';
+import { splitCalcNote } from '../../../shared/lib/calcNote';
 import { GapTransferDTO, toAmount, unitOf } from '../types/gap';
 
 interface GapTransferRowProps {
@@ -55,7 +56,8 @@ const GapTransferRow: React.FC<GapTransferRowProps> = ({
   // ochiladi). U faqat MENING tasdig'imni kutayotgan yozuvni ajratadi.
   const awaitsMyConfirm = item.canConfirm;
 
-  const note = item.note?.trim();
+  // Izohdagi kalkulyator ifodasi qatorga chiqmaydi — u tafsilot modalida.
+  const { note } = splitCalcNote(item.note);
   // Har yozuv o'z birligida ko'rsatiladi: bitta ro'yxatda so'm ham,
   // dollar ham, kg ham bo'lishi mumkin.
   const unit = unitOf(item);
