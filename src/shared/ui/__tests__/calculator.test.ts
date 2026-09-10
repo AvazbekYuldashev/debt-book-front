@@ -1,4 +1,5 @@
 import {
+  calcExpressionOf,
   calcResult,
   displayExpression,
   displayResult,
@@ -148,5 +149,45 @@ describe('kalkulyator — ekran', () => {
     expect(initialCalcState('1 500').expression).toBe('1500');
     expect(initialCalcState('0').expression).toBe('');
     expect(initialCalcState('').expression).toBe('');
+  });
+});
+
+describe('calcExpressionOf — yozuvga tushadigan ifoda', () => {
+  const build = (...keys: string[]) =>
+    keys.reduce((s, k) => {
+      if (k === '=') return pressEquals(s);
+      if (['+', '−', '×', '÷'].includes(k)) return pressOperator(s, k as Operator);
+      if (k === '.') return pressDot(s);
+      return pressDigit(s, k);
+    }, initialCalcState());
+
+  it('amalli ifodani beradi', () => {
+    expect(calcExpressionOf(build('1', '0', '×', '2'))).toBe('10×2');
+  });
+
+  it('yakka son amal emas — bo\'sh qaytadi', () => {
+    expect(calcExpressionOf(build('7', '7'))).toBe('');
+    expect(calcExpressionOf(initialCalcState())).toBe('');
+  });
+
+  // ASOSIY HOLAT: odam odatda "=" bosadi. Tenglik ifodani natija bilan
+  // almashtiradi, lekin saqlanadigan ifoda yo'qolmasligi kerak.
+  it('"=" bosilgandan keyin ham asl ifodani beradi', () => {
+    const s = build('1', '0', '×', '2', '+', '5', '=');
+    expect(s.expression).toBe('25');
+    expect(calcExpressionOf(s)).toBe('10×2+5');
+  });
+
+  // "=" dan keyin hisobni davom ettirsa, ekranda ko'ringan yangi ifoda
+  // saqlanadi — foydalanuvchi nimani ko'rgan bo'lsa, o'sha.
+  it('"=" dan keyin davom etsa yangi ifoda olinadi', () => {
+    const s = build('1', '0', '×', '2', '=', '+', '5');
+    expect(s.expression).toBe('20+5');
+    expect(calcExpressionOf(s)).toBe('20+5');
+  });
+
+  it('"=" dan keyin tozalansa ifoda qolmaydi', () => {
+    const s = pressClear();
+    expect(calcExpressionOf(s)).toBe('');
   });
 });

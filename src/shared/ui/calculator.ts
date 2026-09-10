@@ -1,3 +1,5 @@
+import { hasOperation } from '../lib/calcNote';
+
 export type Operator = '+' | '−' | '×' | '÷';
 
 const OPERATORS: readonly string[] = ['+', '−', '×', '÷'];
@@ -17,6 +19,15 @@ const ALIASES: Record<string, Operator> = { '-': '−', '*': '×', '/': '÷' };
  */
 export interface CalcState {
   expression: string;
+  /**
+   * "=" bosilishidan OLDINGI ifoda ("10×2+55÷99").
+   *
+   * Tenglik ifodani o'z natijasi bilan almashtiradi va ekranda yakka son
+   * qoladi. Yozuvga "qanday hisoblangani" ni saqlash uchun asl ifoda
+   * kerak — aks holda odam "=" bossa hisob tarixi yo'qolib ketardi.
+   * Foydalanuvchi yangi raqam/amal kiritishi bilan tozalanadi.
+   */
+  evaluated?: string;
 }
 
 const isOperator = (ch: string): boolean => OPERATORS.includes(ch);
@@ -66,7 +77,9 @@ export const pressBackspace = (s: CalcState): CalcState => ({
 /** Tenglik: ifoda o'z natijasi bilan almashadi, hisobni davom ettirish mumkin. */
 export const pressEquals = (s: CalcState): CalcState => {
   const value = evaluate(s.expression);
-  return { expression: value === null ? s.expression : clean(value) };
+  if (value === null) return { expression: s.expression };
+  // Natija ekranga chiqadi, asl ifoda esa saqlab qolinadi.
+  return { expression: clean(value), evaluated: s.expression };
 };
 
 /** Suzuvchi nuqta xatolarini yig'ishtiradi: 0.1+0.2 -> 0.3, 12 -> 12. */
@@ -157,6 +170,19 @@ export const formatDisplay = (value: string): string => {
   const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   const text = dec === undefined ? grouped : `${grouped}.${dec}`;
   return negative ? `-${text}` : text;
+};
+
+/**
+ * Yozuv bilan birga saqlanadigan IFODA ("10×2+55÷99").
+ *
+ * Odatda ekrandagi ifodaning o'zi. Lekin "=" bosilgan bo'lsa ekranda
+ * yakka natija turadi — u holda tenglikdan oldingi ifoda olinadi.
+ * Amalsiz (yakka son) kiritishda bo'sh satr: saqlashga arziydigan
+ * hisob yo'q.
+ */
+export const calcExpressionOf = (s: CalcState): string => {
+  if (hasOperation(s.expression)) return s.expression;
+  return s.evaluated && hasOperation(s.evaluated) ? s.evaluated : '';
 };
 
 /** Ekranning yuqori qatori: ifodaning o'zi (bo'sh bo'lsa nol). */

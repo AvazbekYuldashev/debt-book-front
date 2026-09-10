@@ -6,8 +6,8 @@ import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n';
 import { modalCardLayout } from './modalLayout';
-import { hasOperation } from '../lib/calcNote';
 import {
+  calcExpressionOf,
   calcResult,
   displayExpression,
   displayResult,
@@ -76,7 +76,8 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
   /** "Kiritish": kutilayotgan amal faqat undan keyin raqam kiritilgan bo'lsa yakunlanadi. */
   const handleApply = useCallback(() => {
     // Ifoda ham uzatiladi: yozuvda "qanday hisoblangani" ko'rinib tursin.
-    onApply(calcResult(state), hasOperation(state.expression) ? state.expression : '');
+    // "=" bosilgan bo'lsa ekranda natija turadi — asl ifoda shundan olinadi.
+    onApply(calcResult(state), calcExpressionOf(state));
     onClose();
   }, [state, onApply, onClose]);
 

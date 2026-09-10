@@ -161,7 +161,10 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
         const commonPayload = {
           amount: payload.amount,
           currency: payload.currency,
-          description: payload.description || 'Transaction',
+          // Izoh bo'sh bo'lsa bo'sh qoladi: ilgari bu yerga 'Transaction'
+          // yozilardi va foydalanuvchi tafsilotda o'z izohi o'rnida
+          // o'sha inglizcha so'zni ko'rardi.
+          description: payload.description,
           calcNote: payload.calcNote || undefined,
           fromAccountType,
           toAccountType,
