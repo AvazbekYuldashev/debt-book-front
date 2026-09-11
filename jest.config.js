@@ -6,6 +6,11 @@ module.exports = {
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@tanstack/.*))',
   ],
   testMatch: ['**/__tests__/**/*.test.{ts,tsx}'],
+  // Standart 5s komponent testlariga yetmaydi: to'liq to'plam parallel
+  // ishlaganda AppThemeProvider birinchi render'da shrift va saqlangan
+  // mavzuni kutadi, bu esa sovuq start'da 5s dan oshib ketardi. Test
+  // yiqilardi-yu, kod aybdor bo'lmasdi — ya'ni haqiqiy xatoni yashirardi.
+  testTimeout: 30000,
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
