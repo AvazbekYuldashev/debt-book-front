@@ -680,13 +680,16 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     },
     // Ro'yxat tugagach karta ham tugaydi, ostida fon ko'rinadi va "+" tugmasi
     // o'sha bo'sh joyda suzadi.
-    // Bo'shliq KARTA TAGIDA: ro'yxat oxiriga yetilganda oxirgi qator "+"
-    // tugmasidan yuqorida qoladi. Aylantirish paytida tugma qatorlar ustida
-    // suzadi — u suzuvchi tugma, shunday bo'lishi kerak.
+    // Bo'shliq KARTA ICHIDA (padding), tashqarisida (margin) EMAS:
+    // react-native `contentContainerStyle` dagi margin'ni aylantiriladigan
+    // balandlikka QO'SHMAYDI — ro'yxat oxiriga yetilganda bo'shliq umuman
+    // paydo bo'lmasdi va oxirgi qator "+" tugmasi ostida qolaverardi.
+    // Padding esa kontent o'lchamiga kiradi, shuning uchun ishlaydi
+    // (Xarajatlar bo'limi boshidan shunday qilingan).
     listCard: {
       ...glass.surface,
       borderRadius: radius.xxl,
-      marginBottom: FAB_CLEARANCE,
+      paddingBottom: FAB_CLEARANCE,
       // Chetdan chekinish KARTAning ozida — FlatList style'iga qoyilsa
       // react-native-web uni tashqi va ichki blokka ikki marta qollab,
       // karta boshqa ekranlardagidan ikki barobar ichkariga tushib qolardi.
