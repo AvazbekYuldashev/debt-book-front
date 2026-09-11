@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -27,9 +28,14 @@ type Mode = 'create' | 'confirm' | 'enter';
  */
 const PinGate: React.FC<{ mode: 'setup' | 'unlock' }> = ({ mode: gateMode }) => {
   const theme = useAppTheme();
-  const { colors } = theme;
+  const { colors, spacing } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  // Android'da gesture/3-tugmali navigatsiya paneli ekran ostini egallaydi.
+  // Ilovaning umumiy SafeAreaView'i faqat YUQORI chetni himoya qiladi,
+  // shuning uchun bu ekran pastki chekinishni o'zi qo'shadi — aks holda
+  // klaviaturaning oxirgi qatori (0 va o'chirish) panel ostida qolardi.
+  const insets = useSafeAreaInsets();
 
   const { setupPin, unlock } = useAppPin();
   const { setProfile } = useContext(AuthContext);
@@ -123,7 +129,7 @@ const PinGate: React.FC<{ mode: 'setup' | 'unlock' }> = ({ mode: gateMode }) => 
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: spacing.xl + insets.bottom }]}>
       <View style={styles.top}>
         <View style={styles.lockIcon}>
           <Ionicons name="lock-closed" size={28} color={colors.primary} />

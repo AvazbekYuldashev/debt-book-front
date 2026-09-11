@@ -57,7 +57,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     card: {
       ...modalCardLayout,
-      ...glass.raised,
+      ...glass.modal,
       borderRadius: radius.lg,
       paddingVertical: spacing.xs,
       overflow: 'hidden',

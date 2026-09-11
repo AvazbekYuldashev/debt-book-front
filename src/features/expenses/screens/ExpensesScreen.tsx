@@ -3,6 +3,7 @@ import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 're
 import { useFocusEffect } from '@react-navigation/native';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
+import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import SectionHeader from '../../../shared/ui/SectionHeader';
@@ -647,8 +648,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       marginHorizontal: -spacing.md,
       marginBottom: spacing.xs,
     },
+    // Bo'shliq KO'RISH OYNASIDA: ro'yxat "+" tugmasidan yuqorida tugaydi.
     scroll: {
       flex: 1,
+      marginBottom: FAB_CLEARANCE,
     },
     // Ro'yxat tugagach karta ham tugaydi, ostida fon ko'rinadi va "+" tugmasi
     // o'sha bo'sh joyda suzadi. Bo'shliq karta TASHQARISIDA (margin) —
@@ -656,7 +659,6 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     // tugma uni bosib turardi.
     content: {
       padding: spacing.md,
-      paddingBottom: 88,
     },
     errorRow: {
       padding: spacing.sm,

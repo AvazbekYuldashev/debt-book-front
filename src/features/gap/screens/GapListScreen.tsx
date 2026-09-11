@@ -12,6 +12,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
+import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import SectionHeader from '../../../shared/ui/SectionHeader';
@@ -228,18 +229,20 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     sectionWrap: {
       marginTop: spacing.sm,
     },
+    // Bo'shliq KO'RISH OYNASIDA: shunda ro'yxat "+" tugmasidan YUQORIDA
+    // tugaydi va hech bir qator uning ostidan o'tmaydi. Ilgari bu bo'shliq
+    // kontent konteynerida edi — u faqat ro'yxat oxirigacha aylantirilganda
+    // ishlardi, o'rtada esa qatorlar tugma bilan aralashib ketardi.
     list: {
       flex: 1,
+      marginBottom: FAB_CLEARANCE,
     },
     // Ro'yxat tugagach karta ham tugaydi, ostida fon ko'rinadi va "+" tugmasi
-    // o'sha bo'sh joyda suzadi. Bo'shliq karta TASHQARISIDA (margin) —
-    // ichkarida (padding) berilsa oq karta ekran ostigacha cho'zilib,
-    // tugma uni bosib turardi.
+    // o'sha bo'sh joyda suzadi.
     listCard: {
       ...glass.pane,
       borderRadius: radius.xxl,
       marginHorizontal: spacing.md,
-      marginBottom: 88,
       overflow: 'hidden',
       ...shadows.card,
     },

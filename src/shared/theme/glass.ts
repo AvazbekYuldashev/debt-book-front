@@ -40,6 +40,19 @@ export interface GlassTokens {
    * tashlanadigan "siniq" hosil qiladi. Bu sirtlarni fondan soya ajratadi.
    */
   flush: ViewStyle;
+  /**
+   * Modal (dialog) kartasi — QAT'IY SHAFFOF EMAS.
+   *
+   * `raised` shaffof bo'lib, "shisha" taassurotini `backdropFilter` blur
+   * beradi. Lekin u FAQAT web'da ishlaydi (react-native-web CSS'i) —
+   * Android/iOS'da blur umuman yo'q va modal shunchaki yarim shaffof
+   * panelga aylanib qolardi: ortidagi ro'yxat, summalar va tugmalar
+   * matn ustidan ko'rinib, o'qib bo'lmas darajada aralashib ketardi.
+   *
+   * Shuning uchun dialoglar mustahkam fonda: matn har doim o'qiladi,
+   * diqqat esa scrim tufayli baribir modalda qoladi.
+   */
+  modal: ViewStyle;
   /** Modal ortidagi qatlam: qoraytirish + xiralashtirish. */
   scrim: ViewStyle;
 }
@@ -98,6 +111,14 @@ export const makeGlass = (colors: ColorTokens, shadows: ShadowTokens): GlassToke
   },
   flush: {
     backgroundColor: colors.glassSurface,
+  },
+  // Dialog sirti: blur mavjud bo'lmagan platformalarda ham matn o'qilishi
+  // SHART, shuning uchun shaffoflik yo'q.
+  modal: {
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
+    ...shadows.raised,
   },
   // Modal ochilganda ortdagi ekran ko'rinib turadi, lekin o'qilmaydi — diqqat
   // dialogda qoladi, kontekst esa yo'qolmaydi.

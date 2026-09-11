@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
+import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
@@ -674,13 +675,16 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     sectionWrap: {
       marginTop: spacing.sm,
     },
+    // Bo'shliq KO'RISH OYNASIDA: shunda ro'yxat "+" tugmasidan YUQORIDA
+    // tugaydi va hech bir qator uning ostidan o'tmaydi. Ilgari bu bo'shliq
+    // kontent konteynerida edi — u faqat ro'yxat oxirigacha aylantirilganda
+    // ishlardi, o'rtada esa qatorlar tugma bilan aralashib ketardi.
     scroll: {
       flex: 1,
+      marginBottom: FAB_CLEARANCE,
     },
     // Ro'yxat tugagach karta ham tugaydi, ostida fon ko'rinadi va "+" tugmasi
-    // o'sha bo'sh joyda suzadi. Bo'shliq karta TASHQARISIDA (margin) —
-    // ichkarida (padding) berilsa oq karta ekran ostigacha cho'zilib,
-    // tugma uni bosib turardi.
+    // o'sha bo'sh joyda suzadi.
     listCard: {
       ...glass.surface,
       borderRadius: radius.xxl,
@@ -688,7 +692,6 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       // react-native-web uni tashqi va ichki blokka ikki marta qollab,
       // karta boshqa ekranlardagidan ikki barobar ichkariga tushib qolardi.
       marginHorizontal: spacing.md,
-      marginBottom: 88,
       overflow: 'hidden',
     },
   });
