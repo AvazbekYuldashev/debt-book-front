@@ -648,10 +648,8 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       marginHorizontal: -spacing.md,
       marginBottom: spacing.xs,
     },
-    // Bo'shliq KO'RISH OYNASIDA: ro'yxat "+" tugmasidan yuqorida tugaydi.
     scroll: {
       flex: 1,
-      marginBottom: FAB_CLEARANCE,
     },
     // Ro'yxat tugagach karta ham tugaydi, ostida fon ko'rinadi va "+" tugmasi
     // o'sha bo'sh joyda suzadi. Bo'shliq karta TASHQARISIDA (margin) —
@@ -659,6 +657,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     // tugma uni bosib turardi.
     content: {
       padding: spacing.md,
+      paddingBottom: FAB_CLEARANCE,
     },
     errorRow: {
       padding: spacing.sm,

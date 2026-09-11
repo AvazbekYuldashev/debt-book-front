@@ -675,19 +675,18 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     sectionWrap: {
       marginTop: spacing.sm,
     },
-    // Bo'shliq KO'RISH OYNASIDA: shunda ro'yxat "+" tugmasidan YUQORIDA
-    // tugaydi va hech bir qator uning ostidan o'tmaydi. Ilgari bu bo'shliq
-    // kontent konteynerida edi — u faqat ro'yxat oxirigacha aylantirilganda
-    // ishlardi, o'rtada esa qatorlar tugma bilan aralashib ketardi.
     scroll: {
       flex: 1,
-      marginBottom: FAB_CLEARANCE,
     },
     // Ro'yxat tugagach karta ham tugaydi, ostida fon ko'rinadi va "+" tugmasi
     // o'sha bo'sh joyda suzadi.
+    // Bo'shliq KARTA TAGIDA: ro'yxat oxiriga yetilganda oxirgi qator "+"
+    // tugmasidan yuqorida qoladi. Aylantirish paytida tugma qatorlar ustida
+    // suzadi — u suzuvchi tugma, shunday bo'lishi kerak.
     listCard: {
       ...glass.surface,
       borderRadius: radius.xxl,
+      marginBottom: FAB_CLEARANCE,
       // Chetdan chekinish KARTAning ozida — FlatList style'iga qoyilsa
       // react-native-web uni tashqi va ichki blokka ikki marta qollab,
       // karta boshqa ekranlardagidan ikki barobar ichkariga tushib qolardi.
