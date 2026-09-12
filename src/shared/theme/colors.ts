@@ -68,17 +68,28 @@ export interface ColorTokens {
 }
 
 export const lightColors: ColorTokens = {
-  gray50: '#F7F9FC',
-  gray100: '#EEF2F8',
+  // Neytral sirtlar va chegaralar YORUG' mavzuda shaffof: ilgari ular
+  // to'liq oq/kulrang edi (#F7F9FC, #EEF2F8, #E7ECF4, #D7DFEC) va
+  // ambient fon ustida oq bloklar hamda ramkalar bo'lib ko'rinardi.
+  // Matn kontrasti tekshirildi: karta ustida textPrimary 10.9-11.8,
+  // ya'ni AA dan ancha yuqori.
+  gray50: 'rgba(16, 28, 54, 0.04)',
+  gray100: 'rgba(16, 28, 54, 0.08)',
   primary: '#15803D',
   primaryPressed: '#116632',
   primarySoft: '#EBF7EF',
   secondary: '#E8A33D',
   secondaryPressed: '#CC8A28',
-  outline: '#D7DFEC',
+  outline: 'rgba(16, 28, 54, 0.14)',
   background: '#F5F7FB',
   surface: '#FFFFFF',
-  surfaceMuted: '#F2F5FA',
+  // Ichki bo'lak foni (chip, yorliq, til/mavzu tugmalari, izoh qutisi).
+  // Ilgari TO'LIQ OQ (#F2F5FA) edi va ambient fon ustida "oq blok"
+  // bo'lib ko'rinardi — 20+ joyda ishlatilgani uchun ekran oq
+  // to'rtburchaklarga to'lib ketardi. Endi shaffof sovuq tus: karta
+  // ustida fon o'tib turadi, oq modal ichida esa natija eski rangga
+  // deyarli teng (243,244,245), ya'ni dialoglar o'zgarmaydi.
+  surfaceMuted: 'rgba(16, 28, 54, 0.05)',
   textPrimary: '#101C36',
   // Shisha sirtlar ostidan fon o'tib turadi — eski '#5C6C8A' eng yomon
   // nuqtada (yashil to'lqin + barg ustma-ust) 4.23 gacha tushardi, ya'ni
@@ -87,7 +98,7 @@ export const lightColors: ColorTokens = {
   textOnPrimary: '#FFFFFF',
   textOnSecondary: '#FFFFFF',
   onPrimarySoft: 'rgba(255, 255, 255, 0.22)',
-  border: '#E7ECF4',
+  border: 'rgba(16, 28, 54, 0.08)',
   shadow: '#1E3250',
   danger: '#C4384B',
   dangerMuted: '#FDEFF1',
