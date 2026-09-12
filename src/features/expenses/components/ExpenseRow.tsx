@@ -8,6 +8,7 @@ import Card from '../../../shared/ui/Card';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import type { ExpenseResponseDTO } from '../types/expense';
+import { resolveCalcNote } from '../../../shared/lib/calcNote';
 
 interface ExpenseRowProps {
   expense: ExpenseResponseDTO;
@@ -24,13 +25,24 @@ const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, allowDelete, deleting,
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const amountValue = typeof expense.amount === 'string' ? Number(expense.amount) : expense.amount;
+  // Ifoda alohida ustunda keladi; izohdan ajratib ko'rsatiladi.
+  const { note, expression } = resolveCalcNote(expense.description, expense.calcNote);
   const handleDelete = useCallback(() => onDelete(expense.id), [onDelete, expense.id]);
 
   return (
     <Card style={styles.card}>
       <View style={styles.main}>
         <Text style={styles.amount}>{formatMoney(amountValue || 0)}</Text>
-        <Text style={styles.description}>{expense.description || t('expenses.noComment')}</Text>
+        <Text style={styles.description}>{note || t('expenses.noComment')}</Text>
+        {/* Summa kalkulyatorda hisoblangan bo'lsa — qanday hisoblangani. */}
+        {expression ? (
+          <View style={styles.calcRow}>
+            <Ionicons name="calculator-outline" size={12} color={colors.textSecondary} />
+            <Text style={styles.calcExpression} numberOfLines={1}>
+              {expression}
+            </Text>
+          </View>
+        ) : null}
         {expense.createdDate ? (
           <Text style={styles.date}>{new Date(expense.createdDate).toLocaleString()}</Text>
         ) : null}
@@ -83,6 +95,19 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       marginTop: spacing.xxs,
       fontSize: 13,
       color: colors.textPrimary,
+    },
+    calcRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xxs,
+      marginTop: spacing.xxs / 2,
+    },
+    calcExpression: {
+      ...typography.caption,
+      fontSize: 11,
+      flexShrink: 1,
+      color: colors.textSecondary,
+      fontVariant: ['tabular-nums'],
     },
     date: {
       ...typography.caption,

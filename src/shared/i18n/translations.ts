@@ -369,7 +369,7 @@ const uz: Dict = {
   'expenses.addExpense': "Xarajat qo'shish",
   'expenses.searchExpense': 'Xarajat qidirish',
   'expenses.noExpenses': 'Xarajat topilmadi',
-  'expenses.noComment': 'Izoh yoq',
+  'expenses.noComment': "Izoh yo'q",
   'expenses.addedBy': "Qo'shdi",
   'expenses.deleteExpenseConfirm': "Ushbu xarajatni o'chirasizmi?",
   'expenses.notSelected': 'tanlanmagan',

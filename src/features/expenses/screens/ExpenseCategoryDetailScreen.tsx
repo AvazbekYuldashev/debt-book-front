@@ -94,7 +94,7 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
   }, [loadExpenses]);
 
   const submitExpense = useCallback(
-    async (amount: number, description: string): Promise<boolean> => {
+    async (amount: number, description: string, calcNote: string | null): Promise<boolean> => {
       if (!profile?.jwt) {
         setError(t('expenses.noToken'));
         return false;
@@ -106,7 +106,7 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
       setSavingExpense(true);
       setError('');
       try {
-        await createExpense({ amount, description, categoryId }, profile.jwt);
+        await createExpense({ amount, description, categoryId, calcNote: calcNote ?? undefined }, profile.jwt);
         await loadExpenses(true);
         return true;
       } catch (e) {

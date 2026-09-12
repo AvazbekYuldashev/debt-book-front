@@ -2,6 +2,8 @@ export interface ExpenseResponseDTO {
   id: string;
   amount: number | string;
   description?: string;
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda; alohida ustun. */
+  calcNote?: string | null;
   categoryId: string;
   createdDate?: string;
   creatorId?: string;
@@ -11,6 +13,8 @@ export interface ExpenseResponseDTO {
 export interface ExpenseCreatedDTO {
   amount: number;
   description?: string;
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda. */
+  calcNote?: string;
   categoryId: string;
 }
 

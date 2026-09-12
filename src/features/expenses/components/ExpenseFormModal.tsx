@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
@@ -7,13 +8,14 @@ import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
+import CalculatorModal from '../../../shared/ui/CalculatorModal';
 
 interface ExpenseFormModalProps {
   visible: boolean;
   categoryName: string;
   submitting: boolean;
   onClose: () => void;
-  onSubmit: (amount: number, description: string) => Promise<boolean>;
+  onSubmit: (amount: number, description: string, calcNote: string | null) => Promise<boolean>;
 }
 
 // Kiritilgan summani "12 331 323" ko'rinishida (har 3 raqamda bo'sh joy) formatlaydi.
@@ -37,12 +39,16 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [amount, setAmount] = useState('');
+  const [calcOpen, setCalcOpen] = useState(false);
+  /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99"). */
+  const [calcExpression, setCalcExpression] = useState('');
   const [description, setDescription] = useState('');
   const [localError, setLocalError] = useState('');
 
   useEffect(() => {
     if (!visible) return;
     setAmount('');
+    setCalcExpression('');
     setDescription('');
     setLocalError('');
   }, [visible]);
@@ -54,8 +60,8 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
       return;
     }
     setLocalError('');
-    if (await onSubmit(normalizedAmount, description.trim())) onClose();
-  }, [amount, description, t, onSubmit, onClose]);
+    if (await onSubmit(normalizedAmount, description.trim(), calcExpression || null)) onClose();
+  }, [amount, calcExpression, description, t, onSubmit, onClose]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -70,14 +76,30 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title}>{t('expenses.addExpense')}</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>{t('expenses.addExpense')}</Text>
+              {/* Summani oldindan hisoblab olish uchun — ilovadan chiqmasdan. */}
+              <Pressable
+                onPress={() => setCalcOpen(true)}
+                hitSlop={8}
+                style={({ pressed }) => [styles.calcBtn, pressed && styles.calcBtnPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('calc.title')}
+              >
+                <Ionicons name="calculator-outline" size={20} color={theme.colors.primary} />
+              </Pressable>
+            </View>
             <Text style={styles.hint}>
               {t('expenses.categoryColon')}: {categoryName || t('expenses.notSelected')}
             </Text>
             <Input
               label={t('expenses.amountLabel')}
               value={amount}
-              onChangeText={(value) => setAmount(formatAmountInput(value))}
+              onChangeText={(value) => {
+                setAmount(formatAmountInput(value));
+                // Summa QO'LDA o'zgartirilsa ifoda endi unga mos kelmaydi.
+                setCalcExpression('');
+              }}
               placeholder={t('expenses.amountExample')}
               keyboardType="numeric"
               autoFocus
@@ -94,6 +116,16 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
               <Button title={t('common.save')} onPress={handleSubmit} loading={submitting} style={styles.actionBtn} />
             </View>
           </View>
+
+          <CalculatorModal
+            visible={calcOpen}
+            initialValue={amount}
+            onClose={() => setCalcOpen(false)}
+            onApply={(value, expression) => {
+              setAmount(formatAmountInput(value));
+              setCalcExpression(expression);
+            }}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -118,6 +150,23 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...glass.modal,
       borderRadius: radius.lg,
       padding: spacing.md,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    calcBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySoft,
+    },
+    calcBtnPressed: {
+      opacity: 0.6,
     },
     title: {
       ...typography.heading2,
