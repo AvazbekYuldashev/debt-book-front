@@ -55,7 +55,7 @@ const ExpenseTotalCard: React.FC<ExpenseTotalCardProps> = ({ label, amount, onMe
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     card: {
       ...glass.pane,
@@ -64,11 +64,11 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       paddingHorizontal: spacing.md + 2,
       marginBottom: spacing.md,
       marginHorizontal: spacing.md,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.06,
-      shadowRadius: 16,
-      elevation: 3,
+      // Soya umumiy tokendan: Android'da shaffof sirtga elevation
+      // berilsa, soya yumaloq kontur o'rniga TO'RTBURCHAK chegara
+      // bo'yicha chiziladi va karta ichida oq to'rtburchak paydo
+      // bo'ladi. Token shu qoidani bir joyda ushlab turadi.
+      ...shadows.raised,
     },
     topRow: {
       flexDirection: 'row',

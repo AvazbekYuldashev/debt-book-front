@@ -244,7 +244,7 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     card: {
       ...glass.pane,
@@ -253,11 +253,11 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       paddingHorizontal: spacing.md,
       marginHorizontal: spacing.md,
       marginBottom: spacing.sm,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.12,
-      shadowRadius: 20,
-      elevation: 6,
+      // Soya umumiy tokendan: Android'da shaffof sirtga elevation
+      // berilsa, soya yumaloq kontur o'rniga TO'RTBURCHAK chegara
+      // bo'yicha chiziladi va karta ichida oq to'rtburchak paydo
+      // bo'ladi. Token shu qoidani bir joyda ushlab turadi.
+      ...shadows.raised,
     },
     row: {
       flexDirection: 'row',

@@ -104,7 +104,7 @@ const BusinessMemberCard: React.FC<BusinessMemberCardProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     card: {
       ...glass.pane,
@@ -112,11 +112,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       borderWidth: 1,
       borderColor: colors.border,
       padding: spacing.md,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-      elevation: 2,
+      // Soya umumiy tokendan — Android'da shaffof sirtga elevation
+      // berilsa to'rtburchak artefakt chiqadi (elevation.ts ga qarang).
+      ...shadows.card,
     },
     cardHeader: {
       flexDirection: 'row',

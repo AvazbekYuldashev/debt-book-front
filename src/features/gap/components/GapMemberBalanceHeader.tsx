@@ -151,7 +151,7 @@ const GapMemberBalanceHeader: React.FC<GapMemberBalanceHeaderProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     wrap: {
       paddingHorizontal: spacing.md,
@@ -168,11 +168,11 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       borderRadius: radius.xl,
       padding: spacing.md + 2,
       marginBottom: spacing.md,
-      shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.14,
-      shadowRadius: 22,
-      elevation: 8,
+      // Soya umumiy tokendan: Android'da shaffof sirtga elevation
+      // berilsa, soya yumaloq kontur o'rniga TO'RTBURCHAK chegara
+      // bo'yicha chiziladi va karta ichida oq to'rtburchak paydo
+      // bo'ladi. Token shu qoidani bir joyda ushlab turadi.
+      ...shadows.raised,
     },
     row: {
       flexDirection: 'row',
