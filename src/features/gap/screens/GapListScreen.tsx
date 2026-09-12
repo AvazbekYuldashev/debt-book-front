@@ -109,14 +109,22 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
 
   const renderItem: ListRenderItem<GapResponseDTO> = useCallback(
     ({ item, index }) => (
-      <GapRow
-        item={item}
-        isLast={index === items.length - 1}
-        expanded={expanded}
-        onPress={openDetail}
-      />
+      <View
+        style={[
+          styles.rowSlice,
+          index === 0 && styles.rowFirst,
+          index === items.length - 1 && styles.rowLast,
+        ]}
+      >
+        <GapRow
+          item={item}
+          isLast={index === items.length - 1}
+          expanded={expanded}
+          onPress={openDetail}
+        />
+      </View>
     ),
-    [openDetail, items.length, expanded]
+    [openDetail, items.length, expanded, styles]
   );
 
   const keyExtractor = useCallback((item: GapResponseDTO) => item.id, []);
@@ -174,9 +182,10 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
           />
         }
         ListEmptyComponent={
-          // Skeleton faqat BIRINCHI yuklashda: mavjud ro'yxat fon
-          // yangilanishida kulrang chiziqlarga almashmaydi.
-          isBusy ? (
+          <View style={styles.emptyCard}>
+          {/* Skeleton faqat BIRINCHI yuklashda: mavjud ro'yxat fon
+              yangilanishida kulrang chiziqlarga almashmaydi. */}
+          {isBusy ? (
             <SkeletonContactList count={4} />
           ) : (
             <EmptyState
@@ -184,7 +193,8 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
               title={t('gap.empty')}
               description={t('gap.emptyHint')}
             />
-          )
+          )}
+          </View>
         }
       />
 
@@ -200,7 +210,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -240,13 +250,37 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     // paydo bo'lmasdi va oxirgi qator "+" tugmasi ostida qolaverardi.
     // Padding esa kontent o'lchamiga kiradi, shuning uchun ishlaydi
     // (Xarajatlar bo'limi boshidan shunday qilingan).
-    listCard: {
+    // Bo'sh holat va skeleton ilgari karta ICHIDA chizilardi. Karta endi
+    // qatorlardan yig'ilgani uchun ular yalang'och fonda qolmasin — o'ziga
+    // xos karta sirtini shu yerda beramiz.
+    emptyCard: {
       ...glass.pane,
       borderRadius: radius.xxl,
-      paddingBottom: FAB_CLEARANCE,
       marginHorizontal: spacing.md,
       overflow: 'hidden',
-      ...shadows.card,
+    },
+    // Ro'yxat kontenti: karta emas, faqat pastki bo'shliq.
+    listCard: {
+      paddingBottom: FAB_CLEARANCE,
+    },
+    // Karta qatorlarning o'zidan yig'iladi: birinchi qator tepasi, oxirgisi
+    // pasti yumaloq. Shu sababli karta oxirgi qatorda TUGAYDI va ostidagi
+    // bo'shliq undan tashqarida qoladi — "+" fon ustida suzadi.
+    // Ilgari karta kontent konteyneri edi, bo'shliq uning ichiga tushib
+    // karta ekran ostiga yopishib qolardi.
+    rowSlice: {
+      backgroundColor: colors.glassSurface,
+      marginHorizontal: spacing.md,
+    },
+    rowFirst: {
+      borderTopLeftRadius: radius.xxl,
+      borderTopRightRadius: radius.xxl,
+      overflow: 'hidden',
+    },
+    rowLast: {
+      borderBottomLeftRadius: radius.xxl,
+      borderBottomRightRadius: radius.xxl,
+      overflow: 'hidden',
     },
   });
 

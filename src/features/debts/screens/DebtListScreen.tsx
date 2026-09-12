@@ -322,6 +322,13 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       const totals = totalsByContact[item.id];
       const balances = totals ? netByCurrency(totals.credit, totals.debt) : undefined;
       return (
+        <View
+          style={[
+            styles.rowSlice,
+            index === 0 && styles.rowFirst,
+            index === lastIndex && styles.rowLast,
+          ]}
+        >
         <ContactRow
           contact={item}
           balances={balances}
@@ -334,6 +341,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           onEdit={openEdit}
           onViewPhoto={viewContactPhoto}
         />
+        </View>
       );
     },
     [
@@ -515,7 +523,8 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
         ListEmptyComponent={
-          showSkeleton ? (
+          <View style={styles.emptyCard}>
+          {showSkeleton ? (
             <SkeletonContactList count={6} />
           ) : hasActiveQuery ? (
             // Qidiruvning bo'sh natijasi — "hali kontakt yo'q" dan BOSHQA holat.
@@ -532,7 +541,8 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
               actionLabel={canEdit ? t('debts.addNew') : undefined}
               onAction={canEdit ? openCreate : undefined}
             />
-          )
+          )}
+          </View>
         }
       />
 
@@ -605,7 +615,7 @@ const SearchToggle: React.FC<SearchToggleProps> = ({ label, active, onPress, sty
   </Pressable>
 );
 
-const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -680,20 +690,39 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     },
     // Ro'yxat tugagach karta ham tugaydi, ostida fon ko'rinadi va "+" tugmasi
     // o'sha bo'sh joyda suzadi.
-    // Bo'shliq KARTA ICHIDA (padding), tashqarisida (margin) EMAS:
-    // react-native `contentContainerStyle` dagi margin'ni aylantiriladigan
-    // balandlikka QO'SHMAYDI — ro'yxat oxiriga yetilganda bo'shliq umuman
-    // paydo bo'lmasdi va oxirgi qator "+" tugmasi ostida qolaverardi.
-    // Padding esa kontent o'lchamiga kiradi, shuning uchun ishlaydi
-    // (Xarajatlar bo'limi boshidan shunday qilingan).
-    listCard: {
+    // Bo'sh holat va skeleton ilgari karta ICHIDA chizilardi. Karta endi
+    // qatorlardan yig'ilgani uchun ular yalang'och fonda qolmasin — o'ziga
+    // xos karta sirtini shu yerda beramiz.
+    emptyCard: {
       ...glass.surface,
       borderRadius: radius.xxl,
-      paddingBottom: FAB_CLEARANCE,
-      // Chetdan chekinish KARTAning ozida — FlatList style'iga qoyilsa
-      // react-native-web uni tashqi va ichki blokka ikki marta qollab,
-      // karta boshqa ekranlardagidan ikki barobar ichkariga tushib qolardi.
       marginHorizontal: spacing.md,
+      overflow: 'hidden',
+    },
+    // Ro'yxat kontenti: karta emas, faqat pastki bo'shliq. Karta ko'rinishi
+    // qatorlarning o'zida (rowSlice) — pastdagi izohga qarang.
+    listCard: {
+      paddingBottom: FAB_CLEARANCE,
+    },
+    // Karta endi ro'yxat konteyneri EMAS, balki qatorlarning o'zidan
+    // yig'iladi: birinchi qator tepasi, oxirgisi pasti yumaloq. Shu sababli
+    // karta oxirgi qatorda TUGAYDI, ostidagi bo'shliq esa undan tashqarida
+    // qoladi — "+" tugmasi fon ustida suzadi (Xarajatlar bo'limidagidek).
+    //
+    // Ilgari karta kontent konteyneri edi va bo'shliq uning ICHIGA tushib,
+    // karta ekran ostiga yopishib qolardi.
+    rowSlice: {
+      backgroundColor: colors.glassSurface,
+      marginHorizontal: spacing.md,
+    },
+    rowFirst: {
+      borderTopLeftRadius: radius.xxl,
+      borderTopRightRadius: radius.xxl,
+      overflow: 'hidden',
+    },
+    rowLast: {
+      borderBottomLeftRadius: radius.xxl,
+      borderBottomRightRadius: radius.xxl,
       overflow: 'hidden',
     },
   });
