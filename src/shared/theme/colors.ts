@@ -38,12 +38,18 @@ export interface ColorTokens {
   ambientGlow: string;
   // ---- "Shisha" sirtlar (glass) ----
   // Kartalar TEKIS rang emas: yarim shaffof qatlam — ostidagi ambient fon
-  // (barglar, tepaliklar) ular ORQALI xira ko'rinib turadi. Fill ATAYIN past
-  // alfada: shakl asosan CHEGARA bilan ushlanadi, shuning uchun `glassBorder`
-  // fill'dan yuqoriroq alfaga ega — aks holda karta "chetsiz dog'" bo'lardi. Web'da ustiga
-  // `backdrop-filter` blur qo'shiladi, native'da esa xiralik shaffoflikning
-  // o'zidan chiqadi. Alfa qiymatlari matn kontrasti buzilmaydigan darajada
-  // yuqori tanlangan — bezak hech qachon o'qishdan ustun turmaydi.
+  // (barglar, tepaliklar) ular ORQALI xira ko'rinib turadi.
+  //
+  // YORUG' mavzuda chegara ilgari 78% OQ edi va har karta atrofida ko'zga
+  // tashlanadigan oq to'rtburchak ramka chizardi; fill ham 0.42 bo'lib,
+  // ekran "oq bloklar" yig'indisiga aylanardi. Endi chegara sovuq va
+  // deyarli sezilmas (6%), fill esa pasaytirilgan — ambient fon ko'proq
+  // ko'rinadi. Kontrast tekshirildi: eng yomon holatda ham (yashil to'lqin
+  // + barg ustma-ust) textSecondary 5.2:1, ya'ni AA (4.5) dan yuqori.
+  //
+  // Web'da ustiga `backdrop-filter` blur qo'shiladi, native'da esa xiralik
+  // shaffoflikning o'zidan chiqadi. Bezak hech qachon o'qishdan ustun
+  // turmaydi — alfani pasaytirishdan oldin kontrast hisoblanadi.
   glassSurface: string;
   /** Matn zich joylar uchun to'yingroq variant (modal, summary karta). */
   glassSurfaceStrong: string;
@@ -94,10 +100,10 @@ export const lightColors: ColorTokens = {
   ambientGreen: 'rgba(21, 128, 61, 0.05)',
   ambientBlue: 'rgba(46, 95, 191, 0.045)',
   ambientGlow: 'rgba(255, 255, 255, 0.7)',
-  glassSurface: 'rgba(255, 255, 255, 0.42)',
-  glassSurfaceStrong: 'rgba(255, 255, 255, 0.60)',
-  glassMuted: 'rgba(255, 255, 255, 0.30)',
-  glassBorder: 'rgba(255, 255, 255, 0.78)',
+  glassSurface: 'rgba(255, 255, 255, 0.28)',
+  glassSurfaceStrong: 'rgba(255, 255, 255, 0.44)',
+  glassMuted: 'rgba(255, 255, 255, 0.20)',
+  glassBorder: 'rgba(16, 28, 54, 0.06)',
   glassPrimarySoft: 'rgba(21, 128, 61, 0.10)',
   positive: '#15803D',
   positiveSoft: '#EBF7EF',

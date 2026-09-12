@@ -70,7 +70,16 @@
           "cameraPermission": false
         }
       ],
-      "expo-build-properties"
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": false,
+            "extraProguardRules": "# --- Hermes / JNI: nomlar JNI orqali qidiriladi, o'zgartirilmasin ---\n-keep class com.facebook.hermes.** { *; }\n-keep class com.facebook.jni.** { *; }\n-keep class com.facebook.soloader.** { *; }\n\n# --- React Native ko'prigi va codegen (New Architecture) ---\n-keep class com.facebook.react.turbomodule.** { *; }\n-keep class com.facebook.react.bridge.** { *; }\n-keep class com.facebook.react.uimanager.** { *; }\n-keepclassmembers class * { @com.facebook.react.bridge.ReactMethod <methods>; }\n-keepclassmembers class * { @com.facebook.react.uimanager.annotations.ReactProp <methods>; }\n-keepclassmembers class * { @com.facebook.proguard.annotations.DoNotStrip *; }\n-keep @com.facebook.proguard.annotations.DoNotStrip class *\n\n# --- Expo modullari: modul ta'riflari Kotlin reflection bilan o'qiladi ---\n-keep class expo.modules.** { *; }\n-keep class * extends expo.modules.kotlin.modules.Module { *; }\n-keepclassmembers class * extends expo.modules.kotlin.modules.Module { *; }\n\n# --- Kotlin metadata: reflection'ga kerak ---\n-keep class kotlin.Metadata { *; }\n-keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod\n\n# --- Crash izlari o'qilishi uchun qator raqamlari saqlanadi ---\n-keepattributes SourceFile, LineNumberTable\n-renamesourcefileattribute SourceFile\n"
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
