@@ -48,7 +48,9 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
       paddingHorizontal: spacing.md,
       paddingTop: spacing.md,
       paddingBottom: spacing.xs,
-      backgroundColor: colors.background,
+      // Fon ATAYIN berilmaydi: ekranning ambient foni sarlavha ortidan ham
+      // o'tib tursin. Tekis rang berilganda u yuqorida yopishib turgan
+      // shaffofmas chiziq bo'lib ko'rinardi.
     },
     titleWrap: {
       flex: 1,

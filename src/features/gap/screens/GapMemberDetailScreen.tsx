@@ -278,9 +278,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
       paddingBottom: spacing.md,
-      backgroundColor: colors.background,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
+      // Fon va yuqori chegara YO'Q — Qarzlar bo'limidagi bilan bir xil.
+      // Tekis fon berilganda tugmalar ostida shaffofmas oq chiziq qolardi.
     },
     actionBtn: {
       flex: 1,
