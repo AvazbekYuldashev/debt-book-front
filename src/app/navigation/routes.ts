@@ -18,6 +18,8 @@ export const ROUTES = {
   EXPENSE_CATEGORY_DETAIL: 'ExpenseCategoryDetail',
   MY_BUSINESSES: 'MyBusinesses',
   BUSINESS_MEMBERS: 'BusinessMembers',
+  PRODUCTS: 'Products',
+  PRODUCT_LIST: 'ProductList',
   OFFER: 'Offer',
   TERMS: 'Terms',
   PRIVACY_POLICY: 'PrivacyPolicy',

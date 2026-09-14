@@ -5,6 +5,7 @@ import {
   type BottomTabBarProps,
 } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ProductsStack from './ProductsStack';
 import DebtsStack from './DebtsStack';
 import GapStack from './GapStack';
 import ExpensesStack from './ExpensesStack';
@@ -20,6 +21,7 @@ import type { ThemeValue } from '../../shared/theme/ThemeProvider';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TAB_ICONS: Record<string, React.ComponentProps<typeof Feather>['name']> = {
+  [ROUTES.PRODUCTS]: 'tag',
   [ROUTES.DEBTS]: 'list',
   [ROUTES.GAP]: 'users',
   [ROUTES.EXPENSES]: 'dollar-sign',
@@ -165,10 +167,16 @@ const BottomTabNavigator: React.FC = () => {
   // Gap to'yona — SHAXSIY bo'lim: odamlar o'rtasidagi oldi-berdi daftari.
   // Biznes hisobiga o'tilganda tab umuman ko'rinmaydi (backend ham
   // biznes konteksti bilan kelgan so'rovni rad etadi).
+  //
+  // Mahsulotlar (narxnoma) — buning AKSI: faqat biznes bo'limi. Shu sababli
+  // panelda har doim 4 ta tab turadi, shaxsiyda 2-o'rinda Gap, biznesda
+  // 1-o'rinda Mahsulotlar.
   const { workspace } = useContext(WorkspaceContext);
   const gapAvailable = workspace.mode !== 'business';
+  const productsAvailable = workspace.mode === 'business';
 
   const tabLabel = (routeName: string) => {
+    if (routeName === ROUTES.PRODUCTS) return t('tab.products');
     if (routeName === ROUTES.DEBTS) return t('tab.debts');
     if (routeName === ROUTES.GAP) return t('tab.gap');
     if (routeName === ROUTES.EXPENSES) return t('tab.expenses');
@@ -178,9 +186,13 @@ const BottomTabNavigator: React.FC = () => {
 
   return (
     <Tab.Navigator
+      // Mahsulotlar panelda birinchi turadi, lekin ilova baribir Qarzlar
+      // bilan ochiladi: bosh ekran o'zgarmasligi kerak.
+      initialRouteName={ROUTES.DEBTS}
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <AppTabBar {...props} labelOf={tabLabel} />}
     >
+      {productsAvailable ? <Tab.Screen name={ROUTES.PRODUCTS} component={ProductsStack} /> : null}
       <Tab.Screen name={ROUTES.DEBTS} component={DebtsStack} />
       {gapAvailable ? <Tab.Screen name={ROUTES.GAP} component={GapStack} /> : null}
       <Tab.Screen name={ROUTES.EXPENSES} component={ExpensesStack} />

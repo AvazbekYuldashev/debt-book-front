@@ -8,6 +8,7 @@ import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import PressableScale from '../../../shared/ui/PressableScale';
 import SectionHeader from '../../../shared/ui/SectionHeader';
+import SwipePager, { type SwipePage } from '../../../shared/ui/SwipePager';
 import StatusBanner from '../../../shared/ui/StatusBanner';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import { AuthContext } from '../../auth/context/AuthContext';
@@ -25,6 +26,7 @@ import { MoneyActionType } from '../../../shared/types/money';
 import { netByCurrency } from '../../../shared/lib/currency';
 import { canWrite } from '../../../shared/lib/permissions';
 import { useI18n } from '../../../shared/i18n';
+import BusinessCatalogPane from '../../products/components/BusinessCatalogPane';
 import ContactBalanceHeader from '../components/ContactBalanceHeader';
 import TransactionRow from '../components/TransactionRow';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -140,6 +142,15 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
   const keyExtractor = useCallback((item: MappedTransaction) => item.id, []);
 
+  // Kontakt BIZNES bo'lsa ikkinchi sahifa — uning narxnomasi. Odam kontaktni
+  // ochganda avval tarixni izlaydi, shuning uchun katalog faqat surilgandan
+  // keyin yuklanadi (`catalogSeen`).
+  const showCatalog = contact?.partyType === 'BUSINESS_ACCOUNT' && Boolean(contact?.partyId);
+  const [catalogSeen, setCatalogSeen] = useState(false);
+  const handlePageChange = useCallback((index: number) => {
+    if (index === 1) setCatalogSeen(true);
+  }, []);
+
   if (!contact) {
     return (
       <View style={styles.centered}>
@@ -147,6 +158,53 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       </View>
     );
   }
+
+  const renderHistory = () => (
+    <FlatList
+      contentContainerStyle={styles.listCard}
+      data={mappedHistory}
+      renderItem={renderTransaction}
+      keyExtractor={keyExtractor}
+      showsVerticalScrollIndicator={false}
+      initialNumToRender={14}
+      windowSize={11}
+      refreshControl={
+        <RefreshControl
+          refreshing={loading}
+          onRefresh={loadScreenData}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+          progressBackgroundColor={colors.surface}
+        />
+      }
+      ListEmptyComponent={
+        // Skeleton faqat BIRINCHI yuklashda: tarix allaqachon ekranda
+        // bo'lsa, modal yopilgandan keyingi fon yangilanishi uni
+        // kulrang chiziqlarga almashtirmaydi.
+        loading && mappedHistory.length === 0 ? (
+          <SkeletonContactList count={5} />
+        ) : (
+          <EmptyState
+            icon="swap-horizontal-outline"
+            title={t('debts.emptyAccount')}
+            description={allowWrite ? t('contact.emptyHint') : undefined}
+          />
+        )
+      }
+    />
+  );
+
+  const pages: SwipePage[] = [
+    { key: 'history', label: t('debts.history'), icon: 'time-outline', render: renderHistory },
+    {
+      key: 'catalog',
+      label: t('products.title'),
+      icon: 'pricetags-outline',
+      render: () => (
+        <BusinessCatalogPane businessId={contact.partyId} token={profile?.jwt} active={catalogSeen} />
+      ),
+    },
+  ];
 
   return (
     <View style={styles.container}>
@@ -167,42 +225,17 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           </View>
         ) : null}
 
-        <SectionHeader icon="time" iconBadge={false} title={t('debts.history')} />
+        {showCatalog ? null : (
+          <SectionHeader icon="time" iconBadge={false} title={t('debts.history')} />
+        )}
       </EntranceView>
 
       <EntranceView delay={90} duration={320} fromY={14} style={styles.listWrap}>
-        <FlatList
-          contentContainerStyle={styles.listCard}
-          data={mappedHistory}
-          renderItem={renderTransaction}
-          keyExtractor={keyExtractor}
-          showsVerticalScrollIndicator={false}
-          initialNumToRender={14}
-          windowSize={11}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading}
-              onRefresh={loadScreenData}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-              progressBackgroundColor={colors.surface}
-            />
-          }
-          ListEmptyComponent={
-            // Skeleton faqat BIRINCHI yuklashda: tarix allaqachon ekranda
-            // bo'lsa, modal yopilgandan keyingi fon yangilanishi uni
-            // kulrang chiziqlarga almashtirmaydi.
-            loading && mappedHistory.length === 0 ? (
-              <SkeletonContactList count={5} />
-            ) : (
-              <EmptyState
-                icon="swap-horizontal-outline"
-                title={t('debts.emptyAccount')}
-                description={allowWrite ? t('contact.emptyHint') : undefined}
-              />
-            )
-          }
-        />
+        {showCatalog ? (
+          <SwipePager pages={pages} onPageChange={handlePageChange} />
+        ) : (
+          renderHistory()
+        )}
       </EntranceView>
 
       {allowWrite ? (
@@ -239,6 +272,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         fixedCounterpartyId={contact.partyId}
         fixedCounterpartyType={contact.partyType}
         ownerAccountType={accountType}
+        token={profile?.jwt}
         onClose={() => setModalVisible(false)}
         onSubmit={handleCreate}
       />

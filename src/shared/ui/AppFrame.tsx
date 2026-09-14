@@ -3,8 +3,14 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 
-/** Yig'ilgan ustun eni: uzun ro'yxatlar uchun qulay, cho'zilib ketmaydigan. */
-const COLUMN_WIDTH = 560;
+/**
+ * Yig'ilgan ustun eni: uzun ro'yxatlar uchun qulay, cho'zilib ketmaydigan.
+ *
+ * Eksport qilingan, chunki gorizontal sahifalash (SwipePager) bir sahifa
+ * enini BILISHI shart, o'lchash esa bu muhitda ishonchsiz (pastdagi izohga
+ * qarang). Ilova bitta ustun — shuning uchun sahifa eni ham aynan shu.
+ */
+export const APP_COLUMN_WIDTH = 560;
 
 /**
  * Ilovani keng ekranda markazlashtirilgan ustunga yig'adi.
@@ -48,7 +54,7 @@ const createStyles = ({ colors }: ThemeValue) =>
     column: {
       flex: 1,
       width: '100%',
-      maxWidth: COLUMN_WIDTH,
+      maxWidth: APP_COLUMN_WIDTH,
       backgroundColor: colors.background,
       // Chegara emas, soya: ustun ekranga teng bo'lganda soya ko'rinmaydi,
       // chegara esa telefon brauzerida chetlarda ingichka chiziq qoldirardi.

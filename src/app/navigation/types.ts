@@ -60,6 +60,18 @@ export type ProfileScreenProps<T extends keyof ProfileStackParamList> = NativeSt
   T
 >;
 
+/** Mahsulotlar (biznes narxnomasi) stack'ining route param'lari. */
+export type ProductsStackParamList = {
+  [ROUTES.PRODUCT_LIST]: undefined;
+};
+
+export type ProductsNavigation = NativeStackNavigationProp<ProductsStackParamList>;
+
+export type ProductsScreenProps<T extends keyof ProductsStackParamList> = NativeStackScreenProps<
+  ProductsStackParamList,
+  T
+>;
+
 /** Gap kassa stack'ining route param'lari. */
 export type GapStackParamList = {
   [ROUTES.GAP_LIST]: undefined;
@@ -90,6 +102,7 @@ export type GapScreenProps<T extends keyof GapStackParamList> = NativeStackScree
 
 /** Pastki tab navigatori — stack'lararo (cross-tab) navigatsiya uchun. */
 export type MainTabParamList = {
+  [ROUTES.PRODUCTS]: NavigatorScreenParams<ProductsStackParamList>;
   [ROUTES.DEBTS]: NavigatorScreenParams<DebtsStackParamList>;
   [ROUTES.GAP]: NavigatorScreenParams<GapStackParamList>;
   [ROUTES.EXPENSES]: NavigatorScreenParams<ExpensesStackParamList>;
