@@ -21,6 +21,30 @@ export type MoneyFlowType = (typeof MONEY_FLOW_TYPE)[keyof typeof MONEY_FLOW_TYP
 
 export type PartyType = 'PROFILE' | 'BUSINESS_ACCOUNT';
 
+/**
+ * Chek satri: qaysi mahsulotdan qancha, qaysi narxda olingani.
+ *
+ * Nom va narx server tomonda NUSXA qilib saqlanadi — narxnoma keyin
+ * o'zgarsa ham chek o'sha kungi holatini ko'rsatadi.
+ */
+export interface MoneyItemDTO {
+  id: string;
+  productId?: string | null;
+  name: string;
+  code?: string | null;
+  unitPrice: number;
+  currency?: Currency;
+  unit?: string;
+  quantity: number;
+  lineTotal: number;
+}
+
+/** Buyurtma yuborish uchun: narxni server narxnomadan o'zi oladi. */
+export interface MoneyItemCreateDTO {
+  productId: string;
+  quantity: number;
+}
+
 export interface MoneyResponseDTO {
   id: string;
   amount: number;
@@ -42,6 +66,8 @@ export interface MoneyResponseDTO {
   description: string;
   /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99"). */
   calcNote?: string;
+  /** Oldi-berdi mahsulot buyurtmasidan tuzilgan bo'lsa — chek satrlari. */
+  items?: MoneyItemDTO[];
 }
 
 export interface MoneyCreditorProfileCreatedDTO {
@@ -51,6 +77,11 @@ export interface MoneyCreditorProfileCreatedDTO {
   description: string;
   /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99"). */
   calcNote?: string;
+  /**
+   * Mahsulot buyurtmasi (ixtiyoriy). Berilsa, summani SERVER narxnomadan
+   * hisoblaydi va `amount` e'tiborga olinmaydi.
+   */
+  items?: MoneyItemCreateDTO[];
   fromAccountType?: AccountType;
   toAccountType?: AccountType;
   moneyFlowType?: MoneyFlowType;
@@ -63,6 +94,11 @@ export interface MoneyDebtorProfileCreatedDTO {
   description: string;
   /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99"). */
   calcNote?: string;
+  /**
+   * Mahsulot buyurtmasi (ixtiyoriy). Berilsa, summani SERVER narxnomadan
+   * hisoblaydi va `amount` e'tiborga olinmaydi.
+   */
+  items?: MoneyItemCreateDTO[];
   fromAccountType?: AccountType;
   toAccountType?: AccountType;
   moneyFlowType?: MoneyFlowType;
@@ -76,6 +112,11 @@ export interface MoneyBusinessTargetDTO {
   description: string;
   /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda ("10×2+55÷99"). */
   calcNote?: string;
+  /**
+   * Mahsulot buyurtmasi (ixtiyoriy). Berilsa, summani SERVER narxnomadan
+   * hisoblaydi va `amount` e'tiborga olinmaydi.
+   */
+  items?: MoneyItemCreateDTO[];
   fromAccountType?: AccountType;
   toAccountType?: AccountType;
   moneyFlowType?: MoneyFlowType;

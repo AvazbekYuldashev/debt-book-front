@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -10,6 +10,7 @@ import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import { formatDateLong, MappedTransaction } from '../model/transactionMapping';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { resolveCalcNote } from '../../../shared/lib/calcNote';
+import { formatQuantity } from '../../../shared/lib/quantity';
 
 interface TransactionDetailModalProps {
   tx: MappedTransaction | null;
@@ -37,6 +38,10 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
   // Ifoda alohida ustunda keladi; eski yozuvlarda izoh ichida bo'lishi mumkin.
   const { note, expression } = resolveCalcNote(tx?.description, tx?.calcNote);
+
+  // Chek — oldi-berdi mahsulot buyurtmasidan tuzilgan bo'lsagina.
+  const items = tx?.items ?? [];
+  const currency = normalizeCurrency(tx?.currency);
 
   return (
     <Modal visible={Boolean(tx)} transparent animationType="fade" onRequestClose={onClose}>
@@ -83,6 +88,39 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
             </View>
           ) : null}
 
+          {items.length > 0 ? (
+            <View style={styles.receipt}>
+              <Text style={styles.receiptTitle}>{t('contact.receipt')}</Text>
+              {/* Uzun savat modalni ekrandan chiqarib yubormasin. */}
+              <ScrollView style={styles.receiptScroll} showsVerticalScrollIndicator={false}>
+                {items.map((item) => (
+                  <View key={item.id} style={styles.receiptRow}>
+                    <View style={styles.receiptInfo}>
+                      <Text style={styles.receiptName} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={styles.receiptMeta} numberOfLines={1}>
+                        {formatQuantity(item.quantity)}
+                        {item.unit ? ` ${t(`products.unit.${item.unit}`)}` : ''}
+                        {' × '}
+                        {formatMoney(item.unitPrice, normalizeCurrency(item.currency))}
+                      </Text>
+                    </View>
+                    <Text style={styles.receiptTotal} numberOfLines={1}>
+                      {formatMoney(item.lineTotal, normalizeCurrency(item.currency))}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+              <View style={styles.receiptSum}>
+                <Text style={styles.receiptSumLabel}>{t('contact.receiptTotal')}</Text>
+                <Text style={[styles.receiptSumValue, { color: amountColor }]}>
+                  {tx ? formatMoney(tx.amount, currency) : '--'}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
           <View style={styles.descriptionBox}>
             <Text style={styles.label}>{t('contact.comment')}</Text>
             <Text style={styles.description}>{note || t('contact.noComment')}</Text>
@@ -106,6 +144,66 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
 
 const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
+    receipt: {
+      marginTop: spacing.xs,
+      marginBottom: spacing.xs,
+      padding: spacing.sm,
+      borderRadius: radius.md,
+      backgroundColor: colors.surfaceMuted,
+    },
+    receiptTitle: {
+      ...typography.label,
+      marginBottom: spacing.xs,
+      color: colors.textSecondary,
+    },
+    // Balandlik cheklovi: 5-6 qatordan keyin ro'yxat o'zi aylanadi, modal
+    // esa ekrandan chiqib ketmaydi.
+    receiptScroll: {
+      maxHeight: 190,
+    },
+    receiptRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      paddingVertical: spacing.xs,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    receiptInfo: {
+      flex: 1,
+    },
+    receiptName: {
+      ...typography.bodySmall,
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    receiptMeta: {
+      ...typography.caption,
+      marginTop: spacing.xxs / 2,
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    receiptTotal: {
+      ...typography.bodySmall,
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    receiptSum: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: spacing.xs,
+    },
+    receiptSumLabel: {
+      ...typography.label,
+      color: colors.textSecondary,
+    },
+    receiptSumValue: {
+      ...typography.body,
+      fontWeight: '800',
+    },
     backdrop: {
       flex: 1,
       ...glass.scrim,

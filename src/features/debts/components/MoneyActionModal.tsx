@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -16,12 +16,15 @@ import ChipSelector, { ChipOption } from '../../../shared/ui/ChipSelector';
 import CalculatorModal from '../../../shared/ui/CalculatorModal';
 import PartyTypeSelector from '../../../shared/ui/PartyTypeSelector';
 import BusinessMemberPicker from './BusinessMemberPicker';
+import { WorkspaceContext } from '../../business/context/WorkspaceContext';
+import ProductBasketModal, { BasketResult } from '../../products/components/ProductBasketModal';
 import {
   AccountType,
   CURRENCIES,
   Currency,
   MoneyActionType,
   MoneyFlowType,
+  MoneyItemCreateDTO,
   PartyType,
 } from '../../../shared/types/money';
 import { accountTypeFromParty, flowForAccounts } from '../model/resolveMoneyFlow';
@@ -42,6 +45,8 @@ export interface MoneyActionPayload {
   description: string;
   /** Summa kalkulyatorda hisoblangan bo'lsa — o'sha ifoda. */
   calcNote?: string;
+  /** Mahsulot buyurtmasi — berilsa summani server narxnomadan hisoblaydi. */
+  items?: MoneyItemCreateDTO[];
   fromAccountType: AccountType;
   toAccountType: AccountType;
   moneyFlowType: MoneyFlowType;
@@ -56,6 +61,8 @@ interface MoneyActionModalProps {
   fixedCounterpartyId?: string;
   fixedCounterpartyType?: PartyType;
   ownerAccountType: AccountType;
+  /** Narxnomadan buyurtma qilish uchun token (counterparty biznes bo'lsa). */
+  token?: string;
   onClose: () => void;
   onSubmit: (payload: MoneyActionPayload) => Promise<void>;
 }
@@ -72,11 +79,13 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   fixedCounterpartyId,
   fixedCounterpartyType,
   ownerAccountType,
+  token,
   onClose,
   onSubmit,
 }) => {
   const { t } = useI18n();
   const { baseCurrency } = useCurrency();
+  const { workspace } = useContext(WorkspaceContext);
   const theme = useAppTheme();
   const keyboardInset = useKeyboardInset();
   const { colors } = theme;
@@ -95,6 +104,12 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   const [description, setDescription] = useState('');
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [error, setError] = useState('');
+  const [basketOpen, setBasketOpen] = useState(false);
+  /**
+   * Savatdagi qatorlar. Summa maydoni ular asosida to'ldiriladi, lekin
+   * yakuniy so'z serverda: u narxni o'z narxnomasidan qayta o'qiydi.
+   */
+  const [orderItems, setOrderItems] = useState<MoneyItemCreateDTO[]>([]);
 
   // Har ochilishda toza forma — yopilish yo'lidan (bekor/hardware back/muvaffaqiyat)
   // qat'i nazar eski qiymatlar qolib ketmaydi.
@@ -108,11 +123,29 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     setDescription('');
     setSelectedMemberId('');
     setError('');
+    setOrderItems([]);
   }, [visible, baseCurrency]);
 
   const effectiveType = fixedCounterpartyType ?? targetType;
   const effectiveCounterpartyId = (fixedCounterpartyId ?? counterpartyId).trim();
   const businessIdForMembers = effectiveType === 'BUSINESS_ACCOUNT' ? effectiveCounterpartyId : '';
+
+  /**
+   * Savat QAYSI narxnomadan yig'iladi.
+   *
+   * Ikki yo'nalish ham hayotiy:
+   *  - qarama-qarshi tomon BIZNES bo'lsa — uning katalogi (men do'kondan
+   *    xarid qilyapman, "Oldim");
+   *  - aks holda men biznes ish maydonida bo'lsam — O'Z katalogim (men
+   *    mijozga sotyapman, "Berdim"). Do'kon uchun aynan shu asosiy holat.
+   * Shaxsiy hisob + shaxsiy kontakt — narxnoma yo'q, savat ham chiqmaydi.
+   */
+  const catalogBusinessId =
+    effectiveType === 'BUSINESS_ACCOUNT'
+      ? effectiveCounterpartyId
+      : workspace.mode === 'business'
+        ? workspace.activeBusinessId ?? ''
+        : '';
 
   const title = actionType === 'GIVE' ? t('money.give') : t('money.take');
   const manualIdLabel =
@@ -143,6 +176,8 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     // Summa QO'LDA o'zgartirilsa ifoda endi unga mos kelmaydi — saqlangan
     // "10×2" yonida boshqa son turishi yolg'on tarix bo'lardi.
     setCalcExpression('');
+    // Savat ham shu sababdan bekor qilinadi: summa endi qatorlarga mos emas.
+    setOrderItems([]);
   }, []);
   const handleCurrencyChange = useCallback((value: Currency) => {
     setError('');
@@ -163,6 +198,16 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   const handleDescriptionChange = useCallback((value: string) => {
     setError('');
     setDescription(value);
+  }, []);
+
+  /** Savat tasdiqlanganda: summa, valyuta va izoh avtomatik to'ladi. */
+  const handleBasketConfirm = useCallback((result: BasketResult) => {
+    setError('');
+    setOrderItems(result.items);
+    setAmount(formatAmountInput(String(result.total)));
+    setCurrency(result.currency);
+    setCalcExpression(result.calcNote);
+    setBasketOpen(false);
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -196,6 +241,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
         targetBusinessProfileId: selectedMemberId || undefined,
         description: description.trim(),
         calcNote: calcExpression || undefined,
+        items: orderItems.length > 0 ? orderItems : undefined,
         fromAccountType,
         toAccountType,
         moneyFlowType: flowForAccounts(fromAccountType, toAccountType),
@@ -206,6 +252,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   }, [
     amount,
     calcExpression,
+    orderItems,
     effectiveCounterpartyId,
     effectiveType,
     selectedMemberId,
@@ -256,6 +303,25 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               onChangeText={handleAmountChange}
               placeholder="100 000"
             />
+
+            {/* Narxnomadan buyurtma — faqat qarama-qarshi tomon BIZNES bo'lganda:
+                mahsulot ham, narx ham o'sha biznesning katalogidan keladi. */}
+            {catalogBusinessId ? (
+              <Pressable
+                onPress={() => setBasketOpen(true)}
+                style={({ pressed }) => [styles.basketBtn, pressed && styles.calcBtnPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('basket.pick')}
+              >
+                <Ionicons name="basket-outline" size={18} color={colors.primary} />
+                <Text style={styles.basketText} numberOfLines={1}>
+                  {orderItems.length > 0
+                    ? t('basket.selected', { count: orderItems.length })
+                    : t('basket.pick')}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              </Pressable>
+            ) : null}
 
             <ChipSelector
               options={currencyOptions}
@@ -314,6 +380,16 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
             </View>
           </View>
 
+          {catalogBusinessId ? (
+            <ProductBasketModal
+              visible={basketOpen}
+              businessId={catalogBusinessId}
+              token={token}
+              onClose={() => setBasketOpen(false)}
+              onConfirm={handleBasketConfirm}
+            />
+          ) : null}
+
           <CalculatorModal
             visible={calcOpen}
             initialValue={amount}
@@ -331,6 +407,26 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
 
 const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
+    // Summa maydonidan keyin turadi: odam avval "qancha" deb o'ylaydi, keyin
+    // "aslida menda ro'yxat bor" deb eslaydi.
+    basketBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginBottom: spacing.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
+    },
+    basketText: {
+      ...typography.button,
+      flex: 1,
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
     backdrop: {
       flex: 1,
       ...glass.scrim,

@@ -5,6 +5,7 @@ import { createCredit, createDebt, getMoneyHistory, getTotalPriceByPartyId } fro
 import {
   Currency,
   MoneyActionType,
+  MoneyItemCreateDTO,
   MoneyPriceDTO,
   MoneyResponseDTO,
   PartyType,
@@ -30,6 +31,8 @@ interface CreateMoneyInput {
   calcNote?: string;
   // Counterparty business bo'lsa: tanlangan a'zo (profileId)
   targetBusinessProfileId?: string;
+  /** Mahsulot buyurtmasi — berilsa summani server narxnomadan hisoblaydi. */
+  items?: MoneyItemCreateDTO[];
 }
 
 interface UseAccountScopedTransactionsParams {
@@ -166,6 +169,7 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
           // o'sha inglizcha so'zni ko'rardi.
           description: payload.description,
           calcNote: payload.calcNote || undefined,
+          items: payload.items?.length ? payload.items : undefined,
           fromAccountType,
           toAccountType,
           moneyFlowType,
