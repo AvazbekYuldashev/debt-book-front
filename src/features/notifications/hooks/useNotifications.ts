@@ -1,6 +1,13 @@
 import { useContext } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../../auth/context/AuthContext';
+import {
+  clearPage,
+  insertIntoPage,
+  markAllReadInPage,
+  markReadInPage,
+  removeFromPage,
+} from '../model/notificationCache';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import {
   getNotifications,
@@ -86,20 +93,31 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: (id: string) => markNotificationRead(id, profile?.jwt),
     onMutate: (id: string) => {
-      // O'qilmaganlar ro'yxatidan DARHOL olib tashlanadi — u yerda qolib
-      // ketishi ro'yxat nomiga zid bo'lardi.
-      queryClient.setQueryData<PageResponse<NotificationDTO>>(
-        notificationsQueryKey(profile?.id, businessId, false),
-        (prev) => (prev ? { ...prev, content: prev.content.filter((n) => n.id !== id) } : prev),
-      );
+      const unreadKey = notificationsQueryKey(profile?.id, businessId, false);
+      const readKey = notificationsQueryKey(profile?.id, businessId, true);
+      const allKey = notificationsQueryKey(profile?.id, businessId);
+
+      // Ko'chiriladigan elementning O'ZI kerak — uni o'qilganlar ro'yxatiga
+      // qo'shish uchun. Avval o'qilmaganlardan, bo'lmasa aralash ro'yxatdan.
+      const source =
+        queryClient.getQueryData<PageResponse<NotificationDTO>>(unreadKey)?.content.find((n) => n.id === id) ??
+        queryClient.getQueryData<PageResponse<NotificationDTO>>(allKey)?.content.find((n) => n.id === id);
+
+      // O'qilmaganlardan DARHOL chiqadi — u yerda qolib ketishi ro'yxat
+      // nomiga zid bo'lardi.
+      queryClient.setQueryData<PageResponse<NotificationDTO>>(unreadKey, (prev) => removeFromPage(prev, id));
+
+      // ...va DARHOL o'qilganlarga tushadi. Ilgari bu qadam yo'q edi: element
+      // bir ro'yxatdan yo'qolib, ikkinchisida faqat server javobidan keyin
+      // paydo bo'lardi — oradagi payt "yo'qolib qoldi" bo'lib ko'rinardi.
+      if (source) {
+        queryClient.setQueryData<PageResponse<NotificationDTO>>(readKey, (prev) =>
+          insertIntoPage(prev, { ...source, read: true }),
+        );
+      }
+
       // Aralash ro'yxat (watcher) faqat belgilanadi — u yerdan yo'qolmasligi kerak.
-      queryClient.setQueryData<PageResponse<NotificationDTO>>(
-        notificationsQueryKey(profile?.id, businessId),
-        (prev) =>
-          prev
-            ? { ...prev, content: prev.content.map((n) => (n.id === id ? { ...n, read: true } : n)) }
-            : prev,
-      );
+      queryClient.setQueryData<PageResponse<NotificationDTO>>(allKey, (prev) => markReadInPage(prev, id));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: unreadCountQueryKey(profile?.id, businessId) });
@@ -118,8 +136,24 @@ export function useMarkAllNotificationsRead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => markAllNotificationsRead(profile?.jwt),
+    onMutate: () => {
+      const unreadKey = notificationsQueryKey(profile?.id, businessId, false);
+      const readKey = notificationsQueryKey(profile?.id, businessId, true);
+      const allKey = notificationsQueryKey(profile?.id, businessId);
+
+      // Hamma o'qilmagan DARHOL o'qilganlar tomoniga ko'chadi.
+      const moving = queryClient.getQueryData<PageResponse<NotificationDTO>>(unreadKey)?.content ?? [];
+      queryClient.setQueryData<PageResponse<NotificationDTO>>(readKey, (prev) =>
+        moving.reduce<PageResponse<NotificationDTO> | undefined>(
+          (acc, item) => insertIntoPage(acc, { ...item, read: true }),
+          prev,
+        ),
+      );
+      queryClient.setQueryData<PageResponse<NotificationDTO>>(unreadKey, (prev) => clearPage(prev));
+      queryClient.setQueryData<PageResponse<NotificationDTO>>(allKey, (prev) => markAllReadInPage(prev));
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsQueryKey(profile?.id, businessId) });
+      queryClient.invalidateQueries({ queryKey: notificationsKeyPrefix(profile?.id) });
       queryClient.invalidateQueries({ queryKey: unreadCountQueryKey(profile?.id, businessId) });
       queryClient.invalidateQueries({ queryKey: unreadByWorkspaceQueryKey(profile?.id) });
     },
