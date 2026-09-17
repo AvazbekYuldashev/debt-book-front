@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, type LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Image, type LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
 import Svg, {
   Circle,
   Defs,
@@ -12,6 +12,8 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 import { useAppTheme } from '../theme';
+import { useBackground } from '../theme/BackgroundProvider';
+import { buildAttachUrl } from '../lib/attachUrl';
 
 // ============================================================
 //  Ilova "imzo" foni: yengil ko'k-yashil gradient, yumshoq tepaliklar
@@ -109,6 +111,7 @@ Sprig.displayName = 'Sprig';
  */
 const AmbientBackground: React.FC = () => {
   const { colors, activeTheme } = useAppTheme();
+  const { imageId, fit, dim } = useBackground();
   const fade = useRef(new Animated.Value(0)).current;
 
   // O'lcham KONTEYNERdan olinadi, oyna o'lchamidan EMAS.
@@ -134,6 +137,35 @@ const AmbientBackground: React.FC = () => {
       useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, [fade]);
+
+  // --- Foydalanuvchi qo'ygan fon rasmi ---
+  //
+  // Rasm tanlangan bo'lsa bezakli SVG chizilmaydi: ikkalasi ustma-ust
+  // tushsa kompozitsiya ham, rasm ham buziladi.
+  //
+  // Ustidagi parda MAJBURIY (eng past qiymati MIN_DIM): yorqin yoki rang-barang
+  // rasm ustida na qora, na oq matn o'qiladi. Parda rangi mavzudan olinadi,
+  // shuning uchun qorong'i mavzuda rasm qoraytiriladi, yorug'ida oqartiriladi.
+  if (imageId) {
+    return (
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}
+        pointerEvents="none"
+      >
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
+          <Image
+            source={{ uri: buildAttachUrl(imageId) }}
+            style={StyleSheet.absoluteFill}
+            resizeMode={fit}
+            accessibilityIgnoresInvertColors
+          />
+          <View
+            style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, opacity: dim }]}
+          />
+        </Animated.View>
+      </View>
+    );
+  }
 
   const isDark = activeTheme === 'dark';
   // Qorong'i mavzuda bir xil alfa ancha ko'zga tashlanadi (fon qora bo'lgani

@@ -11,7 +11,7 @@ import { PinProvider } from './src/features/auth/pin/PinContext';
 import { WorkspaceProvider } from './src/features/business/context/WorkspaceContext';
 import { CurrencyProvider } from './src/features/debts/context/CurrencyContext';
 import { ContactAvatarsProvider } from './src/features/debts/context/contactAvatars';
-import { AppThemeProvider, useAppTheme } from './src/shared/theme';
+import { AppThemeProvider, BackgroundProvider, useAppTheme } from './src/shared/theme';
 import { LanguageProvider } from './src/shared/i18n';
 import ErrorBoundary from './src/shared/ui/ErrorBoundary';
 import AppFrame from './src/shared/ui/AppFrame';
@@ -151,7 +151,11 @@ export default function App() {
         <SafeAreaProvider>
           <LanguageProvider>
             <AppThemeProvider>
-              <AppShell />
+              {/* Fon rasmi mavzuga tayanadi (parda rangi undan olinadi),
+                  shuning uchun AppThemeProvider ICHIDA turadi. */}
+              <BackgroundProvider>
+                <AppShell />
+              </BackgroundProvider>
             </AppThemeProvider>
           </LanguageProvider>
         </SafeAreaProvider>

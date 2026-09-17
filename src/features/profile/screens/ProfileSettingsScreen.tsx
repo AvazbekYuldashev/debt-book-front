@@ -11,6 +11,7 @@ import { useI18n } from '../../../shared/i18n';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
 import LegalMenuRow from '../components/LegalMenuRow';
+import BackgroundPicker from '../components/BackgroundPicker';
 
 /**
  * Sozlamalar: til, mavzu va huquqiy hujjatlar.
@@ -40,6 +41,10 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
         <Card style={styles.card}>
           <Text style={styles.cardTitle}>{t('profile.theme')}</Text>
           <ThemeSwitcher />
+        </Card>
+
+        <Card style={styles.card}>
+          <BackgroundPicker />
         </Card>
 
         <Card style={styles.card}>
