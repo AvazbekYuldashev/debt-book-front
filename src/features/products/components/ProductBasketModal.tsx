@@ -323,6 +323,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     info: {
       flex: 1,
+      // minWidth: 0 bo'lmasa flex qatorda matn qisqarmaydi — uzun nom
+      // qo'shnisini siqib chiqaradi.
+      minWidth: 0,
     },
     name: {
       ...typography.bodySmall,
@@ -340,6 +343,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xxs,
+      // Miqdor bloki qisqarmaydi; joy kamayganda nom qisqaradi.
+      flexShrink: 0,
     },
     stepBtn: {
       width: 30,
@@ -356,7 +361,13 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       backgroundColor: colors.surfaceMuted,
     },
     qtyInput: {
-      minWidth: 46,
+      // DIQQAT: minWidth emas, aniq width. Webda TextInput oddiy <input>
+      // bo'lib chiqadi va brauzer unga ~170px tug'ma kenglik beradi —
+      // minWidth uni cheklamaydi, natijada miqdor katagi butun qatorni
+      // egallab, mahsulot nomi va narxi siqilib qolgan edi.
+      width: 46,
+      flexGrow: 0,
+      flexShrink: 0,
       textAlign: 'center',
       paddingVertical: spacing.xxs,
       paddingHorizontal: spacing.xxs,
