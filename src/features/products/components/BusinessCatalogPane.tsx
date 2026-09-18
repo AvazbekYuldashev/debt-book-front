@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, type ListRenderItem } from 'react-native';
+import {
+  RefreshControl,
+  SectionList,
+  StyleSheet,
+  Text,
+  View,
+  type SectionListRenderItem,
+} from 'react-native';
 import EmptyState from '../../../shared/ui/EmptyState';
 import StatusBanner from '../../../shared/ui/StatusBanner';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
@@ -9,6 +16,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import ProductRow from './ProductRow';
 import { getBusinessProducts } from '../services/productService';
 import type { ProductPublicDTO } from '../types/product';
+import { groupByCategory } from '../model/groupByCategory';
 
 interface BusinessCatalogPaneProps {
   businessId: string;
@@ -56,19 +64,51 @@ const BusinessCatalogPane: React.FC<BusinessCatalogPaneProps> = ({ businessId, t
     if (active && !loaded && !loading) load(true);
   }, [active, loaded, loading, load]);
 
-  const lastIndex = products.length - 1;
-  const renderProduct = useCallback<ListRenderItem<ProductPublicDTO>>(
-    ({ item, index }) => <ProductRow product={item} isLast={index === lastIndex} />,
-    [lastIndex]
+  /**
+   * Kategoriya bo'yicha bo'limlar.
+   *
+   * Guruhlar ham, ular ichidagi tartib ham SERVER tartibiga tayanadi:
+   * ro'yxat "men ko'p olgan narsa tepada" bo'yicha keladi. Kategoriyasiz
+   * mahsulotlar oxirgi bo'limda — izohi groupByCategory'da.
+   */
+  const sections = useMemo(
+    () => groupByCategory(products, t('products.noCategory')),
+    [products, t]
+  );
+
+  // Bo'lim ichidagi oxirgi qator: ajratuvchi chiziq chizilmasin.
+  const renderProduct = useCallback<SectionListRenderItem<ProductPublicDTO, { id: string; title: string; data: ProductPublicDTO[] }>>(
+    ({ item, index, section }) => (
+      <ProductRow product={item} isLast={index === section.data.length - 1} />
+    ),
+    []
   );
 
   const keyExtractor = useCallback((item: ProductPublicDTO) => item.id, []);
 
+  /**
+   * Bitta bo'lim bo'lsa sarlavha chizilmaydi.
+   *
+   * "Boshqa" degan yolg'iz sarlavha hech qanday ma'lumot bermaydi — u faqat
+   * BOSHQA guruhlardan ajratish uchun kerak. Kategoriyalar ishlatilmagan
+   * do'konda narxnoma avvalgidek sodda ko'rinadi.
+   */
+  const showHeaders = sections.length > 1;
+
   return (
-    <FlatList
+    <SectionList
       contentContainerStyle={styles.listCard}
-      data={products}
+      sections={sections}
       renderItem={renderProduct}
+      renderSectionHeader={({ section }) =>
+        showHeaders ? (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Text style={styles.sectionCount}>{section.data.length}</Text>
+          </View>
+        ) : null
+      }
+      stickySectionHeadersEnabled={false}
       keyExtractor={keyExtractor}
       showsVerticalScrollIndicator={false}
       initialNumToRender={14}
@@ -108,7 +148,7 @@ const BusinessCatalogPane: React.FC<BusinessCatalogPaneProps> = ({ businessId, t
 // Karta ko'rinishi ContactDetailScreen'dagi tarix kartasi bilan AYNAN bir xil:
 // ikki sahifa surilganda bir-biriga o'xshamasa, almashinuv "sakrash" bo'lib
 // ko'rinardi.
-const createStyles = ({ spacing, radius, shadows, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     listCard: {
       ...glass.pane,
@@ -117,6 +157,27 @@ const createStyles = ({ spacing, radius, shadows, glass }: ThemeValue) =>
       marginBottom: spacing.md,
       overflow: 'hidden',
       ...shadows.card,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.xxs,
+    },
+    sectionTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
+      color: colors.textSecondary,
+      flexShrink: 1,
+    },
+    sectionCount: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textSecondary,
     },
   });
 

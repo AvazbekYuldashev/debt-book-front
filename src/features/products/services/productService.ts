@@ -15,6 +15,8 @@ export interface GetProductsParams {
   size?: number;
   /** Nom, artikul yoki izoh bo'yicha qidiruv (bo'sh bo'lsa yuborilmaydi). */
   search?: string;
+  /** Kategoriya bo'yicha filtr. Bo'sh/yo'q = hammasi. */
+  categoryId?: string;
   token?: string;
 }
 
@@ -43,12 +45,14 @@ export const getProducts = async ({
   page = 1,
   size = 50,
   search,
+  categoryId,
   token,
 }: GetProductsParams): Promise<PageResponse<ProductResponseDTO>> => {
   setApiAuthToken(token);
   const trimmed = search?.trim();
+  const category = categoryId?.trim();
   const response = await apiClient.get<PageResponse<ProductResponseDTO>>('/product', {
-    params: { page, size, ...(trimmed ? { search: trimmed } : {}) },
+    params: { page, size, ...(trimmed ? { search: trimmed } : {}), ...(category ? { categoryId: category } : {}) },
   });
   const data = response.data;
   return { ...data, content: (data?.content ?? []).map(normalizeProduct) };
@@ -66,13 +70,15 @@ export const getBusinessProducts = async ({
   page = 1,
   size = 100,
   search,
+  categoryId,
   token,
 }: GetProductsParams & { businessId: string }): Promise<PageResponse<ProductPublicDTO>> => {
   setApiAuthToken(token);
   const trimmed = search?.trim();
+  const category = categoryId?.trim();
   const response = await apiClient.get<PageResponse<ProductPublicDTO>>(
     `/product/by-business/${encodeURIComponent(businessId)}`,
-    { params: { page, size, ...(trimmed ? { search: trimmed } : {}) } }
+    { params: { page, size, ...(trimmed ? { search: trimmed } : {}), ...(category ? { categoryId: category } : {}) } }
   );
   const data = response.data;
   return { ...data, content: (data?.content ?? []).map(normalizeProduct) };

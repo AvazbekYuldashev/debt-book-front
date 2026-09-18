@@ -36,6 +36,8 @@ export interface ProductFormValues {
   currency: Currency;
   unit: ProductUnit;
   description: string;
+  /** Bo'sh satr = kategoriyasiz. */
+  categoryId: string;
 }
 
 interface ProductFormModalProps {
@@ -44,6 +46,8 @@ interface ProductFormModalProps {
   /** Tahrirlashda - hozirgi mahsulot; yaratishda undefined. */
   initial?: ProductResponseDTO | null;
   submitting: boolean;
+  /** Tanlash uchun narxnoma kategoriyalari (bo'sh bo'lsa tanlagich chiqmaydi). */
+  categories?: ReadonlyArray<{ id: string; name: string }>;
   onClose: () => void;
   /** `true` qaytsa modal yopiladi; `false` - xato ekranda qoladi. */
   onSubmit: (values: ProductFormValues) => Promise<boolean>;
@@ -69,6 +73,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   mode,
   initial,
   submitting,
+  categories,
   onClose,
   onSubmit,
 }) => {
@@ -83,6 +88,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [currency, setCurrency] = useState<Currency>('UZS');
   const [unit, setUnit] = useState<ProductUnit>(DEFAULT_PRODUCT_UNIT);
   const [description, setDescription] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [localError, setLocalError] = useState('');
 
   useEffect(() => {
@@ -94,6 +100,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setCurrency(normalizeCurrency(editing?.currency));
     setUnit(normalizeProductUnit(editing?.unit));
     setDescription(editing?.description ?? '');
+    setCategoryId(editing?.categoryId ?? '');
     setLocalError('');
   }, [visible, mode, initial]);
 
@@ -105,6 +112,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const unitOptions = useMemo(
     () => PRODUCT_UNITS.map((value) => ({ value, label: t(`products.unit.${value}`) })),
     [t]
+  );
+
+  // Birinchi variant HAR DOIM "kategoriyasiz": kategoriya majburiy emas va
+  // uni tanlamaslik ham ongli tanlov bo'lishi kerak.
+  const categoryOptions = useMemo(
+    () => [
+      { value: '', label: t('products.noCategory') },
+      ...(categories ?? []).map((category) => ({ value: category.id, label: category.name })),
+    ],
+    [categories, t]
   );
 
   const handleSubmit = useCallback(async () => {
@@ -125,9 +142,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       currency,
       unit,
       description: description.trim(),
+      categoryId,
     });
     if (ok) onClose();
-  }, [name, price, code, currency, unit, description, t, onSubmit, onClose]);
+  }, [name, price, code, currency, unit, description, categoryId, t, onSubmit, onClose]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -160,6 +178,17 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
               keyboardType="decimal-pad"
               inputMode="decimal"
             />
+
+            {categories && categories.length > 0 ? (
+              <ChipSelector
+                label={t('products.category')}
+                options={categoryOptions}
+                value={categoryId}
+                onChange={setCategoryId}
+                layout="scroll"
+                style={styles.selector}
+              />
+            ) : null}
 
             <ChipSelector
               label={t('products.currency')}

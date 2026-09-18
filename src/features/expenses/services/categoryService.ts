@@ -1,20 +1,31 @@
 import apiClient, { setApiAuthToken } from '../../../shared/api/apiClient';
 import { AppResponse, PageResponse } from '../../../shared/types/money';
-import { CategoryCreatedDTO, CategoryPinDTO, CategoryResponseDTO, CategoryUpdateDTO } from '../types/category';
+import {
+  CategoryCreatedDTO,
+  CategoryPinDTO,
+  CategoryResponseDTO,
+  CategoryType,
+  CategoryUpdateDTO,
+} from '../types/category';
 
 export interface GetCategoriesParams {
   page?: number;
   size?: number;
   token?: string;
+  /** Yuborilmasa backend xarajat deb oladi — eski chaqiruvlar o'zgarishsiz. */
+  type?: CategoryType;
 }
 
 export const getCategories = async ({
   page = 1,
   size = 50,
   token,
+  type,
 }: GetCategoriesParams): Promise<PageResponse<CategoryResponseDTO>> => {
   setApiAuthToken(token);
-  const response = await apiClient.get<PageResponse<CategoryResponseDTO>>('/category', { params: { page, size } });
+  const response = await apiClient.get<PageResponse<CategoryResponseDTO>>('/category', {
+    params: { page, size, ...(type ? { type } : {}) },
+  });
   return response.data;
 };
 

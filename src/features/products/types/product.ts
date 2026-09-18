@@ -26,6 +26,10 @@ export interface ProductResponseDTO {
   currency?: Currency;
   unit?: ProductUnit;
   description?: string | null;
+  /** Narxnoma kategoriyasi — ixtiyoriy, kategoriyasiz mahsulot ham bo'ladi. */
+  categoryId?: string | null;
+  /** Server bilan keladi, alohida so'rov shart emas. */
+  categoryName?: string | null;
   createdDate?: string;
   updatedDate?: string;
   creatorId?: string;
@@ -46,6 +50,8 @@ export interface ProductPublicDTO {
   currency?: Currency;
   unit?: ProductUnit;
   description?: string | null;
+  categoryId?: string | null;
+  categoryName?: string | null;
 }
 
 export interface ProductCreateDTO {
@@ -55,6 +61,8 @@ export interface ProductCreateDTO {
   currency: Currency;
   unit: ProductUnit;
   description?: string;
+  /** Bo'sh yuborilsa kategoriyasiz saqlanadi. */
+  categoryId?: string;
 }
 
 export interface ProductUpdateDTO extends ProductCreateDTO {

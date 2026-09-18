@@ -21,9 +21,12 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import type { ProductsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
 import ProductRow from '../components/ProductRow';
+import ProductCategoryBar from '../components/ProductCategoryBar';
 import ProductFormModal, { ProductFormValues } from '../components/ProductFormModal';
 import { createProduct, deleteProduct, getProducts, updateProduct } from '../services/productService';
 import type { ProductResponseDTO } from '../types/product';
+import { createCategory, deleteCategory, getCategories } from '../../expenses/services/categoryService';
+import type { CategoryResponseDTO } from '../../expenses/types/category';
 
 type Props = ProductsScreenProps<typeof ROUTES.PRODUCT_LIST>;
 type FormMode = 'create' | 'edit';
@@ -55,6 +58,9 @@ const ProductsScreen: React.FC<Props> = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [categories, setCategories] = useState<CategoryResponseDTO[]>([]);
+  // Bo'sh satr = "hammasi"; boshqa qiymat = kategoriya id'si.
+  const [activeCategory, setActiveCategory] = useState('');
 
   const [modalVisible, setModalVisible] = useState(false);
   const [mode, setMode] = useState<FormMode>('create');
@@ -82,13 +88,34 @@ const ProductsScreen: React.FC<Props> = () => {
     [profile?.jwt, isBusiness, t]
   );
 
+  /**
+   * Narxnoma kategoriyalari.
+   *
+   * `type: 'PRODUCT'` MAJBURIY: shu parametrsiz server xarajat
+   * kategoriyalarini qaytaradi va ular narxnomada paydo bo'lib qolardi.
+   */
+  const loadCategories = useCallback(async () => {
+    if (!profile?.jwt || !isBusiness) {
+      setCategories([]);
+      return;
+    }
+    try {
+      const page = await getCategories({ page: 1, size: 100, type: 'PRODUCT', token: profile.jwt });
+      setCategories(page.content ?? []);
+    } catch {
+      // Kategoriyalar kelmasa ro'yxat baribir ishlaydi — filtr chiqmaydi, xolos.
+      setCategories([]);
+    }
+  }, [profile?.jwt, isBusiness]);
+
   // Ish maydoni almashsa ham qayta yuklanadi: loadProducts activeBusinessId ga
   // bog'liq emas, lekin ekran har fokusda yangilanadi va WorkspaceSwitcher
   // almashtirgandan keyin shu yerga qaytadi.
   useFocusEffect(
     useCallback(() => {
       loadProducts(true);
-    }, [loadProducts, workspace.activeBusinessId])
+      loadCategories();
+    }, [loadProducts, loadCategories, workspace.activeBusinessId])
   );
 
   const onRefresh = useCallback(async () => {
@@ -102,13 +129,17 @@ const ProductsScreen: React.FC<Props> = () => {
   // shu yerdan ulanadi.
   const visibleProducts = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    if (!needle) return products;
-    return products.filter((product) =>
-      [product.name, product.code, product.description]
+    return products.filter((product) => {
+      // Kategoriya filtri qidiruvdan OLDIN: tanlangan bo'limdan tashqaridagi
+      // mahsulot qidiruvda ham chiqmasligi kerak, aks holda filtr "yolg'on"
+      // bo'lardi.
+      if (activeCategory && (product.categoryId ?? '') !== activeCategory) return false;
+      if (!needle) return true;
+      return [product.name, product.code, product.description]
         .filter(Boolean)
-        .some((field) => String(field).toLowerCase().includes(needle))
-    );
-  }, [products, search]);
+        .some((field) => String(field).toLowerCase().includes(needle));
+    });
+  }, [products, search, activeCategory]);
 
   const openCreate = useCallback(() => {
     setMode('create');
@@ -138,6 +169,8 @@ const ProductsScreen: React.FC<Props> = () => {
           // satrlarni ham to'qnashtirardi.
           ...(values.code ? { code: values.code } : {}),
           ...(values.description ? { description: values.description } : {}),
+          // Bo'sh satr yuborilsa server uni "kategoriyasiz" deb qabul qiladi.
+          ...(values.categoryId ? { categoryId: values.categoryId } : {}),
         };
         if (mode === 'edit' && editing) {
           await updateProduct({ id: editing.id, ...payload }, profile.jwt);
@@ -154,6 +187,46 @@ const ProductsScreen: React.FC<Props> = () => {
       }
     },
     [profile?.jwt, mode, editing, loadProducts, t]
+  );
+
+  const createProductCategory = useCallback(
+    async (name: string): Promise<boolean> => {
+      if (!profile?.jwt) return false;
+      try {
+        // type MAJBURIY: ko'rsatilmasa server xarajat kategoriyasi yaratadi
+        // va u narxnomada umuman ko'rinmasdi.
+        const created = await createCategory({ name, type: 'PRODUCT' }, profile.jwt);
+        await loadCategories();
+        // Yangi kategoriya darhol tanlanadi — odam uni endigina yaratdi,
+        // ehtimol shunga mahsulot qo'shmoqchi.
+        if (created?.id) setActiveCategory(created.id);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [profile?.jwt, loadCategories]
+  );
+
+  const removeCategory = useCallback(
+    (category: { id: string; name: string }) => {
+      if (!profile?.jwt) return;
+      confirmAction(t('products.deleteCategoryConfirm', { name: category.name }), async () => {
+        try {
+          await deleteCategory(category.id, profile.jwt);
+          // Filtr o'chirilgan kategoriyada turgan bo'lsa "hammasi"ga qaytamiz,
+          // aks holda ro'yxat bo'sh ko'rinib qolardi.
+          setActiveCategory((current) => (current === category.id ? '' : current));
+          await loadCategories();
+          // Mahsulotlar ham qayta o'qiladi: kategoriya o'chgach ular
+          // "kategoriyasiz" bo'lib qoladi (server ON DELETE SET NULL).
+          await loadProducts(false);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : t('products.saveFailed'));
+        }
+      });
+    },
+    [profile?.jwt, loadCategories, loadProducts, t]
   );
 
   const requestDelete = useCallback(
@@ -264,6 +337,16 @@ const ProductsScreen: React.FC<Props> = () => {
             />
           </View>
         ) : null}
+        {isBusiness ? (
+          <ProductCategoryBar
+            categories={categories.map((category) => ({ id: category.id, name: category.name }))}
+            value={activeCategory}
+            onChange={setActiveCategory}
+            allowManage={allowWrite}
+            onCreate={createProductCategory}
+            onDelete={removeCategory}
+          />
+        ) : null}
       </EntranceView>
 
       <ScrollView
@@ -284,6 +367,7 @@ const ProductsScreen: React.FC<Props> = () => {
       ) : null}
 
       <ProductFormModal
+        categories={categories.map((category) => ({ id: category.id, name: category.name }))}
         visible={modalVisible}
         mode={mode}
         initial={editing}
