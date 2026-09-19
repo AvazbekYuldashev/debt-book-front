@@ -71,6 +71,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     addContact,
     updateContact,
     deleteContact,
+    mutationError,
   } = useContext(ContactsContext);
   const { avatars, setAvatar } = useContactAvatars();
 
@@ -565,6 +566,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         onDelete={handleDeleteContact}
         onClose={() => setModalVisible(false)}
         onCreate={addContact}
+        serverError={mutationError}
         onUpdate={handleUpdate}
         onOpenDeviceContacts={() => {
           setModalVisible(false);

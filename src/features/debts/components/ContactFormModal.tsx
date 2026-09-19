@@ -48,6 +48,12 @@ interface ContactFormModalProps {
   onDelete: () => void;
   onClose: () => void;
   onCreate: (input: ContactFormInput) => Promise<boolean>;
+  /**
+   * Serverdan kelgan aniq sabab (masalan "o'zingizni qo'sha olmaysiz").
+   * Bo'lsa umumiy "saqlanmadi" o'rniga SHU ko'rsatiladi — odam aynan shu
+   * modalda turibdi, sababni ro'yxat ekranidagi bannerdan izlashi kerak emas.
+   */
+  serverError?: string;
   onUpdate: (name: string) => Promise<boolean>;
   onOpenDeviceContacts: () => void;
   onChangePhoto: () => void;
@@ -71,6 +77,7 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
   onDelete,
   onClose,
   onCreate,
+  serverError,
   onUpdate,
   onOpenDeviceContacts,
   onChangePhoto,
@@ -243,7 +250,12 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
               />
             ) : null}
 
-            {localError ? <Text style={styles.error}>{localError}</Text> : null}
+            {/* Serverning aniq sababi umumiy matndan ustun turadi. Uni
+                SUBMIT paytida o'qib bo'lmaydi: onCreate qaytganda prop hali
+                yangilanmagan bo'ladi — shuning uchun render paytida olinadi. */}
+            {serverError || localError ? (
+              <Text style={styles.error}>{serverError || localError}</Text>
+            ) : null}
 
             <View style={styles.actions}>
               <Button title={t('common.cancel')} variant="secondary" onPress={onClose} style={styles.actionBtn} />

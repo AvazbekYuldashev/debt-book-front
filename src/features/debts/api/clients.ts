@@ -82,8 +82,20 @@ const DEFAULT_PAGE: PaginatedResponse<ClientDTO> = {
   number: 0,
 };
 
+/**
+ * Keyingi manzilni sinab ko'rish MUMKINmi.
+ *
+ * FAQAT 404: "bunday manzil yo'q" — eski/yangi server yo'llari uchun
+ * zaxira shu holatda ma'noga ega.
+ *
+ * 400 ATAYLAB chiqarildi. U "server so'rovni tushundi va RAD ETDI" degani:
+ * masalan "o'zingizni kontakt qilib qo'sha olmaysiz". Ilgari 400 ham zaxira
+ * yo'lni ishga tushirar, u 404 bilan tugar va foydalanuvchiga serverning
+ * tushunarli xabari o'rniga "No static resource api/v1/core/client" degan
+ * ma'nosiz matn ko'rinardi — asl sabab esa butunlay yo'qolardi.
+ */
 const isRecoverableError = (error: unknown): boolean =>
-  error instanceof ApiClientError && (error.status === 400 || error.status === 404);
+  error instanceof ApiClientError && error.status === 404;
 
 const normalizePage = (parsed: unknown): PaginatedResponse<ClientDTO> => {
   if (Array.isArray(parsed)) {

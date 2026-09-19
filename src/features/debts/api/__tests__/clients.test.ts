@@ -73,3 +73,50 @@ describe('createClient', () => {
     expect(created.id).toBe('11');
   });
 });
+
+/**
+ * REGRESSIYA: 400 boshqa manzilga o'tishga sabab bo'lmasligi kerak.
+ *
+ * Production'da odam o'z raqamini kontakt qilib qo'shmoqchi bo'ldi. Server
+ * to'g'ri javob berdi: 400 "Foydalanuvchi o'zini qo'sha olmaydi". Lekin
+ * 400 ham "qayta urinsa bo'ladi" deb qaralgani uchun kod /core/client ga
+ * o'tdi, u yerdan 404 keldi va ekranda "No static resource
+ * api/v1/core/client" chiqdi — asl sabab butunlay yo'qoldi.
+ */
+describe('xato holatlari — qaysi biri zaxira manzilni ishga tushiradi', () => {
+  it("400 DARHOL qaytariladi, ikkinchi manzil sinalmaydi", async () => {
+    mockedPost.mockRejectedValueOnce(new ApiClientError("Foydalanuvchi o'zini qo'sha olmaydi.", 400));
+
+    await expect(createClient('jwt', { name: 'A', phoneNumber: '998901112233' } as any)).rejects.toThrow(
+      "Foydalanuvchi o'zini qo'sha olmaydi.",
+    );
+    // Aynan bitta urinish: /core/client ga o'tilmagan.
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+  });
+
+  it("404 bo'lsa zaxira manzil sinaladi", async () => {
+    mockedPost
+      .mockRejectedValueOnce(new ApiClientError('No static resource', 404))
+      .mockResolvedValueOnce({ data: { id: '9', name: 'A' } });
+
+    const created = await createClient('jwt', { name: 'A', phoneNumber: '998901112233' } as any);
+    expect(created.id).toBe('9');
+    expect(mockedPost).toHaveBeenCalledTimes(2);
+  });
+
+  it('409 kabi boshqa xatolar ham darhol qaytariladi', async () => {
+    mockedPost.mockRejectedValueOnce(new ApiClientError('Allaqachon mavjud', 409));
+
+    await expect(createClient('jwt', { name: 'A', phoneNumber: '998901112233' } as any)).rejects.toThrow(
+      'Allaqachon mavjud',
+    );
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+  });
+
+  it("ro'yxat olishda ham 400 zaxira manzilga o'tmaydi", async () => {
+    mockedGet.mockRejectedValueOnce(new ApiClientError("Noto'g'ri so'rov", 400));
+
+    await expect(getMyClients('jwt')).rejects.toThrow("Noto'g'ri so'rov");
+    expect(mockedGet).toHaveBeenCalledTimes(1);
+  });
+});

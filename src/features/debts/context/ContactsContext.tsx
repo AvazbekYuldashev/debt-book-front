@@ -57,6 +57,14 @@ interface ContactsContextValue {
   updating: boolean;
   deleting: boolean;
   error: string;
+  /**
+   * FAQAT yozish amallarining xatosi (qo'shish/tahrirlash/o'chirish).
+   *
+   * `error` dan ajratilgan: u ro'yxatni yuklash xatosini ham o'z ichiga
+   * oladi, formaga esa aynan yozish sababi kerak — "o'zingizni qo'sha
+   * olmaysiz" kabi.
+   */
+  mutationError: string;
   refreshContacts: () => Promise<void>;
   filterContacts: (input: ContactFilterInput) => Promise<Contact[]>;
   addContact: (input: ContactFormInput) => Promise<boolean>;
@@ -71,6 +79,7 @@ export const ContactsContext = createContext<ContactsContextValue>({
   updating: false,
   deleting: false,
   error: '',
+  mutationError: '',
   refreshContacts: async () => {},
   filterContacts: async () => [],
   addContact: async () => false,
@@ -403,6 +412,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         updating,
         deleting,
         error,
+        mutationError,
         refreshContacts,
         filterContacts,
         addContact,
