@@ -16,6 +16,11 @@ import { formatQuantity } from '../../../shared/lib/quantity';
 import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
 import { getBusinessProducts } from '../services/productService';
 import { normalizeProductUnit, type ProductPublicDTO } from '../types/product';
+import {
+  ALL_CATEGORIES,
+  categoriesFromProducts,
+  matchesCategory,
+} from '../model/productCategories';
 
 export interface BasketResult {
   items: MoneyItemCreateDTO[];
@@ -62,6 +67,7 @@ const ProductBasketModal: React.FC<ProductBasketModalProps> = ({
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [category, setCategory] = useState<string>(ALL_CATEGORIES);
   // productId -> miqdor (matn: foydalanuvchi 1.5 kabi kasr yozishi mumkin).
   const [quantities, setQuantities] = useState<Record<string, string>>({});
 
@@ -83,17 +89,33 @@ const ProductBasketModal: React.FC<ProductBasketModalProps> = ({
   useEffect(() => {
     if (!visible) return;
     setSearch('');
+    setCategory(ALL_CATEGORIES);
     setQuantities({});
     if (!loaded) load();
   }, [visible, loaded, load]);
 
+  /**
+   * Filtr chiplari MAHSULOTLARDAN quriladi, serverdan alohida so'ralmaydi:
+   * mijoz begona biznesning kategoriyalarini o'qiy olmaydi (u endpoint
+   * ko'ruvchining o'z ish maydonini qaytaradi). Izohi productCategories'da.
+   */
+  const categoryOptions = useMemo(
+    () => categoriesFromProducts(products, t('products.noCategory')),
+    [products, t]
+  );
+
   const visibleProducts = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    if (!needle) return products;
-    return products.filter((product) =>
-      [product.name, product.code].filter(Boolean).some((field) => String(field).toLowerCase().includes(needle))
-    );
-  }, [products, search]);
+    return products.filter((product) => {
+      // Kategoriya qidiruvdan OLDIN: tanlangan bo'limdan tashqaridagi
+      // mahsulot qidiruvda ham chiqmasligi kerak.
+      if (!matchesCategory(product, category)) return false;
+      if (!needle) return true;
+      return [product.name, product.code]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(needle));
+    });
+  }, [products, search, category]);
 
   const readQuantity = useCallback(
     (id: string): number => {
@@ -242,6 +264,39 @@ const ProductBasketModal: React.FC<ProductBasketModalProps> = ({
             />
           ) : null}
 
+          {/* Kategoriya chiplari — faqat bir nechta guruh bo'lsa chiqadi. */}
+          {categoryOptions.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipRow}
+              keyboardShouldPersistTaps="handled"
+            >
+              {[{ id: ALL_CATEGORIES, name: t('products.allCategories') }, ...categoryOptions].map((option) => {
+                const active = category === option.id;
+                return (
+                  <Pressable
+                    key={option.id || 'all'}
+                    onPress={() => setCategory(option.id)}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      active && styles.chipActive,
+                      pressed && styles.chipPressed,
+                    ]}
+                    accessibilityRole="radio"
+                    accessibilityLabel={option.name}
+                    accessibilityState={{ checked: active }}
+                    hitSlop={4}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>
+                      {option.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          ) : null}
+
           <ScrollView style={styles.list} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {renderBody()}
           </ScrollView>
@@ -338,6 +393,36 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       marginTop: spacing.xxs / 2,
       fontSize: 12,
       color: colors.textSecondary,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xxs,
+      paddingVertical: spacing.xs,
+    },
+    chip: {
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
+      maxWidth: 160,
+    },
+    chipActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primarySoft,
+    },
+    chipPressed: {
+      opacity: 0.7,
+    },
+    chipText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+    chipTextActive: {
+      color: colors.primary,
     },
     stepper: {
       flexDirection: 'row',
