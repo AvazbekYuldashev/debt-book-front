@@ -48,6 +48,15 @@ interface ProductFormModalProps {
   submitting: boolean;
   /** Tanlash uchun narxnoma kategoriyalari (bo'sh bo'lsa tanlagich chiqmaydi). */
   categories?: ReadonlyArray<{ id: string; name: string }>;
+  /**
+   * Yangi mahsulot uchun oldindan tanlangan kategoriya.
+   *
+   * Ro'yxat qaysi kategoriya bo'yicha filtrlangan bo'lsa, "+" bosilganda
+   * o'shanisi qo'yiladi: odam "Ichimliklar"ni ochib turib yangi mahsulot
+   * qo'shsa, uni yana qo'lda "Ichimliklar" deb belgilashi ortiqcha.
+   * Tahrirlashda ishlatilmaydi — u yerda mahsulotning o'z kategoriyasi bor.
+   */
+  defaultCategoryId?: string;
   onClose: () => void;
   /** `true` qaytsa modal yopiladi; `false` - xato ekranda qoladi. */
   onSubmit: (values: ProductFormValues) => Promise<boolean>;
@@ -74,6 +83,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   initial,
   submitting,
   categories,
+  defaultCategoryId,
   onClose,
   onSubmit,
 }) => {
@@ -100,9 +110,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setCurrency(normalizeCurrency(editing?.currency));
     setUnit(normalizeProductUnit(editing?.unit));
     setDescription(editing?.description ?? '');
-    setCategoryId(editing?.categoryId ?? '');
+    // Yaratishda — filtrdagi kategoriya; tahrirlashda — mahsulotning o'zi.
+    setCategoryId((mode === 'edit' ? editing?.categoryId : defaultCategoryId) ?? '');
     setLocalError('');
-  }, [visible, mode, initial]);
+  }, [visible, mode, initial, defaultCategoryId]);
 
   const currencyOptions = useMemo(
     () => CURRENCIES.map((value) => ({ value, label: CURRENCY_LABEL[value] })),

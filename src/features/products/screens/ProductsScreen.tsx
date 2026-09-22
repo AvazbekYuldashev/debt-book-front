@@ -368,6 +368,8 @@ const ProductsScreen: React.FC<Props> = () => {
 
       <ProductFormModal
         categories={categories.map((category) => ({ id: category.id, name: category.name }))}
+        // Filtr "Hammasi"da tursa bo'sh — majburlamaymiz.
+        defaultCategoryId={activeCategory}
         visible={modalVisible}
         mode={mode}
         initial={editing}
