@@ -100,14 +100,21 @@ const BusinessCatalogPane: React.FC<BusinessCatalogPaneProps> = ({ businessId, t
       contentContainerStyle={styles.listCard}
       sections={sections}
       renderItem={renderProduct}
-      renderSectionHeader={({ section }) =>
-        showHeaders ? (
-          <View style={styles.sectionHeader}>
+      renderSectionHeader={({ section }) => {
+        if (!showHeaders) return null;
+        // Chiziq sarlavha USTIDA: u kategoriyalarni bir-biridan ajratadi.
+        // Qatorlar orasidagi ingichka chiziqlar esa kategoriya ICHIDA qoladi —
+        // ikkovi aralashsa, oxirgi qatordan keyingi chiziq "yangi bo'lim
+        // boshlandi" degandek ko'rinib, sanoq bilan ro'yxat mos kelmay
+        // qolgandek tuyulardi.
+        const isFirst = sections[0]?.id === section.id;
+        return (
+          <View style={[styles.sectionHeader, !isFirst && styles.sectionDivider]}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
             <Text style={styles.sectionCount}>{section.data.length}</Text>
           </View>
-        ) : null
-      }
+        );
+      }}
       stickySectionHeadersEnabled={false}
       keyExtractor={keyExtractor}
       showsVerticalScrollIndicator={false}
@@ -165,6 +172,14 @@ const createStyles = ({ colors, spacing, radius, shadows, glass }: ThemeValue) =
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
       paddingBottom: spacing.xxs,
+    },
+    // Kategoriyalar orasidagi ajratgich — qator chiziqlaridan QALINROQ,
+    // shunda "bo'lim tugadi" va "keyingi mahsulot" farqlanadi.
+    sectionDivider: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      marginTop: spacing.sm,
+      paddingTop: spacing.md,
     },
     sectionTitle: {
       fontSize: 13,
