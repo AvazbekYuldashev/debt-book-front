@@ -24,6 +24,7 @@ import ProductRow from '../components/ProductRow';
 import ProductCategoryBar from '../components/ProductCategoryBar';
 import ProductFormModal, { ProductFormValues } from '../components/ProductFormModal';
 import { createProduct, deleteProduct, getProducts, updateProduct } from '../services/productService';
+import { buildProductPayload } from '../model/productPayload';
 import type { ProductResponseDTO } from '../types/product';
 import { createCategory, deleteCategory, getCategories } from '../../expenses/services/categoryService';
 import type { CategoryResponseDTO } from '../../expenses/types/category';
@@ -159,19 +160,7 @@ const ProductsScreen: React.FC<Props> = () => {
       setSaving(true);
       setError('');
       try {
-        const payload = {
-          name: values.name,
-          price: values.price,
-          currency: values.currency,
-          unit: values.unit,
-          // Bo'sh matn yuborilmaydi: server uchun "kod yo'q" va "kod bo'sh satr"
-          // bir xil bo'lishi kerak, aks holda yagonalik tekshiruvi bo'sh
-          // satrlarni ham to'qnashtirardi.
-          ...(values.code ? { code: values.code } : {}),
-          ...(values.description ? { description: values.description } : {}),
-          // Bo'sh satr yuborilsa server uni "kategoriyasiz" deb qabul qiladi.
-          ...(values.categoryId ? { categoryId: values.categoryId } : {}),
-        };
+        const payload = buildProductPayload(values);
         if (mode === 'edit' && editing) {
           await updateProduct({ id: editing.id, ...payload }, profile.jwt);
         } else {

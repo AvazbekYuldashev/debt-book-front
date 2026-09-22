@@ -142,14 +142,18 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
   const keyExtractor = useCallback((item: MappedTransaction) => item.id, []);
 
-  // Kontakt BIZNES bo'lsa ikkinchi sahifa — uning narxnomasi. Odam kontaktni
-  // ochganda avval tarixni izlaydi, shuning uchun katalog faqat surilgandan
-  // keyin yuklanadi (`catalogSeen`).
+  /**
+   * Narxnoma FAQAT biznes kontaktida bo'ladi.
+   *
+   * Shaxsiy kontaktda mahsulot tushunchasi yo'q — u yerda umuman sahifalagich
+   * ko'rsatilmaydi, tarixning o'zi chiqadi.
+   *
+   * Biznes kontaktida narxnoma BIRINCHI sahifa: do'konni ochgan odam odatda
+   * "nima bor va qancha turadi" deb qaraydi, oldi-berdi tarixini esa ataylab
+   * izlaydi. Shu sababli katalog kech emas, DARHOL yuklanadi — ilgari u
+   * ikkinchi sahifa bo'lgani uchun surilgandan keyin yuklanardi.
+   */
   const showCatalog = contact?.partyType === 'BUSINESS_ACCOUNT' && Boolean(contact?.partyId);
-  const [catalogSeen, setCatalogSeen] = useState(false);
-  const handlePageChange = useCallback((index: number) => {
-    if (index === 1) setCatalogSeen(true);
-  }, []);
 
   if (!contact) {
     return (
@@ -195,15 +199,17 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   );
 
   const pages: SwipePage[] = [
-    { key: 'history', label: t('debts.history'), icon: 'time-outline', render: renderHistory },
     {
       key: 'catalog',
       label: t('products.title'),
       icon: 'pricetags-outline',
+      // Birinchi sahifa bo'lgani uchun `active` doim rost: kechiktirishning
+      // ma'nosi yo'q, u baribir darhol ko'rinadi.
       render: () => (
-        <BusinessCatalogPane businessId={contact.partyId} token={profile?.jwt} active={catalogSeen} />
+        <BusinessCatalogPane businessId={contact.partyId} token={profile?.jwt} active />
       ),
     },
+    { key: 'history', label: t('debts.history'), icon: 'time-outline', render: renderHistory },
   ];
 
   return (
@@ -232,7 +238,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
       <EntranceView delay={90} duration={320} fromY={14} style={styles.listWrap}>
         {showCatalog ? (
-          <SwipePager pages={pages} onPageChange={handlePageChange} />
+          <SwipePager pages={pages} />
         ) : (
           renderHistory()
         )}

@@ -1,37 +1,44 @@
-import { formatUnitLabel, isSingleUnit } from '../unitLabel';
+import { formatUnitLabel, normalizeAmount } from '../unitLabel';
 
-describe('isSingleUnit', () => {
-  it('1 va uning ekvivalentlari yakka birlik', () => {
-    expect(isSingleUnit(1)).toBe(true);
-    expect(isSingleUnit('1')).toBe(true);
-    expect(isSingleUnit('1.0')).toBe(true);
+describe('normalizeAmount', () => {
+  it('haqiqiy qiymatni o\'zgartirmaydi', () => {
+    expect(normalizeAmount(0.5)).toBe(0.5);
+    expect(normalizeAmount(1.5)).toBe(1.5);
+    expect(normalizeAmount(2)).toBe(2);
   });
 
-  it("o'lcham yo'q bo'lsa ham yakka birlik", () => {
+  it("o'lcham yo'q bo'lsa 1", () => {
     // Eski yozuvlar: ustun keyin qo'shilgan, qiymat kelmasligi mumkin.
-    expect(isSingleUnit(undefined)).toBe(true);
-    expect(isSingleUnit(null)).toBe(true);
-    expect(isSingleUnit('')).toBe(true);
+    expect(normalizeAmount(undefined)).toBe(1);
+    expect(normalizeAmount(null)).toBe(1);
+    expect(normalizeAmount('')).toBe(1);
   });
 
-  it('buzuq yoki manfiy qiymat yakka birlik deb qaraladi', () => {
-    expect(isSingleUnit('salom')).toBe(true);
-    expect(isSingleUnit(0)).toBe(true);
-    expect(isSingleUnit(-2)).toBe(true);
+  it('buzuq, nol yoki manfiy qiymat 1 ga tushadi', () => {
+    expect(normalizeAmount('salom')).toBe(1);
+    expect(normalizeAmount(0)).toBe(1);
+    expect(normalizeAmount(-2)).toBe(1);
   });
 
-  it('1 dan farqli qiymat yakka emas', () => {
-    expect(isSingleUnit(0.5)).toBe(false);
-    expect(isSingleUnit(1.5)).toBe(false);
-    expect(isSingleUnit('0,5')).toBe(false);
+  it('vergulli satr ham tushuniladi', () => {
+    expect(normalizeAmount('0,5')).toBe(0.5);
   });
 });
 
 describe('formatUnitLabel', () => {
-  it('1 bo\'lsa miqdor YOZILMAYDI', () => {
-    expect(formatUnitLabel(1, 'kg')).toBe('kg');
-    expect(formatUnitLabel(undefined, 'litr')).toBe('litr');
-    expect(formatUnitLabel(null, 'porsiya')).toBe('porsiya');
+  /**
+   * Miqdor HAR DOIM ko'rinadi. Ilgari 1 yashirilardi ("/ litr"), lekin
+   * narxnomaga qaragan odam "qancha pulga qancha" degan savolga darhol
+   * javob olishi kerak.
+   */
+  it('1 ham yoziladi', () => {
+    expect(formatUnitLabel(1, 'litr')).toBe('1 litr');
+    expect(formatUnitLabel(1, 'dona')).toBe('1 dona');
+  });
+
+  it("o'lcham yo'q bo'lsa ham 1 deb yoziladi", () => {
+    expect(formatUnitLabel(undefined, 'litr')).toBe('1 litr');
+    expect(formatUnitLabel(null, 'kg')).toBe('1 kg');
   });
 
   it('kasr o\'lcham birlik oldida turadi', () => {
@@ -40,7 +47,7 @@ describe('formatUnitLabel', () => {
     expect(formatUnitLabel(0.5, 'porsiya')).toBe('0.5 porsiya');
   });
 
-  it('butun sonlar ham ko\'rsatiladi (1 dan tashqari)', () => {
+  it('butun sonlar ham ko\'rsatiladi', () => {
     expect(formatUnitLabel(2, 'quti')).toBe('2 quti');
     expect(formatUnitLabel(10, 'dona')).toBe('10 dona');
   });
@@ -49,8 +56,8 @@ describe('formatUnitLabel', () => {
     expect(formatUnitLabel('0,5', 'litr')).toBe('0.5 litr');
   });
 
-  it('buzuq qiymatda birlikning o\'zi qaytadi', () => {
-    expect(formatUnitLabel('salom', 'kg')).toBe('kg');
-    expect(formatUnitLabel(0, 'kg')).toBe('kg');
+  it('buzuq qiymatda 1 deb ko\'rsatiladi', () => {
+    expect(formatUnitLabel('salom', 'kg')).toBe('1 kg');
+    expect(formatUnitLabel(0, 'kg')).toBe('1 kg');
   });
 });
