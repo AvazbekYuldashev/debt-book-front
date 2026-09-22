@@ -39,6 +39,9 @@ const normalizeProduct = <T extends ProductPublicDTO>(raw: T): T => ({
   price: toNumber(raw.price),
   currency: normalizeCurrency(raw.currency),
   unit: normalizeProductUnit(raw.unit),
+  // Narx kabi o'lcham ham BigDecimal — Jackson uni satr qilib yuborishi mumkin.
+  // Yo'q bo'lsa 1: eski yozuvlarda ustun umuman bo'lmagan.
+  amount: raw.amount === null || raw.amount === undefined ? 1 : toNumber(raw.amount),
 });
 
 export const getProducts = async ({

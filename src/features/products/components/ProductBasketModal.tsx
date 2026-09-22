@@ -16,6 +16,7 @@ import { formatQuantity } from '../../../shared/lib/quantity';
 import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
 import { getBusinessProducts } from '../services/productService';
 import { normalizeProductUnit, type ProductPublicDTO } from '../types/product';
+import { formatUnitLabel } from '../model/unitLabel';
 import {
   ALL_CATEGORIES,
   categoriesFromProducts,
@@ -192,7 +193,7 @@ const ProductBasketModal: React.FC<ProductBasketModalProps> = ({
               {product.name}
             </Text>
             <Text style={styles.meta} numberOfLines={1}>
-              {formatMoney(product.price, currency)} / {t(`products.unit.${unit}`)}
+              {formatMoney(product.price, currency)} / {formatUnitLabel(product.amount, t(`products.unit.${unit}`))}
             </Text>
           </View>
 

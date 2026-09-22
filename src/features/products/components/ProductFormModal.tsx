@@ -18,6 +18,7 @@ import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { CURRENCIES, CURRENCY_LABEL, normalizeCurrency } from '../../../shared/lib/currency';
 import { formatAmountInput } from '../../../shared/lib/money';
+import { formatQuantity } from '../../../shared/lib/quantity';
 import type { Currency } from '../../../shared/types/money';
 import {
   DEFAULT_PRODUCT_UNIT,
@@ -35,6 +36,8 @@ export interface ProductFormValues {
   price: number;
   currency: Currency;
   unit: ProductUnit;
+  /** Bitta kartochkadagi miqdor (0.5 litr). Bo'sh qoldirilsa 1. */
+  amount: number;
   description: string;
   /** Bo'sh satr = kategoriyasiz. */
   categoryId: string;
@@ -61,6 +64,21 @@ interface ProductFormModalProps {
   /** `true` qaytsa modal yopiladi; `false` - xato ekranda qoladi. */
   onSubmit: (values: ProductFormValues) => Promise<boolean>;
 }
+
+/**
+ * O'lcham: bo'sh bo'lsa 1.
+ *
+ * Majburiy emas — narxnomalarning ko'pi oddiy "1 dona"; maydonni har safar
+ * to'ldirishga majburlash ortiqcha ish bo'lardi. Buzuq kiritish ham 1 ga
+ * tushadi: bu yerda xato ko'rsatib odamni to'xtatishdan ko'ra, ma'noli
+ * standart qiymat bilan davom etgan qulayroq.
+ */
+const parseAmount = (raw: string): number => {
+  const normalized = raw.replace(/\s/g, '').replace(',', '.');
+  if (!normalized) return 1;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+};
 
 /**
  * Narxni matndan songa o'giradi.
@@ -97,6 +115,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [price, setPrice] = useState('');
   const [currency, setCurrency] = useState<Currency>('UZS');
   const [unit, setUnit] = useState<ProductUnit>(DEFAULT_PRODUCT_UNIT);
+  const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [localError, setLocalError] = useState('');
@@ -109,6 +128,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setPrice(editing ? formatAmountInput(String(editing.price ?? '')) : '');
     setCurrency(normalizeCurrency(editing?.currency));
     setUnit(normalizeProductUnit(editing?.unit));
+    // 1 ni ko'rsatmaymiz: maydon bo'sh tursa "oddiy bitta birlik" degani va
+    // odam uni to'ldirishi shart emas.
+    setAmount(editing?.amount && editing.amount !== 1 ? formatQuantity(editing.amount) : '');
     setDescription(editing?.description ?? '');
     // Yaratishda — filtrdagi kategoriya; tahrirlashda — mahsulotning o'zi.
     setCategoryId((mode === 'edit' ? editing?.categoryId : defaultCategoryId) ?? '');
@@ -152,11 +174,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       price: parsedPrice,
       currency,
       unit,
+      amount: parseAmount(amount),
       description: description.trim(),
       categoryId,
     });
     if (ok) onClose();
-  }, [name, price, code, currency, unit, description, categoryId, t, onSubmit, onClose]);
+  }, [name, price, code, currency, unit, amount, description, categoryId, t, onSubmit, onClose]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -209,6 +232,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
               layout="fluid"
               style={styles.selector}
             />
+
+            <Input
+              label={t('products.amount')}
+              value={amount}
+              onChangeText={(next) => setAmount(next.replace(/[^\d.,]/g, ''))}
+              placeholder="1"
+              keyboardType="decimal-pad"
+            />
+            <Text style={styles.hint}>{t('products.amountHint')}</Text>
 
             <ChipSelector
               label={t('products.unit')}
@@ -279,6 +311,12 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     selector: {
       marginBottom: spacing.md,
+    },
+    hint: {
+      ...typography.caption,
+      marginTop: -spacing.xs,
+      marginBottom: spacing.xs,
+      color: colors.textSecondary,
     },
     error: {
       ...typography.caption,

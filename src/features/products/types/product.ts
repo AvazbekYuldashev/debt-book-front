@@ -4,7 +4,10 @@ import { Currency } from '../../../shared/types/money';
  * Mahsulot o'lchov birligi — narx AYNAN shu birlik uchun.
  * Backend'dagi `ProductUnit` enum'i bilan bir xil bo'lishi shart.
  */
-export const PRODUCT_UNITS = ['DONA', 'KG', 'GRAM', 'LITR', 'METR', 'QUTI', 'SOAT', 'XIZMAT'] as const;
+export const PRODUCT_UNITS = [
+  'DONA', 'KG', 'GRAM', 'LITR', 'METR', 'QUTI', 'SOAT', 'XIZMAT',
+  'PORSIYA', 'BOGLAM', 'METR_KVADRAT', 'KUN',
+] as const;
 
 export type ProductUnit = (typeof PRODUCT_UNITS)[number];
 
@@ -25,6 +28,8 @@ export interface ProductResponseDTO {
   price: number;
   currency?: Currency;
   unit?: ProductUnit;
+  /** Bitta kartochkadagi miqdor: 0.5 litr, 1.5 kg. Eski yozuvlarda yo'q = 1. */
+  amount?: number | null;
   description?: string | null;
   /** Narxnoma kategoriyasi — ixtiyoriy, kategoriyasiz mahsulot ham bo'ladi. */
   categoryId?: string | null;
@@ -49,6 +54,7 @@ export interface ProductPublicDTO {
   price: number;
   currency?: Currency;
   unit?: ProductUnit;
+  amount?: number | null;
   description?: string | null;
   categoryId?: string | null;
   categoryName?: string | null;
@@ -60,6 +66,8 @@ export interface ProductCreateDTO {
   price: number;
   currency: Currency;
   unit: ProductUnit;
+  /** Yuborilmasa 1. */
+  amount?: number;
   description?: string;
   /** Bo'sh yuborilsa kategoriyasiz saqlanadi. */
   categoryId?: string;

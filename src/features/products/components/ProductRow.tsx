@@ -8,6 +8,7 @@ import { formatMoney } from '../../../shared/lib/money';
 import { normalizeCurrency } from '../../../shared/lib/currency';
 import { getInitials, pickAvatarColor } from '../../../shared/ui/avatar';
 import { normalizeProductUnit, type ProductPublicDTO } from '../types/product';
+import { formatUnitLabel } from '../model/unitLabel';
 
 interface ProductRowProps {
   /**
@@ -86,7 +87,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
             {priceText}
           </Text>
           <Text style={styles.unit} numberOfLines={1}>
-            / {t(`products.unit.${unit}`)}
+            / {formatUnitLabel(product.amount, t(`products.unit.${unit}`))}
           </Text>
         </View>
       </Pressable>
