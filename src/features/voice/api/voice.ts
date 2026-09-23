@@ -12,6 +12,7 @@ import { fileNameFor } from '../model/voiceFormat';
 export type VoiceIntentKind = 'TRANSACTION' | 'PERSON_NAME' | 'PRODUCT' | 'NOTE';
 export type VoiceDirection = 'GAVE' | 'TOOK';
 export type ContactOutcome = 'RESOLVED' | 'AMBIGUOUS' | 'NOT_FOUND';
+export type VoiceCurrency = 'UZS' | 'USD' | 'RUB';
 
 export interface VoiceContactOption {
   /** Kontakt yozuvining id'si — ro'yxatdan topish uchun. */
@@ -29,6 +30,8 @@ export interface VoiceIntent {
   understood: boolean;
   amount?: number | null;
   direction?: VoiceDirection | null;
+  /** Aytilgan valyuta. Aytilmagan bo'lsa null — formadagi tanlov qoladi. */
+  currency?: VoiceCurrency | null;
   personName?: string | null;
   contactOutcome?: ContactOutcome | null;
   contactId?: string | null;

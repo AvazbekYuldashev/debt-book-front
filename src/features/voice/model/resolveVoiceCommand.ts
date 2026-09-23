@@ -1,4 +1,4 @@
-import type { VoiceDirection, VoiceIntent } from '../api/voice';
+import type { VoiceCurrency, VoiceDirection, VoiceIntent } from '../api/voice';
 
 /**
  * Aytilgan gapdan keyin nima qilish kerakligini hal qiladi.
@@ -12,6 +12,7 @@ import type { VoiceDirection, VoiceIntent } from '../api/voice';
 export interface VoiceCommandPrefill {
   amount?: number;
   direction?: VoiceDirection;
+  currency?: VoiceCurrency;
   note?: string;
 }
 
@@ -30,6 +31,7 @@ function prefillOf(intent: VoiceIntent): VoiceCommandPrefill {
   return {
     amount: typeof amount === 'number' && Number.isFinite(amount) && amount > 0 ? amount : undefined,
     direction: intent.direction ?? undefined,
+    currency: intent.currency ?? undefined,
     note: intent.text?.trim() || undefined,
   };
 }

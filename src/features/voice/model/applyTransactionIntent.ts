@@ -1,4 +1,4 @@
-import type { VoiceIntent } from '../api/voice';
+import type { VoiceCurrency, VoiceIntent } from '../api/voice';
 
 /**
  * Tushunilgan gapni oldi-berdi formasiga qo'yish qoidalari.
@@ -22,8 +22,11 @@ export interface TransactionFormState {
 export interface TransactionFormPatch {
   description: string;
   amount?: string;
+  currency?: VoiceCurrency;
   counterpartyId?: string;
 }
+
+const CURRENCIES: VoiceCurrency[] = ['UZS', 'USD', 'RUB'];
 
 /**
  * @param format summani maydon ko'rinishiga keltiradi ("50000" -> "50 000")
@@ -38,6 +41,15 @@ export function applyTransactionIntent(
   const amount = intent.amount;
   if (!current.amount.trim() && typeof amount === 'number' && Number.isFinite(amount) && amount > 0) {
     patch.amount = format(String(amount));
+  }
+
+  // Valyuta summadan FARQLI o'laroq, tanlangan bo'lsa ham almashtiriladi.
+  // Sabab: bu maydonda "bo'sh" holat yo'q — unda har doim odatiy qiymat
+  // turadi (masalan dollar). Odam "so'm" deb AYTGAN bo'lsa, bu taxmin
+  // emas, aniq ko'rsatma: uni e'tiborsiz qoldirish yozuvni noto'g'ri
+  // valyutada saqlashga olib borardi.
+  if (intent.currency && CURRENCIES.includes(intent.currency)) {
+    patch.currency = intent.currency;
   }
 
   // Kontakt faqat BITTA aniq topilganda qo'yiladi. Ikkitasi mos kelgan

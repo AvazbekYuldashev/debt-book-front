@@ -55,6 +55,37 @@ describe('applyTransactionIntent', () => {
     }
   });
 
+  // ---------- valyuta ----------
+
+  /**
+   * HAQIQIY HOLAT: odam "ellik ming SO'M" dedi, forma esa dollarda qoldi.
+   * Valyuta umuman o'qilmagandi va yozuv noto'g'ri valyutada saqlanardi.
+   */
+  it("aytilgan valyuta qo'yiladi", () => {
+    expect(applyTransactionIntent(intent({ currency: 'UZS' }), emptyForm, format).currency).toBe('UZS');
+    expect(applyTransactionIntent(intent({ currency: 'USD' }), emptyForm, format).currency).toBe('USD');
+    expect(applyTransactionIntent(intent({ currency: 'RUB' }), emptyForm, format).currency).toBe('RUB');
+  });
+
+  /**
+   * Summadan FARQLI: valyutada "bo'sh" holat yo'q, unda doim odatiy qiymat
+   * turadi. Aytilgani — taxmin emas, aniq ko'rsatma.
+   */
+  it("tanlangan valyuta ustidan ham yoziladi", () => {
+    const chosen = { ...emptyForm, amount: '30 000' };
+    expect(applyTransactionIntent(intent({ currency: 'UZS' }), chosen, format).currency).toBe('UZS');
+  });
+
+  it("valyuta aytilmasa tegilmaydi", () => {
+    expect(applyTransactionIntent(intent({}), emptyForm, format).currency).toBeUndefined();
+    expect(applyTransactionIntent(intent({ currency: null }), emptyForm, format).currency).toBeUndefined();
+  });
+
+  it("noma'lum valyuta rad etiladi", () => {
+    const bad = intent({ currency: 'EUR' as never });
+    expect(applyTransactionIntent(bad, emptyForm, format).currency).toBeUndefined();
+  });
+
   // ---------- kontakt ----------
 
   it('aniq topilgan odam qo\'yiladi', () => {

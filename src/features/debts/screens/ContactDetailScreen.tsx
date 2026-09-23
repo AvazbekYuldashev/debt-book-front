@@ -24,6 +24,7 @@ import type { DebtsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
 import { MoneyActionType } from '../../../shared/types/money';
 import { netByCurrency } from '../../../shared/lib/currency';
+import type { Currency } from '../../../shared/types/money';
 import { canWrite } from '../../../shared/lib/permissions';
 import { useI18n } from '../../../shared/i18n';
 import BusinessCatalogPane from '../../products/components/BusinessCatalogPane';
@@ -55,7 +56,9 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
   const [selectedTransaction, setSelectedTransaction] = useState<MappedTransaction | null>(null);
-  const [voicePrefill, setVoicePrefill] = useState<{ amount?: number; description?: string } | undefined>();
+  const [voicePrefill, setVoicePrefill] = useState<
+    { amount?: number; description?: string; currency?: Currency } | undefined
+  >();
 
   /**
    * Ovozli buyruqdan kelgan qiymatlar bilan oldi-berdi oynasini ochish.
@@ -70,7 +73,11 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     navigation.setParams({ voice: undefined });
 
     setActionType(voiceParam.direction === 'GAVE' ? 'GIVE' : 'TAKE');
-    setVoicePrefill({ amount: voiceParam.amount, description: voiceParam.note });
+    setVoicePrefill({
+      amount: voiceParam.amount,
+      description: voiceParam.note,
+      currency: voiceParam.currency,
+    });
     setModalVisible(true);
   }, [voiceParam, navigation]);
 

@@ -72,7 +72,7 @@ interface MoneyActionModalProps {
    * Forma har ochilishda tozalanadi, shuning uchun bu qiymatlar AYNAN o'sha
    * tozalash joyida qo'yiladi — aks holda ular darhol o'chib ketardi.
    */
-  prefill?: { amount?: number; description?: string };
+  prefill?: { amount?: number; description?: string; currency?: Currency };
   onClose: () => void;
   onSubmit: (payload: MoneyActionPayload) => Promise<void>;
 }
@@ -128,7 +128,8 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     if (!visible) return;
     setAmount(prefill?.amount ? formatAmountInput(String(prefill.amount)) : '');
     setCalcExpression('');
-    setCurrency(baseCurrency);
+    // Aytilgan valyuta odatiy qiymatdan USTUN: odam uni ataylab aytgan.
+    setCurrency(prefill?.currency ?? baseCurrency);
     setCounterpartyId('');
     setTargetType('PROFILE');
     setDescription(prefill?.description ?? '');
@@ -223,6 +224,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
       setError('');
       setDescription(patch.description);
       if (patch.amount !== undefined) setAmount(patch.amount);
+      if (patch.currency !== undefined) setCurrency(patch.currency);
       if (patch.counterpartyId !== undefined) setCounterpartyId(patch.counterpartyId);
     },
     [amount, counterpartyId, description, fixedCounterpartyId],
