@@ -64,7 +64,18 @@ const VoiceNoticeModal: React.FC<VoiceNoticeModalProps> = ({ error, onClose }) =
 
           <Text style={styles.message}>{text}</Text>
 
-          {isPermission ? <Text style={styles.help}>{t('voice.permissionHelp')}</Text> : null}
+          {/* IKKI xil to'siq bor va ular turli joydan ochiladi. Faqat
+              birinchisini aytgandim — foydalanuvchining brauzerida "Mikrofon"
+              qatori umuman yo'q edi, chunki to'siq Android darajasida
+              turgandi. Bitta yo'lni aytish odamni boshi berk ko'chaga
+              olib borardi. */}
+          {isPermission ? (
+            <View style={styles.helpBox}>
+              <Text style={styles.help}>{t('voice.permissionHelp')}</Text>
+              <Text style={styles.help}>{t('voice.permissionHelpOs')}</Text>
+              <Text style={styles.helpStrong}>{t('voice.permissionHelpReload')}</Text>
+            </View>
+          ) : null}
 
           <Pressable onPress={onClose} style={({ pressed }) => [styles.close, pressed && styles.pressed]}>
             <Text style={styles.closeText}>{t('common.close')}</Text>
@@ -106,12 +117,20 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       ...typography.body,
       color: colors.textPrimary,
     },
-    help: {
-      ...typography.caption,
-      color: colors.textSecondary,
+    helpBox: {
       backgroundColor: colors.gray50,
       borderRadius: radius.md,
       padding: spacing.sm,
+      gap: spacing.xs,
+    },
+    help: {
+      ...typography.caption,
+      color: colors.textSecondary,
+    },
+    helpStrong: {
+      ...typography.caption,
+      color: colors.textPrimary,
+      fontWeight: '600',
     },
     close: {
       alignSelf: 'center',
