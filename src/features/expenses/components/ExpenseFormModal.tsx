@@ -109,6 +109,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
               value={description}
               onChangeText={setDescription}
               placeholder={t('expenses.commentExample')}
+              voice={{ kind: 'NOTE', onResult: (intent) => setDescription(intent.text) }}
             />
             {localError ? <Text style={styles.error}>{localError}</Text> : null}
             <View style={styles.actions}>

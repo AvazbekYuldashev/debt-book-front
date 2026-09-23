@@ -24,6 +24,12 @@ const uz: Dict = {
   'notifications.pushTest': "Bildirishnomalar yoqildi! Endi yangi oldi-berdi haqida shu yerda xabar olasiz.",
   'notifications.markAllRead': "Hammasini o'qilgan deb belgilash",
   // common
+  // voice
+  'voice.speak': 'Ovoz bilan yozish',
+  'voice.stop': "To'xtatish",
+  'voice.permissionDenied': "Mikrofonga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering.",
+  'voice.notRecognised': "Aytilgan gap tanilmadi. Yaqinroq va sekinroq gapirib ko'ring.",
+  'voice.failed': "Ovozni yozib bo'lmadi. Qaytadan urinib ko'ring.",
   'common.appName': 'Tez Top',
   'common.save': 'Saqlash',
   'common.cancel': 'Bekor qilish',
@@ -622,6 +628,12 @@ const ru: Dict = {
   'notifications.pushBlockedNative': 'Уведомления заблокированы — нажмите и разрешите в настройках',
   'notifications.pushTest': 'Уведомления включены! Теперь вы будете получать оповещения о новых операциях.',
   'notifications.markAllRead': 'Отметить все как прочитанные',
+  // voice
+  'voice.speak': 'Записать голосом',
+  'voice.stop': 'Остановить',
+  'voice.permissionDenied': 'Доступ к микрофону не разрешён. Разрешите его в настройках браузера.',
+  'voice.notRecognised': 'Речь не распознана. Говорите ближе и медленнее.',
+  'voice.failed': 'Не удалось записать голос. Попробуйте ещё раз.',
   'common.appName': 'Быстрый поиск',
   'common.save': 'Сохранить',
   'common.cancel': 'Отмена',
@@ -1208,6 +1220,12 @@ const en: Dict = {
   'notifications.pushBlockedNative': 'Notifications are blocked — tap and allow in settings',
   'notifications.pushTest': 'Notifications enabled! You will now get alerts about new transactions.',
   'notifications.markAllRead': 'Mark all as read',
+  // voice
+  'voice.speak': 'Record with voice',
+  'voice.stop': 'Stop',
+  'voice.permissionDenied': 'Microphone access was denied. Allow it in your browser settings.',
+  'voice.notRecognised': 'Could not make out the speech. Try speaking closer and slower.',
+  'voice.failed': 'The recording failed. Please try again.',
   'common.appName': 'Tez Top',
   'common.save': 'Save',
   'common.cancel': 'Cancel',

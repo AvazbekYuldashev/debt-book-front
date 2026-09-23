@@ -215,7 +215,13 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
               </Pressable>
             ) : null}
 
-            <Input label={t('debts.fullName')} value={name} onChangeText={setName} placeholder="Ali Valiyev" />
+            <Input
+              label={t('debts.fullName')}
+              value={name}
+              onChangeText={setName}
+              placeholder="Ali Valiyev"
+              voice={{ kind: 'PERSON_NAME', onResult: (intent) => setName(intent.text) }}
+            />
 
             {mode === 'create' ? (
               <PartyTypeSelector

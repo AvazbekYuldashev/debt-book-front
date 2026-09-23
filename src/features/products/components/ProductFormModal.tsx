@@ -200,6 +200,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
               value={name}
               onChangeText={setName}
               placeholder={t('products.namePlaceholder')}
+              voice={{ kind: 'PRODUCT', onResult: (intent) => setName(intent.text) }}
               autoFocus
             />
 
@@ -264,6 +265,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
               value={description}
               onChangeText={setDescription}
               placeholder={t('products.descriptionPlaceholder')}
+              voice={{ kind: 'PRODUCT', onResult: (intent) => setDescription(intent.text) }}
             />
 
             {localError ? <Text style={styles.error}>{localError}</Text> : null}

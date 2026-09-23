@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useAppTheme } from '../theme';
 import { useI18n } from '../i18n';
+import VoiceMicButton, { VoiceMicButtonProps } from '../../features/voice/components/VoiceMicButton';
 
 export type InputVariant = 'primary' | 'secondary' | 'outline';
 
@@ -19,6 +20,14 @@ export interface InputProps extends TextInputProps {
   error?: string;
   containerStyle?: StyleProp<ViewStyle>;
   variant?: InputVariant;
+  /**
+   * Ovoz bilan to'ldirish.
+   *
+   * Tugma maydonning ICHIGA emas, sarlavha qatorining o'ng chetiga qo'yiladi.
+   * Ichkarida bo'lsa uzun matnni yozayotganda kursor ostida qolardi, va
+   * parol ko'rsatish tugmasi bilan bir joyni talashardi.
+   */
+  voice?: Omit<VoiceMicButtonProps, 'onError'>;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -29,12 +38,14 @@ const Input: React.FC<InputProps> = ({
   variant = 'primary',
   secureTextEntry,
   value,
+  voice,
   ...props
 }) => {
   const { colors, spacing, typography } = useAppTheme();
   const { t } = useI18n();
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const backgroundColor = variant === 'secondary' ? colors.gray100 : colors.gray50;
   const borderColor = error ? colors.danger : isFocused ? colors.primary : 'transparent';
@@ -52,7 +63,12 @@ const Input: React.FC<InputProps> = ({
 
   return (
     <View style={[styles.wrapper, { marginBottom: spacing.md }, containerStyle]}>
-      <Text style={[typography.label, { color: colors.textPrimary, marginBottom: spacing.xs }]}>{label}</Text>
+      {/* Tugma bo'lmasa balandlik oshmaydi: ilovadagi qolgan barcha
+          maydonlar avvalgidek ko'rinishi kerak. */}
+      <View style={[styles.labelRow, voice && styles.labelRowWithVoice, { marginBottom: spacing.xs }]}>
+        <Text style={[typography.label, { color: colors.textPrimary }]}>{label}</Text>
+        {voice ? <VoiceMicButton {...voice} onError={setVoiceError} /> : null}
+      </View>
       <View style={styles.inputContainer}>
         <TextInput
           style={[
@@ -87,8 +103,10 @@ const Input: React.FC<InputProps> = ({
           </TouchableOpacity>
         ) : null}
       </View>
-      {error ? (
-        <Text style={[typography.caption, { color: colors.danger, marginTop: spacing.xs }]}>{error}</Text>
+      {error || voiceError ? (
+        <Text style={[typography.caption, { color: colors.danger, marginTop: spacing.xs }]}>
+          {error ?? voiceError}
+        </Text>
       ) : null}
     </View>
   );
@@ -96,6 +114,15 @@ const Input: React.FC<InputProps> = ({
 
 const styles = StyleSheet.create({
   wrapper: {},
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  // Mikrofon tugmasi 28px — sarlavha qatori undan past bo'lmasin.
+  labelRowWithVoice: {
+    minHeight: 28,
+  },
   input: {
     borderWidth: 1.5,
   },

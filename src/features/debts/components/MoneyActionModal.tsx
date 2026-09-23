@@ -36,6 +36,8 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
+import { applyTransactionIntent } from '../../voice/model/applyTransactionIntent';
+import type { VoiceIntent } from '../../voice/api/voice';
 
 export interface MoneyActionPayload {
   amount: number;
@@ -195,6 +197,28 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     setError('');
     setSelectedMemberId(value);
   }, []);
+  /**
+   * Ovozdan tushunilgani formaga qo'yiladi.
+   *
+   * Summa va kontakt FAQAT bo'sh maydonga yoziladi — qoidalar
+   * `applyTransactionIntent` da, test bilan. Saqlash bosilmaydi: odam
+   * ko'rib, o'zi tasdiqlaydi.
+   */
+  const handleVoiceIntent = useCallback(
+    (intent: VoiceIntent) => {
+      const patch = applyTransactionIntent(
+        intent,
+        { amount, description, counterpartyId, counterpartyEditable: !fixedCounterpartyId },
+        formatAmountInput,
+      );
+      setError('');
+      setDescription(patch.description);
+      if (patch.amount !== undefined) setAmount(patch.amount);
+      if (patch.counterpartyId !== undefined) setCounterpartyId(patch.counterpartyId);
+    },
+    [amount, counterpartyId, description, fixedCounterpartyId],
+  );
+
   const handleDescriptionChange = useCallback((value: string) => {
     setError('');
     setDescription(value);
@@ -366,6 +390,11 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               placeholder={t('money.commentPlaceholder')}
               multiline
               numberOfLines={3}
+              voice={{
+                kind: 'TRANSACTION',
+                accountType: workspace.mode === 'business' ? 'business' : 'personal',
+                onResult: handleVoiceIntent,
+              }}
             />
 
             {error ? (
