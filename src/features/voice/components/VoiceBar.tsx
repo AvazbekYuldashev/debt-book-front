@@ -5,6 +5,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { useVoiceInput } from '../model/useVoiceInput';
+import VoiceNoticeModal from './VoiceNoticeModal';
 import type { VoiceIntent, VoiceIntentKind } from '../api/voice';
 
 export interface VoiceBarProps {
@@ -39,6 +40,9 @@ const VoiceBar: React.FC<VoiceBarProps> = ({ kind, accountType, token, onResult 
 
   const recording = voice.state === 'recording';
   const working = voice.state === 'working';
+  // Bu xatolar ko'rsatma talab qiladi va bir qatorga sig'maydi.
+  const needsDialog = ['voice.permissionBlocked', 'voice.permissionDenied', 'voice.noMicrophone', 'voice.micBusy']
+    .includes(voice.error?.key ?? '');
 
   const label = recording
     ? t('voice.listening')
@@ -80,7 +84,11 @@ const VoiceBar: React.FC<VoiceBarProps> = ({ kind, accountType, token, onResult 
         </Text>
       </Pressable>
 
-      {voice.error ? (
+      {/* Ruxsat va qurilma masalalari qatorga sig'maydi — ular ko'rsatma
+          bilan birga oynada chiqadi. Qolganlari joyida, maydon yonida. */}
+      {needsDialog ? (
+        <VoiceNoticeModal error={voice.error} onClose={voice.clearError} />
+      ) : voice.error ? (
         <Text style={[typography.caption, { color: colors.danger, marginTop: spacing.xs }]}>
           {voice.error.message ?? t(voice.error.key ?? 'voice.failed')}
         </Text>

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { transcribe, understand, VoiceIntent, VoiceIntentKind } from '../api/voice';
 import { isWorthSending, pickMimeType } from './voiceFormat';
+import { micPermission } from './micPermission';
+import { describeMediaError } from './describeMediaError';
 
 /**
  * Mikrofondan yozib olish va aytilganini tushunish.
@@ -159,13 +161,20 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
       Boolean((MediaRecorderCtor as unknown as { isTypeSupported?: (t: string) => boolean }).isTypeSupported?.(type)),
     );
 
+    // `getUserMedia` ENG BIRINCHI chaqiriladi. Undan oldin `await` qo'ysak,
+    // bosish ishorasi bilan bog'liqlik uzilib, brauzer so'rovni ko'rsatmay
+    // qo'yishi mumkin — aynan shu "ruxsat so'ramayapti" holatini keltirib
+    // chiqaradi.
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      // Ruxsat berilmadi yoki mikrofon yo'q. Ikkalasiga ham bitta xabar:
-      // foydalanuvchi uchun farqi yo'q, ikkalasida ham ruxsatni tekshiradi.
-      setError({ key: 'voice.permissionDenied' });
+    } catch (e) {
+      // Sabab yiqilgandan KEYIN aniqlanadi. Uchala holat ham tashqaridan
+      // "brauzer so'ramayapti" bo'lib ko'rinadi, lekin yo'llari boshqa:
+      // mikrofonsiz qurilmada ruxsat so'rash ma'nosiz, bloklangan holatda
+      // esa sozlamadan ochish kerak.
+      const name = e instanceof Error ? e.name : '';
+      setError({ key: describeMediaError(name, await micPermission()) });
       return;
     }
 

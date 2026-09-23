@@ -1,10 +1,11 @@
 import React, { memo, useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { useVoiceInput } from '../model/useVoiceInput';
+import VoiceNoticeModal from './VoiceNoticeModal';
 import type { VoiceIntent } from '../api/voice';
 
 export interface VoiceCommandButtonProps {
@@ -60,17 +61,15 @@ const VoiceCommandButton: React.FC<VoiceCommandButtonProps> = ({ accountType, to
         )}
       </Pressable>
 
-      {/* Xato tugma OSTIDA suzib chiqadi: qatorni surib yubormasligi kerak. */}
-      {voice.error ? (
-        <Text style={styles.error} numberOfLines={2}>
-          {voice.error.message ?? t(voice.error.key ?? 'voice.failed')}
-        </Text>
-      ) : null}
+      {/* Xato OYNADA ko'rsatiladi. Ilgari u tugma ostidagi kichik yozuv edi:
+          yuqori qatorga sig'masdi va ko'rinmay qolardi — foydalanuvchi
+          tugmani bosib, hech narsa bo'lmagandek his qilardi. */}
+      <VoiceNoticeModal error={voice.error} onClose={voice.clearError} />
     </View>
   );
 };
 
-const createStyles = ({ colors, radius, typography, shadows, glass }: ThemeValue) =>
+const createStyles = ({ colors, radius, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     button: {
       width: 48,
@@ -87,15 +86,6 @@ const createStyles = ({ colors, radius, typography, shadows, glass }: ThemeValue
     },
     pressed: {
       opacity: 0.6,
-    },
-    error: {
-      ...typography.caption,
-      position: 'absolute',
-      top: 52,
-      right: 0,
-      width: 200,
-      textAlign: 'right',
-      color: colors.danger,
     },
   });
 
