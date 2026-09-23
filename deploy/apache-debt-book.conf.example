@@ -48,7 +48,13 @@
     Header always set X-Content-Type-Options "nosniff"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set X-Frame-Options "SAMEORIGIN"
-    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    # DIQQAT: `microphone=()` bo'sh qavs bilan yozilsa, mikrofon O'Z SAYTIMIZGA
+    # ham taqiqlanadi. Shunda brauzer ruxsat SO'RAMAYDI ham — `getUserMedia`
+    # darhol `NotAllowedError` qaytaradi, `permissions.query` esa "denied"
+    # deydi. Tashqaridan bu "foydalanuvchi ruxsat bermagan" bo'lib ko'rinadi
+    # va sababi telefon sozlamalaridan qidiriladi — real hayotda shunday
+    # bo'ldi. Ovozli kiritish ishlashi uchun `(self)` shart.
+    Header always set Permissions-Policy "camera=(), microphone=(self), geolocation=()"
     # HTTPS'ga o'tilganda yoqing:
     # Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
 

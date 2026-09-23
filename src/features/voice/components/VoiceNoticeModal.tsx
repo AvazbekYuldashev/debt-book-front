@@ -71,6 +71,11 @@ const VoiceNoticeModal: React.FC<VoiceNoticeModalProps> = ({ error, onClose }) =
               olib borardi. */}
           {isPermission ? (
             <View style={styles.helpBox}>
+              {/* Eng birinchi — TELEFONNING umumiy kaliti. U o'chiq bo'lsa
+                  ilovadagi ruxsat "berilgan" bo'lib ko'rinadi, lekin hech
+                  narsa ishlamaydi. Aynan shu holat eng uzoq vaqt
+                  chalkashtirdi: hamma sozlama joyida ko'rinardi. */}
+              <Text style={styles.help}>{t('voice.permissionHelpMaster')}</Text>
               <Text style={styles.help}>{t('voice.permissionHelp')}</Text>
               <Text style={styles.help}>{t('voice.permissionHelpOs')}</Text>
               <Text style={styles.helpStrong}>{t('voice.permissionHelpReload')}</Text>
