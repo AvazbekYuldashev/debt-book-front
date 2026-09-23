@@ -21,7 +21,13 @@
   # Boshqa saytga o'tilganda to'liq manzil (query bilan) yuborilmasin.
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   # Kerak bo'lmagan qurilma imkoniyatlarini o'chiramiz.
-  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+  # DIQQAT: bo'sh qavs — `microphone=()` — imkoniyatni O'Z SAYTIMIZGA ham
+  # yopadi. Shunda brauzer ruxsat SO'RAMAYDI: `getUserMedia` darhol
+  # `NotAllowedError` qaytaradi, `permissions.query` esa "denied" deydi.
+  # Tashqaridan bu "foydalanuvchi ruxsat bermagan" bo'lib ko'rinadi va
+  # sabab telefon sozlamalaridan qidiriladi — real hayotda aynan shunday
+  # bo'ldi. Ovozli kiritish uchun `(self)` shart.
+  Header always set Permissions-Policy "camera=(), microphone=(self), geolocation=(), payment=()"
 
   # Nomida hash bor fayllar (_expo/static/...) — abadiy kesh.
   <FilesMatch "\.(js|css|woff2?|png|jpe?g|svg|gif)$">
