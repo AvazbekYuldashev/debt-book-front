@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 import VoiceBar from '../VoiceBar';
 import { AppThemeProvider } from '../../../../shared/theme';
 import { LanguageProvider } from '../../../../shared/i18n';
@@ -35,6 +36,22 @@ const renderBar = () =>
       </LanguageProvider>
     </AppThemeProvider>,
   );
+
+/** `Platform.OS` ni vaqtincha almashtirish — web shoxini sinash uchun. */
+const withPlatform = (os: string, run: () => void) => {
+  const original = Object.getOwnPropertyDescriptor(Platform, 'OS');
+  Object.defineProperty(Platform, 'OS', { get: () => os, configurable: true });
+  try {
+    run();
+  } finally {
+    if (original) Object.defineProperty(Platform, 'OS', original);
+  }
+};
+
+const settle = () =>
+  act(async () => {
+    await Promise.resolve();
+  });
 
 describe('VoiceBar', () => {
   afterEach(() => jest.clearAllMocks());

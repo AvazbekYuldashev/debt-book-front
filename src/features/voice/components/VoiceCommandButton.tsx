@@ -34,9 +34,9 @@ const VoiceCommandButton: React.FC<VoiceCommandButtonProps> = ({ accountType, to
 
   const voice = useVoiceInput({ kind: 'TRANSACTION', accountType, token, onResult });
 
-  // Qurilma yozib olmasa tugma umuman chiqmaydi — Android ilovasida
-  // hozircha shunday.
-  if (!voice.supported) return null;
+  // Brauzerda qo'llab-quvvatlanmasa ham ko'rsatamiz — bosilganda sababi
+  // aytiladi. Ilovada esa yashiriladi.
+  if (!voice.visible) return null;
 
   const recording = voice.state === 'recording';
   const working = voice.state === 'working';

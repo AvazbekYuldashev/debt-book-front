@@ -34,15 +34,20 @@ const VoiceBar: React.FC<VoiceBarProps> = ({ kind, accountType, token, onResult 
 
   const voice = useVoiceInput({ kind, accountType, token, onResult });
 
-  // Qurilma yozib olmasa tugma umuman chiqmaydi — Android ilovasida
-  // hozircha shunday. Ishlamaydigan tugma ilova buzilgandek ko'rinardi.
-  if (!voice.supported) return null;
+  // Brauzerda qo'llab-quvvatlanmasa ham ko'rsatamiz — bosilganda sababi
+  // aytiladi. Ilovada esa yashiriladi: u yerda yozib olish moduli yo'q.
+  if (!voice.visible) return null;
 
   const recording = voice.state === 'recording';
   const working = voice.state === 'working';
   // Bu xatolar ko'rsatma talab qiladi va bir qatorga sig'maydi.
-  const needsDialog = ['voice.permissionBlocked', 'voice.permissionDenied', 'voice.noMicrophone', 'voice.micBusy']
-    .includes(voice.error?.key ?? '');
+  const needsDialog = [
+    'voice.permissionBlocked',
+    'voice.permissionDenied',
+    'voice.noMicrophone',
+    'voice.micBusy',
+    'voice.unsupportedBrowser',
+  ].includes(voice.error?.key ?? '');
 
   const label = recording
     ? t('voice.listening')

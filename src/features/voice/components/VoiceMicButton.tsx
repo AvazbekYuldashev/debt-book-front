@@ -47,7 +47,7 @@ const VoiceMicButton: React.FC<VoiceMicButtonProps> = ({
     onError(error.message ?? t(error.key ?? 'voice.failed'));
   }, [error, onError, t]);
 
-  if (!voice.supported) return null;
+  if (!voice.visible) return null;
 
   const recording = voice.state === 'recording';
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { transcribe, understand, VoiceIntent, VoiceIntentKind } from '../api/voice';
 import { isWorthSending, pickMimeType } from './voiceFormat';
 import { micPermission } from './micPermission';
@@ -8,9 +9,13 @@ import { describeMediaError } from './describeMediaError';
  * Mikrofondan yozib olish va aytilganini tushunish.
  *
  * HOZIRCHA FAQAT BRAUZERDA. Android ilovasida yozib olish uchun alohida
- * native modul kerak, u esa yangi Play Market relizi degani. Shuning uchun
- * bu yerda qurilma qo'llab-quvvatlamasa tugma KO'RSATILMAYDI — ishlamaydigan
- * tugmani ko'rsatib, odamni bosishga majburlagandan ko'ra yo'qligi yaxshi.
+ * native modul kerak, u esa yangi Play Market relizi degani.
+ *
+ * Brauzerda qo'llab-quvvatlanmagan holat JIM QOLDIRILMAYDI — tugma
+ * ko'rsatiladi va bosilganda sababi aytiladi. Ilgari u yashirinardi, va
+ * foydalanuvchi "tugma yo'q" bilan "ilova buzilgan" ni ajrata olmasdi:
+ * masalan Telegram ichidagi brauzerda `mediaDevices` umuman yo'q, lekin
+ * buni tashqaridan bilib bo'lmaydi.
  */
 
 export type VoiceInputState = 'idle' | 'recording' | 'working';
@@ -39,6 +44,19 @@ export interface VoiceInputOptions {
 
 export interface VoiceInput {
   supported: boolean;
+  /**
+   * Tugma ko'rsatiladimi.
+   *
+   * Brauzerda qo'llab-quvvatlanmasa ham KO'RSATILADI — bosilganda sababi
+   * aytiladi. Ilgari bunday holatda tugma jimgina yashirinardi va
+   * foydalanuvchi "yo'q" bilan "buzilgan" ni ajrata olmasdi. Masalan
+   * Telegram ichidagi brauzerda `mediaDevices` yo'q, lekin buni odam
+   * qayerdan bilsin?
+   *
+   * Ilovada (Android) esa yashiriladi: u yerda hali yozib olish moduli
+   * yo'q, va har ekranda foydasiz tugma turishi ortiqcha.
+   */
+  visible: boolean;
   state: VoiceInputState;
   error: VoiceError | null;
   start: () => void;
@@ -153,7 +171,12 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
   }, []);
 
   const start = useCallback(async () => {
-    if (!supported || state !== 'idle') return;
+    if (!supported) {
+      // Jim qaytmaymiz: sababni aytish kerak.
+      setError({ key: 'voice.unsupportedBrowser' });
+      return;
+    }
+    if (state !== 'idle') return;
     setError(null);
 
     const MediaRecorderCtor = (window as unknown as { MediaRecorder: typeof MediaRecorder }).MediaRecorder;
@@ -209,6 +232,7 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
 
   return {
     supported,
+    visible: supported || Platform.OS === 'web',
     state,
     error,
     start: useCallback(() => void start(), [start]),

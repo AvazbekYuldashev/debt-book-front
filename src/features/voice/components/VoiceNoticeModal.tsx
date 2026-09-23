@@ -37,7 +37,10 @@ const VoiceNoticeModal: React.FC<VoiceNoticeModalProps> = ({ error, onClose }) =
   // qilardi — u yerda ruxsatning aloqasi yo'q.
   const isPermission =
     error.key === 'voice.permissionBlocked' || error.key === 'voice.permissionDenied';
-  const isDeviceIssue = error.key === 'voice.noMicrophone' || error.key === 'voice.micBusy';
+  const isDeviceIssue =
+    error.key === 'voice.noMicrophone' ||
+    error.key === 'voice.micBusy' ||
+    error.key === 'voice.unsupportedBrowser';
   const text = error.message ?? t(error.key ?? 'voice.failed');
 
   const title = isPermission
