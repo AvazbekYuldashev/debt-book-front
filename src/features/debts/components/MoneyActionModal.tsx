@@ -226,6 +226,14 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
       if (patch.amount !== undefined) setAmount(patch.amount);
       if (patch.currency !== undefined) setCurrency(patch.currency);
       if (patch.counterpartyId !== undefined) setCounterpartyId(patch.counterpartyId);
+
+      // Narxnoma qatorlari savatga tushadi: summa ular asosida hisoblangan,
+      // yakuniy so'z esa saqlashda serverda — u narxni o'z narxnomasidan
+      // qayta o'qiydi.
+      if (patch.items) {
+        setOrderItems(patch.items.map((item) => ({ productId: item.productId, quantity: item.quantity })));
+        setCalcExpression(patch.calcNote ?? '');
+      }
     },
     [amount, counterpartyId, description, fixedCounterpartyId],
   );

@@ -23,6 +23,14 @@ export interface VoiceContactOption {
   partyType?: string | null;
 }
 
+/** Narxnomadan tanilgan qator. */
+export interface VoiceItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
 export interface VoiceIntent {
   /** Maydonga qo'yiladigan matn. Tushunilmagan bo'lsa ham to'la keladi. */
   text: string;
@@ -32,6 +40,10 @@ export interface VoiceIntent {
   direction?: VoiceDirection | null;
   /** Aytilgan valyuta. Aytilmagan bo'lsa null — formadagi tanlov qoladi. */
   currency?: VoiceCurrency | null;
+  /** Narxnoma qatorlari. Bo'sh bo'lsa oddiy pul yozuvi. */
+  items?: VoiceItem[] | null;
+  /** "7000×2" — savat izohi. */
+  calcNote?: string | null;
   personName?: string | null;
   contactOutcome?: ContactOutcome | null;
   contactId?: string | null;

@@ -1,4 +1,4 @@
-import type { VoiceCurrency, VoiceIntent } from '../api/voice';
+import type { VoiceCurrency, VoiceIntent, VoiceItem } from '../api/voice';
 
 /**
  * Tushunilgan gapni oldi-berdi formasiga qo'yish qoidalari.
@@ -24,6 +24,9 @@ export interface TransactionFormPatch {
   amount?: string;
   currency?: VoiceCurrency;
   counterpartyId?: string;
+  /** Narxnoma qatorlari — savatga tushadi. */
+  items?: VoiceItem[];
+  calcNote?: string;
 }
 
 const CURRENCIES: VoiceCurrency[] = ['UZS', 'USD', 'RUB'];
@@ -38,8 +41,18 @@ export function applyTransactionIntent(
 ): TransactionFormPatch {
   const patch: TransactionFormPatch = { description: intent.text ?? '' };
 
+  const items = (intent.items ?? []).filter((i) => i && i.productId && i.quantity > 0);
   const amount = intent.amount;
-  if (!current.amount.trim() && typeof amount === 'number' && Number.isFinite(amount) && amount > 0) {
+  const hasAmount = typeof amount === 'number' && Number.isFinite(amount) && amount > 0;
+
+  if (items.length > 0 && hasAmount) {
+    // XARIDDA summa narxnomadan keladi, shuning uchun u qo'lda yozilgan
+    // qiymatdan ham ustun: qatorlar bilan mos kelmaydigan son chek bilan
+    // ziddiyatga tushardi.
+    patch.items = items;
+    patch.amount = format(String(amount));
+    if (intent.calcNote) patch.calcNote = intent.calcNote;
+  } else if (!current.amount.trim() && hasAmount) {
     patch.amount = format(String(amount));
   }
 

@@ -86,6 +86,55 @@ describe('applyTransactionIntent', () => {
     expect(applyTransactionIntent(bad, emptyForm, format).currency).toBeUndefined();
   });
 
+  // ---------- narxnoma qatorlari ----------
+
+  const fanta = { productId: 'f1', name: 'Fanta', quantity: 2, price: 7000 };
+
+  /**
+   * HAQIQIY JUMLA: "salom marketdan ikkita bir litrlik fanta oldim".
+   * Natija: savatda Fanta x2, summa 14 000 so'm.
+   */
+  it("narxnoma qatorlari savatga tushadi", () => {
+    const patch = applyTransactionIntent(
+      intent({ items: [fanta], amount: 14000, currency: 'UZS', calcNote: '7000×2' }),
+      emptyForm,
+      format,
+    );
+
+    expect(patch.items).toEqual([fanta]);
+    expect(patch.amount).toBe('14 000');
+    expect(patch.currency).toBe('UZS');
+    expect(patch.calcNote).toBe('7000×2');
+  });
+
+  /**
+   * Xaridda summa QO'LDA yozilganidan ham ustun: narxnoma qatorlari bilan
+   * mos kelmaydigan son chek bilan ziddiyatga tushardi.
+   */
+  it("qatorlar bo'lsa summa qo'lda yozilganini ham almashtiradi", () => {
+    const typed = { ...emptyForm, amount: '5 000' };
+    const patch = applyTransactionIntent(
+      intent({ items: [fanta], amount: 14000 }),
+      typed,
+      format,
+    );
+    expect(patch.amount).toBe('14 000');
+  });
+
+  it("buzuq qatorlar tashlanadi", () => {
+    const patch = applyTransactionIntent(
+      intent({ items: [{ productId: '', name: 'x', quantity: 1, price: 5 }], amount: 14000 }),
+      emptyForm,
+      format,
+    );
+    expect(patch.items).toBeUndefined();
+  });
+
+  it("qator yo'q bo'lsa avvalgi qoida saqlanadi", () => {
+    const typed = { ...emptyForm, amount: '30 000' };
+    expect(applyTransactionIntent(intent({ amount: 50000 }), typed, format).amount).toBeUndefined();
+  });
+
   // ---------- kontakt ----------
 
   it('aniq topilgan odam qo\'yiladi', () => {
