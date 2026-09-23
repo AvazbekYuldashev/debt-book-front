@@ -66,6 +66,13 @@ interface MoneyActionModalProps {
   ownerAccountType: AccountType;
   /** Narxnomadan buyurtma qilish uchun token (counterparty biznes bo'lsa). */
   token?: string;
+  /**
+   * Ovozli buyruqdan kelgan boshlang'ich qiymatlar.
+   *
+   * Forma har ochilishda tozalanadi, shuning uchun bu qiymatlar AYNAN o'sha
+   * tozalash joyida qo'yiladi — aks holda ular darhol o'chib ketardi.
+   */
+  prefill?: { amount?: number; description?: string };
   onClose: () => void;
   onSubmit: (payload: MoneyActionPayload) => Promise<void>;
 }
@@ -83,6 +90,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   fixedCounterpartyType,
   ownerAccountType,
   token,
+  prefill,
   onClose,
   onSubmit,
 }) => {
@@ -118,16 +126,16 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   // qat'i nazar eski qiymatlar qolib ketmaydi.
   useEffect(() => {
     if (!visible) return;
-    setAmount('');
+    setAmount(prefill?.amount ? formatAmountInput(String(prefill.amount)) : '');
     setCalcExpression('');
     setCurrency(baseCurrency);
     setCounterpartyId('');
     setTargetType('PROFILE');
-    setDescription('');
+    setDescription(prefill?.description ?? '');
     setSelectedMemberId('');
     setError('');
     setOrderItems([]);
-  }, [visible, baseCurrency]);
+  }, [visible, baseCurrency, prefill]);
 
   const effectiveType = fixedCounterpartyType ?? targetType;
   const effectiveCounterpartyId = (fixedCounterpartyId ?? counterpartyId).trim();

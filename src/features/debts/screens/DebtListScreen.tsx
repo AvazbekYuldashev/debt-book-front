@@ -44,6 +44,9 @@ import BalanceSummary from '../components/BalanceSummary';
 import ContactRow from '../components/ContactRow';
 import ContactFormModal from '../components/ContactFormModal';
 import ProfilePhotoModal from '../../profile/components/ProfilePhotoModal';
+import VoiceResultModal from '../../voice/components/VoiceResultModal';
+import { resolveVoiceCommand, type VoiceCommand } from '../../voice/model/resolveVoiceCommand';
+import type { VoiceContactOption, VoiceDirection, VoiceIntent } from '../../voice/api/voice';
 import { pickContactImage, useContactAvatars } from '../context/contactAvatars';
 
 type Mode = 'create' | 'edit';
@@ -292,6 +295,59 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     [navigation],
   );
 
+  // ---- Ovozli buyruq ----
+
+  const [voiceCommand, setVoiceCommand] = useState<VoiceCommand | null>(null);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceOptions, setVoiceOptions] = useState<VoiceContactOption[]>([]);
+
+  const openContactWithVoice = useCallback(
+    (id: string, prefill: { amount?: number; direction?: VoiceDirection; note?: string }) => {
+      setVoiceCommand(null);
+      navigation.navigate(ROUTES.CONTACT_DETAIL, { id, voice: prefill });
+    },
+    [navigation],
+  );
+
+  /**
+   * Aytilgani tushunilgach.
+   *
+   * Hammasi aniq bo'lsa — to'g'ridan-to'g'ri o'sha odamning oynasiga
+   * o'tamiz, ortiqcha qadamsiz. Aks holda natija oynasi chiqadi: dastur
+   * taxmin qilmaganda foydalanuvchi NIMA bo'lganini ko'rishi kerak, aks
+   * holda tugma "ishlamadi" deb qabul qilinardi.
+   */
+  const handleVoiceResult = useCallback(
+    (intent: VoiceIntent) => {
+      const command = resolveVoiceCommand(intent);
+      setVoiceTranscript(intent.text ?? '');
+      setVoiceOptions(intent.contactOptions ?? []);
+
+      if (command.kind === 'OPEN_CONTACT') {
+        openContactWithVoice(command.contactId, command.prefill);
+        return;
+      }
+      setVoiceCommand(command);
+    },
+    [openContactWithVoice],
+  );
+
+  const handleVoicePickContact = useCallback(
+    (contactId: string) => {
+      if (!voiceCommand) return;
+      openContactWithVoice(contactId, voiceCommand.prefill);
+    },
+    [openContactWithVoice, voiceCommand],
+  );
+
+  const handleVoicePickDirection = useCallback(
+    (direction: VoiceDirection) => {
+      if (voiceCommand?.kind !== 'ASK_DIRECTION') return;
+      openContactWithVoice(voiceCommand.contactId, { ...voiceCommand.prefill, direction });
+    },
+    [openContactWithVoice, voiceCommand],
+  );
+
   // Tahrirlash modalidagi mijozning rasm kaliti va hozirgi rasmi.
   const selectedAvatarKey = useMemo(() => {
     const contact = contacts.find((item) => item.id === selectedId);
@@ -417,7 +473,10 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       <AmbientBackground />
 
       <EntranceView style={styles.header} duration={300} fromY={12}>
-        <ScreenTopBar />
+        <ScreenTopBar
+          onVoiceResult={handleVoiceResult}
+          voiceAccountType={workspace.mode === 'business' ? 'business' : 'personal'}
+        />
 
         <View style={styles.headerRow}>
           <View style={styles.titleWrap}>
@@ -580,6 +639,15 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         onClose={() => setPickerVisible(false)}
         existingPhones={existingPhones}
         onSubmit={handleAddFromDevice}
+      />
+
+      <VoiceResultModal
+        command={voiceCommand}
+        transcript={voiceTranscript}
+        options={voiceOptions}
+        onPickContact={handleVoicePickContact}
+        onPickDirection={handleVoicePickDirection}
+        onClose={() => setVoiceCommand(null)}
       />
 
       <ProfilePhotoModal

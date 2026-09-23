@@ -2,6 +2,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ROUTES } from './routes';
+import type { VoiceCommandPrefill } from '../../features/voice/model/resolveVoiceCommand';
 
 /**
  * Debts (Hisob-kitob) stack'ining route param'lari.
@@ -10,7 +11,11 @@ import type { ROUTES } from './routes';
  */
 export type DebtsStackParamList = {
   [ROUTES.DEBT_LIST]: undefined;
-  [ROUTES.CONTACT_DETAIL]: { id: string };
+  /**
+    * `voice` — ovozli buyruqdan kelgan boshlang'ich qiymatlar. Ixtiyoriy:
+    * kontakt odatdagidek ro'yxatdan ham ochiladi.
+    */
+  [ROUTES.CONTACT_DETAIL]: { id: string; voice?: VoiceCommandPrefill };
   [ROUTES.NOTIFICATIONS]: undefined;
 };
 

@@ -32,6 +32,7 @@ import TransactionRow from '../components/TransactionRow';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
 import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
+import type { VoiceCommandPrefill } from '../../voice/model/resolveVoiceCommand';
 
 type ContactDetailProps = DebtsScreenProps<typeof ROUTES.CONTACT_DETAIL>;
 
@@ -54,6 +55,24 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
   const [selectedTransaction, setSelectedTransaction] = useState<MappedTransaction | null>(null);
+  const [voicePrefill, setVoicePrefill] = useState<{ amount?: number; description?: string } | undefined>();
+
+  /**
+   * Ovozli buyruqdan kelgan qiymatlar bilan oldi-berdi oynasini ochish.
+   *
+   * Parametr DARHOL tozalanadi: aks holda foydalanuvchi orqaga qaytib shu
+   * kontaktga kirganda oyna o'z-o'zidan yana ochilaverardi va eski summa
+   * qayta paydo bo'lardi.
+   */
+  const voiceParam = route.params.voice as VoiceCommandPrefill | undefined;
+  useEffect(() => {
+    if (!voiceParam) return;
+    navigation.setParams({ voice: undefined });
+
+    setActionType(voiceParam.direction === 'GAVE' ? 'GIVE' : 'TAKE');
+    setVoicePrefill({ amount: voiceParam.amount, description: voiceParam.note });
+    setModalVisible(true);
+  }, [voiceParam, navigation]);
 
   const { history, currencyTotals, selectedCounterparty, loading, creating, error, fetchData, createMoney } =
     useMoney({ token: profile?.jwt });
@@ -279,7 +298,11 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         fixedCounterpartyType={contact.partyType}
         ownerAccountType={accountType}
         token={profile?.jwt}
-        onClose={() => setModalVisible(false)}
+        prefill={voicePrefill}
+        onClose={() => {
+          setModalVisible(false);
+          setVoicePrefill(undefined);
+        }}
         onSubmit={handleCreate}
       />
 
