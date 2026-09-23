@@ -33,6 +33,15 @@ export type VoiceInputState = 'idle' | 'recording' | 'working';
 export interface VoiceError {
   key?: string;
   message?: string;
+  /**
+   * Brauzer qaytargan texnik nom (`NotAllowedError`, `NotFoundError`, ...).
+   *
+   * Kichik yozuvda ko'rsatiladi. Foydalanuvchi uchun emas — MEN uchun:
+   * ruxsat masalasi bir necha bosqichda taxmin bilan qidirildi, chunki
+   * haqiqiy sabab hech qayerda ko'rinmasdi. Endi odam ekran rasmini
+   * yuborsa, sabab darhol ma'lum bo'ladi.
+   */
+  detail?: string;
 }
 
 export interface VoiceInputOptions {
@@ -197,7 +206,11 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
       // mikrofonsiz qurilmada ruxsat so'rash ma'nosiz, bloklangan holatda
       // esa sozlamadan ochish kerak.
       const name = e instanceof Error ? e.name : '';
-      setError({ key: describeMediaError(name, await micPermission()) });
+      const permission = await micPermission();
+      setError({
+        key: describeMediaError(name, permission),
+        detail: `${name || 'xato'} / ruxsat: ${permission}`,
+      });
       return;
     }
 

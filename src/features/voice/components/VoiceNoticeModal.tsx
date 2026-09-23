@@ -77,6 +77,11 @@ const VoiceNoticeModal: React.FC<VoiceNoticeModalProps> = ({ error, onClose }) =
             </View>
           ) : null}
 
+          {/* Texnik sabab — kichik va oxirida. Foydalanuvchiga emas,
+              nosozlikni izlayotgan odamga kerak: usiz sabab faqat taxmin
+              qilinardi. */}
+          {error.detail ? <Text style={styles.detail}>{error.detail}</Text> : null}
+
           <Pressable onPress={onClose} style={({ pressed }) => [styles.close, pressed && styles.pressed]}>
             <Text style={styles.closeText}>{t('common.close')}</Text>
           </Pressable>
@@ -131,6 +136,13 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       ...typography.caption,
       color: colors.textPrimary,
       fontWeight: '600',
+    },
+    detail: {
+      ...typography.caption,
+      fontSize: 11,
+      textAlign: 'center',
+      color: colors.textSecondary,
+      opacity: 0.7,
     },
     close: {
       alignSelf: 'center',
