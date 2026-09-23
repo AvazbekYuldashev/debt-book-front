@@ -40,15 +40,15 @@ describe('VoiceNoticeModal', () => {
     renderNotice({ key: 'voice.permissionBlocked' });
 
     expect(await screen.findByText('Mikrofonga ruxsat kerak')).toBeTruthy();
-    expect(screen.getByText(/bloklangan/)).toBeTruthy();
-    expect(screen.getByText(/qulf belgisini bosing/)).toBeTruthy();
+    expect(screen.getByText(/brauzer ruxsat so'ramadi/)).toBeTruthy();
+    expect(screen.getByText(/SAYT sozlamasi/)).toBeTruthy();
   });
 
   it('ruxsat berilmaganda ham ko\'rsatma chiqadi', async () => {
     renderNotice({ key: 'voice.permissionDenied' });
 
     expect(await screen.findByText('Mikrofonga ruxsat kerak')).toBeTruthy();
-    expect(screen.getByText(/qulf belgisini bosing/)).toBeTruthy();
+    expect(screen.getByText(/SAYT sozlamasi/)).toBeTruthy();
   });
 
   /** Server xabari allaqachon foydalanuvchi tilida — tarjima qilinmaydi. */
@@ -57,7 +57,7 @@ describe('VoiceNoticeModal', () => {
 
     expect(await screen.findByText("Ovoz xizmatida mablag' tugagan.")).toBeTruthy();
     // Ruxsatga aloqasi yo'q — ko'rsatma ortiqcha bo'lardi.
-    expect(screen.queryByText(/qulf belgisini bosing/)).toBeNull();
+    expect(screen.queryByText(/SAYT sozlamasi/)).toBeNull();
   });
 
   /**
@@ -69,7 +69,7 @@ describe('VoiceNoticeModal', () => {
 
     expect(await screen.findByText('Mikrofon bilan muammo')).toBeTruthy();
     expect(screen.getByText(/mikrofon topilmadi/)).toBeTruthy();
-    expect(screen.queryByText(/qulf belgisini bosing/)).toBeNull();
+    expect(screen.queryByText(/SAYT sozlamasi/)).toBeNull();
     expect(screen.queryByText('Mikrofonga ruxsat kerak')).toBeNull();
   });
 
