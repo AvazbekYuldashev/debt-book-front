@@ -437,6 +437,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               visible={basketOpen}
               businessId={catalogBusinessId}
               token={token}
+              initialItems={orderItems}
               onClose={() => setBasketOpen(false)}
               onConfirm={handleBasketConfirm}
             />

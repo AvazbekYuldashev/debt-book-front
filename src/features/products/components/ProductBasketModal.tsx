@@ -36,6 +36,14 @@ interface ProductBasketModalProps {
   visible: boolean;
   businessId: string;
   token?: string;
+  /**
+   * Formada allaqachon turgan qatorlar.
+   *
+   * Ularsiz oyna har safar BO'SH ochilardi: ovoz bilan 4 ta Fanta
+   * tanlangandan keyin "narxnomadan tanlash" ni ochgan odam 0 ni ko'rar,
+   * va 3 ta qilmoqchi bo'lsa avvalgi tanlov yo'qolardi.
+   */
+  initialItems?: MoneyItemCreateDTO[];
   onClose: () => void;
   onConfirm: (result: BasketResult) => void;
 }
@@ -55,6 +63,7 @@ const ProductBasketModal: React.FC<ProductBasketModalProps> = ({
   visible,
   businessId,
   token,
+  initialItems,
   onClose,
   onConfirm,
 }) => {
@@ -91,9 +100,18 @@ const ProductBasketModal: React.FC<ProductBasketModalProps> = ({
     if (!visible) return;
     setSearch('');
     setCategory(ALL_CATEGORIES);
-    setQuantities({});
+
+    // Oyna FORMADAGI holat bilan ochiladi, noldan emas — aks holda
+    // tanlangan qatorlar ko'rinmay, ularni tuzatmoqchi bo'lgan odam
+    // hammasini boshqatdan yig'ishga majbur bo'lardi.
+    const seeded: Record<string, string> = {};
+    for (const item of initialItems ?? []) {
+      if (item?.productId && item.quantity > 0) seeded[item.productId] = String(item.quantity);
+    }
+    setQuantities(seeded);
+
     if (!loaded) load();
-  }, [visible, loaded, load]);
+  }, [visible, loaded, load, initialItems]);
 
   /**
    * Filtr chiplari MAHSULOTLARDAN quriladi, serverdan alohida so'ralmaydi:
