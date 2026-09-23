@@ -11,6 +11,7 @@ import {
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
+import VoiceBar from '../../voice/components/VoiceBar';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import ChipSelector from '../../../shared/ui/ChipSelector';
@@ -195,12 +196,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           <View style={styles.card}>
             <Text style={styles.title}>{mode === 'create' ? t('products.add') : t('products.edit')}</Text>
 
+            {/* Tugma NOMNI to'ldiradi — formadagi asosiy maydon. Izohning
+                o'z mikrofoni bor, chunki u boshqa maydon. */}
+            <VoiceBar kind="PRODUCT" onResult={(intent) => setName(intent.text)} />
+
             <Input
               label={t('products.name')}
               value={name}
               onChangeText={setName}
               placeholder={t('products.namePlaceholder')}
-              voice={{ kind: 'PRODUCT', onResult: (intent) => setName(intent.text) }}
               autoFocus
             />
 

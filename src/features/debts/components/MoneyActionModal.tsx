@@ -36,6 +36,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
+import VoiceBar from '../../voice/components/VoiceBar';
 import { applyTransactionIntent } from '../../voice/model/applyTransactionIntent';
 import type { VoiceIntent } from '../../voice/api/voice';
 
@@ -320,6 +321,15 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               </Pressable>
             </View>
 
+            {/* Formaning eng tepasida: oyna ochilgan zahoti ko'rinadi.
+                "Aliga ellik ming berdim" — summa, yo'nalish va odam birdan
+                to'ladi, saqlashni foydalanuvchi bosadi. */}
+            <VoiceBar
+              kind="TRANSACTION"
+              accountType={workspace.mode === 'business' ? 'business' : 'personal'}
+              onResult={handleVoiceIntent}
+            />
+
             <Input
               label={t('money.amount')}
               value={amount}
@@ -390,11 +400,6 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               placeholder={t('money.commentPlaceholder')}
               multiline
               numberOfLines={3}
-              voice={{
-                kind: 'TRANSACTION',
-                accountType: workspace.mode === 'business' ? 'business' : 'personal',
-                onResult: handleVoiceIntent,
-              }}
             />
 
             {error ? (

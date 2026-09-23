@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
+import VoiceBar from '../../voice/components/VoiceBar';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
@@ -92,6 +93,8 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
             <Text style={styles.hint}>
               {t('expenses.categoryColon')}: {categoryName || t('expenses.notSelected')}
             </Text>
+
+            <VoiceBar kind="NOTE" onResult={(intent) => setDescription(intent.text)} />
             <Input
               label={t('expenses.amountLabel')}
               value={amount}
@@ -109,7 +112,6 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
               value={description}
               onChangeText={setDescription}
               placeholder={t('expenses.commentExample')}
-              voice={{ kind: 'NOTE', onResult: (intent) => setDescription(intent.text) }}
             />
             {localError ? <Text style={styles.error}>{localError}</Text> : null}
             <View style={styles.actions}>

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
+import VoiceBar from '../../voice/components/VoiceBar';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import UserAvatar from '../../../shared/ui/UserAvatar';
@@ -191,6 +192,8 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
               {mode === 'create' ? t('debts.addClient') : t('debts.editClient')}
             </Text>
 
+            <VoiceBar kind="PERSON_NAME" onResult={(intent) => setName(intent.text)} />
+
             {showDeviceContacts ? (
               <TouchableOpacity style={styles.deviceBtn} onPress={onOpenDeviceContacts} activeOpacity={0.8}>
                 <Ionicons name="people-outline" size={18} color={colors.primary} />
@@ -220,7 +223,6 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
               value={name}
               onChangeText={setName}
               placeholder="Ali Valiyev"
-              voice={{ kind: 'PERSON_NAME', onResult: (intent) => setName(intent.text) }}
             />
 
             {mode === 'create' ? (

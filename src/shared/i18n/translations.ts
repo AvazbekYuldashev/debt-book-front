@@ -26,6 +26,9 @@ const uz: Dict = {
   // common
   // voice
   'voice.speak': 'Ovoz bilan yozish',
+  'voice.fillByVoice': "Ovoz bilan to'ldirish",
+  'voice.listening': "Gapiring — to'xtatish uchun bosing",
+  'voice.processing': 'Tinglanmoqda...',
   'voice.stop': "To'xtatish",
   'voice.permissionDenied': "Mikrofonga ruxsat berilmadi. Brauzer sozlamalaridan ruxsat bering.",
   'voice.notRecognised': "Aytilgan gap tanilmadi. Yaqinroq va sekinroq gapirib ko'ring.",
@@ -630,6 +633,9 @@ const ru: Dict = {
   'notifications.markAllRead': 'Отметить все как прочитанные',
   // voice
   'voice.speak': 'Записать голосом',
+  'voice.fillByVoice': 'Заполнить голосом',
+  'voice.listening': 'Говорите — нажмите, чтобы остановить',
+  'voice.processing': 'Распознаём...',
   'voice.stop': 'Остановить',
   'voice.permissionDenied': 'Доступ к микрофону не разрешён. Разрешите его в настройках браузера.',
   'voice.notRecognised': 'Речь не распознана. Говорите ближе и медленнее.',
@@ -1222,6 +1228,9 @@ const en: Dict = {
   'notifications.markAllRead': 'Mark all as read',
   // voice
   'voice.speak': 'Record with voice',
+  'voice.fillByVoice': 'Fill in by voice',
+  'voice.listening': 'Speak — tap to stop',
+  'voice.processing': 'Listening...',
   'voice.stop': 'Stop',
   'voice.permissionDenied': 'Microphone access was denied. Allow it in your browser settings.',
   'voice.notRecognised': 'Could not make out the speech. Try speaking closer and slower.',
