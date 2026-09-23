@@ -121,6 +121,20 @@ describe('applyTransactionIntent', () => {
     expect(patch.amount).toBe('14 000');
   });
 
+  /** Bir gapda bir nechta mahsulot — hammasi savatga tushishi kerak. */
+  it("bir nechta qator saqlanadi", () => {
+    const non = { productId: 'n1', name: 'Non', quantity: 3, price: 3000 };
+    const patch = applyTransactionIntent(
+      intent({ items: [fanta, non], amount: 23000, currency: 'UZS', calcNote: '7000×2+3000×3' }),
+      emptyForm,
+      format,
+    );
+
+    expect(patch.items).toHaveLength(2);
+    expect(patch.amount).toBe('23 000');
+    expect(patch.calcNote).toBe('7000×2+3000×3');
+  });
+
   it("buzuq qatorlar tashlanadi", () => {
     const patch = applyTransactionIntent(
       intent({ items: [{ productId: '', name: 'x', quantity: 1, price: 5 }], amount: 14000 }),
