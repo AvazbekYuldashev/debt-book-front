@@ -5,6 +5,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import VoiceBar from '../../voice/components/VoiceBar';
+import { applyAmountIntent } from '../../voice/model/applyAmountIntent';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
@@ -94,7 +95,17 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
               {t('expenses.categoryColon')}: {categoryName || t('expenses.notSelected')}
             </Text>
 
-            <VoiceBar kind="NOTE" onResult={(intent) => setDescription(intent.text)} />
+            {/* Xarajatda summa ham gapdan olinadi: "o'n ming so'm sarfladim".
+                Qarzlar bo'limidagi bilan bir xil qoida — qo'lda yozilgan
+                summa ustidan yozilmaydi. */}
+            <VoiceBar
+              kind="EXPENSE"
+              onResult={(intent) => {
+                const patch = applyAmountIntent(intent, { amount, note: description }, formatAmountInput);
+                setDescription(patch.note);
+                if (patch.amount !== undefined) setAmount(patch.amount);
+              }}
+            />
             <Input
               label={t('expenses.amountLabel')}
               value={amount}

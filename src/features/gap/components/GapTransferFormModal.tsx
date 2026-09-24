@@ -15,6 +15,8 @@ import Button from '../../../shared/ui/Button';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
+import VoiceBar from '../../voice/components/VoiceBar';
+import { applyAmountIntent } from '../../voice/model/applyAmountIntent';
 import CalculatorModal from '../../../shared/ui/CalculatorModal';
 import GapUnitPicker from './GapUnitPicker';
 import { formatGapAmountInput, parseGapAmountInput } from '../model/gapFormat';
@@ -133,6 +135,21 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
             <Text style={styles.subtitle} numberOfLines={2}>
               {memberName}
             </Text>
+
+            {/* Gap to'yonada ham summa gapdan olinadi. A'zo tanlovi formada
+                qoladi: kassada kim ekanini ovoz bilan tanlash xato bo'lsa,
+                pul boshqa odamning nomiga yozilardi. */}
+            <VoiceBar
+              kind="GAP"
+              onResult={(intent) => {
+                const patch = applyAmountIntent(intent, { amount, note }, formatGapAmountInput);
+                setNote(patch.note);
+                if (patch.amount !== undefined) {
+                  setAmount(patch.amount);
+                  setCalcExpression('');
+                }
+              }}
+            />
 
             <Input
               label={`${t('gap.fieldAmount')}${selectedUnit ? ` (${selectedUnit.label})` : ''}`}

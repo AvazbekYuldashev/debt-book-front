@@ -9,7 +9,13 @@ import { fileNameFor } from '../model/voiceFormat';
  * matn baribir maydonga tushadi.
  */
 
-export type VoiceIntentKind = 'TRANSACTION' | 'PERSON_NAME' | 'PRODUCT' | 'NOTE';
+export type VoiceIntentKind =
+  | 'TRANSACTION'
+  | 'EXPENSE'
+  | 'GAP'
+  | 'PERSON_NAME'
+  | 'PRODUCT'
+  | 'NOTE';
 export type VoiceDirection = 'GAVE' | 'TOOK';
 export type ContactOutcome = 'RESOLVED' | 'AMBIGUOUS' | 'NOT_FOUND';
 export type VoiceCurrency = 'UZS' | 'USD' | 'RUB';
@@ -44,6 +50,9 @@ export interface VoiceIntent {
   items?: VoiceItem[] | null;
   /** "7000×2" — savat izohi. */
   calcNote?: string | null;
+  /** Xarajat kategoriyasi — foydalanuvchining o'z ro'yxatidan topilgani. */
+  categoryId?: string | null;
+  categoryName?: string | null;
   personName?: string | null;
   contactOutcome?: ContactOutcome | null;
   contactId?: string | null;
