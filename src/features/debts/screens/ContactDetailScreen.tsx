@@ -24,7 +24,7 @@ import type { DebtsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
 import { MoneyActionType } from '../../../shared/types/money';
 import { netByCurrency } from '../../../shared/lib/currency';
-import type { Currency } from '../../../shared/types/money';
+import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
 import { canWrite } from '../../../shared/lib/permissions';
 import { useI18n } from '../../../shared/i18n';
 import BusinessCatalogPane from '../../products/components/BusinessCatalogPane';
@@ -57,7 +57,14 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
   const [selectedTransaction, setSelectedTransaction] = useState<MappedTransaction | null>(null);
   const [voicePrefill, setVoicePrefill] = useState<
-    { amount?: number; description?: string; currency?: Currency } | undefined
+    | {
+        amount?: number;
+        description?: string;
+        currency?: Currency;
+        items?: MoneyItemCreateDTO[];
+        calcNote?: string;
+      }
+    | undefined
   >();
 
   /**
@@ -77,6 +84,8 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       amount: voiceParam.amount,
       description: voiceParam.note,
       currency: voiceParam.currency,
+      items: voiceParam.items?.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+      calcNote: voiceParam.calcNote,
     });
     setModalVisible(true);
   }, [voiceParam, navigation]);

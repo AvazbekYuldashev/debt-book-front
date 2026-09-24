@@ -1,4 +1,4 @@
-import type { VoiceCurrency, VoiceDirection, VoiceIntent } from '../api/voice';
+import type { VoiceCurrency, VoiceDirection, VoiceIntent, VoiceItem } from '../api/voice';
 
 /**
  * Aytilgan gapdan keyin nima qilish kerakligini hal qiladi.
@@ -14,6 +14,16 @@ export interface VoiceCommandPrefill {
   direction?: VoiceDirection;
   currency?: VoiceCurrency;
   note?: string;
+  /**
+   * Narxnoma qatorlari.
+   *
+   * Bular ham olib o'tilishi SHART. Ilgari bu yerda faqat summa bor edi:
+   * yuqori paneldagi tugma bilan gapirilganda chek qatorlari jimgina
+   * tushib qolardi va yozuv "28 000 so'm" bo'lib saqlanardi — nima
+   * sotib olingani ko'rinmasdi.
+   */
+  items?: VoiceItem[];
+  calcNote?: string;
 }
 
 export type VoiceCommand =
@@ -33,6 +43,8 @@ function prefillOf(intent: VoiceIntent): VoiceCommandPrefill {
     direction: intent.direction ?? undefined,
     currency: intent.currency ?? undefined,
     note: intent.text?.trim() || undefined,
+    items: intent.items?.length ? intent.items : undefined,
+    calcNote: intent.calcNote || undefined,
   };
 }
 

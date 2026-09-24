@@ -72,7 +72,13 @@ interface MoneyActionModalProps {
    * Forma har ochilishda tozalanadi, shuning uchun bu qiymatlar AYNAN o'sha
    * tozalash joyida qo'yiladi — aks holda ular darhol o'chib ketardi.
    */
-  prefill?: { amount?: number; description?: string; currency?: Currency };
+  prefill?: {
+    amount?: number;
+    description?: string;
+    currency?: Currency;
+    items?: MoneyItemCreateDTO[];
+    calcNote?: string;
+  };
   onClose: () => void;
   onSubmit: (payload: MoneyActionPayload) => Promise<void>;
 }
@@ -127,7 +133,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   useEffect(() => {
     if (!visible) return;
     setAmount(prefill?.amount ? formatAmountInput(String(prefill.amount)) : '');
-    setCalcExpression('');
+    setCalcExpression(prefill?.calcNote ?? '');
     // Aytilgan valyuta odatiy qiymatdan USTUN: odam uni ataylab aytgan.
     setCurrency(prefill?.currency ?? baseCurrency);
     setCounterpartyId('');
@@ -135,7 +141,9 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     setDescription(prefill?.description ?? '');
     setSelectedMemberId('');
     setError('');
-    setOrderItems([]);
+    // Qatorlar ham tiklanadi: ularsiz yozuv "shuncha so'm" bo'lib qolib,
+    // nima sotib olingani ko'rinmasdi.
+    setOrderItems(prefill?.items ?? []);
   }, [visible, baseCurrency, prefill]);
 
   const effectiveType = fixedCounterpartyType ?? targetType;
