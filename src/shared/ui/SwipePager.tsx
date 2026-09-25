@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   useWindowDimensions,
@@ -59,6 +60,26 @@ const SwipePager: React.FC<SwipePagerProps> = ({ pages, style, onPageChange }) =
   const [index, setIndex] = useState(0);
   const { width: windowWidth } = useWindowDimensions();
   const pageWidth = Math.min(windowWidth, APP_COLUMN_WIDTH);
+
+  /**
+   * SAHIFA BALANDLIGI O'LCHANADI, taxmin qilinmaydi.
+   *
+   * Gorizontal ScrollView ichidagi bola faqat en bo'yicha chegaralangan
+   * edi: balandligi MAZMUNGA qarab cho'zilardi. Shunda ichkaridagi
+   * ro'yxat (`flex: 1`) hech qachon chegara olmay, butun uzunligiga
+   * yoyilardi - va o'zi ham surilmasdi, tashqi ScrollView esa gorizontal
+   * bo'lgani uchun vertikal surilmasdi. Natijada ro'yxat ekran chetidan
+   * KESILIB qolar, skroll umuman ishlamasdi.
+   *
+   * Balandlik berilishi bilan ro'yxat o'z chegarasini biladi va odatdagidek
+   * suriladi. Aynan shu yo'l tanlandi, chunki `height: '100%'` web'da
+   * ota-onaning balandligi aniq bo'lmasa hisoblanmaydi.
+   */
+  const [pageHeight, setPageHeight] = useState(0);
+  const onViewportLayout = useCallback((event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    if (height > 0) setPageHeight(height);
+  }, []);
 
   /**
    * Tugma bilan sahifaga o'tish.
@@ -130,10 +151,13 @@ const SwipePager: React.FC<SwipePagerProps> = ({ pages, style, onPageChange }) =
         // Web'da momentum hodisasi kelmaydi — barmoq/sichqoncha uzilgani ham hisobga olinadi.
         onScrollEndDrag={onScrollSettled}
         scrollEventThrottle={16}
+        onLayout={onViewportLayout}
         style={styles.scroll}
       >
         {pages.map((page) => (
-          <View key={page.key} style={{ width: pageWidth }}>
+          // Birinchi renderda balandlik hali noma'lum - o'shanda mazmun
+          // o'z o'lchamida chiqadi va o'lchovdan keyin joyiga tushadi.
+          <View key={page.key} style={{ width: pageWidth, height: pageHeight || undefined }}>
             {page.render()}
           </View>
         ))}
