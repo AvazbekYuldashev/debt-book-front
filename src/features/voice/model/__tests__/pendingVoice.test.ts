@@ -1,9 +1,11 @@
+import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   clearPendingIntent,
   resetPendingVoiceSession,
   savePendingIntent,
   takePendingIntent,
+  watchForegroundForPendingVoice,
 } from '../pendingVoice';
 import type { VoiceIntent } from '../../api/voice';
 
@@ -99,5 +101,66 @@ describe('pendingVoice', () => {
 
   it('hech narsa saqlanmagan bolsa bosh qaytadi', async () => {
     expect(await takePendingIntent()).toBeNull();
+  });
+});
+
+/**
+ * EKRAN QULFI: qulflanganda RootNavigator faqat PIN oynasini qaytaradi,
+ * ya'ni butun ekran daraxti yechiladi. Qulf ochilgach ekranlar noldan
+ * yig'iladi va tiklash aynan o'shanda kerak.
+ *
+ * Seans bayrog'i esa o'sha paytgacha sarflangan bo'lardi: dastur ishga
+ * tushganda bir marta o'qilib "tiklandi" deb belgilanardi va qulfdan
+ * keyin gap qayta ochilmasdi - odam uni qaytadan aytishga majbur bo'lardi.
+ */
+describe('fonga chiqib qaytish', () => {
+  /** Platformaga qarab "dastur ko'rindi" hodisasini yuboradi. */
+  const foreground = (): (() => void) => {
+    if (Platform.OS === 'web') {
+      const stop = watchForegroundForPendingVoice();
+      Object.defineProperty(document, 'visibilityState', {
+        value: 'visible',
+        configurable: true,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+      return stop;
+    }
+
+    let notify: ((state: string) => void) | undefined;
+    const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation(((
+      _event: string,
+      cb: (state: string) => void,
+    ) => {
+      notify = cb;
+      return { remove: jest.fn() };
+    }) as never);
+
+    const stop = watchForegroundForPendingVoice();
+    notify?.('active');
+    spy.mockRestore();
+    return stop;
+  };
+
+  it('qulfdan keyin gap yana tiklanadi', async () => {
+    await savePendingIntent(intent());
+
+    // Dastur ishga tushdi: bayroq sarflandi.
+    expect(await takePendingIntent()).not.toBeNull();
+    expect(await takePendingIntent()).toBeNull();
+
+    // Fonga chiqib qaytdi - qulf ochilgandek.
+    const stop = foreground();
+    expect(await takePendingIntent()).not.toBeNull();
+    stop();
+  });
+
+  /** Saqlangan yozuv uchun tiklanadigan narsa yo'q. */
+  it('tozalangan gap qulfdan keyin ham ochilmaydi', async () => {
+    await savePendingIntent(intent());
+    await clearPendingIntent();
+
+    const stop = foreground();
+    expect(await takePendingIntent()).toBeNull();
+    stop();
   });
 });

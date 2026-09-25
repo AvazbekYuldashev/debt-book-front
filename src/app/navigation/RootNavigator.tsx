@@ -11,6 +11,7 @@ import ConsentGate from '../../features/legal/components/ConsentGate';
 import BusinessUsernameGate from '../../features/business/components/BusinessUsernameGate';
 import { useAppPin } from '../../features/auth/pin/PinContext';
 import PinGate from '../../features/auth/pin/PinGate';
+import { watchForegroundForPendingVoice } from '../../features/voice/model/pendingVoice';
 
 const CenteredLoader: React.FC = () => (
   <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -22,6 +23,11 @@ const RootNavigator: React.FC = () => {
   const { profile, isAuthReady, setProfile } = useContext(AuthContext);
   const { isWorkspaceReady } = useContext(WorkspaceContext);
   const { status: pinStatus } = useAppPin();
+
+  // Qulf ochilgach ovozli buyruq o'z joyidan davom etsin. Bu yerda
+  // turishining sababi: RootNavigator qulflanganda ham MOUNT bo'lib
+  // qoladi, ichidagi ekranlar esa yechiladi.
+  useEffect(() => watchForegroundForPendingVoice(), []);
 
   useEffect(() => {
     if (!profile?.jwt) return;

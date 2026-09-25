@@ -1,3 +1,4 @@
+import { AppState, type AppStateStatus, Platform } from 'react-native';
 import { storage } from '../../../shared/lib/storage';
 import type { VoiceIntent } from '../api/voice';
 
@@ -81,6 +82,39 @@ export async function takePendingIntent(): Promise<VoiceIntent | null> {
   }
 
   return stored.intent;
+}
+
+/**
+ * Dastur fonga chiqib QAYTGANDA tiklash yana ishlaydi.
+ *
+ * NEGA KERAK: ekran qulfi butun daraxtni yechadi - qulflanganda
+ * RootNavigator faqat PIN oynasini qaytaradi. Qulf ochilgach ekranlar
+ * noldan yig'iladi va tiklash aynan o'shanda kerak bo'ladi. Seans
+ * bayrog'i esa o'sha paytgacha allaqachon sarflangan bo'lardi: dastur
+ * ishga tushganda bir marta o'qilib, "tiklandi" deb belgilanardi.
+ *
+ * Bayroq qulf OCHILGANDA emas, dastur KO'RINGANDA nolga qaytariladi.
+ * Ko'rinish qulfdan oldinroq sodir bo'ladi, ya'ni ekranlar yig'ilguncha
+ * bayroq tayyor turadi. Teskari tartibda bola-effekt ota-effektdan oldin
+ * ishlab, tiklash yana o'tkazib yuborilardi.
+ */
+export function watchForegroundForPendingVoice(): () => void {
+  const onVisible = () => {
+    restoredThisSession = false;
+  };
+
+  if (Platform.OS === 'web') {
+    const handler = () => {
+      if (document.visibilityState === 'visible') onVisible();
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }
+
+  const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+    if (state === 'active') onVisible();
+  });
+  return () => sub.remove();
 }
 
 /** Faqat testlar uchun: seans bayrog'ini nolga qaytaradi. */
