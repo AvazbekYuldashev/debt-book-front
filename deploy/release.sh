@@ -34,7 +34,9 @@ RUNNING=$(server_commit)
 if [ "${1:-}" = "--check" ]; then
     echo "GitHub master : $REMOTE"
     echo "Ish nusxasi   : $LOCAL"
-    echo "Saytda        : ${RUNNING:-tamg'asiz (eski build)}"
+    SHOWN="$RUNNING"
+    [ -n "$SHOWN" ] || SHOWN="tamgasiz - eski build"
+    echo "Saytda        : $SHOWN"
     if [ "$RUNNING" = "$REMOTE" ]; then
         green "Bir xil - saytda GitHub'dagi kod turibdi."
     else
@@ -81,7 +83,7 @@ REMOTE_SCRIPT
 # ---------- 4. Tasdiqlash ----------
 
 RUNNING=$(server_commit)
-[ "$RUNNING" = "$LOCAL" ] || die "saytdagi tamg'a boshqa commitni aytyapti: ${RUNNING:-yo'q}"
+[ "$RUNNING" = "$LOCAL" ] || die "saytdagi tamga boshqa commitni aytyapti: [$RUNNING]"
 
 CODE=$(curl -s -o /dev/null -w '%{http_code}' https://pul-hisob.uz/)
 [ "$CODE" = "200" ] || die "sayt javob bermadi (HTTP $CODE)"
