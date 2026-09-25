@@ -37,6 +37,21 @@ import type { VoiceCommandPrefill } from '../../voice/model/resolveVoiceCommand'
 
 type ContactDetailProps = DebtsScreenProps<typeof ROUTES.CONTACT_DETAIL>;
 
+/** Ovozdan kelgan, formaga qo'yiladigan qiymatlar. */
+interface VoicePrefill {
+  amount?: number;
+  description?: string;
+  currency?: Currency;
+  items?: MoneyItemCreateDTO[];
+  calcNote?: string;
+}
+
+/** Navbatdagi valyuta: forma qiymatlari va qaysi tugma bilan ochilishi. */
+interface QueuedSettlement {
+  prefill: VoicePrefill;
+  actionType: MoneyActionType;
+}
+
 const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }) => {
   const { t } = useI18n();
   const theme = useAppTheme();
@@ -56,16 +71,22 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<MoneyActionType>('TAKE');
   const [selectedTransaction, setSelectedTransaction] = useState<MappedTransaction | null>(null);
-  const [voicePrefill, setVoicePrefill] = useState<
-    | {
-        amount?: number;
-        description?: string;
-        currency?: Currency;
-        items?: MoneyItemCreateDTO[];
-        calcNote?: string;
-      }
-    | undefined
-  >();
+  const [voicePrefill, setVoicePrefill] = useState<VoicePrefill | undefined>();
+
+  /**
+   * "Barcha qarzimni qaytardim" bir nechta valyutaga tegsa, ular NAVBAT
+   * bilan kiritiladi.
+   *
+   * Bitta yozuv bitta valyutada bo'ladi: so'm bilan dollarni qo'shish
+   * kursni o'ylab topish bo'lardi, eng kattasini olib qolganini tashlash
+   * esa pulni jimgina yo'qotardi. Shuning uchun har biri uchun forma
+   * alohida ochiladi.
+   *
+   * Navbat faqat SAQLANGANDAN keyin suriladi. Bekor qilish "to'xta"
+   * degani - aks holda odam ketma-ket ochilayotgan oynalarni yopib
+   * chiqishga majbur bo'lardi.
+   */
+  const [settlementQueue, setSettlementQueue] = useState<QueuedSettlement[]>([]);
 
   /**
    * Ovozli buyruqdan kelgan qiymatlar bilan oldi-berdi oynasini ochish.
@@ -87,6 +108,14 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       items: voiceParam.items?.map((item) => ({ productId: item.productId, quantity: item.quantity })),
       calcNote: voiceParam.calcNote,
     });
+    // Birinchi valyuta yuqoridagi amount/currency'da keldi, qolganlari
+    // navbatda kutadi.
+    setSettlementQueue(
+      (voiceParam.settlements ?? []).slice(1).map((line) => ({
+        actionType: line.direction === 'GAVE' ? ('GIVE' as const) : ('TAKE' as const),
+        prefill: { amount: line.amount, currency: line.currency, description: voiceParam.note },
+      })),
+    );
     setModalVisible(true);
   }, [voiceParam, navigation]);
 
@@ -155,9 +184,20 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         targetPartyId: contact.partyId,
         targetPhone: contact.partyType === 'PROFILE' ? contact.phone : undefined,
       });
-      if (ok) setModalVisible(false);
+      if (!ok) return;
+      setModalVisible(false);
+
+      const [next, ...rest] = settlementQueue;
+      if (!next) {
+        setVoicePrefill(undefined);
+        return;
+      }
+      setSettlementQueue(rest);
+      setActionType(next.actionType);
+      setVoicePrefill(next.prefill);
+      setModalVisible(true);
     },
-    [contact, createMoney, actionType],
+    [contact, createMoney, actionType, settlementQueue],
   );
 
   const openModal = useCallback((type: MoneyActionType) => {
@@ -318,6 +358,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         onClose={() => {
           setModalVisible(false);
           setVoicePrefill(undefined);
+          setSettlementQueue([]);
         }}
         onSubmit={handleCreate}
       />

@@ -1,4 +1,10 @@
-import type { VoiceCurrency, VoiceDirection, VoiceIntent, VoiceItem } from '../api/voice';
+import type {
+  VoiceCurrency,
+  VoiceDirection,
+  VoiceIntent,
+  VoiceItem,
+  VoiceSettlement,
+} from '../api/voice';
 
 /**
  * Aytilgan gapdan keyin nima qilish kerakligini hal qiladi.
@@ -24,6 +30,11 @@ export interface VoiceCommandPrefill {
    */
   items?: VoiceItem[];
   calcNote?: string;
+  /**
+   * Bir nechta valyutadagi ochiq qoldiq. Birinchisi yuqoridagi
+   * `amount`/`currency`da, qolganlari shu yerda navbatini kutadi.
+   */
+  settlements?: VoiceSettlement[];
 }
 
 export type VoiceCommand =
@@ -45,6 +56,7 @@ function prefillOf(intent: VoiceIntent): VoiceCommandPrefill {
     note: intent.text?.trim() || undefined,
     items: intent.items?.length ? intent.items : undefined,
     calcNote: intent.calcNote || undefined,
+    settlements: intent.settlements?.length ? intent.settlements : undefined,
   };
 }
 

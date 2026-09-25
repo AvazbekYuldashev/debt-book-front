@@ -37,6 +37,18 @@ export interface VoiceItem {
   price: number;
 }
 
+/**
+ * "Barcha qarzimni qaytardim" deyilganda yopiladigan bitta valyuta qatori.
+ *
+ * `amount` - EKRANDA ko'rinadigan sof qoldiq (haq minus qarz), xom jami
+ * emas. Yo'nalish esa qoldiqning belgisidan chiqadi.
+ */
+export interface VoiceSettlement {
+  currency: VoiceCurrency;
+  amount: number;
+  direction: VoiceDirection;
+}
+
 export interface VoiceIntent {
   /** Maydonga qo'yiladigan matn. Tushunilmagan bo'lsa ham to'la keladi. */
   text: string;
@@ -50,6 +62,13 @@ export interface VoiceIntent {
   items?: VoiceItem[] | null;
   /** "7000×2" — savat izohi. */
   calcNote?: string | null;
+  /**
+   * Yopilishi kerak bo'lgan qoldiqlar — har valyutaga bitta.
+   *
+   * Bittadan ko'p bo'lsa forma NAVBAT bilan ochiladi: bitta yozuv bitta
+   * valyutada bo'ladi, qo'shish esa kursni o'ylab topish bo'lardi.
+   */
+  settlements?: VoiceSettlement[] | null;
   /** Xarajat kategoriyasi — foydalanuvchining o'z ro'yxatidan topilgani. */
   categoryId?: string | null;
   categoryName?: string | null;

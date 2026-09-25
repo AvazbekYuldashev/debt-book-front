@@ -92,3 +92,57 @@ describe('resolveVoiceCommand', () => {
     expect(cmd.prefill.note).toBe('aliga pul berdim');
   });
 });
+
+/**
+ * "Barcha qarzimni qaytardim" - summa aytilmagan, ekrandagi qoldiqqa
+ * havola qilingan. Server har valyutaga bitta qator qaytaradi.
+ */
+describe('barcha qoldiqni yopish', () => {
+  it('bir nechta valyuta buyruqda saqlanadi', () => {
+    const cmd = resolveVoiceCommand(
+      intent({
+        contactOutcome: 'RESOLVED',
+        contactId: 'salom',
+        direction: 'TOOK',
+        amount: 1066422,
+        currency: 'UZS',
+        settlements: [
+          { currency: 'UZS', amount: 1066422, direction: 'TOOK' },
+          { currency: 'USD', amount: 20, direction: 'TOOK' },
+        ],
+      }),
+    );
+
+    // Ikkinchi valyuta YO'QOLMASLIGI kerak: eng kattasini olib qolganini
+    // tashlash pulni jimgina yeb qo'yardi.
+    expect(cmd.prefill.settlements).toHaveLength(2);
+    expect(cmd.prefill.settlements?.[1]).toEqual({
+      currency: 'USD',
+      amount: 20,
+      direction: 'TOOK',
+    });
+  });
+
+  it('bitta valyuta bo\'lsa ham ro\'yxat o\'tadi', () => {
+    const cmd = resolveVoiceCommand(
+      intent({
+        contactOutcome: 'RESOLVED',
+        contactId: 'salom',
+        direction: 'GAVE',
+        amount: 20000,
+        settlements: [{ currency: 'UZS', amount: 20000, direction: 'GAVE' }],
+      }),
+    );
+
+    expect(cmd.prefill.settlements).toHaveLength(1);
+  });
+
+  /** Oddiy gaplarda ro'yxat umuman bo'lmaydi - maydon bo'sh qolsin. */
+  it('oddiy buyruqda ro\'yxat bo\'sh', () => {
+    const cmd = resolveVoiceCommand(
+      intent({ contactOutcome: 'RESOLVED', contactId: 'c1', direction: 'GAVE', amount: 50000 }),
+    );
+
+    expect(cmd.prefill.settlements).toBeUndefined();
+  });
+});
