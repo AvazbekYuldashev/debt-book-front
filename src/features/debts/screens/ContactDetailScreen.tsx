@@ -34,6 +34,8 @@ import TransactionDetailModal from '../components/TransactionDetailModal';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
 import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
 import type { VoiceCommandPrefill } from '../../voice/model/resolveVoiceCommand';
+import { resolveVoiceCommand } from '../../voice/model/resolveVoiceCommand';
+import { clearPendingIntent, takePendingIntent } from '../../voice/model/pendingVoice';
 
 type ContactDetailProps = DebtsScreenProps<typeof ROUTES.CONTACT_DETAIL>;
 
@@ -95,29 +97,57 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * kontaktga kirganda oyna o'z-o'zidan yana ochilaverardi va eski summa
    * qayta paydo bo'lardi.
    */
-  const voiceParam = route.params.voice as VoiceCommandPrefill | undefined;
-  useEffect(() => {
-    if (!voiceParam) return;
-    navigation.setParams({ voice: undefined });
-
-    setActionType(voiceParam.direction === 'GAVE' ? 'GIVE' : 'TAKE');
+  const applyVoicePrefill = useCallback((spoken: VoiceCommandPrefill) => {
+    setActionType(spoken.direction === 'GAVE' ? 'GIVE' : 'TAKE');
     setVoicePrefill({
-      amount: voiceParam.amount,
-      description: voiceParam.note,
-      currency: voiceParam.currency,
-      items: voiceParam.items?.map((item) => ({ productId: item.productId, quantity: item.quantity })),
-      calcNote: voiceParam.calcNote,
+      amount: spoken.amount,
+      description: spoken.note,
+      currency: spoken.currency,
+      items: spoken.items?.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+      calcNote: spoken.calcNote,
     });
     // Birinchi valyuta yuqoridagi amount/currency'da keldi, qolganlari
     // navbatda kutadi.
     setSettlementQueue(
-      (voiceParam.settlements ?? []).slice(1).map((line) => ({
+      (spoken.settlements ?? []).slice(1).map((line) => ({
         actionType: line.direction === 'GAVE' ? ('GIVE' as const) : ('TAKE' as const),
-        prefill: { amount: line.amount, currency: line.currency, description: voiceParam.note },
+        prefill: { amount: line.amount, currency: line.currency, description: spoken.note },
       })),
     );
     setModalVisible(true);
-  }, [voiceParam, navigation]);
+  }, []);
+
+  const voiceParam = route.params.voice as VoiceCommandPrefill | undefined;
+  useEffect(() => {
+    if (!voiceParam) return;
+    navigation.setParams({ voice: undefined });
+    applyVoicePrefill(voiceParam);
+  }, [voiceParam, navigation, applyVoicePrefill]);
+
+  /**
+   * Dastur qayta ishga tushganda oxirgi tanilgan gap TIKLANADI.
+   *
+   * Ovozni yuborish pul turadi. Ilgari oyna ochiq turganda dasturdan
+   * chiqib kirilsa, React holati yo'qolar va odam aynan shu gapni
+   * qaytadan aytishga majbur bo'lardi - ya'ni bekorga to'lardi.
+   *
+   * Gap FAQAT shu kontaktniki bo'lsa tiklanadi: boshqa odamning summasi
+   * bu yerda ochilib qolsa, e'tiborsizlikda noto'g'ri yozuv saqlanardi.
+   */
+  useEffect(() => {
+    if (voiceParam) return;
+
+    let alive = true;
+    takePendingIntent().then((intent) => {
+      if (!alive || !intent) return;
+      const command = resolveVoiceCommand(intent);
+      if (command.kind !== 'OPEN_CONTACT' || command.contactId !== contactId) return;
+      applyVoicePrefill(command.prefill);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [voiceParam, contactId, applyVoicePrefill]);
 
   const { history, currencyTotals, selectedCounterparty, loading, creating, error, fetchData, createMoney } =
     useMoney({ token: profile?.jwt });
@@ -190,6 +220,10 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       const [next, ...rest] = settlementQueue;
       if (!next) {
         setVoicePrefill(undefined);
+        // Yozuv saqlandi - saqlangan gap endi kerak emas. Qoldirilsa,
+        // keyingi kirishda o'sha summa yana ochilib, ikkinchi marta
+        // saqlanib ketishi mumkin edi.
+        void clearPendingIntent();
         return;
       }
       setSettlementQueue(rest);
@@ -359,6 +393,8 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           setModalVisible(false);
           setVoicePrefill(undefined);
           setSettlementQueue([]);
+          // Bekor qilish "kerak emas" degani - qayta ochilmasin.
+          void clearPendingIntent();
         }}
         onSubmit={handleCreate}
       />

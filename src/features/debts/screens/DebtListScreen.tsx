@@ -46,6 +46,11 @@ import ContactFormModal from '../components/ContactFormModal';
 import ProfilePhotoModal from '../../profile/components/ProfilePhotoModal';
 import VoiceResultModal from '../../voice/components/VoiceResultModal';
 import { resolveVoiceCommand, type VoiceCommand } from '../../voice/model/resolveVoiceCommand';
+import {
+  clearPendingIntent,
+  savePendingIntent,
+  takePendingIntent,
+} from '../../voice/model/pendingVoice';
 import type { VoiceContactOption, VoiceDirection, VoiceIntent } from '../../voice/api/voice';
 import { pickContactImage, useContactAvatars } from '../context/contactAvatars';
 
@@ -318,7 +323,12 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
    * holda tugma "ishlamadi" deb qabul qilinardi.
    */
   const handleVoiceResult = useCallback(
-    (intent: VoiceIntent) => {
+    (intent: VoiceIntent, persist = true) => {
+      // Tanilgan gap DARHOL saqlanadi. Ovozni yuborish pul turadi va
+      // shu daqiqadan keyin dastur yopilsa ham, uni qaytadan aytish
+      // kerak bo'lmasligi lozim.
+      if (persist) void savePendingIntent(intent);
+
       const command = resolveVoiceCommand(intent);
       setVoiceTranscript(intent.text ?? '');
       setVoiceOptions(intent.contactOptions ?? []);
@@ -331,6 +341,23 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     },
     [openContactWithVoice],
   );
+
+  /**
+   * Dastur qayta ishga tushganda oxirgi tanilgan gap TIKLANADI.
+   *
+   * `persist: false` - bu qayta tanish emas, shuning uchun muddat
+   * yangilanmaydi: aks holda har kirib-chiqishda soat qaytadan boshlanib,
+   * eski gap cheksiz yashayverardi.
+   */
+  useEffect(() => {
+    let alive = true;
+    takePendingIntent().then((intent) => {
+      if (alive && intent) handleVoiceResult(intent, false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [handleVoiceResult]);
 
   const handleVoicePickContact = useCallback(
     (contactId: string) => {
@@ -647,7 +674,11 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         options={voiceOptions}
         onPickContact={handleVoicePickContact}
         onPickDirection={handleVoicePickDirection}
-        onClose={() => setVoiceCommand(null)}
+        onClose={() => {
+          setVoiceCommand(null);
+          // Yopish "kerak emas" degani - qayta ochilmasin.
+          void clearPendingIntent();
+        }}
       />
 
       <ProfilePhotoModal
