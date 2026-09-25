@@ -10,3 +10,6 @@ ios/
 coverage/
 .DS_Store
 .env
+
+# Claude Code mahalliy sozlamasi - loyiha kodi emas.
+.claude/
