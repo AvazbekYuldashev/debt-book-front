@@ -34,6 +34,11 @@ interface GapTransferFormModalProps {
   unit: GapUnit;
   loading?: boolean;
   error?: string | null;
+  /**
+   * Ovozdan kelgan qiymatlar. Oyna ochilganda maydonlarga qo'yiladi -
+   * odam aytganini qaytadan yozmasligi uchun.
+   */
+  prefill?: { amount?: number; note?: string };
   onClose: () => void;
   onSubmit: (amount: number, note: string | null, unit: GapUnit, calcNote: string | null) => void;
 }
@@ -60,6 +65,7 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
   unit,
   loading,
   error,
+  prefill,
   onClose,
   onSubmit,
 }) => {
@@ -80,11 +86,16 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
 
   useEffect(() => {
     if (visible) {
-      setAmount('');
-      setNote('');
+      // Ovozdan kelgan qiymatlar bo'lsa, oyna BO'SH emas, o'sha
+      // qiymatlar bilan ochiladi: odam aytganini qaytadan yozmasin.
+      setAmount(prefill?.amount == null ? '' : formatGapAmountInput(String(prefill.amount)));
+      setNote(prefill?.note ?? '');
       setCalcExpression('');
       setLocalError(null);
     }
+    // `prefill` ataylab kuzatilmaydi: oyna ochiq turganda yangilanishi
+    // odam tuzatgan summani ustidan yozib yuborardi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const handleSubmit = useCallback(() => {

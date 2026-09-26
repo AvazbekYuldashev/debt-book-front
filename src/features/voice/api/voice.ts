@@ -49,6 +49,28 @@ export interface VoiceSettlement {
   direction: VoiceDirection;
 }
 
+/**
+ * Ovozdan tanilgan gap kassa a'zosi.
+ *
+ * Kassa ham keladi, chunki a'zo yolg'iz ma'noga ega emas: bir odam bir
+ * nechta kassada bo'lishi mumkin va amal qaysi kassada bajarilishi
+ * shundan bilinadi.
+ */
+export interface VoiceGapMember {
+  memberId: string;
+  memberName: string;
+  groupId: string;
+  groupName: string;
+  /**
+   * Kassaning birligi. Server qaytaradi, chunki a'zo ekrani usiz
+   * ochilmaydi — mijozdagi ro'yxat esa birlik bo'yicha filtrlangan
+   * bo'lishi va kerakli kassa o'sha paytda unda bo'lmasligi mumkin.
+   */
+  unitCode: string;
+  unitLabel: string;
+  unitType: 'MONEY' | 'GOODS';
+}
+
 export interface VoiceIntent {
   /** Maydonga qo'yiladigan matn. Tushunilmagan bo'lsa ham to'la keladi. */
   text: string;
@@ -73,6 +95,10 @@ export interface VoiceIntent {
   categoryId?: string | null;
   categoryName?: string | null;
   personName?: string | null;
+  /** Gap kassa: topilgan a'zo. Kontaktdan ALOHIDA ro'yxat. */
+  gapOutcome?: ContactOutcome | null;
+  gapMember?: VoiceGapMember | null;
+  gapOptions?: VoiceGapMember[] | null;
   contactOutcome?: ContactOutcome | null;
   contactId?: string | null;
   contactPartyId?: string | null;

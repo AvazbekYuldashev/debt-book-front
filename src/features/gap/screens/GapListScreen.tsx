@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   type ListRenderItem,
@@ -31,6 +31,14 @@ import {
   GapUnitFilter,
   toAmount,
 } from '../types/gap';
+import type { VoiceGapMember, VoiceIntent } from '../../voice/api/voice';
+import {
+  resolveGapCommand,
+  type GapVoiceCommand,
+  type GapVoicePrefill,
+} from '../../voice/model/resolveGapCommand';
+import { clearPendingIntent, savePendingIntent, takePendingIntent } from '../../voice/model/pendingVoice';
+import GapVoiceResultModal from '../../voice/components/GapVoiceResultModal';
 
 /**
  * Gap kassa bosh ekrani.
@@ -88,6 +96,65 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
     []
   );
 
+  // ---- Ovozli buyruq ----
+
+  const [voiceCommand, setVoiceCommand] = useState<GapVoiceCommand | null>(null);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+
+  const openMemberWithVoice = useCallback(
+    (member: VoiceGapMember, prefill: GapVoicePrefill) => {
+      setVoiceCommand(null);
+      navigation.navigate(ROUTES.GAP_MEMBER, {
+        memberId: member.memberId,
+        groupId: member.groupId,
+        memberName: member.memberName,
+        unitCode: member.unitCode,
+        unitLabel: member.unitLabel,
+        unitType: member.unitType,
+        voice: prefill,
+      });
+    },
+    [navigation]
+  );
+
+  /**
+   * Aytilgani tushunilgach.
+   *
+   * A'zo aniq bo'lsa — to'g'ridan-to'g'ri uning ekraniga o'tamiz. Aks
+   * holda natija oynasi chiqadi: dastur taxmin qilmaganda odam NIMA
+   * bo'lganini ko'rishi kerak, aks holda tugma "ishlamadi" deb qabul
+   * qilinardi.
+   */
+  const handleVoiceResult = useCallback(
+    (intent: VoiceIntent, persist = true) => {
+      // Tanilgan gap darhol saqlanadi: ovozni yuborish pul turadi va
+      // shu daqiqadan keyin dastur yopilsa ham, uni qaytadan aytish
+      // kerak bo'lmasligi lozim.
+      if (persist) void savePendingIntent(intent);
+
+      const command = resolveGapCommand(intent);
+      setVoiceTranscript(intent.text ?? '');
+
+      if (command.kind === 'OPEN_MEMBER') {
+        openMemberWithVoice(command.member, command.prefill);
+        return;
+      }
+      setVoiceCommand(command);
+    },
+    [openMemberWithVoice]
+  );
+
+  /** Dastur qayta ishga tushganda yoki qulf ochilganda gap tiklanadi. */
+  useEffect(() => {
+    let alive = true;
+    takePendingIntent().then((intent) => {
+      if (alive && intent?.gapOutcome) handleVoiceResult(intent, false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [handleVoiceResult]);
+
   const handleRefresh = useCallback(() => {
     summaryQuery.refetch();
     listQuery.refetch();
@@ -137,7 +204,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
       <EntranceView style={styles.header} duration={300} fromY={12}>
         {/* Ish maydoni almashtirgichi barcha bosh ekranlarda bir xil joyda va
             bir xil ko'rinishda turadi — chetdan chetga, sarlavhadan yuqorida. */}
-        <ScreenTopBar />
+        <ScreenTopBar voiceKind="GAP" onVoiceResult={handleVoiceResult} />
         <View style={styles.headerRow}>
           <View style={styles.titleWrap}>
             <Text style={styles.title} numberOfLines={1}>
@@ -203,6 +270,20 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
         onPress={() => setCreateVisible(true)}
         accessibilityLabel={t('gap.createTitle')}
         pulse={!isBusy && items.length === 0}
+      />
+
+      <GapVoiceResultModal
+        command={voiceCommand}
+        transcript={voiceTranscript}
+        onPickMember={(member) => {
+          if (!voiceCommand) return;
+          openMemberWithVoice(member, voiceCommand.prefill);
+        }}
+        onClose={() => {
+          setVoiceCommand(null);
+          // Yopish "kerak emas" degani - qayta ochilmasin.
+          void clearPendingIntent();
+        }}
       />
 
       <GapCreateModal visible={createVisible} onClose={() => setCreateVisible(false)} />

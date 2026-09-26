@@ -3,6 +3,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ROUTES } from './routes';
 import type { VoiceCommandPrefill } from '../../features/voice/model/resolveVoiceCommand';
+import type { GapVoicePrefill } from '../../features/voice/model/resolveGapCommand';
 
 /**
  * Debts (Hisob-kitob) stack'ining route param'lari.
@@ -95,6 +96,8 @@ export type GapStackParamList = {
     unitCode: string;
     unitLabel: string;
     unitType: 'MONEY' | 'GOODS';
+    /** Ovozli buyruqdan kelgan qiymatlar: summa, yo'nalish, izoh. */
+    voice?: GapVoicePrefill;
   };
 };
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FlatList, type ListRenderItem, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
@@ -14,6 +14,8 @@ import GapMemberBalanceHeader from '../components/GapMemberBalanceHeader';
 import GapTransferFormModal from '../components/GapTransferFormModal';
 import GapTransferDetailModal from '../components/GapTransferDetailModal';
 import { GapTransferDTO, GapTransferDirection, GapUnit } from '../types/gap';
+import type { GapVoicePrefill } from '../../voice/model/resolveGapCommand';
+import { clearPendingIntent } from '../../voice/model/pendingVoice';
 
 /** Ro'yxat qatori: yozuv va uning men uchun yo'nalishi. */
 interface LedgerItem {
@@ -65,6 +67,30 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
   const confirmMutation = useConfirmGapTransfer();
 
   const [direction, setDirection] = useState<GapTransferDirection | null>(null);
+
+  /**
+   * Ovozdan kelgan qiymatlar.
+   *
+   * Yo'nalish aytilgan bo'lsa oyna DARHOL ochiladi. Aytilmagan bo'lsa
+   * qiymatlar shu yerda kutadi: ekrandagi "Oldim" va "Berdim" tugmalari
+   * tanlovni odamga qoldiradi va summa o'sha tugma bosilgach formaga
+   * tushadi. Taxmin qilib bittasini tanlash pulni teskari tomonga
+   * yozib yuborardi.
+   */
+  const [voicePrefill, setVoicePrefill] = useState<GapVoicePrefill | undefined>();
+
+  const voiceParam = route.params.voice;
+  useEffect(() => {
+    if (!voiceParam) return;
+    // Parametr DARHOL tozalanadi: aks holda orqaga qaytib kirilganda
+    // oyna o'z-o'zidan yana ochilaverardi.
+    navigation.setParams({ voice: undefined });
+
+    setVoicePrefill(voiceParam);
+    if (voiceParam.direction) {
+      setDirection(voiceParam.direction === 'GAVE' ? 'GIVE' : 'TAKE');
+    }
+  }, [voiceParam, navigation]);
   /** Tafsilot modalida ochilgan yozuv. Nusxa emas, faqat ID saqlanadi. */
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -84,7 +110,14 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
           unitCode: chosen.code,
           unitLabel: chosen.label,
         },
-        { onSuccess: () => setDirection(null) }
+        {
+          onSuccess: () => {
+            setDirection(null);
+            setVoicePrefill(undefined);
+            // Yozuv saqlandi - saqlangan gap endi kerak emas.
+            void clearPendingIntent();
+          },
+        }
       );
     },
     [createMutation, memberId, direction]
@@ -221,7 +254,13 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         unit={unit}
         loading={createMutation.isPending}
         error={(createMutation.error as Error | null)?.message ?? null}
-        onClose={() => setDirection(null)}
+        prefill={voicePrefill}
+        onClose={() => {
+          setDirection(null);
+          setVoicePrefill(undefined);
+          // Bekor qilish "kerak emas" degani.
+          void clearPendingIntent();
+        }}
         onSubmit={submitTransfer}
       />
 

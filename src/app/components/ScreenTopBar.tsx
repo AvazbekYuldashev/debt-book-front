@@ -27,11 +27,12 @@ import type { ThemeValue } from '../../shared/theme/ThemeProvider';
 interface ScreenTopBarProps {
   /** Berilsa — qo'ng'iroq yonida mikrofon tugmasi chiqadi. */
   onVoiceResult?: (intent: VoiceIntent) => void;
+  voiceKind?: 'TRANSACTION' | 'GAP';
   voiceAccountType?: string;
   voiceToken?: string;
 }
 
-const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ onVoiceResult, voiceAccountType, voiceToken }) => {
+const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ onVoiceResult, voiceKind, voiceAccountType, voiceToken }) => {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -43,6 +44,7 @@ const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ onVoiceResult, voiceAccount
           <VoiceCommandButton
             accountType={voiceAccountType}
             token={voiceToken}
+            kind={voiceKind}
             onResult={onVoiceResult}
           />
         ) : null}

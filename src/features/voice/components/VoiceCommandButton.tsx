@@ -11,6 +11,8 @@ import type { VoiceIntent } from '../api/voice';
 export interface VoiceCommandButtonProps {
   accountType?: string;
   token?: string;
+  /** Qaysi bo'lim gapiryapti. Gap kassada ism boshqa ro'yxatdan qidiriladi. */
+  kind?: 'TRANSACTION' | 'GAP';
   onResult: (intent: VoiceIntent) => void;
 }
 
@@ -26,13 +28,13 @@ export interface VoiceCommandButtonProps {
  * Ko'rinishi bildirishnoma tugmasi bilan BIR XIL (48x48, shisha sirt) —
  * ular yonma-yon turadi va o'lchami farq qilsa qator qiyshiq ko'rinardi.
  */
-const VoiceCommandButton: React.FC<VoiceCommandButtonProps> = ({ accountType, token, onResult }) => {
+const VoiceCommandButton: React.FC<VoiceCommandButtonProps> = ({ accountType, token, kind = 'TRANSACTION', onResult }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const voice = useVoiceInput({ kind: 'TRANSACTION', accountType, token, onResult });
+  const voice = useVoiceInput({ kind, accountType, token, onResult });
 
   // Brauzerda qo'llab-quvvatlanmasa ham ko'rsatamiz — bosilganda sababi
   // aytiladi. Ilovada esa yashiriladi.
