@@ -46,6 +46,7 @@ import ContactFormModal from '../components/ContactFormModal';
 import ProfilePhotoModal from '../../profile/components/ProfilePhotoModal';
 import VoiceResultModal from '../../voice/components/VoiceResultModal';
 import { resolveVoiceCommand, type VoiceCommand } from '../../voice/model/resolveVoiceCommand';
+import { resolveGapCommand } from '../../voice/model/resolveGapCommand';
 import {
   clearPendingIntent,
   savePendingIntent,
@@ -329,6 +330,34 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       // kerak bo'lmasligi lozim.
       if (persist) void savePendingIntent(intent);
 
+      // Ism kontaktlarda emas, KASSADA topilgan bo'lsa - o'sha a'zoga.
+      //
+      // Buyruq qaysi ekrandan aytilgani muhim emas: "sinfdoshlar kassasida
+      // sardorga berdim" deganda odam kassa amalini nazarda tutadi, hozir
+      // Qarzlar ro'yxatida turgan bo'lsa ham. Ilgari bu "kontaktlarda
+      // topilmadi" bo'lib tugar, gapni boshqa ekrandan qaytadan aytish
+      // kerak bo'lardi - har qaytarish esa to'langan ovoz.
+      const gapCommand = resolveGapCommand(intent);
+      if (gapCommand.kind === 'OPEN_MEMBER') {
+        setVoiceCommand(null);
+        // A'zo ekrani BOSHQA tabda turadi, shuning uchun avval o'sha tabga,
+        // keyin ichidagi ekranga o'tiladi. To'g'ridan-to'g'ri o'tib
+        // bo'lmaydi: Qarzlar stack'i GapMember'ni umuman bilmaydi.
+        navigation.getParent()?.navigate(ROUTES.GAP, {
+          screen: ROUTES.GAP_MEMBER,
+          params: {
+            memberId: gapCommand.member.memberId,
+            groupId: gapCommand.member.groupId,
+            memberName: gapCommand.member.memberName,
+            unitCode: gapCommand.member.unitCode,
+            unitLabel: gapCommand.member.unitLabel,
+            unitType: gapCommand.member.unitType,
+            voice: gapCommand.prefill,
+          },
+        });
+        return;
+      }
+
       const command = resolveVoiceCommand(intent);
       setVoiceTranscript(intent.text ?? '');
       setVoiceOptions(intent.contactOptions ?? []);
@@ -339,7 +368,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       }
       setVoiceCommand(command);
     },
-    [openContactWithVoice],
+    [openContactWithVoice, navigation],
   );
 
   /**
