@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Linking,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
@@ -17,6 +26,16 @@ import {
   type VoiceUsageSummary,
 } from '../api/usage';
 import { formatDuration, formatSum, formatWhen } from '../model/formatUsage';
+import { createClickLink, fetchPaymentSummary, type PaymentSummary } from '../api/payments';
+
+/**
+ * Tayyor summalar.
+ *
+ * Erkin kiritish o'rniga tanlov: odam "qancha yozsam bo'ladi" deb
+ * o'ylab o'tirmaydi, va juda kichik summa (komissiya undan oshadi)
+ * umuman taklif qilinmaydi.
+ */
+const AMOUNTS = [10_000, 25_000, 50_000, 100_000];
 
 /**
  * "To'lovlar": ovozli buyruqlar uchun nima sarflanganini ko'rsatadi.
@@ -37,6 +56,9 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [summary, setSummary] = useState<VoiceUsageSummary | null>(null);
+  const [account, setAccount] = useState<PaymentSummary | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState('');
   const [items, setItems] = useState<VoiceUsage[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -45,9 +67,14 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     setLoading(true);
     setFailed(false);
     try {
-      const [totals, page] = await Promise.all([fetchVoiceUsageSummary(), fetchVoiceUsage(0, 50)]);
+      const [totals, page, balance] = await Promise.all([
+        fetchVoiceUsageSummary(),
+        fetchVoiceUsage(0, 50),
+        fetchPaymentSummary(),
+      ]);
       setSummary(totals);
       setItems(page.content);
+      setAccount(balance);
     } catch {
       // Sarf tarixi ko'rinmasligi ishni to'xtatmaydi - xabar beramiz, tamom.
       setFailed(true);
@@ -59,6 +86,25 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
   useEffect(() => {
     void load();
   }, [load]);
+
+  /**
+   * To'lov havolasini olib brauzerda ochadi.
+   *
+   * Havolani SERVER yasaydi: unda merchant raqami qatnashadi va uni
+   * mijozga chiqarish mumkin emas. Bu yerda faqat ochiladi.
+   */
+  const topUp = useCallback(async (amount: number) => {
+    setPaying(true);
+    setPayError('');
+    try {
+      const link = await createClickLink(amount);
+      await Linking.openURL(link.url);
+    } catch {
+      setPayError(t('payments.linkFailed'));
+    } finally {
+      setPaying(false);
+    }
+  }, [t]);
 
   const renderItem = useCallback(
     ({ item }: { item: VoiceUsage }) => (
@@ -117,15 +163,55 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
               ) : null}
             </Card>
 
-            {/* To'ldirish hali ishlamaydi. Tugma o'rniga IZOH turibdi:
-                bosilganda hech narsa qilmaydigan tugma ishlaydi deb
-                o'ylashga majbur qilardi. */}
+            <Card style={styles.card}>
+              <Text style={styles.cardTitle}>{t('payments.balance')}</Text>
+              <Text style={styles.balance}>{formatSum(account?.balance ?? 0)}</Text>
+
+              <View style={styles.totals}>
+                <View style={styles.total}>
+                  <Text style={styles.totalValue}>{formatSum(account?.toppedUp ?? 0)}</Text>
+                  <Text style={styles.totalLabel}>{t('payments.toppedUp')}</Text>
+                </View>
+                <View style={styles.total}>
+                  <Text style={styles.totalValue}>{formatSum(account?.spent ?? 0)}</Text>
+                  <Text style={styles.totalLabel}>{t('payments.spent')}</Text>
+                </View>
+              </View>
+            </Card>
+
             <Card style={styles.card}>
               <View style={styles.soonRow}>
                 <Ionicons name="card-outline" size={18} color={colors.textSecondary} />
                 <Text style={styles.soonTitle}>{t('payments.topUp')}</Text>
               </View>
-              <Text style={styles.soonNote}>{t('payments.topUpSoon')}</Text>
+
+              {/* Tugmalar FAQAT server "tayyor" desa chiqadi. Kalitlar
+                  ulanmagan bo'lsa bosilganda hech narsa qilmaydigan tugma
+                  ishlaydi deb o'ylashga majbur qilardi. */}
+              {account?.clickEnabled ? (
+                <>
+                  <Text style={styles.soonNote}>{t('payments.amount')}</Text>
+                  <View style={styles.amounts}>
+                    {AMOUNTS.map((value) => (
+                      <Pressable
+                        key={value}
+                        disabled={paying}
+                        onPress={() => void topUp(value)}
+                        accessibilityRole="button"
+                        style={({ pressed }) => [
+                          styles.amount,
+                          (pressed || paying) && styles.amountPressed,
+                        ]}
+                      >
+                        <Text style={styles.amountText}>{formatSum(value)}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  {payError ? <Text style={styles.payError}>{payError}</Text> : null}
+                </>
+              ) : (
+                <Text style={styles.soonNote}>{t('payments.topUpSoon')}</Text>
+              )}
             </Card>
 
             <Text style={styles.sectionTitle}>{t('payments.history')}</Text>
@@ -246,6 +332,37 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     loader: {
       marginTop: spacing.xl,
+    },
+    balance: {
+      ...typography.display,
+      color: colors.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    amounts: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      marginTop: spacing.sm,
+    },
+    amount: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
+    },
+    amountPressed: {
+      opacity: 0.6,
+    },
+    amountText: {
+      ...typography.body,
+      color: colors.textPrimary,
+    },
+    payError: {
+      ...typography.caption,
+      color: colors.danger,
+      marginTop: spacing.xs,
     },
   });
 
