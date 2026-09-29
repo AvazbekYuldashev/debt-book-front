@@ -112,8 +112,24 @@ export interface VoiceIntent {
  * Yozuvni serverga yuboramiz, u esa tanish xizmatiga. To'g'ridan-to'g'ri
  * ulanmaymiz: xizmat kaliti ilova ichida ochiq yotib qolardi.
  */
+/**
+ * Token BERILGANDA gina qo'yiladi.
+ *
+ * `setApiAuthToken(undefined)` umumiy Authorization sarlavhasini
+ * O'CHIRADI. Ekranlar tokenni uzatmagani uchun har bir ovoz chaqiruvi
+ * butun ilovani tokensiz qoldirardi: so'rov 403 olar, perehvatchik
+ * tokenni yangilab qayta yuborar edi.
+ *
+ * Narxi ikki tomonlama. Ovoz fayli IKKI MARTA yuklanardi - mobil
+ * internetda bu sezilarli. Va o'sha lahzada ketayotgan boshqa so'rovlar
+ * ham sarlavhasiz qolib, ular ham 403 bo'lardi.
+ */
+const applyToken = (token?: string): void => {
+  if (token) setApiAuthToken(token);
+};
+
 export const transcribe = async (blob: Blob, token?: string): Promise<string> => {
-  setApiAuthToken(token);
+  applyToken(token);
 
   const form = new FormData();
   form.append('file', blob, fileNameFor(blob.type || null));
@@ -141,7 +157,7 @@ export const understand = async (
   kind: VoiceIntentKind,
   options?: { accountType?: string; token?: string },
 ): Promise<VoiceIntent> => {
-  setApiAuthToken(options?.token);
+  applyToken(options?.token);
 
   try {
     const { data } = await apiClient.post<VoiceIntent>(
