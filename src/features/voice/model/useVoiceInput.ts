@@ -90,6 +90,39 @@ export function isVoiceInputSupported(): boolean {
   return pickMimeType((type) => Boolean(recorder.isTypeSupported?.(type))) !== null;
 }
 
+/**
+ * Yozib olingan ovozning HAQIQIY uzunligi.
+ *
+ * NEGA DEVOR SOATI YETMAYDI: `recorder.start()` bilan birinchi tovush
+ * orasida bo'shliq bor, oxirida ham sukunat qoladi. Provayder esa
+ * ovozning o'zini hisoblaydi. Haqiqiy taqqoslashda farq 0.48 soniya
+ * chiqdi - 5.5 soniyalik yozuvda bu 9.5% ortiqcha hisob.
+ *
+ * `decodeAudioData` faylni ochib aynan uzunligini beradi. Og'ir emas:
+ * yozuv 10-30 soniya, ochish bir necha millisekund.
+ *
+ * Ochib bo'lmasa 0 qaytadi va chaqiruvchi devor soatiga qaytadi -
+ * taxminiy hisob hisobsizlikdan yaxshiroq.
+ */
+async function audioDurationMs(blob: Blob): Promise<number> {
+  try {
+    const Ctx =
+      (window as unknown as { AudioContext?: typeof AudioContext }).AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return 0;
+
+    const context = new Ctx();
+    try {
+      const decoded = await context.decodeAudioData(await blob.arrayBuffer());
+      return Math.round(decoded.duration * 1000);
+    } finally {
+      void context.close();
+    }
+  } catch {
+    return 0;
+  }
+}
+
 export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInputOptions): VoiceInput {
   const [supported] = useState(isVoiceInputSupported);
   const [state, setState] = useState<VoiceInputState>('idle');
@@ -145,7 +178,7 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
   }, [releaseMicrophone]);
 
   const handleRecorded = useCallback(
-    async (blob: Blob, durationMs: number) => {
+    async (blob: Blob, wallClockMs: number) => {
       if (!isWorthSending(blob.size)) {
         // Juda qisqa — tugma tasodifan bosilgan. Xato ko'rsatmaymiz, chunki
         // odam hech narsa aytmagan; shunchaki tinch qaytamiz.
@@ -154,7 +187,11 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
       }
 
       try {
-        const text = await transcribe(blob, token, durationMs);
+        // Ovoz uzunligi FAYLDAN olinadi - provayder shuni hisoblaydi.
+        // Ochib bo'lmasa devor soati ishlatiladi.
+        const exactMs = await audioDurationMs(blob);
+
+        const text = await transcribe(blob, token, exactMs > 0 ? exactMs : wallClockMs);
         if (!aliveRef.current) return;
 
         if (!text.trim()) {
