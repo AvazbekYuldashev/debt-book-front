@@ -27,6 +27,7 @@ import {
 } from '../api/usage';
 import { formatDuration, formatSum, formatWhen } from '../model/formatUsage';
 import { createClickLink, fetchPaymentSummary, type PaymentSummary } from '../api/payments';
+import UsageDetailModal from '../components/UsageDetailModal';
 
 /**
  * Tayyor summalar.
@@ -59,6 +60,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
   const [account, setAccount] = useState<PaymentSummary | null>(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
+  const [detail, setDetail] = useState<VoiceUsage | null>(null);
   const [items, setItems] = useState<VoiceUsage[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -114,7 +116,11 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
       const tokens = item.promptTokens + item.completionTokens;
 
       return (
-        <View style={styles.row}>
+        <Pressable
+          onPress={() => setDetail(item)}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        >
           <View style={styles.rowIcon}>
             <Ionicons
               name={isModel ? 'sparkles-outline' : 'mic-outline'}
@@ -133,7 +139,8 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
           <Text style={styles.rowCost}>
             {isModel && item.cost === 0 ? '—' : formatSum(item.cost)}
           </Text>
-        </View>
+          <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+        </Pressable>
       );
     },
     [colors.primary, styles, t],
@@ -254,6 +261,8 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
           )
         }
       />
+
+      <UsageDetailModal usage={detail} onClose={() => setDetail(null)} />
     </View>
   );
 };
@@ -354,6 +363,10 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.body,
       color: colors.textPrimary,
       fontWeight: '600',
+      marginRight: spacing.xxs,
+    },
+    rowPressed: {
+      opacity: 0.6,
     },
     loader: {
       marginTop: spacing.xl,

@@ -11,6 +11,7 @@ export interface VoiceUsage {
   source: 'STT' | 'MODEL';
   promptTokens: number;
   completionTokens: number;
+  sizeBytes: number;
 }
 
 /**
