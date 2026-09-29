@@ -287,6 +287,18 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
           </View>
         </View>
 
+        {/* To'lovlar: ovozli buyruqlar uchun sarf va hisobni to'ldirish.
+            "Dastur haqida" dan YUQORIDA, chunki bu pul masalasi va unga
+            kamdan-kam emas, muntazam qaraladi. */}
+        <Card style={styles.card}>
+          <LegalMenuRow
+            label={t('payments.title')}
+            iconName="card-outline"
+            isLast
+            onPress={() => navigation.navigate(ROUTES.PAYMENTS)}
+          />
+        </Card>
+
         {/* Eng pastda: kundalik ish emas, kamdan-kam ochiladi. */}
         <Card style={styles.card}>
           <LegalMenuRow

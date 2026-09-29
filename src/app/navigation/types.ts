@@ -57,6 +57,7 @@ export type ProfileStackParamList = {
   [ROUTES.TERMS]: undefined;
   [ROUTES.PRIVACY_POLICY]: undefined;
   [ROUTES.ABOUT_APP]: undefined;
+  [ROUTES.PAYMENTS]: undefined;
 };
 
 export type ProfileNavigation = NativeStackNavigationProp<ProfileStackParamList>;

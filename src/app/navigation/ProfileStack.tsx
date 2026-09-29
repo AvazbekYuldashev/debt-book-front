@@ -9,6 +9,7 @@ import OfferScreen from '../../features/legal/screens/OfferScreen';
 import TermsScreen from '../../features/legal/screens/TermsScreen';
 import PrivacyPolicyScreen from '../../features/legal/screens/PrivacyPolicyScreen';
 import AboutAppScreen from '../../features/profile/screens/AboutAppScreen';
+import PaymentsScreen from '../../features/payments/screens/PaymentsScreen';
 import { ROUTES } from './routes';
 import type { ProfileStackParamList } from './types';
 import { withFadeInScreen } from './withFadeInScreen';
@@ -16,6 +17,7 @@ import { withFadeInScreen } from './withFadeInScreen';
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
 const ProfileScreenWithFade = withFadeInScreen(ProfileScreen);
+const PaymentsScreenWithFade = withFadeInScreen(PaymentsScreen);
 const ProfileEditScreenWithFade = withFadeInScreen(ProfileEditScreen);
 const ProfileSettingsScreenWithFade = withFadeInScreen(ProfileSettingsScreen);
 const MyBusinessesScreenWithFade = withFadeInScreen(MyBusinessesScreen);
@@ -39,6 +41,7 @@ const ProfileStack: React.FC = () => (
     <Stack.Screen name={ROUTES.TERMS} component={TermsScreenWithFade} />
     <Stack.Screen name={ROUTES.PRIVACY_POLICY} component={PrivacyPolicyScreenWithFade} />
     <Stack.Screen name={ROUTES.ABOUT_APP} component={AboutAppScreenWithFade} />
+    <Stack.Screen name={ROUTES.PAYMENTS} component={PaymentsScreenWithFade} />
   </Stack.Navigator>
 );
 
