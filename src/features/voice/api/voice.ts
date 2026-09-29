@@ -128,12 +128,19 @@ const applyToken = (token?: string): void => {
   if (token) setApiAuthToken(token);
 };
 
-export const transcribe = async (blob: Blob, token?: string): Promise<string> => {
+export const transcribe = async (
+  blob: Blob,
+  token?: string,
+  durationMs?: number,
+): Promise<string> => {
   applyToken(token);
 
   const form = new FormData();
   form.append('file', blob, fileNameFor(blob.type || null));
   form.append('language', 'uz');
+  // Davomiylik SARF HISOBI uchun: xizmat daqiqasiga to'lanadi, javobida esa
+  // davomiylik yo'q. Bu yagona joy, uni aniq bilish mumkin bo'lgan.
+  if (durationMs && durationMs > 0) form.append('durationMs', String(Math.round(durationMs)));
 
   const { data } = await apiClient.post<{ text?: string }>('/voice/stt', form, {
     // Content-Type'ni O'ZIMIZ qo'ymaymiz: FormData chegara (boundary) satrini

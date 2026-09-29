@@ -96,6 +96,15 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
   const [error, setError] = useState<VoiceError | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
+  /**
+   * Yozib olish boshlangan lahza.
+   *
+   * Davomiylik SHU YERDA o'lchanadi, chunki boshqa hech kim uni bilmaydi:
+   * uzbekvoice javobida davomiylik yo'q, MediaRecorder yaratgan webm'da esa
+   * jonli yozuv bo'lgani uchun Duration maydoni ko'pincha umuman yozilmaydi.
+   * Xizmat esa daqiqasiga to'lanadi - o'lchovsiz sarfni bilib bo'lmaydi.
+   */
+  const startedAtRef = useRef<number>(0);
   const chunksRef = useRef<BlobPart[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Komponent yopilgach natijani qo'ymaslik uchun — modal yopilganda
@@ -136,7 +145,7 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
   }, [releaseMicrophone]);
 
   const handleRecorded = useCallback(
-    async (blob: Blob) => {
+    async (blob: Blob, durationMs: number) => {
       if (!isWorthSending(blob.size)) {
         // Juda qisqa — tugma tasodifan bosilgan. Xato ko'rsatmaymiz, chunki
         // odam hech narsa aytmagan; shunchaki tinch qaytamiz.
@@ -145,7 +154,7 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
       }
 
       try {
-        const text = await transcribe(blob, token);
+        const text = await transcribe(blob, token, durationMs);
         if (!aliveRef.current) return;
 
         if (!text.trim()) {
@@ -228,13 +237,15 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
     };
 
     recorder.onstop = () => {
+      const durationMs = startedAtRef.current > 0 ? Date.now() - startedAtRef.current : 0;
       const blob = new Blob(chunksRef.current, { type: mimeType ?? 'audio/webm' });
       chunksRef.current = [];
       releaseMicrophone();
       if (aliveRef.current) setState('working');
-      void handleRecorded(blob);
+      void handleRecorded(blob, durationMs);
     };
 
+    startedAtRef.current = Date.now();
     recorder.start();
     setState('recording');
 
