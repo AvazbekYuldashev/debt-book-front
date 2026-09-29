@@ -107,19 +107,36 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
   }, [t]);
 
   const renderItem = useCallback(
-    ({ item }: { item: VoiceUsage }) => (
-      <View style={styles.row}>
-        <View style={styles.rowIcon}>
-          <Ionicons name="mic-outline" size={16} color={colors.primary} />
+    ({ item }: { item: VoiceUsage }) => {
+      // Ikki xil qator: tanish DAQIQAGA, model esa TOKENGA to'lanadi.
+      // Bir xil ko'rsatsak "0 so'm" turgan model qatori xatodek ko'rinardi.
+      const isModel = item.source === 'MODEL';
+      const tokens = item.promptTokens + item.completionTokens;
+
+      return (
+        <View style={styles.row}>
+          <View style={styles.rowIcon}>
+            <Ionicons
+              name={isModel ? 'sparkles-outline' : 'mic-outline'}
+              size={16}
+              color={colors.primary}
+            />
+          </View>
+          <View style={styles.rowText}>
+            <Text style={styles.rowWhen}>{formatWhen(item.createdDate)}</Text>
+            <Text style={styles.rowDuration}>
+              {isModel ? t('payments.tokensLine', { count: String(tokens) }) : formatDuration(item.durationMs)}
+            </Text>
+          </View>
+          {/* Model narxi hali sozlanmagan - nol o'rniga chiziqcha, aks
+              holda "bepul" degan taassurot qolardi. */}
+          <Text style={styles.rowCost}>
+            {isModel && item.cost === 0 ? '—' : formatSum(item.cost)}
+          </Text>
         </View>
-        <View style={styles.rowText}>
-          <Text style={styles.rowWhen}>{formatWhen(item.createdDate)}</Text>
-          <Text style={styles.rowDuration}>{formatDuration(item.durationMs)}</Text>
-        </View>
-        <Text style={styles.rowCost}>{formatSum(item.cost)}</Text>
-      </View>
-    ),
-    [colors.primary, styles],
+      );
+    },
+    [colors.primary, styles, t],
   );
 
   return (
@@ -157,9 +174,17 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
               </View>
 
               {summary ? (
-                <Text style={styles.rate}>
-                  {t('payments.rate', { rate: formatSum(summary.ratePerMinute) })}
-                </Text>
+                <>
+                  <Text style={styles.rate}>
+                    {t('payments.rate', { rate: formatSum(summary.ratePerMinute) })}
+                  </Text>
+                  <Text style={styles.rate}>
+                    {t('payments.tokens', {
+                      today: String(summary.tokensToday),
+                      total: String(summary.tokensTotal),
+                    })}
+                  </Text>
+                </>
               ) : null}
             </Card>
 

@@ -7,6 +7,10 @@ export interface VoiceUsage {
   durationMs: number;
   cost: number;
   ratePerMinute: number;
+  /** STT - ovozni tanish, MODEL - gapni tushunish. */
+  source: 'STT' | 'MODEL';
+  promptTokens: number;
+  completionTokens: number;
 }
 
 /**
@@ -22,6 +26,14 @@ export interface VoiceUsageSummary {
   countToday: number;
   countTotal: number;
   ratePerMinute: number;
+  /**
+   * Gapni tushunishga ketgan tokenlar.
+   *
+   * Summadan ALOHIDA, chunki boshqa o'lchov: tanish daqiqasiga, model
+   * tokenga to'lanadi. Bitta raqamga qo'shsak ikki xil narsa aralashardi.
+   */
+  tokensToday: number;
+  tokensTotal: number;
 }
 
 interface Paged<T> {
