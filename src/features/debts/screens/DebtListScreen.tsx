@@ -345,6 +345,11 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         // bo'lmaydi: Qarzlar stack'i GapMember'ni umuman bilmaydi.
         navigation.getParent()?.navigate(ROUTES.GAP, {
           screen: ROUTES.GAP_MEMBER,
+          // `initial: false` - Gap ro'yxati a'zo ekrani OSTIDA qoladi.
+          // Usiz o'sha tabda tarix bo'sh bo'lar va "orqaga" Qarzlarga
+          // qaytarardi: odam kassa amalini bajarib, o'zini butunlay
+          // boshqa bo'limda topardi.
+          initial: false,
           params: {
             memberId: gapCommand.member.memberId,
             groupId: gapCommand.member.groupId,

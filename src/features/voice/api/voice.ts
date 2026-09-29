@@ -74,6 +74,15 @@ export interface VoiceGapMember {
 export interface VoiceIntent {
   /** Maydonga qo'yiladigan matn. Tushunilmagan bo'lsa ham to'la keladi. */
   text: string;
+  /**
+   * AYTILGAN gapning o'zi, qisqartirilmagan.
+   *
+   * Model `text` ni qisqartiradi - summani va ismni tashlaydi, chunki
+   * ular o'z maydonlarida turadi. Lekin izohda odam O'Z GAPINI ko'rishni
+   * kutadi: "sinfdoshlar kassasida" degan bo'lak gapning o'rnini
+   * bosmaydi. Shuning uchun xom matn alohida olib o'tiladi.
+   */
+  transcript?: string;
   /** Model gapni tushundimi. `false` bo'lsa quyidagilar bo'sh. */
   understood: boolean;
   amount?: number | null;
@@ -175,8 +184,8 @@ export const understand = async (
         timeout: 30000,
       },
     );
-    return { ...data, text: data?.text ?? transcript };
+    return { ...data, text: data?.text ?? transcript, transcript };
   } catch {
-    return { text: transcript, understood: false };
+    return { text: transcript, transcript, understood: false };
   }
 };

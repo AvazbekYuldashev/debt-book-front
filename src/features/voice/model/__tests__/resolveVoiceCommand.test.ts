@@ -146,3 +146,37 @@ describe('barcha qoldiqni yopish', () => {
     expect(cmd.prefill.settlements).toBeUndefined();
   });
 });
+
+/**
+ * Izohda AYTILGAN gap turishi kerak, modelning qisqartmasi emas.
+ *
+ * HAQIQIY HOLAT: "men sinfdoshlar kassasida sardorga 50 ming so'm berdim"
+ * deyilganda izohga faqat "sinfdoshlar kassasida" tushdi. Model summani
+ * va ismni ataylab tashlaydi - ular o'z maydonlarida turadi - lekin
+ * qolgan bo'lak gapning o'rnini bosmaydi.
+ */
+describe('izoh matni', () => {
+  it('xom gap modelning qisqartmasidan ustun', () => {
+    const cmd = resolveVoiceCommand(
+      intent({
+        contactOutcome: 'RESOLVED',
+        contactId: 'c1',
+        direction: 'GAVE',
+        amount: 50000,
+        text: 'sinfdoshlar kassasida',
+        transcript: 'men sinfdoshlar kassasida sardorga 50 ming som berdim',
+      }),
+    );
+
+    expect(cmd.prefill.note).toBe('men sinfdoshlar kassasida sardorga 50 ming som berdim');
+  });
+
+  /** Xom matn kelmasa modelnikiga qaytiladi - izoh bo'sh qolmasin. */
+  it('xom matnsiz modelniki ishlatiladi', () => {
+    const cmd = resolveVoiceCommand(
+      intent({ contactOutcome: 'RESOLVED', contactId: 'c1', direction: 'GAVE', text: 'nonga' }),
+    );
+
+    expect(cmd.prefill.note).toBe('nonga');
+  });
+});

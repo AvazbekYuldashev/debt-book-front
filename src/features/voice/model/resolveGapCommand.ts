@@ -35,7 +35,8 @@ function prefillOf(intent: VoiceIntent): GapVoicePrefill {
     // summa esa o'sha tugmani bosgach formaga tushadi.
     direction: intent.direction ?? undefined,
     currency: intent.currency ?? undefined,
-    note: intent.text?.trim() || undefined,
+    // Izohda AYTILGAN gap turadi, modelning qisqartmasi emas.
+    note: (intent.transcript ?? intent.text)?.trim() || undefined,
   };
 }
 

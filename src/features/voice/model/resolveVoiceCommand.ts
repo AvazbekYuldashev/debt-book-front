@@ -53,7 +53,8 @@ function prefillOf(intent: VoiceIntent): VoiceCommandPrefill {
     amount: typeof amount === 'number' && Number.isFinite(amount) && amount > 0 ? amount : undefined,
     direction: intent.direction ?? undefined,
     currency: intent.currency ?? undefined,
-    note: intent.text?.trim() || undefined,
+    // Izohda AYTILGAN gap turadi, modelning qisqartmasi emas.
+    note: (intent.transcript ?? intent.text)?.trim() || undefined,
     items: intent.items?.length ? intent.items : undefined,
     calcNote: intent.calcNote || undefined,
     settlements: intent.settlements?.length ? intent.settlements : undefined,
