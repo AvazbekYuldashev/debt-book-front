@@ -28,13 +28,24 @@ export const formatDuration = (ms: number): string => {
  */
 export const formatSum = (value: number): string => {
   const rounded = Math.round(value * 100) / 100;
-  const whole = Math.trunc(rounded);
-  const fraction = Math.round((rounded - whole) * 100);
+
+  // Ishora ALOHIDA ajratiladi. Manfiy sonda `Math.trunc` nolga qarab
+  // kesadi va kasr qism manfiy chiqadi: -614.91 da tiyin -91 bo'lib,
+  // "noldan katta" shartidan o'tmay tushib qolardi. Balans qarzda
+  // bo'lganda ekranda "-614" turardi, sarf esa "614,91" - bir xil pul,
+  // ikki xil raqam.
+  const negative = rounded < 0;
+  const abs = Math.abs(rounded);
+
+  const whole = Math.trunc(abs);
+  const fraction = Math.round((abs - whole) * 100);
 
   const grouped = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return fraction > 0
+  const body = fraction > 0
     ? `${grouped},${String(fraction).padStart(2, '0')} so'm`
     : `${grouped} so'm`;
+
+  return negative ? `-${body}` : body;
 };
 
 /** Sana: "28.09.2026 20:45". */

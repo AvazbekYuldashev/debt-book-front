@@ -60,3 +60,29 @@ describe('formatWhen', () => {
     expect(formatWhen('bu sana emas')).toBe('');
   });
 });
+
+/**
+ * MANFIY summa: balans qarzda bo'lishi mumkin (to'ldirilgandan ko'p
+ * sarflangan). HAQIQIY HOLAT: balans "-614 so'm" ko'rsatardi, sarf esa
+ * "614,91 so'm" - bir xil pul, ikki xil raqam.
+ *
+ * Sabab: `Math.trunc` manfiy sonni nolga qarab kesadi va kasr qism
+ * manfiy chiqadi, "noldan katta" shartidan o'tmaydi.
+ */
+describe('formatSum manfiy summada', () => {
+  it('tiyin yoqolmaydi', () => {
+    expect(formatSum(-614.91)).toBe("-614,91 so'm");
+    expect(formatSum(-7.5)).toBe("-7,50 so'm");
+  });
+
+  it('butun manfiy son', () => {
+    expect(formatSum(-450)).toBe("-450 so'm");
+    expect(formatSum(-1250)).toBe("-1 250 so'm");
+  });
+
+  /** Musbat tomoni buzilmasligi kerak. */
+  it('musbat summa oldingidek', () => {
+    expect(formatSum(614.91)).toBe("614,91 so'm");
+    expect(formatSum(0)).toBe("0 so'm");
+  });
+});
