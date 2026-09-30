@@ -26,7 +26,14 @@ import {
   type VoiceUsageSummary,
 } from '../api/usage';
 import { formatDuration, formatSum, formatWhen } from '../model/formatUsage';
-import { createClickLink, fetchPaymentSummary, type PaymentSummary } from '../api/payments';
+import {
+  createClickLink,
+  fetchPaymentHistory,
+  fetchPaymentSummary,
+  type PaymentHistory,
+  type PaymentSummary,
+} from '../api/payments';
+import { feedKey, mergeFeed, type FeedEntry } from '../model/feed';
 import UsageDetailModal from '../components/UsageDetailModal';
 
 /**
@@ -62,6 +69,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
   const [payError, setPayError] = useState('');
   const [detail, setDetail] = useState<VoiceUsage | null>(null);
   const [items, setItems] = useState<VoiceUsage[]>([]);
+  const [topUps, setTopUps] = useState<PaymentHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
@@ -69,14 +77,16 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     setLoading(true);
     setFailed(false);
     try {
-      const [totals, page, balance] = await Promise.all([
+      const [totals, page, balance, payments] = await Promise.all([
         fetchVoiceUsageSummary(),
         fetchVoiceUsage(0, 50),
         fetchPaymentSummary(),
+        fetchPaymentHistory(0, 50),
       ]);
       setSummary(totals);
       setItems(page.content);
       setAccount(balance);
+      setTopUps(payments);
     } catch {
       // Sarf tarixi ko'rinmasligi ishni to'xtatmaydi - xabar beramiz, tamom.
       setFailed(true);
@@ -108,7 +118,41 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     }
   }, [t]);
 
-  const renderItem = useCallback(
+  // Ikki tarix bitta oqimda: pul kirgani ham, chiqqani ham. Alohida
+  // ro'yxatlarda ko'rsatsak, odam balans qanday o'zgarganini kuzata
+  // olmasdi - har safar ikkovini ko'zda solishtirish kerak bo'lardi.
+  const feed = useMemo(() => mergeFeed(items, topUps), [items, topUps]);
+
+  const renderTopUp = useCallback(
+    (payment: PaymentHistory) => {
+      const cancelled = payment.status === 'CANCELLED';
+      return (
+        <View style={styles.row}>
+          <View style={[styles.rowIcon, !cancelled && styles.rowIconIn]}>
+            <Ionicons
+              name={cancelled ? 'close-circle-outline' : 'add-circle-outline'}
+              size={16}
+              color={cancelled ? colors.textSecondary : colors.success}
+            />
+          </View>
+          <View style={styles.rowText}>
+            <Text style={styles.rowWhen}>{formatWhen(payment.paidDate ?? payment.createdDate)}</Text>
+            <Text style={styles.rowDuration}>
+              {cancelled ? t('payments.cancelled') : t('payments.toppedUp')}
+            </Text>
+          </View>
+          {/* Bekor qilingan to'lov balansga tushmagan, shuning uchun
+              "+" belgisi ham, yashil rang ham berilmaydi. */}
+          <Text style={[styles.rowCost, !cancelled && styles.rowCostIn]}>
+            {cancelled ? formatSum(payment.amount) : `+${formatSum(payment.amount)}`}
+          </Text>
+        </View>
+      );
+    },
+    [colors.success, colors.textSecondary, styles, t],
+  );
+
+  const renderUsage = useCallback(
     ({ item }: { item: VoiceUsage }) => {
       // Ikki xil qator: tanish DAQIQAGA, model esa TOKENGA to'lanadi.
       // Bir xil ko'rsatsak "0 so'm" turgan model qatori xatodek ko'rinardi.
@@ -146,19 +190,25 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     [colors.primary, styles, t],
   );
 
+  const renderItem = useCallback(
+    ({ item }: { item: FeedEntry }) =>
+      item.kind === 'TOPUP' ? renderTopUp(item.payment) : renderUsage({ item: item.usage }),
+    [renderTopUp, renderUsage],
+  );
+
   return (
     <View style={styles.container}>
       <AmbientBackground />
       <ScreenHeader title={t('payments.title')} onBack={navigation.goBack} />
 
       <FlatList
-        data={items}
+        data={feed}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={feedKey}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading && items.length > 0} onRefresh={load} tintColor={colors.primary} />
+          <RefreshControl refreshing={loading && feed.length > 0} onRefresh={load} tintColor={colors.primary} />
         }
         ListHeaderComponent={
           <>
@@ -367,6 +417,12 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     rowPressed: {
       opacity: 0.6,
+    },
+    rowIconIn: {
+      backgroundColor: colors.positiveSoft,
+    },
+    rowCostIn: {
+      color: colors.success,
     },
     loader: {
       marginTop: spacing.xl,
