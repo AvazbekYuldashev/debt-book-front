@@ -104,6 +104,17 @@ export function isVoiceInputSupported(): boolean {
  * Ochib bo'lmasa 0 qaytadi va chaqiruvchi devor soatiga qaytadi -
  * taxminiy hisob hisobsizlikdan yaxshiroq.
  */
+/**
+ * Bitta ovozli buyruqning belgisi.
+ *
+ * Soddaligi ataylab: u faqat BITTA foydalanuvchining ikkita ketma-ket
+ * so'rovini bog'lash uchun kerak, ya'ni butun dunyo bo'ylab yagona
+ * bo'lishi shart emas. Vaqt va tasodif birga yetarli.
+ */
+function newCommandId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 async function audioDurationMs(blob: Blob): Promise<number> {
   try {
     const Ctx =
@@ -191,7 +202,11 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
         // Ochib bo'lmasa devor soati ishlatiladi.
         const exactMs = await audioDurationMs(blob);
 
-        const text = await transcribe(blob, token, exactMs > 0 ? exactMs : wallClockMs);
+        // Ikkala chaqiruv BITTA belgi bilan ketadi - tarixda ular bitta
+        // ish bo'lib ko'rinishi uchun.
+        const commandId = newCommandId();
+
+        const text = await transcribe(blob, token, exactMs > 0 ? exactMs : wallClockMs, commandId);
         if (!aliveRef.current) return;
 
         if (!text.trim()) {
@@ -200,7 +215,7 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
           return;
         }
 
-        const intent = await understand(text, kind, { accountType, token });
+        const intent = await understand(text, kind, { accountType, token, commandId });
         if (!aliveRef.current) return;
 
         setState('idle');

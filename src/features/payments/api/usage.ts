@@ -12,6 +12,8 @@ export interface VoiceUsage {
   promptTokens: number;
   completionTokens: number;
   sizeBytes: number;
+  /** Bitta ovozli buyruqning belgisi. Eski yozuvlarda bo'sh. */
+  commandId?: string | null;
 }
 
 /**

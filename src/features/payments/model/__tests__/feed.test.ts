@@ -35,7 +35,9 @@ describe('mergeFeed', () => {
       [topUp('p1', '2026-10-01T09:00:00', '2026-10-01T09:00:00')],
     );
 
-    expect(feed.map((e) => feedKey(e))).toEqual(['v-v1', 'p-p1', 'v-v2']);
+    // Belgisiz yozuv o'z id'si bilan YOLG'IZ guruh bo'ladi: eski
+    // yozuvlarda buyruq belgisi yo'q va uni tiklab bo'lmaydi.
+    expect(feed.map((e) => feedKey(e))).toEqual(['v-solo-v1', 'p-p1', 'v-solo-v2']);
   });
 
   /**
@@ -48,7 +50,7 @@ describe('mergeFeed', () => {
       [topUp('p1', '2026-10-01T09:00:00', '2026-10-01T10:00:00')],
     );
 
-    expect(feed.map((e) => feedKey(e))).toEqual(['p-p1', 'v-v1']);
+    expect(feed.map((e) => feedKey(e))).toEqual(['p-p1', 'v-solo-v1']);
   });
 
   /** Bekor qilinganda to'langan payt yo'q - yaratilgan payt ishlatiladi. */
@@ -67,7 +69,7 @@ describe('mergeFeed', () => {
   it('buzuq sana oxiriga tushadi', () => {
     const feed = mergeFeed([usage('v1', 'bu sana emas'), usage('v2', '2026-10-01T10:00:00')], []);
 
-    expect(feedKey(feed[0])).toBe('v-v2');
+    expect(feedKey(feed[0])).toBe('v-solo-v2');
     expect(feed).toHaveLength(2);
   });
 

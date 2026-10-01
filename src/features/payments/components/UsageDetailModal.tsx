@@ -4,11 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
-import type { VoiceUsage } from '../api/usage';
+import type { VoiceCommand } from '../model/voiceCommand';
 import { formatDuration, formatSum, formatWhen } from '../model/formatUsage';
 
 export interface UsageDetailModalProps {
-  usage: VoiceUsage | null;
+  command: VoiceCommand | null;
   onClose: () => void;
 }
 
@@ -23,38 +23,24 @@ const formatCount = (value: number): string =>
   String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
 /**
- * Bitta sarf yozuvining tafsiloti.
+ * Bitta ovozli buyruqning tafsiloti.
  *
- * NEGA KERAK: ro'yxatda faqat yakuniy raqam turadi, lekin u QAYERDAN
- * kelgani ko'rinmaydi. Ovoz tanishda bu davomiylik va tarif, modelda esa
- * kirish va chiqish tokenlari - ular alohida sanaladi va odatda turli
- * narxda bo'ladi.
- *
- * Ikki xil yozuv ikki xil ko'rsatiladi: bir xil jadvalga tiqishtirsak,
- * yarim maydoni bo'sh qatorlar chiqib, o'qish qiyinlashardi.
+ * NEGA KERAK: ro'yxatda faqat yakuniy raqam turadi, lekin u QAYSI
+ * QISMLARDAN yig'ilgani ko'rinmaydi. Buyruq ikki xizmatga tushadi va
+ * ular turlicha hisoblanadi: ovozni tanish daqiqaga, gapni tushunish
+ * esa tokenga. Qaysi biri qimmatga tushayotganini bilish uchun ularni
+ * alohida ko'rsatish kerak.
  */
-const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ usage, onClose }) => {
+const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ command, onClose }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  if (!usage) return null;
+  if (!command) return null;
 
-  const isModel = usage.source === 'MODEL';
-  const tokens = usage.promptTokens + usage.completionTokens;
-
-  const rows: { label: string; value: string }[] = isModel
-    ? [
-        { label: t('usage.inputTokens'), value: formatCount(usage.promptTokens) },
-        { label: t('usage.outputTokens'), value: formatCount(usage.completionTokens) },
-        { label: t('usage.totalTokens'), value: formatCount(tokens) },
-      ]
-    : [
-        { label: t('usage.duration'), value: formatDuration(usage.durationMs) },
-        { label: t('usage.size'), value: formatSize(usage.sizeBytes) },
-        { label: t('usage.rate'), value: `${formatSum(usage.ratePerMinute)} / ${t('usage.minute')}` },
-      ];
+  const { stt, model } = command;
+  const tokens = model ? model.promptTokens + model.completionTokens : 0;
 
   return (
     <Modal transparent visible animationType="fade" onRequestClose={onClose}>
@@ -62,34 +48,68 @@ const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ usage, onClose }) =
         {/* Karta ichidagi bosish oynani yopmasin. */}
         <Pressable style={styles.card} onPress={() => {}}>
           <View style={styles.titleRow}>
-            <Ionicons
-              name={isModel ? 'sparkles-outline' : 'mic-outline'}
-              size={20}
-              color={colors.primary}
-            />
-            <Text style={styles.title}>
-              {isModel ? t('usage.modelTitle') : t('usage.sttTitle')}
-            </Text>
+            <Ionicons name="mic-outline" size={20} color={colors.primary} />
+            <Text style={styles.title}>{t('usage.commandTitle')}</Text>
           </View>
+          <Text style={styles.when}>{formatWhen(command.at)}</Text>
 
-          <Text style={styles.when}>{formatWhen(usage.createdDate)}</Text>
-
-          <View style={styles.rows}>
-            {rows.map((row) => (
-              <View key={row.label} style={styles.row}>
-                <Text style={styles.rowLabel}>{row.label}</Text>
-                <Text style={styles.rowValue}>{row.value}</Text>
+          {/* ---------- ovozni tanish ---------- */}
+          {stt ? (
+            <View style={styles.part}>
+              <View style={styles.partHead}>
+                <Ionicons name="mic-outline" size={15} color={colors.textSecondary} />
+                <Text style={styles.partTitle}>{t('usage.sttTitle')}</Text>
+                <Text style={styles.partCost}>{formatSum(stt.cost)}</Text>
               </View>
-            ))}
-          </View>
+
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>{t('usage.duration')}</Text>
+                <Text style={styles.rowValue}>{formatDuration(stt.durationMs)}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>{t('usage.size')}</Text>
+                <Text style={styles.rowValue}>{formatSize(stt.sizeBytes)}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>{t('usage.rate')}</Text>
+                <Text style={styles.rowValue}>
+                  {formatSum(stt.ratePerMinute)} / {t('usage.minute')}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {/* ---------- gapni tushunish ---------- */}
+          {model ? (
+            <View style={styles.part}>
+              <View style={styles.partHead}>
+                <Ionicons name="sparkles-outline" size={15} color={colors.textSecondary} />
+                <Text style={styles.partTitle}>{t('usage.modelTitle')}</Text>
+                {/* Tarif sozlanmaganda nol emas, izoh - "bepul" degan
+                    taassurot qolmasligi uchun. */}
+                <Text style={styles.partCost}>
+                  {model.cost === 0 ? t('usage.rateUnknown') : formatSum(model.cost)}
+                </Text>
+              </View>
+
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>{t('usage.inputTokens')}</Text>
+                <Text style={styles.rowValue}>{formatCount(model.promptTokens)}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>{t('usage.outputTokens')}</Text>
+                <Text style={styles.rowValue}>{formatCount(model.completionTokens)}</Text>
+              </View>
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>{t('usage.totalTokens')}</Text>
+                <Text style={styles.rowValue}>{formatCount(tokens)}</Text>
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{t('usage.cost')}</Text>
-            {/* Model tarifi hali sozlanmagan - nol o'rniga izoh, aks holda
-                "bepul" degan taassurot qolardi. */}
-            <Text style={styles.totalValue}>
-              {isModel && usage.cost === 0 ? t('usage.rateUnknown') : formatSum(usage.cost)}
-            </Text>
+            <Text style={styles.totalValue}>{formatSum(command.cost)}</Text>
           </View>
 
           <Pressable style={styles.close} onPress={onClose} accessibilityRole="button">
@@ -132,28 +152,47 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       color: colors.textSecondary,
       marginTop: spacing.xxs,
     },
-    rows: {
+    part: {
       marginTop: spacing.md,
+      padding: spacing.sm,
+      borderRadius: radius.md,
+      backgroundColor: colors.surfaceMuted,
+    },
+    partHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    partTitle: {
+      ...typography.body,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    partCost: {
+      ...typography.body,
+      color: colors.textPrimary,
+      fontWeight: '600',
     },
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingVertical: spacing.xs,
+      paddingVertical: spacing.xxs,
     },
     rowLabel: {
-      ...typography.body,
+      ...typography.caption,
       color: colors.textSecondary,
     },
     rowValue: {
-      ...typography.body,
+      ...typography.caption,
       color: colors.textPrimary,
     },
     totalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: spacing.sm,
+      marginTop: spacing.md,
       paddingTop: spacing.sm,
       borderTopWidth: 1,
       borderTopColor: colors.border,

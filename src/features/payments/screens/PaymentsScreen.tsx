@@ -34,6 +34,7 @@ import {
   type PaymentSummary,
 } from '../api/payments';
 import { feedKey, mergeFeed, type FeedEntry } from '../model/feed';
+import type { VoiceCommand } from '../model/voiceCommand';
 import UsageDetailModal from '../components/UsageDetailModal';
 
 /**
@@ -67,7 +68,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
   const [account, setAccount] = useState<PaymentSummary | null>(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
-  const [detail, setDetail] = useState<VoiceUsage | null>(null);
+  const [detail, setDetail] = useState<VoiceCommand | null>(null);
   const [items, setItems] = useState<VoiceUsage[]>([]);
   const [topUps, setTopUps] = useState<PaymentHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,48 +153,46 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     [colors.success, colors.textSecondary, styles, t],
   );
 
-  const renderUsage = useCallback(
-    ({ item }: { item: VoiceUsage }) => {
-      // Ikki xil qator: tanish DAQIQAGA, model esa TOKENGA to'lanadi.
-      // Bir xil ko'rsatsak "0 so'm" turgan model qatori xatodek ko'rinardi.
-      const isModel = item.source === 'MODEL';
-      const tokens = item.promptTokens + item.completionTokens;
+  const renderCommand = useCallback(
+    (command: VoiceCommand) => {
+      // Bir qatorda IKKALA qism: odam uchun bu bitta ish. Tafsiloti -
+      // qaysi qismga qancha ketgani - bosilganda ochiladi.
+      const tokens = command.model
+        ? command.model.promptTokens + command.model.completionTokens
+        : 0;
+
+      const parts = [
+        command.stt ? formatDuration(command.stt.durationMs) : null,
+        tokens > 0 ? t('payments.tokensLine', { count: String(tokens) }) : null,
+      ].filter(Boolean);
 
       return (
         <Pressable
-          onPress={() => setDetail(item)}
+          onPress={() => setDetail(command)}
           accessibilityRole="button"
           style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
         >
           <View style={styles.rowIcon}>
-            <Ionicons
-              name={isModel ? 'sparkles-outline' : 'mic-outline'}
-              size={16}
-              color={colors.primary}
-            />
+            <Ionicons name="mic-outline" size={16} color={colors.primary} />
           </View>
           <View style={styles.rowText}>
-            <Text style={styles.rowWhen}>{formatWhen(item.createdDate)}</Text>
-            <Text style={styles.rowDuration}>
-              {isModel ? t('payments.tokensLine', { count: String(tokens) }) : formatDuration(item.durationMs)}
+            <Text style={styles.rowWhen}>{formatWhen(command.at)}</Text>
+            <Text style={styles.rowDuration} numberOfLines={1}>
+              {parts.join(' · ')}
             </Text>
           </View>
-          {/* Model narxi hali sozlanmagan - nol o'rniga chiziqcha, aks
-              holda "bepul" degan taassurot qolardi. */}
-          <Text style={styles.rowCost}>
-            {isModel && item.cost === 0 ? '—' : formatSum(item.cost)}
-          </Text>
+          <Text style={styles.rowCost}>{formatSum(command.cost)}</Text>
           <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
         </Pressable>
       );
     },
-    [colors.primary, styles, t],
+    [colors.primary, colors.textSecondary, styles, t],
   );
 
   const renderItem = useCallback(
     ({ item }: { item: FeedEntry }) =>
-      item.kind === 'TOPUP' ? renderTopUp(item.payment) : renderUsage({ item: item.usage }),
-    [renderTopUp, renderUsage],
+      item.kind === 'TOPUP' ? renderTopUp(item.payment) : renderCommand(item.command),
+    [renderTopUp, renderCommand],
   );
 
   return (
@@ -312,7 +311,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
         }
       />
 
-      <UsageDetailModal usage={detail} onClose={() => setDetail(null)} />
+      <UsageDetailModal command={detail} onClose={() => setDetail(null)} />
     </View>
   );
 };

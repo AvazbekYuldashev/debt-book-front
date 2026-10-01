@@ -1,4 +1,5 @@
 import type { VoiceUsage } from '../api/usage';
+import { groupByCommand, type VoiceCommand } from './voiceCommand';
 import type { PaymentHistory } from '../api/payments';
 
 /**
@@ -10,12 +11,12 @@ import type { PaymentHistory } from '../api/payments';
  * ikkita ro'yxatni ko'zda solishtirib chiqish kerak bo'lardi.
  */
 export type FeedEntry =
-  | { kind: 'VOICE'; at: string; usage: VoiceUsage }
+  | { kind: 'VOICE'; at: string; command: VoiceCommand }
   | { kind: 'TOPUP'; at: string; payment: PaymentHistory };
 
 /** Ro'yxatda ishlatiladigan barqaror kalit. */
 export const feedKey = (entry: FeedEntry): string =>
-  entry.kind === 'VOICE' ? `v-${entry.usage.id}` : `p-${entry.payment.id}`;
+  entry.kind === 'VOICE' ? `v-${entry.command.key}` : `p-${entry.payment.id}`;
 
 /**
  * Ikki tarixni bitta oqimga qo'shadi, yangisidan boshlab.
@@ -33,8 +34,10 @@ export const mergeFeed = (
 ): FeedEntry[] => {
   const entries: FeedEntry[] = [];
 
-  for (const item of usage) {
-    if (item?.id) entries.push({ kind: 'VOICE', at: item.createdDate, usage: item });
+  // Ovoz yozuvlari avval BUYRUQLARGA yig'iladi: odam uchun bitta
+  // gapirish - bitta ish, ikki qator emas.
+  for (const command of groupByCommand(usage)) {
+    entries.push({ kind: 'VOICE', at: command.at, command });
   }
   for (const item of payments) {
     if (!item?.id) continue;

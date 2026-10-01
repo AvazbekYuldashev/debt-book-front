@@ -149,6 +149,7 @@ export const transcribe = async (
   blob: Blob,
   token?: string,
   durationMs?: number,
+  commandId?: string,
 ): Promise<string> => {
   applyToken(token);
 
@@ -158,6 +159,9 @@ export const transcribe = async (
   // Davomiylik SARF HISOBI uchun: xizmat daqiqasiga to'lanadi, javobida esa
   // davomiylik yo'q. Bu yagona joy, uni aniq bilish mumkin bo'lgan.
   if (durationMs && durationMs > 0) form.append('durationMs', String(Math.round(durationMs)));
+  // Bitta buyruqning belgisi: tushunish chaqiruviga ham SHU yuboriladi.
+  // Faqat mijoz ikkala so'rov bitta gapdan ekanini biladi.
+  if (commandId) form.append('commandId', commandId);
 
   const { data } = await apiClient.post<{ text?: string }>('/voice/stt', form, {
     // Content-Type'ni O'ZIMIZ qo'ymaymiz: FormData chegara (boundary) satrini
@@ -179,14 +183,14 @@ export const transcribe = async (
 export const understand = async (
   transcript: string,
   kind: VoiceIntentKind,
-  options?: { accountType?: string; token?: string },
+  options?: { accountType?: string; token?: string; commandId?: string },
 ): Promise<VoiceIntent> => {
   applyToken(options?.token);
 
   try {
     const { data } = await apiClient.post<VoiceIntent>(
       '/voice/understand',
-      { transcript, kind },
+      { transcript, kind, commandId: options?.commandId },
       {
         params: options?.accountType ? { accountType: options.accountType } : undefined,
         timeout: 30000,
