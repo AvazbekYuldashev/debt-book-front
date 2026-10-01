@@ -72,9 +72,18 @@ const VoiceResultModal: React.FC<VoiceResultModalProps> = ({
                     style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
                   >
                     <Ionicons name="person-outline" size={16} color={colors.textSecondary} />
-                    <Text style={styles.optionText} numberOfLines={1}>
-                      {option.name}
-                    </Text>
+                    <View style={styles.optionBody}>
+                      <Text style={styles.optionText} numberOfLines={1}>
+                        {option.name}
+                      </Text>
+                      {/* Raqam ism OSTIDA: ro'yxat bir xil ismli yozuvlardan
+                          iborat bo'lishi mumkin va shunda ism ajratmaydi. */}
+                      {option.phoneNumber ? (
+                        <Text style={styles.optionPhone} numberOfLines={1}>
+                          {option.phoneNumber}
+                        </Text>
+                      ) : null}
+                    </View>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -177,6 +186,13 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     optionPressed: {
       opacity: 0.6,
+    },
+    optionBody: {
+      flex: 1,
+    },
+    optionPhone: {
+      ...typography.caption,
+      color: colors.textSecondary,
     },
     optionText: {
       ...typography.body,

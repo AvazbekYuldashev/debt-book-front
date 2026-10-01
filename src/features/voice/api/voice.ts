@@ -24,6 +24,14 @@ export interface VoiceContactOption {
   /** Kontakt yozuvining id'si — ro'yxatdan topish uchun. */
   id: string;
   name: string;
+  /**
+   * Telefon raqami.
+   *
+   * Ko'rsatiladi, chunki tanlov ro'yxati aynan bir xil raqamli yoki bir
+   * xil ismli yozuvlardan iborat bo'lishi mumkin - shunda ism yolg'iz
+   * ajratmaydi.
+   */
+  phoneNumber?: string | null;
   /** Qarama-qarshi tomon — oldi-berdi shu id bilan yaratiladi. */
   partyId?: string | null;
   partyType?: string | null;
