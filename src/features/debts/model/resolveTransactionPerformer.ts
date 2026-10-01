@@ -3,7 +3,12 @@ import { MoneyResponseDTO, PartyType } from '../../../shared/types/money';
 // ============================================================
 //  Domain use-case: tranzaksiyada QARAMA-QARSHI tomon xodimi kimligini aniqlash.
 //
-//  Qoida: har bir tomon O'ZINIKINI emas, BOSHQA tomonnikini ko'radi.
+//  Qoida: BIZNES tomonning xodimi ko'rsatiladi.
+//    - qarama-qarshi tomon biznes bo'lsa -> uning xodimi ("meni kim kutib oldi");
+//    - qarama-qarshi tomon jismoniy shaxs, o'zim biznes bo'lsam -> o'z xodimim
+//      ("bu yozuvni qaysi xodimim kiritdi").
+//  Ilgari faqat birinchisi ishlardi va ikkinchi holatda qator umuman
+//  ko'rinmasdi - holbuki raqam yozuvda saqlangan edi.
 //    - men biznes hisobidan oldi-berdi qilsam -> menga men TANLAGAN odam raqami;
 //    - qarama-qarshi tomonga esa menikisi ko'rinadi.
 //  Ilgari ro'yxatdan har doim `creditorBusinessProfilePhone` olinardi — kim "men"
@@ -71,11 +76,29 @@ export function counterpartyPerformerPhone(
   if (ownerIsCreditor === ownerIsDebtor) return '';
 
   const other = ownerIsCreditor ? debtor : creditor;
-  if (!isBusinessSide(other)) return '';
-  if (other.performerPhone) return other.performerPhone;
+  const mine = ownerIsCreditor ? creditor : debtor;
 
-  // Zaxira: a'zo saqlanmagan eski yozuvlarda, agar yozuvni MEN yaratmagan bo'lsam,
-  // yaratuvchi aynan qarama-qarshi tomonning xodimi bo'ladi.
-  const createdByViewer = Boolean(viewerProfileId) && tx.createdByProfileId === viewerProfileId;
-  return !createdByViewer && tx.createdByProfilePhone ? tx.createdByProfilePhone : '';
+  // QARAMA-QARSHI tomon biznes bo'lsa - uning xodimi. Bu asosiy holat:
+  // "meni kim kutib oldi" degan savolga javob.
+  if (isBusinessSide(other)) {
+    if (other.performerPhone) return other.performerPhone;
+
+    // Zaxira: a'zo saqlanmagan eski yozuvlarda, agar yozuvni MEN
+    // yaratmagan bo'lsam, yaratuvchi aynan qarama-qarshi tomon xodimi.
+    const createdByViewer = Boolean(viewerProfileId) && tx.createdByProfileId === viewerProfileId;
+    return !createdByViewer && tx.createdByProfilePhone ? tx.createdByProfilePhone : '';
+  }
+
+  // Qarama-qarshi tomon JISMONIY SHAXS bo'lsa, unda xodim tushunchasi
+  // yo'q - lekin MENING tomonim biznes bo'lishi mumkin. O'shanda yozuvni
+  // kim kiritgani ko'rsatiladi.
+  //
+  // Ilgari bu yerda bo'sh satr qaytardi va biznes egasi "bu yozuvni qaysi
+  // xodimim kiritdi" degan savolga javob topa olmasdi - holbuki raqam
+  // yozuvda bor edi.
+  if (isBusinessSide(mine) && mine.performerPhone) {
+    return mine.performerPhone;
+  }
+  return '';
+
 }

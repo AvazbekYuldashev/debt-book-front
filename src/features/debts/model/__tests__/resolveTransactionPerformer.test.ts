@@ -66,13 +66,37 @@ describe('counterpartyPerformerPhone — biznes <-> shaxsiy', () => {
     );
   });
 
-  it('biznesga esa hech nima ko‘rinmaydi — qarshi tomon jismoniy shaxs, xodimi yo‘q', () => {
+  /**
+   * QOIDA O'ZGARDI. Ilgari bu yerda bo'sh satr qaytardi: "qarshi tomon
+   * jismoniy shaxs, xodimi yo'q" degan mulohaza bilan.
+   *
+   * Lekin biznes egasi uchun muhim savol boshqa: "bu yozuvni qaysi
+   * xodimim kiritdi". Raqam yozuvda saqlangan edi, faqat ko'rsatilmasdi -
+   * va tafsilot oynasi bo'm-bo'sh chiqardi.
+   */
+  it('biznesga O‘Z xodimi ko‘rinadi — yozuvni kim kiritgani', () => {
     expect(
       counterpartyPerformerPhone(
         businessToPersonal,
         { partyType: 'BUSINESS_ACCOUNT', partyId: BIZ_A },
         PROF_ME,
       ),
+    ).toBe(MY_MEMBER);
+  });
+
+  /** Ikkala tomon ham jismoniy shaxs bo'lsa xodim tushunchasi yo'q. */
+  it('shaxsiy <-> shaxsiyda hech nima ko‘rinmaydi', () => {
+    const personToPerson = tx({
+      creditorType: 'PROFILE',
+      creditorId: PROF_ME,
+      debtorType: 'PROFILE',
+      debtorId: PROF_THEM,
+      createdByProfileId: PROF_ME,
+      createdByProfilePhone: MY_MEMBER,
+    });
+
+    expect(
+      counterpartyPerformerPhone(personToPerson, { partyType: 'PROFILE', partyId: PROF_ME }, PROF_ME),
     ).toBe('');
   });
 
