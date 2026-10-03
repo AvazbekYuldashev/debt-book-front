@@ -7,6 +7,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ContactsProvider } from './src/features/debts/context/ContactsContext';
 import { AuthProvider } from './src/features/auth/context/AuthContext';
+import BackgroundSync from './src/features/profile/components/BackgroundSync';
 import { PinProvider } from './src/features/auth/pin/PinContext';
 import { WorkspaceProvider } from './src/features/business/context/WorkspaceContext';
 import { CurrencyProvider } from './src/features/debts/context/CurrencyContext';
@@ -87,6 +88,10 @@ const AppShell: React.FC = () => {
 
   return (
     <AuthProvider>
+      {/* Fon hisobga bog'langan, qurilmaga emas. Provider daraxtda
+          yuqorida turadi (fon rangi mavzuga tayanadi), shuning uchun
+          profilni unga shu komponent ulab beradi. */}
+      <BackgroundSync />
       {/* Ilova-qulfi (PIN) AuthProvider ICHIDA: profil holatini kuzatadi
           (chiqishda PIN o'chadi) va RootNavigator qulf darvozasini ko'rsatadi. */}
       <PinProvider>

@@ -1,8 +1,9 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { storage } from '../lib/storage';
 import {
-  BACKGROUND_STORAGE_KEY,
+  backgroundKey,
   DEFAULT_BACKGROUND,
+  fromRemote,
   parseBackground,
   serializeBackground,
   type BackgroundFit,
@@ -16,6 +17,13 @@ export interface BackgroundValue extends BackgroundSettings {
   clearImage: () => void;
   setFit: (fit: BackgroundFit) => void;
   setDim: (dim: number) => void;
+  /**
+   * Hisob almashganda chaqiriladi: kimning foni ko'rsatilishini belgilaydi.
+   *
+   * `remote` — serverdan kelgan sozlama (hisobdagi haqiqiy qiymat).
+   * `null` profil — chiqib ketildi, standart fonga qaytamiz.
+   */
+  adopt: (profileId: string | null, remote: unknown) => void;
 }
 
 const BackgroundContext = createContext<BackgroundValue | undefined>(undefined);
@@ -23,32 +31,59 @@ const BackgroundContext = createContext<BackgroundValue | undefined>(undefined);
 /**
  * Foydalanuvchi foni holati.
  *
- * ThemeProvider bilan bir xil naqsh: qurilmada saqlanadi, o'qilmaguncha
- * standart qiymat ishlatiladi. Lekin bu yerda render TO'XTATILMAYDI —
- * mavzudan farqli o'laroq fon rasmi kech kelsa "miltillash" bo'lmaydi
- * (u shunchaki bir lahzadan keyin paydo bo'ladi), ilovani kutib turishga
- * majburlash esa ochilishni sekinlashtirardi.
+ * SOZLAMA HISOBDA TURADI, qurilmada emas. Ilgari u bitta umumiy kalit
+ * ostida telefonning o'zida saqlanardi va uch joyda yo'qolardi: boshqa
+ * qurilmadan kirilganda, ilova qayta o'rnatilganda, va bitta telefonda
+ * ikkinchi hisob birinchisining fonini ko'rganda.
+ *
+ * Qurilmadagi nusxa saqlanib qoldi, lekin endi HAR HISOB UCHUN ALOHIDA
+ * kalit bilan va faqat TEZ CHIZISH uchun: server javobi kelguncha fon
+ * darhol ko'rinadi. Haqiqiy manba — server.
+ *
+ * Render TO'XTATILMAYDI: fon rasmi kech kelsa "miltillash" bo'lmaydi, u
+ * shunchaki bir lahzadan keyin paydo bo'ladi. Ilovani kutishga majburlash
+ * esa ochilishni sekinlashtirardi.
  */
 export const BackgroundProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<BackgroundSettings>(DEFAULT_BACKGROUND);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const saved = await storage.get(BACKGROUND_STORAGE_KEY);
-      if (mounted && saved) setSettings(parseBackground(saved));
+  // Kimning foni ko'rsatilyapti. Saqlashda shu kalit ishlatiladi, shuning
+  // uchun ref: eskirgan qiymat boshqa hisobning nusxasiga yozib yuborardi.
+  const scope = useRef<string | null>(null);
+
+  const adopt = useCallback((profileId: string | null, remote: unknown) => {
+    scope.current = profileId;
+
+    if (!profileId) {
+      setSettings(DEFAULT_BACKGROUND);
+      return;
+    }
+
+    // Server javobi bo'lsa u YUTADI va qurilmadagi nusxa yangilanadi.
+    if (remote !== undefined && remote !== null) {
+      const next = fromRemote(remote);
+      setSettings(next);
+      storage.set(backgroundKey(profileId), serializeBackground(next));
+      return;
+    }
+
+    // Javob hali yo'q: shu hisobning oxirgi ko'rinishini chizib turamiz.
+    void (async () => {
+      const saved = await storage.get(backgroundKey(profileId));
+      if (scope.current !== profileId) return; // hisob almashib ketdi
+      setSettings(saved ? parseBackground(saved) : DEFAULT_BACKGROUND);
     })();
-    return () => {
-      mounted = false;
-    };
   }, []);
 
-  // Har o'zgarishda saqlash (fire-and-forget) — sozlama yo'qolsa ilova
-  // ishlashda davom etadi, shuning uchun xatoni kutib o'tirmaymiz.
+  // Har o'zgarishda qurilmaga saqlash (fire-and-forget). Serverga yuborish
+  // BackgroundPicker zimmasida: token o'sha yerda bor va xato o'sha yerda
+  // ko'rsatiladi.
   const update = useCallback((patch: Partial<BackgroundSettings>) => {
     setSettings((current) => {
       const next = { ...current, ...patch };
-      storage.set(BACKGROUND_STORAGE_KEY, serializeBackground(next));
+      if (scope.current) {
+        storage.set(backgroundKey(scope.current), serializeBackground(next));
+      }
       return next;
     });
   }, []);
@@ -59,7 +94,8 @@ export const BackgroundProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     clearImage: () => update({ imageId: '' }),
     setFit: (fit: BackgroundFit) => update({ fit }),
     setDim: (dim: number) => update({ dim }),
-  }), [settings, update]);
+    adopt,
+  }), [settings, update, adopt]);
 
   return <BackgroundContext.Provider value={value}>{children}</BackgroundContext.Provider>;
 };
@@ -81,4 +117,5 @@ const fallbackValue: BackgroundValue = {
   clearImage: noop,
   setFit: noop,
   setDim: noop,
+  adopt: noop,
 };

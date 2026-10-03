@@ -10,6 +10,12 @@ export interface ProfileDTO {
   jwt?: string;
   refreshToken?: string;
   status?: string;
+  /** Ilova foni - hisobga bog'langan, qurilmaga emas. */
+  background?: {
+    imageId?: string | null;
+    fit?: string | null;
+    dim?: number | null;
+  };
 }
 
 export * from '../../features/expenses/types/category';

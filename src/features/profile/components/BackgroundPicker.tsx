@@ -1,8 +1,9 @@
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { pickAndUploadImage } from '../lib/pickImage';
+import { updateProfileBackground } from '../api/profile';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useBackground } from '../../../shared/theme/BackgroundProvider';
@@ -37,7 +38,7 @@ const FIT_OPTIONS: { value: BackgroundFit; icon: keyof typeof Ionicons.glyphMap;
 const BackgroundPicker: React.FC = () => {
   const theme = useAppTheme();
   const { t } = useI18n();
-  const { profile } = useContext(AuthContext);
+  const { profile, setProfile } = useContext(AuthContext);
   const { imageId, fit, dim, setImage, clearImage, setFit, setDim } = useBackground();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -47,13 +48,55 @@ const BackgroundPicker: React.FC = () => {
   const token = profile?.jwt;
   const hasImage = imageId.length > 0;
 
+  /**
+   * Sozlamani HISOBGA saqlaydi.
+   *
+   * Qurilmadagi nusxani provider o'zi yozadi; bu yerda server yangilanadi,
+   * aks holda boshqa telefondan kirilganda eski fon ko'rinardi.
+   *
+   * Profil nusxasi ham darhol yangilanadi: aks holda ilova qayta
+   * ochilgunicha (keyingi /me gacha) eski qiymat qolib ketardi.
+   */
+  const push = useCallback(
+    async (next: { imageId: string; fit: BackgroundFit; dim: number }) => {
+      if (!token) return;
+      try {
+        await updateProfileBackground(next, token);
+        setProfile((current) => (current ? { ...current, background: next } : current));
+      } catch {
+        setError(t('background.saveFailed'));
+      }
+    },
+    [token, setProfile, t],
+  );
+
+  const applyImage = (nextId: string) => {
+    setImage(nextId);
+    void push({ imageId: nextId, fit, dim });
+  };
+
+  const applyClear = () => {
+    clearImage();
+    void push({ imageId: '', fit, dim });
+  };
+
+  const applyFit = (next: BackgroundFit) => {
+    setFit(next);
+    void push({ imageId, fit: next, dim });
+  };
+
+  const applyDim = (next: number) => {
+    setDim(next);
+    void push({ imageId, fit, dim: next });
+  };
+
   const handlePick = async () => {
     if (!token || busy) return;
     setBusy(true);
     setError(null);
     try {
       const picked = await pickAndUploadImage(token);
-      if (picked.status === 'ok') setImage(picked.id);
+      if (picked.status === 'ok') applyImage(picked.id);
       else if (picked.status === 'denied') setError(t('background.denied'));
       else if (picked.status === 'error') setError(t('background.error'));
       // 'canceled' — xato emas, jimgina qaytamiz.
@@ -117,7 +160,7 @@ const BackgroundPicker: React.FC = () => {
         {hasImage ? (
           <TouchableOpacity
             style={styles.removeBtn}
-            onPress={clearImage}
+            onPress={applyClear}
             activeOpacity={0.85}
             accessibilityRole="button"
           >
@@ -140,7 +183,7 @@ const BackgroundPicker: React.FC = () => {
                 <TouchableOpacity
                   key={option.value}
                   style={[styles.option, active && styles.optionActive]}
-                  onPress={() => setFit(option.value)}
+                  onPress={() => applyFit(option.value)}
                   activeOpacity={0.85}
                   accessibilityRole="button"
                 >
@@ -165,7 +208,7 @@ const BackgroundPicker: React.FC = () => {
                 <TouchableOpacity
                   key={level.labelKey}
                   style={[styles.option, active && styles.optionActive]}
-                  onPress={() => setDim(level.value)}
+                  onPress={() => applyDim(level.value)}
                   activeOpacity={0.85}
                   accessibilityRole="button"
                 >

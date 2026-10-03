@@ -51,8 +51,16 @@ function isFit(value: unknown): value is BackgroundFit {
   return value === 'cover' || value === 'contain';
 }
 
-/** Xiralikni ruxsat etilgan oraliqqa keltiradi (NaN ham standartga tushadi). */
+/**
+ * Xiralikni ruxsat etilgan oraliqqa keltiradi.
+ *
+ * QIYMAT YO'QLIGI alohida qaraladi: `null` va `undefined` "tanlanmagan"
+ * degani, standart qiymat qaytadi. Oddiy `Number(null)` nol berardi va
+ * u eng past chegaraga tushib, server fon tanlanmagan profil uchun
+ * `null` qaytarganda rasm deyarli pardasiz chiqib qolardi.
+ */
 export function clampDim(value: unknown): number {
+  if (value === null || value === undefined || value === '') return DEFAULT_DIM;
   const num = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(num)) return DEFAULT_DIM;
   return Math.min(MAX_DIM, Math.max(MIN_DIM, num));
@@ -83,6 +91,35 @@ export function parseBackground(raw: string | null | undefined): BackgroundSetti
     fit: isFit(record.fit) ? record.fit : DEFAULT_BACKGROUND.fit,
     dim: clampDim(record.dim),
   };
+}
+
+/**
+ * Serverdan kelgan obyektni sozlamaga aylantiradi.
+ *
+ * `parseBackground` dan farqi: u SATR (qurilmada saqlangan JSON) bilan
+ * ishlaydi, bu esa tayyor obyekt bilan. Ikkovida ham tekshiruv bir xil
+ * qat'iy - eski ilova yoki boshqa mijoz noto'g'ri qiymat yuborsa, fon
+ * chizilmay qolishi mumkin emas.
+ *
+ * null = hisobda fon umuman yo'q, standart qiymat qaytadi.
+ */
+export function fromRemote(raw: unknown): BackgroundSettings {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return DEFAULT_BACKGROUND;
+
+  const record = raw as Record<string, unknown>;
+  return {
+    imageId: typeof record.imageId === 'string' ? record.imageId.trim() : '',
+    fit: isFit(record.fit) ? record.fit : DEFAULT_BACKGROUND.fit,
+    dim: clampDim(record.dim),
+  };
+}
+
+/** Qurilmada saqlash kaliti - HAR HISOB UCHUN ALOHIDA.
+ *
+ * Umumiy kalit bitta telefondagi ikkinchi hisobga birinchisining fonini
+ * ko'rsatardi. Bu nusxa faqat tez chizish uchun: haqiqiy manba server. */
+export function backgroundKey(profileId: string): string {
+  return `${BACKGROUND_STORAGE_KEY}.${profileId}`;
 }
 
 export function serializeBackground(settings: BackgroundSettings): string {

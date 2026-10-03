@@ -33,9 +33,25 @@ export const updateProfileDetail = async (dto: ProfileDetailUpdateDTO, token?: s
   await apiClient.put<AppResponse<string>>('/profile/detail', dto);
 };
 
+export interface ProfileBackgroundUpdateDTO {
+  /** Bo'sh satr = fonni olib tashlash. */
+  imageId: string;
+  fit: string;
+  dim: number;
+}
+
 export const updateProfilePhoto = async (dto: ProfilePhotoUpdateDTO, token?: string): Promise<void> => {
   setApiAuthToken(token);
   await apiClient.put<AppResponse<string>>('/profile/photo', dto);
+};
+
+/** Ilova fonini hisobga saqlaydi - har qurilmada o'sha fon ko'rinadi. */
+export const updateProfileBackground = async (
+  dto: ProfileBackgroundUpdateDTO,
+  token?: string,
+): Promise<void> => {
+  setApiAuthToken(token);
+  await apiClient.put<AppResponse<string>>('/profile/background', dto);
 };
 
 export const updateProfilePassword = async (dto: ProfilePasswordUpdateDTO, token?: string): Promise<void> => {
