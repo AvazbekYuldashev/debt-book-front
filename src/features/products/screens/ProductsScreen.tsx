@@ -386,7 +386,7 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
     },
     title: {
       ...typography.display,
-      color: colors.textPrimary,
+      color: colors.primary,
     },
     banner: {
       paddingHorizontal: spacing.md,

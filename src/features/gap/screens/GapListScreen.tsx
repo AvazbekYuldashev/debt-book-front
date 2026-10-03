@@ -327,7 +327,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     title: {
       ...typography.display,
-      color: colors.textPrimary,
+      color: colors.primary,
     },
     sectionWrap: {
       marginTop: spacing.sm,

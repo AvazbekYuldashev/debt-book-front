@@ -67,7 +67,7 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
     title: {
       ...typography.heading2,
       fontSize: 19,
-      color: colors.textPrimary,
+      color: colors.primary,
     },
     subtitle: {
       ...typography.caption,

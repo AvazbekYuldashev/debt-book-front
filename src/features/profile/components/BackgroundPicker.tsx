@@ -228,11 +228,13 @@ const BackgroundPicker: React.FC = () => {
 
 const createStyles = ({ colors, radius, spacing, typography }: ThemeValue) =>
   StyleSheet.create({
+    // Sarlavha va yorliqlar TANLANGAN RANGDA - rang ilovani to'liq
+    // qamrab olishi kerak. Mazmun matni (izoh) bunga kirmaydi.
     title: {
       ...typography.bodySmall,
       fontSize: 15,
       fontWeight: '700',
-      color: colors.textPrimary,
+      color: colors.primary,
     },
     hint: {
       ...typography.caption,
@@ -313,7 +315,7 @@ const createStyles = ({ colors, radius, spacing, typography }: ThemeValue) =>
       ...typography.caption,
       marginTop: spacing.sm,
       marginBottom: spacing.xxs,
-      color: colors.textSecondary,
+      color: colors.primary,
     },
     optionRow: {
       flexDirection: 'row',
