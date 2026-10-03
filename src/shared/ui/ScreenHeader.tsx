@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
+import { useBackground } from '../theme/BackgroundProvider';
+import { photoTextHalo } from '../theme/onPhoto';
 import BackButton from './BackButton';
 
 interface ScreenHeaderProps {
@@ -21,15 +23,22 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({ title, subtitle, onBack, ri
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  // Sarlavha fon rasmi ustida turadi - halo uni ajratib beradi.
+  const { imageId } = useBackground();
+  const halo = useMemo(
+    () => photoTextHalo(theme.colors, imageId.length > 0),
+    [theme.colors, imageId],
+  );
+
   return (
     <View style={styles.row}>
       <BackButton onPress={onBack} />
       <View style={styles.titleWrap}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, halo]} numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text style={[styles.subtitle, halo]} numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}

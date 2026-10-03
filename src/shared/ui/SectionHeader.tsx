@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import PressableScale from './PressableScale';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
+import { useBackground } from '../theme/BackgroundProvider';
+import { photoTextHalo } from '../theme/onPhoto';
 
 interface SectionHeaderProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -43,6 +45,13 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   const { colors, iconSize } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  // Sarlavha fon rasmi ustida turadi - halo uni ajratib beradi.
+  const { imageId } = useBackground();
+  const halo = useMemo(
+    () => photoTextHalo(theme.colors, imageId.length > 0),
+    [theme.colors, imageId],
+  );
+
   const isSolid = actionVariant === 'solid';
   const actionTint = isSolid ? colors.textOnPrimary : colors.primary;
 
@@ -56,7 +65,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
         ) : (
           <Ionicons name={icon} size={iconSize.md} color={colors.textPrimary} />
         )}
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, halo]} numberOfLines={1}>
           {title}
         </Text>
       </View>
