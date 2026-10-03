@@ -106,16 +106,17 @@ export const withAlpha = (hex: string, alpha: number): string => {
 /**
  * Tanlangan rangni mavzu tokenlariga qo'llaydi.
  *
- * "HAQ" HAM ERGASHADI, "QARZ" ESA YO'Q.
+ * MOLIYAVIY RANGLAR TEGILMAYDI - qarz qizil, haq yashil bo'lib qoladi.
  *
- * Avval ikkala moliyaviy rang ham o'zgarmas edi - "ular ma'no tashiydi"
- * degan mulohaza bilan. Amalda esa Qarzlar va Gap ekranlarining asosiy
- * qismi aynan shu ranglardan iborat: odam binafsha tanlasa ham ilova
- * yashilligicha qolar va rang tanlash ishlamayotgandek tuyulardi.
+ * Bir muddat "haq" ham tanlangan rangga ergashdi. Amalda yomon chiqdi:
+ * iliq rang (to'q sariq) tanlanganda haq bilan qarz deyarli bir xil
+ * tusda ko'rinar, ro'yxatda ularni ajratib bo'lmasdi. Qizil bilan
+ * yetarlicha uzoq rang topish esa tanlovni ikki-uch variantga
+ * qisqartirardi.
  *
- * Ajratish YO'QOLMAYDI: qarz qizilligicha qoladi, ustiga har summada
- * yo'nalish o'qi (↑/↓) va +/− belgisi turadi. Ya'ni farq uch belgidan
- * biriga emas, uchalasiga tayanadi.
+ * Shu sababli qoida qat'iy: TANLANGAN RANG - BOSILADIGAN NARSALAR
+ * UCHUN (tugma, faol tab, tanlov belgisi, havola). Ma'no tashiydigan
+ * ranglar va matn unga tegishli emas.
  *
  * Sof funksiya: kirish tokenlari o'zgarmaydi, yangi nusxa qaytadi.
  */
@@ -139,9 +140,5 @@ export const applyAccent = (
     ctaGradientStart: shades.gradientStart,
     ctaGradientEnd: shades.primary,
     ctaText: shades.onGradient,
-    // "Haq" (musbat balans) tanlangan rangda. "Qarz" (negative) atayin
-    // tegilmaydi - u qizil bo'lib qoladi va farqni saqlaydi.
-    positive: shades.primary,
-    positiveSoft: shades.soft,
   };
 };

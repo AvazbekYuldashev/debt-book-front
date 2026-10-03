@@ -789,7 +789,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     title: {
       ...typography.display,
-      color: colors.primary,
+      color: colors.textPrimary,
     },
     headerTools: {
       flexDirection: 'row',

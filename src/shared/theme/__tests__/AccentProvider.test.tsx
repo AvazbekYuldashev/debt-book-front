@@ -66,18 +66,21 @@ describe('AccentProvider + mavzu', () => {
       .toBe(findAccent('violet').light.primary);
   });
 
-  /** "Haq" ham ergashadi - asosiy ekranlar shu rangdan iborat. */
-  it('haq rangi ham almashadi', async () => {
+  /**
+   * MA'NO tashiydigan ranglar tegilmaydi: ular ro'yxatda qarz bilan
+   * haqni ajratadi va brend rangiga ergashsa, iliq tanlovda ikkovi
+   * deyarli bir xil tusda ko'rinardi.
+   */
+  it('haq rangi ozgarmaydi', async () => {
     show();
     await settle();
+    const avval = screen.getByTestId('positive').props.children;
 
     await act(async () => { handles.setAccent('amber'); });
 
-    expect(screen.getByTestId('positive').props.children)
-      .toBe(findAccent('amber').light.primary);
+    expect(screen.getByTestId('positive').props.children).toBe(avval);
   });
 
-  /** "Qarz" esa qizilligicha qoladi - farq shu bilan saqlanadi. */
   it('qarz rangi ozgarmaydi', async () => {
     show();
     await settle();

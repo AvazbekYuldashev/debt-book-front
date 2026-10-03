@@ -115,7 +115,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     title: {
       ...typography.heading3,
-      color: colors.primary,
+      color: colors.textPrimary,
       flexShrink: 1,
     },
     action: {

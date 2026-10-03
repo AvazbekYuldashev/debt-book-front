@@ -637,7 +637,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     },
     title: {
       ...typography.display,
-      color: colors.primary,
+      color: colors.textPrimary,
     },
     banner: {
       marginBottom: spacing.sm,

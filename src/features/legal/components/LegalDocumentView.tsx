@@ -6,6 +6,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { LEGAL_DOCS, LegalDocKey } from '../lib/legalContent';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
+import Card from '../../../shared/ui/Card';
 
 interface Props {
   docKey: LegalDocKey;
@@ -26,17 +27,23 @@ const LegalDocumentView: React.FC<Props> = ({ docKey, onBack }) => {
       <AmbientBackground />
       {onBack ? <ScreenHeader title={t(doc.titleKey)} onBack={onBack} /> : null}
       <ScrollView contentContainerStyle={styles.container}>
-        {!onBack ? <Text style={styles.title}>{t(doc.titleKey)}</Text> : null}
-        <Text style={styles.meta}>
-          {t('legal.version')}: {doc.version} · {t('legal.lastUpdated')}: {doc.lastUpdated}
-        </Text>
-        <Text style={styles.intro}>{doc.intro}</Text>
-        {doc.sections.map((section) => (
-          <View key={section.heading} style={styles.section}>
-            <Text style={styles.heading}>{section.heading}</Text>
-            <Text style={styles.body}>{section.body}</Text>
-          </View>
-        ))}
+        {/* Matn KARTADA. Ilgari u shaffof fonda turardi va foydalanuvchi
+            fon rasmi qo'yganda uzun hujjat rasm ustiga tushib, umuman
+            o'qilmay qolardi. Qolgan ekranlarda mazmun allaqachon o'z
+            sirtida - bu yerda ham shunday bo'lishi kerak. */}
+        <Card style={styles.sheet}>
+          {!onBack ? <Text style={styles.title}>{t(doc.titleKey)}</Text> : null}
+          <Text style={styles.meta}>
+            {t('legal.version')}: {doc.version} · {t('legal.lastUpdated')}: {doc.lastUpdated}
+          </Text>
+          <Text style={styles.intro}>{doc.intro}</Text>
+          {doc.sections.map((section) => (
+            <View key={section.heading} style={styles.section}>
+              <Text style={styles.heading}>{section.heading}</Text>
+              <Text style={styles.body}>{section.body}</Text>
+            </View>
+          ))}
+        </Card>
       </ScrollView>
     </View>
   );
@@ -52,6 +59,9 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
       padding: spacing.md,
       paddingBottom: spacing.xl,
       backgroundColor: 'transparent',
+    },
+    sheet: {
+      padding: spacing.md,
     },
     title: {
       ...typography.heading1,

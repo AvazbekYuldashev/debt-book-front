@@ -49,19 +49,13 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     wrap: {
       marginBottom: spacing.lg,
     },
-    /**
-     * Sarlavha TANLANGAN RANGDA: rang ilovani to'liq qamrab olishi
-     * kerak, bo'lim nomlari esa uning eng ko'rinadigan joyi. Mazmun
-     * matni bunga kirmaydi - uzun matnni rangli qilish o'qishni
-     * qiyinlashtiradi.
-     */
     title: {
       ...typography.caption,
       fontSize: 12,
       fontWeight: '700',
       letterSpacing: 0.6,
       textTransform: 'uppercase',
-      color: colors.primary,
+      color: colors.textSecondary,
       marginBottom: spacing.xs,
       marginLeft: spacing.sm,
     },
