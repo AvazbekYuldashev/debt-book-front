@@ -21,6 +21,7 @@ import StatusBanner from '../../../shared/ui/StatusBanner';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import { useOnlineStatus } from '../../../shared/lib/networkStatus';
 import ScreenTopBar from '../../../app/components/ScreenTopBar';
+import { useRegisterVoiceAction } from '../../voice/model/VoiceActionProvider';
 import DeviceContactsPickerModal from '../components/DeviceContactsPickerModal';
 import { ContactsContext, type Contact } from '../context/ContactsContext';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
@@ -393,6 +394,21 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     };
   }, [handleVoiceResult]);
 
+  /**
+   * Ovoz tugmasi endi pastki panelda - ya'ni bu ekrandan tashqarida.
+   * Natijani esa shu ekran qayta ishlaydi, shuning uchun ishlovchi
+   * fokusdalik paytida e'lon qilinadi va fokus ketganda o'chadi.
+   */
+  const voiceAction = useMemo(
+    () => ({
+      kind: 'TRANSACTION' as const,
+      accountType: workspace.mode === 'business' ? 'business' : 'personal',
+      onResult: handleVoiceResult,
+    }),
+    [workspace.mode, handleVoiceResult],
+  );
+  useRegisterVoiceAction(voiceAction);
+
   const handleVoicePickContact = useCallback(
     (contactId: string) => {
       if (!voiceCommand) return;
@@ -534,10 +550,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       <AmbientBackground />
 
       <EntranceView style={styles.header} duration={300} fromY={12}>
-        <ScreenTopBar
-          onVoiceResult={handleVoiceResult}
-          voiceAccountType={workspace.mode === 'business' ? 'business' : 'personal'}
-        />
+        <ScreenTopBar />
 
         <View style={styles.headerRow}>
           <View style={styles.titleWrap}>

@@ -17,6 +17,7 @@ import { useI18n } from '../../shared/i18n';
 import { WorkspaceContext } from '../../features/business/context/WorkspaceContext';
 import { useAppTheme } from '../../shared/theme';
 import type { ThemeValue } from '../../shared/theme/ThemeProvider';
+import VoiceTabButton from '../../features/voice/components/VoiceTabButton';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -128,6 +129,9 @@ const AppTabBar: React.FC<BottomTabBarProps & { labelOf: (routeName: string) => 
     >
       {state.routes.map((route, index) => {
         const focused = state.index === index;
+        // Ovoz tugmasi O'RTADA: tablar soni juft (4 ta), shuning uchun
+        // u ikkinchisidan keyin qo'yiladi va panel simmetrik qoladi.
+        const middle = index === Math.floor(state.routes.length / 2);
 
         const onPress = () => {
           const event = navigation.emit({
@@ -145,17 +149,23 @@ const AppTabBar: React.FC<BottomTabBarProps & { labelOf: (routeName: string) => 
         };
 
         return (
-          <TabItem
-            key={route.key}
-            label={labelOf(route.name)}
-            iconName={TAB_ICONS[route.name] ?? 'circle'}
-            focused={focused}
-            onPress={onPress}
-            onLongPress={onLongPress}
-            styles={styles}
-            activeColor={colors.primary}
-            inactiveColor={colors.textSecondary}
-          />
+          <React.Fragment key={route.key}>
+            {middle ? (
+              <View style={styles.voiceSlot}>
+                <VoiceTabButton />
+              </View>
+            ) : null}
+            <TabItem
+              label={labelOf(route.name)}
+              iconName={TAB_ICONS[route.name] ?? 'circle'}
+              focused={focused}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              styles={styles}
+              activeColor={colors.primary}
+              inactiveColor={colors.textSecondary}
+            />
+          </React.Fragment>
         );
       })}
     </View>
@@ -236,6 +246,17 @@ const createStyles = ({ colors, typography, shadows, glass }: ThemeValue) =>
       height: DOT_SIZE,
       borderRadius: DOT_SIZE / 2,
       marginTop: 1,
+    },
+    /**
+     * Ovoz tugmasining o'rni.
+     *
+     * Kengligi QAT'IY, tablar kabi `flex: 1` emas: tugma doira va u
+     * matnli tabdan tor. Teng bo'lingan joy unga ortiqcha bo'shliq
+     * berib, qo'shni tablarni chetga siqib qo'yardi.
+     */
+    voiceSlot: {
+      width: 76,
+      alignItems: 'center',
     },
   });
 

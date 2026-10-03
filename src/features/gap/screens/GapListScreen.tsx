@@ -17,6 +17,7 @@ import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import SectionHeader from '../../../shared/ui/SectionHeader';
 import ScreenTopBar from '../../../app/components/ScreenTopBar';
+import { useRegisterVoiceAction } from '../../voice/model/VoiceActionProvider';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { GapNavigation } from '../../../app/navigation/types';
@@ -155,6 +156,17 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
     };
   }, [handleVoiceResult]);
 
+  /**
+   * Ovoz tugmasi pastki panelda - bu ekrandan tashqarida. Natijani esa
+   * shu ekran qayta ishlaydi (ism kassa a'zolari orasidan qidiriladi),
+   * shuning uchun ishlovchi fokusdalik paytida e'lon qilinadi.
+   */
+  const voiceAction = useMemo(
+    () => ({ kind: 'GAP' as const, onResult: handleVoiceResult }),
+    [handleVoiceResult],
+  );
+  useRegisterVoiceAction(voiceAction);
+
   const handleRefresh = useCallback(() => {
     summaryQuery.refetch();
     listQuery.refetch();
@@ -204,7 +216,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
       <EntranceView style={styles.header} duration={300} fromY={12}>
         {/* Ish maydoni almashtirgichi barcha bosh ekranlarda bir xil joyda va
             bir xil ko'rinishda turadi — chetdan chetga, sarlavhadan yuqorida. */}
-        <ScreenTopBar voiceKind="GAP" onVoiceResult={handleVoiceResult} />
+        <ScreenTopBar />
         <View style={styles.headerRow}>
           <View style={styles.titleWrap}>
             <Text style={styles.title} numberOfLines={1}>

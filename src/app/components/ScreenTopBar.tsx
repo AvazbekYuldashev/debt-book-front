@@ -2,8 +2,6 @@ import React, { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import WorkspaceSwitcher from '../../features/business/components/WorkspaceSwitcher';
 import NotificationBell from '../../features/notifications/components/NotificationBell';
-import VoiceCommandButton from '../../features/voice/components/VoiceCommandButton';
-import type { VoiceIntent } from '../../features/voice/api/voice';
 import { useAppTheme } from '../../shared/theme';
 import type { ThemeValue } from '../../shared/theme/ThemeProvider';
 
@@ -20,19 +18,12 @@ import type { ThemeValue } from '../../shared/theme/ThemeProvider';
  * xavfsiz-zonasidan keyin darhol boshlanadi, qo'shimcha nafas joyisiz
  * tugma ekran chetiga qadalib qolardi.
  *
- * Ovozli buyruq tugmasi FAQAT uni ishlata oladigan ekranda chiqadi:
- * natijada kerakli kontaktga o'tish kerak bo'ladi, bu esa Qarzlar
- * bo'limidan tashqarida ma'noga ega emas.
+ * OVOZLI BUYRUQ TUGMASI BU YERDA EMAS. U pastki panelning o'rtasiga
+ * ko'chdi: telefon kattalashgani sayin yuqori o'ng burchak barmoq
+ * yetmaydigan joyga aylandi, bu tugma esa ilovaning eng tez-tez
+ * bosiladigan amali.
  */
-interface ScreenTopBarProps {
-  /** Berilsa — qo'ng'iroq yonida mikrofon tugmasi chiqadi. */
-  onVoiceResult?: (intent: VoiceIntent) => void;
-  voiceKind?: 'TRANSACTION' | 'GAP';
-  voiceAccountType?: string;
-  voiceToken?: string;
-}
-
-const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ onVoiceResult, voiceKind, voiceAccountType, voiceToken }) => {
+const ScreenTopBar: React.FC = () => {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -40,14 +31,6 @@ const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ onVoiceResult, voiceKind, v
     <View style={styles.row}>
       <WorkspaceSwitcher />
       <View style={styles.tools}>
-        {onVoiceResult ? (
-          <VoiceCommandButton
-            accountType={voiceAccountType}
-            token={voiceToken}
-            kind={voiceKind}
-            onResult={onVoiceResult}
-          />
-        ) : null}
         <NotificationBell />
       </View>
     </View>

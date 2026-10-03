@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ContactsProvider } from './src/features/debts/context/ContactsContext';
 import { AuthProvider } from './src/features/auth/context/AuthContext';
 import AppearanceSync from './src/features/profile/components/AppearanceSync';
+import { VoiceActionProvider } from './src/features/voice/model/VoiceActionProvider';
 import { PinProvider } from './src/features/auth/pin/PinContext';
 import { WorkspaceProvider } from './src/features/business/context/WorkspaceContext';
 import { CurrencyProvider } from './src/features/debts/context/CurrencyContext';
@@ -101,6 +102,10 @@ const AppShell: React.FC = () => {
             <ContactAvatarsProvider>
               {statusBar}
               <NavigationContainer theme={navigationTheme}>
+                {/* Ovoz tugmasi pastki panelda, natijani esa ekran qayta
+                    ishlaydi. Ro'yxat ikkovini bog'laydi va NAVIGATSIYA
+                    ICHIDA turadi: fokus holati shu yerdan bilinadi. */}
+                <VoiceActionProvider>
                 {/* Android 15+ edge-to-edge majburiy — kontent status bar ostiga
                     kirmasligi uchun yuqoridan xavfsiz-zona (top inset) qo'llaymiz.
                     Pastki inset tab bar ichida alohida boshqariladi. */}
@@ -113,6 +118,7 @@ const AppShell: React.FC = () => {
                     </UpdateGate>
                   </AppFrame>
                 </SafeAreaView>
+                </VoiceActionProvider>
               </NavigationContainer>
             </ContactAvatarsProvider>
           </ContactsProvider>
