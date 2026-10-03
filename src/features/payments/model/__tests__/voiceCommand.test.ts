@@ -103,9 +103,10 @@ describe('groupByCommand', () => {
   });
 
   /**
-   * QAYTA URINISH aynan o'sha gapni tushunish uchun ketgan - ikkala
-   * chaqiruv ham o'sha ovozning xarajati. Oxirgisini olib qo'ysak,
-   * sarflangan tokenlarning bir qismi hisobdan tushib qolardi.
+   * Bitta ovoz model'ga IKKI MARTA borishi mumkin: avval gap tushuniladi,
+   * so'ng - kontakt narxnomali biznes bo'lsa - o'sha gapdan xarid
+   * qatorlari so'raladi. Ikkalasi ham o'sha ovozning xarajati.
+   * Oxirgisini olib qo'ysak, tokenlarning bir qismi hisobdan tushardi.
    */
   it('ikki model chaqiruvining tokenlari qoshiladi', () => {
     const commands = groupByCommand([

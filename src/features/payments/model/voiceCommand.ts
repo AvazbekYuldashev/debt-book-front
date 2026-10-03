@@ -35,10 +35,14 @@ const LEGACY_WINDOW_MS = 60_000;
 /**
  * Bitta buyruq ichidagi ikkinchi model chaqiruvini birinchisiga qo'shadi.
  *
- * NEGA QO'SHILADI: qayta urinish AYNAN o'sha gapni tushunish uchun
- * ketgan. Ikkalasi ham o'sha ovozning xarajati, shuning uchun tokenlar
- * ham, narx ham yig'iladi. Oxirgisini olib qo'ysak, sarflangan
- * tokenlarning bir qismi hisobdan tushib qolardi.
+ * NEGA IKKITA BO'LADI: bitta ovoz model'ga ikki marta borishi mumkin -
+ * avval gap tushuniladi (kim, qancha, qaysi amal), so'ng, agar kontakt
+ * narxnomali biznes bo'lsa, o'sha gapdan xarid qatorlari so'raladi.
+ * Shaxsiy kontaktda ikkinchisi umuman bo'lmaydi.
+ *
+ * Ikkalasi ham O'SHA ovozning xarajati, shuning uchun tokenlar ham,
+ * narx ham yig'iladi. Oxirgisini olib qo'ysak, sarflangan tokenlarning
+ * bir qismi hisobdan tushib qolardi.
  */
 const mergeModel = (current: VoiceUsage | null, next: VoiceUsage): VoiceUsage =>
   current
