@@ -109,6 +109,15 @@ Sprig.displayName = 'Sprig';
  * to'ldirish sifatida qo'yiladi; ekran konteyneri fonini `transparent`
  * qilish kifoya.
  */
+/**
+ * Yuqori parda qayerda tugaydi (ekran balandligiga nisbatan).
+ *
+ * O'lchangan: sarlavha, uning izohi va bo'lim sarlavhasi ekranning
+ * yuqori chorak-uchdan birida turadi. 0.38 ularni qoplaydi va
+ * ro'yxatning birinchi kartasiga yetib bormaydi.
+ */
+const SCRIM_END = 0.38;
+
 const AmbientBackground: React.FC = () => {
   const { colors, activeTheme } = useAppTheme();
   const { imageId, fit, dim } = useBackground();
@@ -143,14 +152,16 @@ const AmbientBackground: React.FC = () => {
   // Rasm tanlangan bo'lsa bezakli SVG chizilmaydi: ikkalasi ustma-ust
   // tushsa kompozitsiya ham, rasm ham buziladi.
   //
-  // Ustidagi parda MAJBURIY (eng past qiymati MIN_DIM): yorqin yoki rang-barang
-  // rasm ustida na qora, na oq matn o'qiladi. Parda rangi mavzudan olinadi,
-  // shuning uchun qorong'i mavzuda rasm qoraytiriladi, yorug'ida oqartiriladi.
+  // Ustidagi parda foydalanuvchi IXTIYORIDA (nolgacha tushadi): rasmni
+  // o'z holicha ko'rish ham haqli talab. Parda rangi mavzudan olinadi,
+  // shuning uchun qorong'i mavzuda rasm qoraytiriladi, yorug'ida
+  // oqartiriladi.
   if (imageId) {
     return (
       <View
         style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}
         pointerEvents="none"
+        onLayout={handleLayout}
       >
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
           <Image
@@ -159,9 +170,38 @@ const AmbientBackground: React.FC = () => {
             resizeMode={fit}
             accessibilityIgnoresInvertColors
           />
-          <View
-            style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, opacity: dim }]}
-          />
+          {dim > 0 ? (
+            <View
+              style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, opacity: dim }]}
+            />
+          ) : null}
+
+          {/*
+            YUQORI PARDA — matn o'qilishining kafolati.
+            Ekran sarlavhasi va uning izohi KARTADAN TASHQARIDA, ya'ni
+            to'g'ridan-to'g'ri rasm ustida turadi. Parda nolga tushirilsa,
+            yorug' mavzudagi to'q matn to'q rasmda butunlay yo'qolardi.
+            Umumiy pardani majburlash esa rasmni yana oqartirib qo'yardi.
+            Shuning uchun parda FAQAT yuqori tasmada va pastga qarab
+            so'nadi: sarlavha o'qiladi, rasmning qolgan qismi toza qoladi.
+            Bu foydalanuvchi sozlamasi EMAS - uni o'chirib qo'yish matnni
+            o'qib bo'lmas qilardi.
+          */}
+          {size.width > 0 ? (
+            <Svg
+              width={size.width}
+              height={size.height}
+              style={StyleSheet.absoluteFill}
+            >
+              <Defs>
+                <LinearGradient id="photoScrim" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor={colors.background} stopOpacity={0.88} />
+                  <Stop offset={String(SCRIM_END)} stopColor={colors.background} stopOpacity={0} />
+                </LinearGradient>
+              </Defs>
+              <Rect x={0} y={0} width={size.width} height={size.height} fill="url(#photoScrim)" />
+            </Svg>
+          ) : null}
         </Animated.View>
       </View>
     );

@@ -197,40 +197,47 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
       <ScrollView contentContainerStyle={styles.content}>
         {/* Avatar o'rtada, ikki yonida umumiy sonlar:
             chapda — ro'yxatdan to'liq o'tganlar, o'ngda — raqami kiritilgan-u
-            hali ro'yxatdan o'tmaganlar. */}
-        <View style={styles.headRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{userStats?.registeredUsers ?? '—'}</Text>
-            <Text style={styles.statLabel}>{t('stats.registered')}</Text>
+            hali ro'yxatdan o'tmaganlar.
+
+            KARTA ICHIDA: bu blok ilgari to'g'ridan-to'g'ri fonda suzib
+            turardi va foydalanuvchi fon RASMI qo'yganda raqamlar ham,
+            ism ham rasmga qo'shilib ketardi. Ekrandagi qolgan hamma
+            matn o'z sirtida turadi - bu ham shunday bo'lishi kerak. */}
+        <Card style={styles.headCard}>
+          <View style={styles.headRow}>
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{userStats?.registeredUsers ?? '—'}</Text>
+              <Text style={styles.statLabel}>{t('stats.registered')}</Text>
+            </View>
+
+            <ProfileAvatar
+              isBusiness={isBusiness}
+              activeBusiness={activeBusiness}
+              personalPhotoUri={photoUri}
+              editing={loadingKey === 'photo'}
+              canEdit={false}
+              onEditPhoto={changePhoto}
+              onPreview={() => {
+                if (!photoUri) return;
+                setPhotoModalError('');
+                setPhotoModalVisible(true);
+              }}
+            />
+
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{userStats?.pendingUsers ?? '—'}</Text>
+              <Text style={styles.statLabel}>{t('stats.pending')}</Text>
+            </View>
           </View>
 
-          <ProfileAvatar
-            isBusiness={isBusiness}
-            activeBusiness={activeBusiness}
-            personalPhotoUri={photoUri}
-            editing={loadingKey === 'photo'}
-            canEdit={false}
-            onEditPhoto={changePhoto}
-            onPreview={() => {
-              if (!photoUri) return;
-              setPhotoModalError('');
-              setPhotoModalVisible(true);
-            }}
-          />
-
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{userStats?.pendingUsers ?? '—'}</Text>
-            <Text style={styles.statLabel}>{t('stats.pending')}</Text>
-          </View>
-        </View>
-
-        {profile ? (
-          <Text style={styles.fullName}>
-            {[profile.name, profile.surname].filter(Boolean).join(' ') || profile.username}
-          </Text>
-        ) : (
-          <Text style={styles.fullName}>{t('profile.notLoggedIn')}</Text>
-        )}
+          {profile ? (
+            <Text style={styles.fullName}>
+              {[profile.name, profile.surname].filter(Boolean).join(' ') || profile.username}
+            </Text>
+          ) : (
+            <Text style={styles.fullName}>{t('profile.notLoggedIn')}</Text>
+          )}
+        </Card>
 
         {status ? (
           <Text style={[styles.status, statusError && styles.statusError]}>{status}</Text>
@@ -354,6 +361,10 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.xxl,
       gap: spacing.sm,
+    },
+    headCard: {
+      padding: 16,
+      marginBottom: 12,
     },
     headRow: {
       flexDirection: 'row',

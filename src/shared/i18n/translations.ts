@@ -548,6 +548,7 @@ const uz: Dict = {
 
   // legal / consent
   'profile.legalSection': 'Huquqiy hujjatlar',
+  'legal.groupTitle': 'Hujjatlar',
   'legal.offerTitle': 'Ommaviy oferta',
   'legal.termsTitle': 'Foydalanish shartlari',
   'legal.privacyTitle': 'Maxfiylik siyosati',
@@ -1207,6 +1208,7 @@ const ru: Dict = {
 
   // legal / consent
   'profile.legalSection': 'Юридические документы',
+  'legal.groupTitle': 'Документы',
   'legal.offerTitle': 'Публичная оферта',
   'legal.termsTitle': 'Условия использования',
   'legal.privacyTitle': 'Политика конфиденциальности',
@@ -1866,6 +1868,7 @@ const en: Dict = {
 
   // legal / consent
   'profile.legalSection': 'Legal documents',
+  'legal.groupTitle': 'Documents',
   'legal.offerTitle': 'Public offer',
   'legal.termsTitle': 'Terms of service',
   'legal.privacyTitle': 'Privacy policy',

@@ -1,31 +1,65 @@
 import React, { useMemo } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
-import Card from '../../../shared/ui/Card';
-import LanguageSwitcher from '../../../shared/ui/LanguageSwitcher';
-import ThemeSwitcher from '../../../shared/ui/ThemeSwitcher';
+import SettingsGroup from '../../../shared/ui/SettingsGroup';
+import SettingsRow from '../../../shared/ui/SettingsRow';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
+import { useAccent } from '../../../shared/theme/AccentProvider';
+import { ACCENTS } from '../../../shared/theme/accent';
 import { useI18n } from '../../../shared/i18n';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
-import LegalMenuRow from '../components/LegalMenuRow';
+import type { ThemeMode } from '../../../shared/theme/ThemeProvider';
 import BackgroundPicker from '../components/BackgroundPicker';
-import AccentPicker from '../components/AccentPicker';
+import { updateProfileAccent } from '../api/profile';
+import { AuthContext } from '../../auth/context/AuthContext';
+
+const THEME_MODES: { mode: ThemeMode; labelKey: string }[] = [
+  { mode: 'light', labelKey: 'profile.themeLight' },
+  { mode: 'dark', labelKey: 'profile.themeDark' },
+  { mode: 'system', labelKey: 'profile.themeSystem' },
+];
 
 /**
- * Sozlamalar: til, mavzu va huquqiy hujjatlar.
+ * Sozlamalar: til, ko'rinish va huquqiy hujjatlar.
  *
- * Uchtasi ham hisobga emas, ilovaga tegishli — shuning uchun profil
- * ma'lumotlarini tahrirlashdan alohida ekranda turadi.
+ * GURUHLANGAN RO'YXAT. Ilgari har bo'lim o'z kartasida, ichida esa
+ * yonma-yon tugmalar turardi: uchta til bir qatorda, uchta mavzu bir
+ * qatorda, oltita rang bir qatorda. Tanlovlar ko'paygani sayin ular
+ * siqilib, nomlari kesila boshladi va har bo'lim o'zicha boshqacha
+ * ko'rinardi.
+ *
+ * Endi hammasi bitta qolipda: chapda nomi, o'ngda holati. Tanlov
+ * ro'yxatlari tik yoziladi - joy chegarasi yo'q, yangi til yoki rang
+ * qo'shish qatorni buzmaydi.
  */
 const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_SETTINGS>> = ({
   navigation,
 }) => {
   const theme = useAppTheme();
-  const { t } = useI18n();
+  const { mode, setMode, activeTheme } = theme;
+  const { t, lang, setLang, langs } = useI18n();
+  const { accent, setAccent } = useAccent();
+  const { profile, setProfile } = React.useContext(AuthContext);
   const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const isDark = activeTheme === 'dark';
+  const token = profile?.jwt;
+
+  /**
+   * Rang DARHOL qo'llanadi, server javobi kutilmaydi: ko'rinish
+   * sozlamasining kechikishi sezilib turardi. Xato bo'lsa faqat boshqa
+   * qurilmada saqlanmaydi, shu yerda esa ishlaydi.
+   */
+  const chooseAccent = (id: string) => {
+    setAccent(id);
+    if (!token) return;
+    void updateProfileAccent(id, token)
+      .then(() => setProfile((current) => (current ? { ...current, accent: id } : current)))
+      .catch(() => undefined);
+  };
 
   return (
     <View style={styles.container}>
@@ -33,51 +67,78 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
       <AmbientBackground />
       <ScreenHeader title={t('profile.settings')} onBack={navigation.goBack} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Card style={styles.card}>
-          <Text style={styles.cardTitle}>{t('profile.language')}</Text>
-          <LanguageSwitcher />
-        </Card>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <SettingsGroup title={t('lang.title')}>
+          {langs.map((item, index) => (
+            <SettingsRow
+              key={item.code}
+              label={t(`lang.${item.code.toLowerCase()}`)}
+              selected={item.code === lang}
+              onPress={() => setLang(item.code)}
+              isLast={index === langs.length - 1}
+            />
+          ))}
+        </SettingsGroup>
 
-        <Card style={styles.card}>
-          <Text style={styles.cardTitle}>{t('profile.theme')}</Text>
-          <ThemeSwitcher />
-        </Card>
+        <SettingsGroup title={t('profile.theme')}>
+          {THEME_MODES.map((item, index) => (
+            <SettingsRow
+              key={item.mode}
+              label={t(item.labelKey)}
+              selected={item.mode === mode}
+              onPress={() => setMode(item.mode)}
+              isLast={index === THEME_MODES.length - 1}
+            />
+          ))}
+        </SettingsGroup>
 
-        {/* Rang mavzudan KEYIN: avval yorug'/qorong'i tanlanadi,
-            keyin brand rangi - namuna darhol to'g'ri ko'rinadi. */}
-        <Card style={styles.card}>
-          <AccentPicker />
-        </Card>
+        {/* Rang mavzudan KEYIN: avval yorug'/qorong'i tanlanadi, keyin
+            brand rangi - namuna darhol to'g'ri tusda ko'rinadi. */}
+        <SettingsGroup title={t('accent.title')}>
+          {ACCENTS.map((item, index) => (
+            <SettingsRow
+              key={item.id}
+              label={t(item.labelKey)}
+              dot={(isDark ? item.dark : item.light).primary}
+              selected={item.id === accent}
+              onPress={() => chooseAccent(item.id)}
+              isLast={index === ACCENTS.length - 1}
+            />
+          ))}
+        </SettingsGroup>
 
-        <Card style={styles.card}>
-          <BackgroundPicker />
-        </Card>
+        {/* Fon rasmi guruh qolipiga tushmaydi: unda namuna, yuklash
+            tugmasi va ikkita sozlama bor - bu qator emas, blok. */}
+        <SettingsGroup title={t('background.title')}>
+          <View style={styles.block}>
+            <BackgroundPicker />
+          </View>
+        </SettingsGroup>
 
-        <Card style={styles.card}>
-          <LegalMenuRow
+        <SettingsGroup title={t('legal.groupTitle')}>
+          <SettingsRow
             label={t('legal.offerTitle')}
-            iconName="document-text-outline"
+            icon="document-text-outline"
             onPress={() => navigation.navigate(ROUTES.OFFER)}
           />
-          <LegalMenuRow
+          <SettingsRow
             label={t('legal.termsTitle')}
-            iconName="reader-outline"
+            icon="reader-outline"
             onPress={() => navigation.navigate(ROUTES.TERMS)}
           />
-          <LegalMenuRow
+          <SettingsRow
             label={t('legal.privacyTitle')}
-            iconName="lock-closed-outline"
-            isLast
+            icon="lock-closed-outline"
             onPress={() => navigation.navigate(ROUTES.PRIVACY_POLICY)}
+            isLast
           />
-        </Card>
+        </SettingsGroup>
       </ScrollView>
     </View>
   );
 };
 
-const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
+const createStyles = ({ spacing }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -86,16 +147,9 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
     content: {
       padding: spacing.md,
       paddingBottom: spacing.xxl,
-      gap: spacing.sm,
     },
-    card: {
-      gap: spacing.xs,
-    },
-    cardTitle: {
-      ...typography.caption,
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.textSecondary,
+    block: {
+      padding: spacing.md,
     },
   });
 

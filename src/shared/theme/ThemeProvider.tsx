@@ -13,7 +13,7 @@ import { radius, spacing } from './spacing';
 import { typography } from './typography';
 import { storage } from '../lib/storage';
 
-type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = 'light' | 'dark' | 'system';
 type ActiveTheme = 'light' | 'dark';
 
 const THEME_STORAGE_KEY = 'debt-book.theme';
