@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import Card from '../../../shared/ui/Card';
+import MenuRow from '../../../shared/ui/MenuRow';
 import Button from '../../../shared/ui/Button';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import EntranceView from '../../../shared/ui/EntranceView';
@@ -164,7 +165,9 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <Ionicons name={iconName} size={20} color={colors.primary} />
+      {/* Rangsiz ikonka: menyu qatorlari bilan bir tilda. Rang ilovada
+          ma'no tashiydi, bu yerda esa ajratadigan ma'no yo'q. */}
+      <Ionicons name={iconName} size={22} color={colors.textSecondary} />
       <Text style={styles.actionText} numberOfLines={2}>
         {label}
       </Text>
@@ -244,32 +247,25 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
         </View>
 
         <Card style={styles.card}>
-          <Pressable
+          {/* Menyu qatorlari ilovaning hamma yerida bir xil ko'rinadi:
+              rangsiz ikonka, yonida yozuv, o'ngda strelka. */}
+          <MenuRow
+            label={t('profile.manageBusinesses')}
+            icon="business-outline"
             onPress={() => navigation.navigate(ROUTES.MY_BUSINESSES)}
-            style={({ pressed }) => [styles.manageRow, pressed && styles.actionPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={t('profile.manageBusinesses')}
-          >
-            <Text style={styles.manageText}>{t('profile.manageBusinesses')}</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-          </Pressable>
+            isLast={(businesses ?? []).length === 0}
+          />
 
-          {(businesses ?? []).map((business) => (
-            <Pressable
+          {(businesses ?? []).map((business, index) => (
+            <MenuRow
               key={business.id}
+              label={business.name}
+              icon="briefcase-outline"
               onPress={() =>
                 navigation.navigate(ROUTES.BUSINESS_MEMBERS, { businessId: business.id })
               }
-              style={({ pressed }) => [styles.businessRow, pressed && styles.actionPressed]}
-              accessibilityRole="button"
-              accessibilityLabel={business.name}
-            >
-              <Ionicons name="briefcase-outline" size={16} color={colors.textSecondary} />
-              <Text style={styles.businessText} numberOfLines={1}>
-                {business.name}
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
+              isLast={index === (businesses ?? []).length - 1}
+            />
           ))}
         </Card>
 
@@ -424,32 +420,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     card: {
       gap: spacing.xxs,
-    },
-    manageRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: spacing.xs,
-    },
-    manageText: {
-      ...typography.body,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    businessRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-      paddingVertical: spacing.sm,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-    },
-    businessText: {
-      ...typography.caption,
-      fontSize: 13,
-      color: colors.textPrimary,
-      flex: 1,
-      minWidth: 0,
     },
     bottomRow: {
       flexDirection: 'row',
