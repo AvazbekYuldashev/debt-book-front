@@ -35,12 +35,13 @@ interface AccentShades {
 }
 
 /**
- * QIZIL VA YASHIL ATAYIN CHEKLANGAN.
+ * QIZIL ATAYIN YO'Q.
  *
- * Ilovada rang ma'no tashiydi: qarz qizil, haq yashil. Brand rangi
- * ulardan biriga juda yaqin bo'lsa, odam tugmani balans deb o'qishi
- * mumkin. Shuning uchun qizil umuman yo'q, yashil esa faqat standart
- * variant sifatida - u ilovaning o'z rangi va odam unga ko'nikkan.
+ * "Qarz" qizil rangda ko'rsatiladi va u o'zgarmaydi. Brand rangi qizil
+ * bo'lsa, odam oddiy tugmani qarz deb o'qishi mumkin edi.
+ *
+ * "Haq" esa tanlangan rangga ERGASHADI - shuning uchun ro'yxatda yashil
+ * ham bor (ilovaning o'z rangi, standart tanlov).
  */
 export const ACCENTS: AccentPreset[] = [
   {
@@ -105,10 +106,16 @@ export const withAlpha = (hex: string, alpha: number): string => {
 /**
  * Tanlangan rangni mavzu tokenlariga qo'llaydi.
  *
- * MOLIYAVIY RANGLAR TEGILMAYDI. `positive` va `negative` qarz bilan
- * haqni ajratadi - ular brand emas, MA'NO. Brand rangi almashganda
- * ular ham almashsa, ko'k rang tanlagan odam qarzni haqdan ajrata
- * olmay qolardi.
+ * "HAQ" HAM ERGASHADI, "QARZ" ESA YO'Q.
+ *
+ * Avval ikkala moliyaviy rang ham o'zgarmas edi - "ular ma'no tashiydi"
+ * degan mulohaza bilan. Amalda esa Qarzlar va Gap ekranlarining asosiy
+ * qismi aynan shu ranglardan iborat: odam binafsha tanlasa ham ilova
+ * yashilligicha qolar va rang tanlash ishlamayotgandek tuyulardi.
+ *
+ * Ajratish YO'QOLMAYDI: qarz qizilligicha qoladi, ustiga har summada
+ * yo'nalish o'qi (↑/↓) va +/− belgisi turadi. Ya'ni farq uch belgidan
+ * biriga emas, uchalasiga tayanadi.
  *
  * Sof funksiya: kirish tokenlari o'zgarmaydi, yangi nusxa qaytadi.
  */
@@ -132,5 +139,9 @@ export const applyAccent = (
     ctaGradientStart: shades.gradientStart,
     ctaGradientEnd: shades.primary,
     ctaText: shades.onGradient,
+    // "Haq" (musbat balans) tanlangan rangda. "Qarz" (negative) atayin
+    // tegilmaydi - u qizil bo'lib qoladi va farqni saqlaydi.
+    positive: shades.primary,
+    positiveSoft: shades.soft,
   };
 };

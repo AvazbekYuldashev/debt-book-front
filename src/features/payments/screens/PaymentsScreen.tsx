@@ -138,7 +138,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
             <Ionicons
               name={cancelled ? 'close-circle-outline' : 'add-circle-outline'}
               size={16}
-              color={cancelled ? colors.textSecondary : colors.success}
+              color={cancelled ? colors.textSecondary : colors.positive}
             />
           </View>
           <View style={styles.rowText}>
@@ -155,7 +155,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
         </View>
       );
     },
-    [colors.success, colors.textSecondary, styles, t],
+    [colors.positive, colors.textSecondary, styles, t],
   );
 
   const renderVoiceRow = useCallback(
@@ -473,8 +473,11 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     rowIconIn: {
       backgroundColor: colors.positiveSoft,
     },
+    // Pul KIRGANI "haq" bilan bir oilada - belgisi ham, matni ham bir
+    // xil tokendan. Ilgari belgi positiveSoft, matn esa success edi va
+    // rang tanlanganda ikkovi ajralib qolardi.
     rowCostIn: {
-      color: colors.success,
+      color: colors.positive,
     },
     loader: {
       marginTop: spacing.xl,

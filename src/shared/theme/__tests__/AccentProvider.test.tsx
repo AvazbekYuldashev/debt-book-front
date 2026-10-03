@@ -23,6 +23,7 @@ const Probe: React.FC = () => {
     <>
       <Text testID="primary">{colors.primary}</Text>
       <Text testID="positive">{colors.positive}</Text>
+      <Text testID="negative">{colors.negative}</Text>
       <Text testID="accent">{accent}</Text>
     </>
   );
@@ -65,18 +66,26 @@ describe('AccentProvider + mavzu', () => {
       .toBe(findAccent('violet').light.primary);
   });
 
-  /**
-   * MA'NO tashiydigan ranglar tegilmaydi: binafsha tanlagan odam ham
-   * qarzni haqdan ajrata olishi kerak.
-   */
-  it('qarz va haq ranglari ozgarmaydi', async () => {
+  /** "Haq" ham ergashadi - asosiy ekranlar shu rangdan iborat. */
+  it('haq rangi ham almashadi', async () => {
     show();
     await settle();
-    const avval = screen.getByTestId('positive').props.children;
 
     await act(async () => { handles.setAccent('amber'); });
 
-    expect(screen.getByTestId('positive').props.children).toBe(avval);
+    expect(screen.getByTestId('positive').props.children)
+      .toBe(findAccent('amber').light.primary);
+  });
+
+  /** "Qarz" esa qizilligicha qoladi - farq shu bilan saqlanadi. */
+  it('qarz rangi ozgarmaydi', async () => {
+    show();
+    await settle();
+    const avval = screen.getByTestId('negative').props.children;
+
+    await act(async () => { handles.setAccent('amber'); });
+
+    expect(screen.getByTestId('negative').props.children).toBe(avval);
   });
 
   /** Serverdan kelgan qiymat qo'llanadi - hisob bilan birga ergashadi. */

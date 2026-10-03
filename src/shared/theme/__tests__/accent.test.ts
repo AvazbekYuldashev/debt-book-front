@@ -44,16 +44,37 @@ describe('applyAccent', () => {
   });
 
   /**
-   * MOLIYAVIY RANGLAR TEGILMAYDI. Ko'k rang tanlagan odam ham qarzni
-   * haqdan ajrata olishi kerak.
+   * "HAQ" ERGASHADI: Qarzlar va Gap ekranlarining asosiy qismi aynan shu
+   * rangdan iborat va u o'zgarmasa, rang tanlash ishlamayotgandek
+   * tuyulardi.
    */
-  it('qarz va haq ranglari ozgarmaydi', () => {
+  it('haq rangi tanlangan rangga otadi', () => {
+    const next = applyAccent(lightColors, 'violet', false);
+    const violet = findAccent('violet').light;
+
+    expect(next.positive).toBe(violet.primary);
+    expect(next.positiveSoft).toBe(violet.soft);
+  });
+
+  /**
+   * "QARZ" ESA QIZILLIGICHA QOLADI - farq shu bilan saqlanadi. Ustiga
+   * har summada yo'nalish o'qi va +/- belgisi ham turadi.
+   */
+  it('qarz rangi ozgarmaydi', () => {
     const next = applyAccent(lightColors, 'violet', false);
 
-    expect(next.positive).toBe(lightColors.positive);
-    expect(next.positiveSoft).toBe(lightColors.positiveSoft);
     expect(next.negative).toBe(lightColors.negative);
     expect(next.negativeSoft).toBe(lightColors.negativeSoft);
+  });
+
+  /** Qarz va haq HECH QACHON bir xil rangda bo'lmasligi kerak. */
+  it('har tanlovda qarz va haq farq qiladi', () => {
+    for (const item of ACCENTS) {
+      for (const [base, isDark] of [[lightColors, false], [darkColors, true]] as const) {
+        const next = applyAccent(base, item.id, isDark);
+        expect(next.positive).not.toBe(next.negative);
+      }
+    }
   });
 
   /** Shaffof tuslar ham asosiy rangdan: aks holda tugma ko'k, fon yashil qolardi. */
