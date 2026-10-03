@@ -193,19 +193,21 @@ const AuthShell: React.FC<AuthShellProps> = ({ title, subtitle, onBack, children
             <LanguageSwitcher />
           </View>
 
-          <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+          {/* Mazmun ekran bo'yi bo'ylab O'RTAGA tushadi.
+              Qisqa formalar (bitta maydon) yuqoriga yopishib, ostida
+              katta bo'sh maydon qolardi - ekran tugamagandek ko'rinardi.
+              Mazmun uzun bo'lsa markazlash o'z-o'zidan bekor bo'ladi va
+              oddiy skroll qoladi. */}
+          <View style={styles.middle}>
+            <Text style={styles.title}>{title}</Text>
+            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 
-          <View style={styles.form}>{children}</View>
+            <View style={styles.form}>{children}</View>
+          </View>
 
-          {/* Pastga mixlangan harakat: oraliq bo'shliq uni ekran tagiga
-              itaradi, mazmun uzun bo'lsa esa oddiygina ostida qoladi. */}
-          {bottomAction ? (
-            <>
-              <View style={styles.spacer} />
-              <View style={styles.bottomAction}>{bottomAction}</View>
-            </>
-          ) : null}
+          {/* Asosiy harakat ekran tagida: barmoqqa yaqin va o'rni
+              ekrandan ekranga o'zgarmaydi. */}
+          {bottomAction ? <View style={styles.bottomAction}>{bottomAction}</View> : null}
         </AuthKeyboardContext.Provider>
       </ScrollView>
     </View>
@@ -257,12 +259,12 @@ const createStyles = (colors: ColorTokens) => StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 10,
   },
+  middle: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   form: {
     marginTop: 28,
-  },
-  spacer: {
-    flexGrow: 1,
-    minHeight: 24,
   },
   bottomAction: {
     marginTop: 24,

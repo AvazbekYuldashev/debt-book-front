@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useAppTheme } from '../../../shared/theme';
@@ -34,6 +34,20 @@ const AuthButton: React.FC<AuthButtonProps> = ({ label, onPress, loading, disabl
   const styles = useMemo(() => createStyles(colors), [colors]);
   const blocked = Boolean(loading || disabled);
 
+  /**
+   * Gradient belgisi HAR NUSXADA BOSHQACHA bo'lishi shart.
+   *
+   * Web'da `url(#id)` butun hujjat bo'ylab qidiriladi. Navigatsiya
+   * oldingi ekranlarni daraxtda saqlab qolgani uchun bir vaqtning
+   * o'zida bir nechta tugma turadi - qat'iy belgi bilan ularning
+   * hammasi BIRINCHISIGA, ya'ni yashirilgan ekrandagi gradientga
+   * murojaat qilardi va tugma bo'sh (oq) chiqib qolardi.
+   *
+   * `useId` nuqta-vergul kabi belgilar berishi mumkin, ular esa CSS
+   * selektorida yaroqsiz - shuning uchun tozalanadi.
+   */
+  const gradientId = `authCta${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+
   return (
     <Pressable
       onPress={onPress}
@@ -47,12 +61,12 @@ const AuthButton: React.FC<AuthButtonProps> = ({ label, onPress, loading, disabl
       <View style={StyleSheet.absoluteFill}>
         <Svg width="100%" height="100%">
           <Defs>
-            <LinearGradient id="authCta" x1="0" y1="0" x2="1" y2="0">
+            <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
               <Stop offset="0" stopColor={colors.ctaGradientStart} />
               <Stop offset="1" stopColor={colors.ctaGradientEnd} />
             </LinearGradient>
           </Defs>
-          <Rect x="0" y="0" width="100%" height="100%" rx={RADIUS} fill="url(#authCta)" />
+          <Rect x="0" y="0" width="100%" height="100%" rx={RADIUS} fill={`url(#${gradientId})`} />
         </Svg>
       </View>
 
