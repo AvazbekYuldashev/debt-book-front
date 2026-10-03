@@ -5,10 +5,13 @@ import type { PaymentHistory } from '../api/payments';
 /**
  * Tarixning bitta qatori.
  *
- * Ikki manba bitta oqimga qo'shiladi: pul KIRGANI (Click orqali
- * to'ldirish) va pul CHIQQANI (ovoz sarfi). Ularni alohida ro'yxatlarda
- * ko'rsatsak, odam balans qanday o'zgarganini kuzatolmasdi - har safar
- * ikkita ro'yxatni ko'zda solishtirib chiqish kerak bo'lardi.
+ * Ikki xil harakat IKKI ALOHIDA ro'yxatda turadi: pul CHIQQANI (ovozga
+ * sarf) va pul KIRGANI (Click orqali to'ldirish). Ular bir paytlar
+ * bitta oqimga qo'shilgan edi, lekin aralashganda savolga javob
+ * topilmay qoldi: "ovozga qancha ketdi" deb qaraganda to'lovlar
+ * orasidan terib chiqish, "qancha to'ladim" deb qaraganda esa o'nlab
+ * sarf qatorini aylantirib o'tish kerak bo'lardi. Ikkovi turlicha
+ * o'qiladi, shuning uchun alohida.
  */
 export type FeedEntry =
   | { kind: 'VOICE'; at: string; command: VoiceCommand }
@@ -19,38 +22,45 @@ export const feedKey = (entry: FeedEntry): string =>
   entry.kind === 'VOICE' ? `v-${entry.command.key}` : `p-${entry.payment.id}`;
 
 /**
- * Ikki tarixni bitta oqimga qo'shadi, yangisidan boshlab.
+ * Yangisi tepada.
  *
- * TO'LOV VAQTI to'langan payt bo'yicha olinadi, yaratilgan payt bo'yicha
- * emas: odam havolani ochib, bir soatdan keyin to'lashi mumkin va o'shanda
- * balans aynan to'lov daqiqasida o'zgaradi. Yaratilish vaqti bo'yicha
- * saralasak, qator sarf yozuvlari orasida noto'g'ri joyda turardi.
- *
- * Sof funksiya: ekranga bog'liq emas, shuning uchun sinaladi.
+ * Buzuq sana butun ro'yxatni ag'darib yubormasligi uchun u oxiriga
+ * tushadi - tartibsiz ro'yxat yo'q qatordan ham yomonroq.
  */
-export const mergeFeed = (
-  usage: VoiceUsage[],
-  payments: PaymentHistory[],
-): FeedEntry[] => {
-  const entries: FeedEntry[] = [];
-
-  // Ovoz yozuvlari avval BUYRUQLARGA yig'iladi: odam uchun bitta
-  // gapirish - bitta ish, ikki qator emas.
-  for (const command of groupByCommand(usage)) {
-    entries.push({ kind: 'VOICE', at: command.at, command });
-  }
-  for (const item of payments) {
-    if (!item?.id) continue;
-    entries.push({ kind: 'TOPUP', at: item.paidDate ?? item.createdDate, payment: item });
-  }
-
-  return entries.sort((a, b) => {
-    const left = Date.parse(b.at);
-    const right = Date.parse(a.at);
-    // Buzuq sana oqimni ag'darib yubormasin - u oxiriga tushadi.
-    if (Number.isNaN(left) && Number.isNaN(right)) return 0;
-    if (Number.isNaN(left)) return -1;
-    if (Number.isNaN(right)) return 1;
-    return left - right;
-  });
+const newestFirst = (a: FeedEntry, b: FeedEntry): number => {
+  const left = Date.parse(b.at);
+  const right = Date.parse(a.at);
+  if (Number.isNaN(left) && Number.isNaN(right)) return 0;
+  if (Number.isNaN(left)) return -1;
+  if (Number.isNaN(right)) return 1;
+  return left - right;
 };
+
+/**
+ * Ovozga sarflangan pul tarixi.
+ *
+ * Avval BUYRUQLARGA yig'iladi: odam uchun bitta gapirish - bitta ish,
+ * garchi ichida ikkita xizmat chaqirilsa ham.
+ */
+export const voiceHistory = (usage: VoiceUsage[]): FeedEntry[] =>
+  groupByCommand(usage)
+    .map((command): FeedEntry => ({ kind: 'VOICE', at: command.at, command }))
+    .sort(newestFirst);
+
+/**
+ * Click orqali to'langan pul tarixi.
+ *
+ * TO'LANGAN payt bo'yicha turadi, yaratilgan payt bo'yicha emas: odam
+ * havolani ochib, bir soatdan keyin to'lashi mumkin va balans aynan
+ * to'lov daqiqasida o'zgaradi. Bekor qilinganda to'langan payt yo'q -
+ * o'shanda yaratilgan payt ishlatiladi.
+ */
+export const topUpHistory = (payments: PaymentHistory[]): FeedEntry[] =>
+  payments
+    .filter((item) => item?.id)
+    .map((payment): FeedEntry => ({
+      kind: 'TOPUP',
+      at: payment.paidDate ?? payment.createdDate,
+      payment,
+    }))
+    .sort(newestFirst);

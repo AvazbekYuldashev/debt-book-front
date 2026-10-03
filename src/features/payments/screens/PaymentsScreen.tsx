@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
+  SectionList,
   Linking,
   Pressable,
   RefreshControl,
@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import Card from '../../../shared/ui/Card';
-import EmptyState from '../../../shared/ui/EmptyState';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
@@ -33,7 +32,7 @@ import {
   type PaymentHistory,
   type PaymentSummary,
 } from '../api/payments';
-import { feedKey, mergeFeed, type FeedEntry } from '../model/feed';
+import { feedKey, topUpHistory, voiceHistory, type FeedEntry } from '../model/feed';
 import type { VoiceCommand } from '../model/voiceCommand';
 import UsageDetailModal from '../components/UsageDetailModal';
 
@@ -119,10 +118,25 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     }
   }, [t]);
 
-  // Ikki tarix bitta oqimda: pul kirgani ham, chiqqani ham. Alohida
-  // ro'yxatlarda ko'rsatsak, odam balans qanday o'zgarganini kuzata
-  // olmasdi - har safar ikkovini ko'zda solishtirish kerak bo'lardi.
-  const feed = useMemo(() => mergeFeed(items, topUps), [items, topUps]);
+  /**
+   * Ikki ALOHIDA bo'lim: ovozga nima sarflangani va Click orqali nima
+   * to'langani. Ular bir paytlar bitta oqimda edi, lekin aralashganda
+   * ikkala savolga ham javob qiyinlashdi - "ovozga qancha ketdi" deb
+   * qaraganda to'lovlar orasidan terib chiqish kerak bo'lardi, "qancha
+   * to'ladim" deb qaraganda esa o'nlab sarf qatorini aylantirib o'tish.
+   *
+   * Bo'sh bo'lim ham QOLADI: sarlavhasi turgani odamga bu yerda nima
+   * ko'rinishini aytadi, g'oyib bo'lgan bo'lim esa yo'qday tuyulardi.
+   */
+  const sections = useMemo(
+    () => [
+      { key: 'VOICE' as const, title: t('payments.history'), data: voiceHistory(items) },
+      { key: 'TOPUP' as const, title: t('payments.topUpHistory'), data: topUpHistory(topUps) },
+    ],
+    [items, topUps, t],
+  );
+
+  const total = sections.reduce((sum, section) => sum + section.data.length, 0);
 
   const renderTopUp = useCallback(
     (payment: PaymentHistory) => {
@@ -200,14 +214,34 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
       <AmbientBackground />
       <ScreenHeader title={t('payments.title')} onBack={navigation.goBack} />
 
-      <FlatList
-        data={feed}
+      <SectionList
+        sections={sections}
         renderItem={renderItem}
         keyExtractor={feedKey}
+        stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading && feed.length > 0} onRefresh={load} tintColor={colors.primary} />
+          <RefreshControl refreshing={loading && total > 0} onRefresh={load} tintColor={colors.primary} />
+        }
+        renderSectionHeader={({ section }) => (
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+        )}
+        /* Bo'sh bo'limga izoh: sarlavha yolg'iz turgani "yuklanmadimi
+           yoki yo'qmi" degan savol qoldirardi. Birinchi yuklashda
+           izoh o'rniga aylana - hali bilmaymiz. */
+        renderSectionFooter={({ section }) =>
+          section.data.length > 0 ? null : loading ? (
+            <ActivityIndicator style={styles.sectionLoader} color={colors.primary} />
+          ) : (
+            <Text style={styles.sectionEmpty}>
+              {failed
+                ? t('common.error')
+                : section.key === 'VOICE'
+                  ? t('payments.empty')
+                  : t('payments.noTopUps')}
+            </Text>
+          )
         }
         ListHeaderComponent={
           <>
@@ -294,20 +328,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
                 <Text style={styles.soonNote}>{t('payments.topUpSoon')}</Text>
               )}
             </Card>
-
-            <Text style={styles.sectionTitle}>{t('payments.history')}</Text>
           </>
-        }
-        ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator style={styles.loader} color={colors.primary} />
-          ) : (
-            <EmptyState
-              icon={failed ? 'cloud-offline-outline' : 'mic-off-outline'}
-              title={failed ? t('common.error') : t('payments.empty')}
-              description={failed ? undefined : t('payments.emptyHint')}
-            />
-          )
         }
       />
 
@@ -376,8 +397,18 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     sectionTitle: {
       ...typography.label,
       color: colors.textSecondary,
+      marginTop: spacing.sm,
       marginBottom: spacing.xs,
       marginLeft: spacing.xxs,
+    },
+    sectionEmpty: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginLeft: spacing.xxs,
+      marginBottom: spacing.sm,
+    },
+    sectionLoader: {
+      marginVertical: spacing.sm,
     },
     row: {
       flexDirection: 'row',
@@ -422,9 +453,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     rowCostIn: {
       color: colors.success,
-    },
-    loader: {
-      marginTop: spacing.xl,
     },
     balance: {
       ...typography.display,
