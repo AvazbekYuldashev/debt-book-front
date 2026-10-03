@@ -6,13 +6,15 @@ import { ColorTokens } from '../../../shared/theme/colors';
 // Auth ekranlari uchun umumiy maydon/tugma/link stillari (theme-aware).
 export const createAuthStyles = (colors: ColorTokens) => StyleSheet.create({
   field: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
+  // Yorliq maydon USTIDA: ichidagi placeholder yozila boshlashi bilan
+  // yo'qolardi va odam "bu qaysi maydon edi" deb qolardi.
   fieldLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 7,
+    color: colors.textPrimary,
+    marginBottom: 8,
   },
   inputRow: {
     flexDirection: 'row',
@@ -20,19 +22,19 @@ export const createAuthStyles = (colors: ColorTokens) => StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 52,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
   },
   phonePrefix: {
-    fontSize: 15,
+    fontSize: 16,
     color: colors.textPrimary,
     fontWeight: '700',
     marginRight: 8,
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.textPrimary,
     height: '100%',
   },
@@ -49,47 +51,45 @@ export const createAuthStyles = (colors: ColorTokens) => StyleSheet.create({
     paddingLeft: 8,
     paddingVertical: 6,
   },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: 14,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 3,
-  },
-  buttonText: {
-    color: colors.textOnPrimary,
-    fontWeight: '700',
-    fontSize: 16,
-  },
   errorText: {
     marginTop: 2,
-    marginBottom: 8,
+    marginBottom: 10,
     color: colors.danger,
-    fontSize: 13,
-    textAlign: 'center',
+    fontSize: 14,
   },
-  footerRow: {
+  /**
+   * Maydonlar ostidagi yordamchi qator: "Meni eslab qol" va "Parolni
+   * unutdingizmi" yonma-yon.
+   */
+  assistRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 22,
+    marginTop: 2,
+    marginBottom: 24,
   },
   link: {
     color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
-  linkCenter: {
-    color: colors.primary,
+  /** Ekran tagidagi qator: "Hisobingiz yo'qmi? Ro'yxatdan o'ting". */
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 28,
+  },
+  footerText: {
     fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 16,
+    color: colors.textSecondary,
+  },
+  footerLink: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+    textDecorationLine: 'underline',
   },
 });
 

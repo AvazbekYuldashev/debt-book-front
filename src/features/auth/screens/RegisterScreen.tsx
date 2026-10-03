@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiRequestError, register } from '../api/auth';
 import AuthShell from '../components/AuthShell';
+import AuthButton from '../components/AuthButton';
 import AuthTextInput from '../components/AuthTextInput';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
@@ -63,7 +64,7 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
   };
 
   return (
-    <AuthShell icon="person-add-outline" title={t('register.title')} subtitle={t('register.subtitle')} onBack={() => navigation.goBack()}>
+    <AuthShell title={t('register.title')} subtitle={t('register.subtitle')} onBack={() => navigation.goBack()}>
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('register.name')}</Text>
         <View style={s.inputRow}>
@@ -144,13 +145,13 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
 
       {errorMessage ? <Text style={s.errorText}>{errorMessage}</Text> : null}
 
-      <TouchableOpacity style={s.button} onPress={handleRegister} disabled={submitting} activeOpacity={0.9}>
-        {submitting ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={s.buttonText}>{t('register.submit')}</Text>}
-      </TouchableOpacity>
+      <AuthButton label={t('register.submit')} onPress={handleRegister} loading={submitting} />
 
-      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={s.linkCenter}>{t('register.haveAccount')}</Text>
-      </TouchableOpacity>
+      <View style={s.footerRow}>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={s.footerLink}>{t('register.haveAccount')}</Text>
+        </TouchableOpacity>
+      </View>
     </AuthShell>
   );
 };

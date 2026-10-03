@@ -1,9 +1,10 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { verifySms, resendSms } from '../api/auth';
 import { AuthContext } from '../context/AuthContext';
 import { ProfileDTO } from '../../../shared/types';
 import AuthShell from '../components/AuthShell';
+import AuthButton from '../components/AuthButton';
 import AuthTextInput from '../components/AuthTextInput';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
@@ -51,7 +52,12 @@ const SmsVerificationScreen: React.FC<AuthScreenProps<'SmsVerification'>> = ({ n
   };
 
   return (
-    <AuthShell icon="mail-outline" title={t('sms.title')} subtitle={t('sms.subtitle')} onBack={() => navigation.goBack()}>
+    <AuthShell
+      title={t('sms.title')}
+      subtitle={t('sms.subtitle')}
+      onBack={() => navigation.goBack()}
+      bottomAction={<AuthButton label={t('sms.submit')} onPress={handleVerify} loading={loading} />}
+    >
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('sms.code')}</Text>
         <View style={s.inputRow}>
@@ -70,13 +76,14 @@ const SmsVerificationScreen: React.FC<AuthScreenProps<'SmsVerification'>> = ({ n
 
       {error ? <Text style={s.errorText}>{error}</Text> : null}
 
-      <TouchableOpacity style={s.button} onPress={handleVerify} disabled={loading} activeOpacity={0.9}>
-        {loading ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={s.buttonText}>{t('sms.submit')}</Text>}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={handleResend}>
-        <Text style={s.linkCenter}>{t('sms.resend')}</Text>
-      </TouchableOpacity>
+      {/* Kod kelmasa - qayta yuborish. Tasdiqlash tugmasi pastda
+          mixlangani uchun bu qator maydonga yaqin turadi. */}
+      <View style={s.footerRow}>
+        <Text style={s.footerText}>{t('sms.notReceived')}</Text>
+        <TouchableOpacity onPress={handleResend}>
+          <Text style={s.footerLink}>{t('sms.resend')}</Text>
+        </TouchableOpacity>
+      </View>
     </AuthShell>
   );
 };

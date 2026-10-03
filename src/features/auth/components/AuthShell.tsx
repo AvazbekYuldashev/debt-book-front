@@ -26,17 +26,22 @@ import { Ionicons } from '@expo/vector-icons';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FOCUS_GAP, focusScrollTarget, keyboardOverlap } from '../model/keyboardScroll';
 import { useAppTheme } from '../../../shared/theme';
-import type { GlassTokens } from '../../../shared/theme/glass';
 import { ColorTokens } from '../../../shared/theme/colors';
 import LanguageSwitcher from '../../../shared/ui/LanguageSwitcher';
 
 interface AuthShellProps {
-  emoji?: string;
-  icon?: React.ComponentProps<typeof Ionicons>['name'];
   title: string;
   subtitle?: string;
   onBack?: () => void;
   children: ReactNode;
+  /**
+   * Ekran PASTIGA mixlanadigan qism — odatda asosiy tugma.
+   *
+   * Qisqa formalarda (parolni tiklash, tasdiqlash) maydon bittagina
+   * bo'ladi va tugma uning ostida, ekran o'rtasida osilib qolardi.
+   * Pastga mixlangani barmoqqa ham yaqin.
+   */
+  bottomAction?: ReactNode;
 }
 
 /**
@@ -47,9 +52,22 @@ const AuthKeyboardContext = createContext<(input: TextInput | null) => void>(() 
 
 export const useAuthKeyboardScroll = () => useContext(AuthKeyboardContext);
 
-const AuthShell: React.FC<AuthShellProps> = ({ emoji, icon, title, subtitle, onBack, children }) => {
-  const { colors, glass } = useAppTheme();
-  const styles = useMemo(() => createStyles(colors, glass), [colors, glass]);
+/**
+ * Kirish ekranlarining umumiy qolipi.
+ *
+ * KARTA YO'Q: ilgari forma shisha kartaning ichida, hamma narsa markazga
+ * tekislangan holda turardi. Endi mazmun sahifaning o'zida, chapga
+ * tekislangan va sarlavha katta — ko'z birinchi navbatda "qayerdaman"
+ * degan savolga javob topadi, keyin maydonlarga tushadi. Markazga
+ * tekislangan matn qatorlari har safar turli joydan boshlanib, o'qishni
+ * sekinlashtirardi.
+ *
+ * Dekorativ fon saqlanib qoldi: kirish ekrani ham ilovaning umumiy
+ * "imzo" qatlamiga ega bo'ladi.
+ */
+const AuthShell: React.FC<AuthShellProps> = ({ title, subtitle, onBack, children, bottomAction }) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const rootRef = useRef<View>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -157,37 +175,44 @@ const AuthShell: React.FC<AuthShellProps> = ({ emoji, icon, title, subtitle, onB
         scrollEventThrottle={16}
       >
         <AuthKeyboardContext.Provider value={handleInputFocus}>
-          <View style={styles.card}>
+          {/* Yuqori qator joyi DOIM band (orqaga tugmasi bo'lmasa ham):
+              aks holda sarlavha ekrandan ekranga sakrab turardi. */}
+          <View style={styles.topRow}>
             {onBack ? (
               <TouchableOpacity
                 style={styles.backBtn}
                 onPress={onBack}
+                accessibilityRole="button"
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
               </TouchableOpacity>
-            ) : null}
-            <View style={styles.langSwitch}>
-              <LanguageSwitcher />
-            </View>
-            <View style={styles.iconBadge}>
-              {icon ? (
-                <Ionicons name={icon} size={30} color={colors.primary} />
-              ) : (
-                <Text style={styles.iconEmoji}>{emoji}</Text>
-              )}
-            </View>
-            <Text style={styles.title}>{title}</Text>
-            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-            {children}
+            ) : (
+              <View style={styles.backBtnPlaceholder} />
+            )}
+            <LanguageSwitcher />
           </View>
+
+          <Text style={styles.title}>{title}</Text>
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+
+          <View style={styles.form}>{children}</View>
+
+          {/* Pastga mixlangan harakat: oraliq bo'shliq uni ekran tagiga
+              itaradi, mazmun uzun bo'lsa esa oddiygina ostida qoladi. */}
+          {bottomAction ? (
+            <>
+              <View style={styles.spacer} />
+              <View style={styles.bottomAction}>{bottomAction}</View>
+            </>
+          ) : null}
         </AuthKeyboardContext.Provider>
       </ScrollView>
     </View>
   );
 };
 
-const createStyles = (colors: ColorTokens, glass: GlassTokens) => StyleSheet.create({
+const createStyles = (colors: ColorTokens) => StyleSheet.create({
   screen: {
     flex: 1,
     // Fon AmbientBackground'dan keladi — tekis rang berilmaydi.
@@ -195,63 +220,52 @@ const createStyles = (colors: ColorTokens, glass: GlassTokens) => StyleSheet.cre
   },
   content: {
     flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  // Kirish kartasi ham qolgan bloklar bilan bir tilda — shisha. Bu ekran
-  // STATIK (scroll qilinmaydi), shuning uchun `raised`: haqiqiy blur bilan.
-  card: {
     width: '100%',
-    maxWidth: 420,
-    ...glass.raised,
-    borderRadius: 24,
-    paddingVertical: 32,
+    maxWidth: 480,
+    alignSelf: 'center',
     paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 32,
   },
-  langSwitch: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    zIndex: 2,
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 28,
   },
   backBtn: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2,
   },
-  iconBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginBottom: 18,
-  },
-  iconEmoji: {
-    fontSize: 30,
+  backBtnPlaceholder: {
+    width: 40,
+    height: 40,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: colors.primary,
-    textAlign: 'center',
+    fontSize: 32,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 22,
     color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 26,
+    marginTop: 10,
+  },
+  form: {
+    marginTop: 28,
+  },
+  spacer: {
+    flexGrow: 1,
+    minHeight: 24,
+  },
+  bottomAction: {
+    marginTop: 24,
   },
 });
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { resetPassword } from '../api/auth';
 import AuthShell from '../components/AuthShell';
+import AuthButton from '../components/AuthButton';
 import AuthTextInput from '../components/AuthTextInput';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
@@ -33,7 +34,14 @@ const ResetPasswordScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigat
   };
 
   return (
-    <AuthShell icon="lock-closed-outline" title={t('reset.title')} subtitle={t('reset.subtitle')} onBack={() => navigation.goBack()}>
+    <AuthShell
+      title={t('reset.title')}
+      subtitle={t('reset.subtitle')}
+      onBack={() => navigation.goBack()}
+      /* Maydon bittagina: tugma uning ostida, ekran o'rtasida osilib
+         qolardi. Pastga mixlangani barmoqqa ham yaqin. */
+      bottomAction={<AuthButton label={t('reset.submit')} onPress={handleReset} />}
+    >
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('reset.phone')}</Text>
         <View style={s.inputRow}>
@@ -51,13 +59,11 @@ const ResetPasswordScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigat
 
       {error ? <Text style={s.errorText}>{error}</Text> : null}
 
-      <TouchableOpacity style={s.button} onPress={handleReset} activeOpacity={0.9}>
-        <Text style={s.buttonText}>{t('reset.submit')}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={s.linkCenter}>{t('reset.backToLogin')}</Text>
-      </TouchableOpacity>
+      <View style={s.footerRow}>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={s.footerLink}>{t('reset.backToLogin')}</Text>
+        </TouchableOpacity>
+      </View>
     </AuthShell>
   );
 };

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { confirmReset } from '../api/auth';
 import AuthShell from '../components/AuthShell';
+import AuthButton from '../components/AuthButton';
 import AuthTextInput from '../components/AuthTextInput';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
@@ -37,7 +38,12 @@ const ResetConfirmScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigati
   };
 
   return (
-    <AuthShell icon="key-outline" title={t('resetConfirm.title')} subtitle={t('resetConfirm.subtitle')} onBack={() => navigation.goBack()}>
+    <AuthShell
+      title={t('resetConfirm.title')}
+      subtitle={t('resetConfirm.subtitle')}
+      onBack={() => navigation.goBack()}
+      bottomAction={<AuthButton label={t('resetConfirm.submit')} onPress={handleConfirm} />}
+    >
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('resetConfirm.phone')}</Text>
         <View style={s.inputRow}>
@@ -90,13 +96,11 @@ const ResetConfirmScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigati
 
       {error ? <Text style={s.errorText}>{error}</Text> : null}
 
-      <TouchableOpacity style={s.button} onPress={handleConfirm} activeOpacity={0.9}>
-        <Text style={s.buttonText}>{t('resetConfirm.submit')}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={s.linkCenter}>{t('reset.backToLogin')}</Text>
-      </TouchableOpacity>
+      <View style={s.footerRow}>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={s.footerLink}>{t('reset.backToLogin')}</Text>
+        </TouchableOpacity>
+      </View>
     </AuthShell>
   );
 };

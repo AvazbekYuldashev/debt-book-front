@@ -94,6 +94,7 @@ const uz: Dict = {
   'login.password': 'Parol',
   'login.submit': 'Kirish',
   'login.register': "Ro'yxatdan o'tish",
+  'login.noAccount': "Hisobingiz yo'qmi?",
   'login.reset': 'Parolni tiklash',
   'login.error': 'Kirishda xatolik yuz berdi',
 
@@ -115,6 +116,7 @@ const uz: Dict = {
   'sms.code': 'Tasdiqlash kodi',
   'sms.submit': 'Tasdiqlash',
   'sms.resend': 'Kodni qayta yuborish',
+  'sms.notReceived': 'Kod kelmadimi?',
   'sms.noNumber': "Raqam topilmadi, qayta ro'yxatdan o'ting",
   'sms.checkCode': 'Kodni tekshiring',
   'sms.resendFailed': "Qayta yuborib bo'lmadi",
@@ -751,6 +753,7 @@ const ru: Dict = {
   'login.password': 'Пароль',
   'login.submit': 'Войти',
   'login.register': 'Регистрация',
+  'login.noAccount': 'Net akkaunta?',
   'login.reset': 'Восстановить пароль',
   'login.error': 'Ошибка при входе',
 
@@ -770,6 +773,7 @@ const ru: Dict = {
   'sms.code': 'Код подтверждения',
   'sms.submit': 'Подтвердить',
   'sms.resend': 'Отправить код повторно',
+  'sms.notReceived': 'Kod ne prishel?',
   'sms.noNumber': 'Номер не найден, зарегистрируйтесь снова',
   'sms.checkCode': 'Проверьте код',
   'sms.resendFailed': 'Не удалось отправить повторно',
@@ -1398,6 +1402,7 @@ const en: Dict = {
   'login.password': 'Password',
   'login.submit': 'Sign in',
   'login.register': 'Sign up',
+  'login.noAccount': "Don't have an account?",
   'login.reset': 'Reset password',
   'login.error': 'An error occurred while signing in',
 
@@ -1417,6 +1422,7 @@ const en: Dict = {
   'sms.code': 'Verification code',
   'sms.submit': 'Verify',
   'sms.resend': 'Resend code',
+  'sms.notReceived': "Didn't get the code?",
   'sms.noNumber': 'Number not found, please register again',
   'sms.checkCode': 'Check the code',
   'sms.resendFailed': 'Could not resend',

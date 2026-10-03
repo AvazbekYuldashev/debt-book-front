@@ -8,6 +8,8 @@ import RegisterScreen from '../RegisterScreen';
 // Ekran o'lchamlari: 812px balandlik, 312px klaviatura (screenY = 500).
 const SCREEN_HEIGHT = 812;
 const KEYBOARD_TOP = 500;
+// AuthShell qolipining doimiy past bo'shlig'i (klaviaturaga bog'liq emas).
+const BASE_PADDING = 32;
 
 // Native o'lchash test muhitida bo'sh funksiya — ekranni to'liq egallagan
 // konteyner sifatida javob qaytaramiz.
@@ -71,8 +73,10 @@ describe('RegisterScreen — maydonlar va klaviatura', () => {
     const passwordInput = screen.getByPlaceholderText('••••••••');
     fireEvent(passwordInput, 'focus', { nativeEvent: {} });
 
+    // Klaviatura yopiq: faqat qolipning o'z past bo'shlig'i turadi.
     const scrollView = screen.UNSAFE_getByType(ScrollView);
-    expect(StyleSheet.flatten(scrollView.props.contentContainerStyle).paddingBottom).toBeUndefined();
+    const basePadding = StyleSheet.flatten(scrollView.props.contentContainerStyle).paddingBottom;
+    expect(basePadding).toBe(BASE_PADDING);
 
     // Klaviatura ochildi: ekranning pastki 312px'ini yopdi.
     await act(async () => {
@@ -85,14 +89,16 @@ describe('RegisterScreen — maydonlar va klaviatura', () => {
     expect(StyleSheet.flatten(screen.UNSAFE_getByType(ScrollView).props.contentContainerStyle).paddingBottom)
       .toBe(SCREEN_HEIGHT - KEYBOARD_TOP + 24);
 
-    // Klaviatura yopilgach qo'shimcha joy olib tashlanadi.
+    // Klaviatura yopilgach qo'shimcha joy olib tashlanadi va qolipning
+    // o'z bo'shlig'i qaytadi - aks holda sahifa pastida bo'sh joy osilib
+    // qolardi.
     await act(async () => {
       handlers[hideEvent!]({ endCoordinates: { screenX: 0, screenY: SCREEN_HEIGHT, width: 375, height: 0 } });
       await new Promise((r) => setTimeout(r, 80));
     });
 
     expect(StyleSheet.flatten(screen.UNSAFE_getByType(ScrollView).props.contentContainerStyle).paddingBottom)
-      .toBeUndefined();
+      .toBe(BASE_PADDING);
 
     addListener.mockRestore();
     measureSpy.mockRestore();

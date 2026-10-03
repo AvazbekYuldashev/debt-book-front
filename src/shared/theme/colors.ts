@@ -65,6 +65,20 @@ export interface ColorTokens {
   positiveSoft: string;
   negative: string;
   negativeSoft: string;
+  /**
+   * Asosiy harakat tugmasining gradienti (kirish/ro'yxatdan o'tish).
+   *
+   * IKKI RANG, bitta emas: tekis yashil tugma ekranning qolgan qismi
+   * bilan bir xil "og'irlikda" turardi va ko'z uni darhol topmasdi.
+   * Gradient uni sahifadagi yagona yorqin yuza qiladi.
+   *
+   * Har mavzu uchun ALOHIDA tanlangan: yorug'da to'yingan, qorong'ida
+   * esa ochroq - qora fonda to'q yashil deyarli ko'rinmasdi.
+   */
+  ctaGradientStart: string;
+  ctaGradientEnd: string;
+  /** Gradient ustidagi matn - ikkala mavzuda ham o'qilishi tekshirilgan. */
+  ctaText: string;
 }
 
 export const lightColors: ColorTokens = {
@@ -120,6 +134,9 @@ export const lightColors: ColorTokens = {
   positiveSoft: '#EBF7EF',
   negative: '#C4384B',
   negativeSoft: '#FDEFF1',
+  ctaGradientStart: '#2DD4A7',
+  ctaGradientEnd: '#15803D',
+  ctaText: '#FFFFFF',
 };
 
 export const darkColors: ColorTokens = {
@@ -163,4 +180,9 @@ export const darkColors: ColorTokens = {
   positiveSoft: '#14532D',
   negative: '#F87171',
   negativeSoft: '#3A2121',
+  // Qorong'ida ochroq: to'q yashil qora fonda deyarli ko'rinmasdi.
+  ctaGradientStart: '#34D399',
+  ctaGradientEnd: '#10B981',
+  // Gradient ochiq bo'lgani uchun matn QORA - oq matn unda yo'qolardi.
+  ctaText: '#04221A',
 };

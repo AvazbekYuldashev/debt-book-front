@@ -1,10 +1,11 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiRequestError, login } from '../api/auth';
 import { AuthContext } from '../context/AuthContext';
 import AuthShell from '../components/AuthShell';
 import AuthTextInput from '../components/AuthTextInput';
+import AuthButton from '../components/AuthButton';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
@@ -49,7 +50,7 @@ const LoginScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }) =
   };
 
   return (
-    <AuthShell icon="log-in-outline" title={t('login.title')} subtitle={t('login.subtitle')}>
+    <AuthShell title={t('login.title')} subtitle={t('login.subtitle')}>
       <View style={s.field}>
         <Text style={s.fieldLabel}>{t('login.phone')}</Text>
         <View style={s.inputRow}>
@@ -90,18 +91,23 @@ const LoginScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }) =
         </View>
       </View>
 
-      {error ? <Text style={s.errorText}>{error}</Text> : null}
-
-      <TouchableOpacity style={s.button} onPress={handleLogin} disabled={loading} activeOpacity={0.9}>
-        {loading ? <ActivityIndicator size="small" color={colors.textOnPrimary} /> : <Text style={s.buttonText}>{t('login.submit')}</Text>}
-      </TouchableOpacity>
-
-      <View style={s.footerRow}>
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={s.link}>{t('login.register')}</Text>
-        </TouchableOpacity>
+      {/* Parolni tiklash maydonlarga YAQIN: odam uni aynan parolni
+          terolmagan paytda qidiradi, ekran tagida emas. */}
+      <View style={s.assistRow}>
+        <View />
         <TouchableOpacity onPress={() => navigation.navigate('ResetPassword')}>
           <Text style={s.link}>{t('login.reset')}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {error ? <Text style={s.errorText}>{error}</Text> : null}
+
+      <AuthButton label={t('login.submit')} onPress={handleLogin} loading={loading} />
+
+      <View style={s.footerRow}>
+        <Text style={s.footerText}>{t('login.noAccount')}</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <Text style={s.footerLink}>{t('login.register')}</Text>
         </TouchableOpacity>
       </View>
     </AuthShell>
