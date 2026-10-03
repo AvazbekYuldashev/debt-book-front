@@ -45,6 +45,12 @@ export const updateProfilePhoto = async (dto: ProfilePhotoUpdateDTO, token?: str
   await apiClient.put<AppResponse<string>>('/profile/photo', dto);
 };
 
+/** Asosiy rangni hisobga saqlaydi - har qurilmada o'sha rang ko'rinadi. */
+export const updateProfileAccent = async (accent: string, token?: string): Promise<void> => {
+  setApiAuthToken(token);
+  await apiClient.put<AppResponse<string>>('/profile/accent', { accent });
+};
+
 /** Ilova fonini hisobga saqlaydi - har qurilmada o'sha fon ko'rinadi. */
 export const updateProfileBackground = async (
   dto: ProfileBackgroundUpdateDTO,

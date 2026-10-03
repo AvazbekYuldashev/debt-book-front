@@ -10,6 +10,8 @@ export interface ProfileDTO {
   jwt?: string;
   refreshToken?: string;
   status?: string;
+  /** Ilovaning asosiy rangi - hisobga bog'langan. */
+  accent?: string | null;
   /** Ilova foni - hisobga bog'langan, qurilmaga emas. */
   background?: {
     imageId?: string | null;

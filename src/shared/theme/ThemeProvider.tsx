@@ -5,6 +5,8 @@ import { applyAutofillStyle } from './applyAutofillStyle';
 import { makeShadows, ShadowTokens } from './elevation';
 import { makeGlass, GlassTokens } from './glass';
 import { useBackground } from './BackgroundProvider';
+import { useAccent } from './AccentProvider';
+import { applyAccent } from './accent';
 import { loadAppFonts } from './fonts';
 import { iconSize } from './iconSizes';
 import { radius, spacing } from './spacing';
@@ -51,7 +53,20 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [hydrated, setHydrated] = useState(false);
   const systemScheme = useColorScheme();
   const activeTheme = resolveActiveTheme(mode, systemScheme);
-  const colors = activeTheme === 'dark' ? darkColors : lightColors;
+  /**
+   * Mavzu palitrasi + foydalanuvchi tanlagan ASOSIY RANG.
+   *
+   * Brand rangi ilovada 67 ta faylda `colors.primary` orqali o'qiladi,
+   * shuning uchun tokenni shu yerda almashtirish butun ilovani qayta
+   * bo'yash uchun yetarli - har elementni alohida tahrirlash shart emas.
+   *
+   * Moliyaviy ranglar (qarz/haq) bunga kirmaydi: ular brand emas, MA'NO.
+   */
+  const { accent } = useAccent();
+  const colors = useMemo(() => {
+    const base = activeTheme === 'dark' ? darkColors : lightColors;
+    return applyAccent(base, accent, activeTheme === 'dark');
+  }, [activeTheme, accent]);
 
   // Web'da brauzer autofill fonini joriy theme'ga moslaymiz (native'da noop).
   useEffect(() => {

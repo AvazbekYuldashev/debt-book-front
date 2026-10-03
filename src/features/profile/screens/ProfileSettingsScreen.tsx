@@ -12,6 +12,7 @@ import { ROUTES } from '../../../app/navigation/routes';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
 import LegalMenuRow from '../components/LegalMenuRow';
 import BackgroundPicker from '../components/BackgroundPicker';
+import AccentPicker from '../components/AccentPicker';
 
 /**
  * Sozlamalar: til, mavzu va huquqiy hujjatlar.
@@ -41,6 +42,12 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
         <Card style={styles.card}>
           <Text style={styles.cardTitle}>{t('profile.theme')}</Text>
           <ThemeSwitcher />
+        </Card>
+
+        {/* Rang mavzudan KEYIN: avval yorug'/qorong'i tanlanadi,
+            keyin brand rangi - namuna darhol to'g'ri ko'rinadi. */}
+        <Card style={styles.card}>
+          <AccentPicker />
         </Card>
 
         <Card style={styles.card}>

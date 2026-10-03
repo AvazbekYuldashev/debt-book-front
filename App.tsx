@@ -7,12 +7,12 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ContactsProvider } from './src/features/debts/context/ContactsContext';
 import { AuthProvider } from './src/features/auth/context/AuthContext';
-import BackgroundSync from './src/features/profile/components/BackgroundSync';
+import AppearanceSync from './src/features/profile/components/AppearanceSync';
 import { PinProvider } from './src/features/auth/pin/PinContext';
 import { WorkspaceProvider } from './src/features/business/context/WorkspaceContext';
 import { CurrencyProvider } from './src/features/debts/context/CurrencyContext';
 import { ContactAvatarsProvider } from './src/features/debts/context/contactAvatars';
-import { AppThemeProvider, BackgroundProvider, useAppTheme } from './src/shared/theme';
+import { AccentProvider, AppThemeProvider, BackgroundProvider, useAppTheme } from './src/shared/theme';
 import { LanguageProvider } from './src/shared/i18n';
 import ErrorBoundary from './src/shared/ui/ErrorBoundary';
 import AppFrame from './src/shared/ui/AppFrame';
@@ -88,10 +88,10 @@ const AppShell: React.FC = () => {
 
   return (
     <AuthProvider>
-      {/* Fon hisobga bog'langan, qurilmaga emas. Provider daraxtda
-          yuqorida turadi (fon rangi mavzuga tayanadi), shuning uchun
-          profilni unga shu komponent ulab beradi. */}
-      <BackgroundSync />
+      {/* Ko'rinish sozlamalari (fon rasmi, asosiy rang) hisobga
+          bog'langan. Provayderlar daraxtda yuqorida turadi, shuning
+          uchun profilni ularga shu komponent ulab beradi. */}
+      <AppearanceSync />
       {/* Ilova-qulfi (PIN) AuthProvider ICHIDA: profil holatini kuzatadi
           (chiqishda PIN o'chadi) va RootNavigator qulf darvozasini ko'rsatadi. */}
       <PinProvider>
@@ -155,13 +155,16 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
           <LanguageProvider>
-            {/* Fon rasmi TASHQARIDA: sirtlarning ko'rinishi unga bog'liq
-                (fotosurat ustida shisha boshqacha yasaladi), o'zi esa
-                mavzuga bog'liq emas - faqat sozlamani saqlaydi. */}
+            {/* Fon rasmi va asosiy rang mavzudan TASHQARIDA: mavzu
+                ularga tayanadi (fotosurat ustida shisha boshqacha
+                yasaladi, brand rangi esa tanlovdan keladi), o'zlari esa
+                mavzuga tayanmaydi - faqat sozlamani saqlaydi. */}
             <BackgroundProvider>
-              <AppThemeProvider>
-                <AppShell />
-              </AppThemeProvider>
+              <AccentProvider>
+                <AppThemeProvider>
+                  <AppShell />
+                </AppThemeProvider>
+              </AccentProvider>
             </BackgroundProvider>
           </LanguageProvider>
         </SafeAreaProvider>

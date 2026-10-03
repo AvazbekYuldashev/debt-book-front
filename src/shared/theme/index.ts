@@ -7,3 +7,5 @@ export * from './typography';
 export * from './ThemeProvider';
 export * from './backgroundSettings';
 export * from './BackgroundProvider';
+export * from './accent';
+export * from './AccentProvider';
