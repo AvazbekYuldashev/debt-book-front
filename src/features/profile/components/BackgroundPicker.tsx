@@ -19,9 +19,10 @@ import { useI18n } from '../../../shared/i18n';
  * yetarli — odam aniq foizni emas, "matn o'qilyaptimi" ni tanlaydi.
  */
 const DIM_LEVELS: { value: number; labelKey: string }[] = [
-  { value: 0.3, labelKey: 'background.dimLow' },
-  { value: 0.55, labelKey: 'background.dimMid' },
-  { value: 0.8, labelKey: 'background.dimHigh' },
+  { value: 0, labelKey: 'background.dimNone' },
+  { value: 0.15, labelKey: 'background.dimLow' },
+  { value: 0.4, labelKey: 'background.dimMid' },
+  { value: 0.7, labelKey: 'background.dimHigh' },
 ];
 
 const FIT_OPTIONS: { value: BackgroundFit; icon: keyof typeof Ionicons.glyphMap; labelKey: string }[] = [

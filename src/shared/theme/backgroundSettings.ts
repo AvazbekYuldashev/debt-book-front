@@ -28,16 +28,26 @@ export interface BackgroundSettings {
   /**
    * Xiralashtirish kuchi, 0..1. Rasm ustidagi mavzu rangli parda.
    *
-   * Nolga tushirib bo'lmasligi ataylab: yorqin rasm ustida matn o'qilmay
-   * qoladi. Pastki chegara MIN_DIM.
+   * NOLGA TUSHIRISH MUMKIN. Avval eng past qiymat 0.25 edi - "matn
+   * o'qilsin" degan niyat bilan. Amalda esa matn deyarli hamma joyda
+   * kartalar ustida turadi va ular o'z foniga ega; parda esa butun
+   * rasmni oqartirib, odam tanlagan rasm tanib bo'lmas holga kelardi.
+   * Qaysi biri muhimligini foydalanuvchining o'zi hal qiladi.
    */
   dim: number;
 }
 
-/** Parda shaffofligining eng past qiymati — matn o'qilishi kafolati. */
-export const MIN_DIM = 0.25;
+/** Pardasiz ham mumkin: rasm o'z holicha ko'rinadi. */
+export const MIN_DIM = 0;
 export const MAX_DIM = 0.9;
-const DEFAULT_DIM = 0.55;
+/**
+ * Standart parda YENGIL.
+ *
+ * Avvalgi 0.55 yorug' mavzuda deyarli oq qatlam edi va rasmni tanib
+ * bo'lmas qilardi. Bu qiymat rasmni saqlaydi, ustidagi sarlavha esa
+ * baribir o'qiladi.
+ */
+const DEFAULT_DIM = 0.15;
 
 export const DEFAULT_BACKGROUND: BackgroundSettings = {
   imageId: '',

@@ -45,7 +45,8 @@ describe('parseBackground', () => {
 
 describe('clampDim', () => {
   it('oraliqdan chiqqan qiymatni qaytaradi', () => {
-    expect(clampDim(0)).toBe(MIN_DIM);
+    // Nol endi haqiqiy qiymat: pardasiz fon ham mumkin.
+    expect(clampDim(0)).toBe(0);
     expect(clampDim(-5)).toBe(MIN_DIM);
     expect(clampDim(1)).toBe(MAX_DIM);
     expect(clampDim(99)).toBe(MAX_DIM);

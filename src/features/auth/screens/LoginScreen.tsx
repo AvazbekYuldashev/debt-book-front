@@ -5,6 +5,7 @@ import { ApiRequestError, login } from '../api/auth';
 import { AuthContext } from '../context/AuthContext';
 import AuthShell from '../components/AuthShell';
 import AuthTextInput from '../components/AuthTextInput';
+import AuthField from '../components/AuthField';
 import AuthButton from '../components/AuthButton';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
@@ -51,45 +52,39 @@ const LoginScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }) =
 
   return (
     <AuthShell title={t('login.title')} subtitle={t('login.subtitle')}>
-      <View style={s.field}>
-        <Text style={s.fieldLabel}>{t('login.phone')}</Text>
-        <View style={s.inputRow}>
-          <Text style={s.phonePrefix}>+998</Text>
-          <AuthTextInput
-            style={s.input}
-            placeholder="90 123 45 67"
-            placeholderTextColor={colors.textSecondary}
-            value={username}
-            onChangeText={handleUsernameChange}
-            keyboardType="number-pad"
-            autoComplete="username"
-            textContentType="username"
-            importantForAutofill="yes"
-          />
-        </View>
-      </View>
+      <AuthField label={t('login.phone')}>
+        <Text style={s.phonePrefix}>+998</Text>
+        <AuthTextInput
+          style={s.input}
+          placeholder="90 123 45 67"
+          placeholderTextColor={colors.textSecondary}
+          value={username}
+          onChangeText={handleUsernameChange}
+          keyboardType="number-pad"
+          autoComplete="username"
+          textContentType="username"
+          importantForAutofill="yes"
+        />
+      </AuthField>
 
-      <View style={s.field}>
-        <Text style={s.fieldLabel}>{t('login.password')}</Text>
-        <View style={s.inputRow}>
-          <AuthTextInput
-            style={s.input}
-            placeholder="••••••••"
-            placeholderTextColor={colors.textSecondary}
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
-            autoComplete="password"
-            textContentType="password"
-            importantForAutofill="yes"
-            returnKeyType="done"
-            onSubmitEditing={handleLogin}
-          />
-          <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword((p) => !p)}>
-            <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AuthField label={t('login.password')}>
+        <AuthTextInput
+          style={s.input}
+          placeholder="••••••••"
+          placeholderTextColor={colors.textSecondary}
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+          autoComplete="password"
+          textContentType="password"
+          importantForAutofill="yes"
+          returnKeyType="done"
+          onSubmitEditing={handleLogin}
+        />
+        <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword((p) => !p)}>
+          <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </AuthField>
 
       {/* Parolni tiklash maydonlarga YAQIN: odam uni aynan parolni
           terolmagan paytda qidiradi, ekran tagida emas. */}

@@ -5,6 +5,7 @@ import { ApiRequestError, register } from '../api/auth';
 import AuthShell from '../components/AuthShell';
 import AuthButton from '../components/AuthButton';
 import AuthTextInput from '../components/AuthTextInput';
+import AuthField from '../components/AuthField';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
@@ -65,83 +66,71 @@ const RegisterScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigation }
 
   return (
     <AuthShell title={t('register.title')} subtitle={t('register.subtitle')} onBack={() => navigation.goBack()}>
-      <View style={s.field}>
-        <Text style={s.fieldLabel}>{t('register.name')}</Text>
-        <View style={s.inputRow}>
-          <AuthTextInput
-            style={s.input}
-            placeholder={t('register.name')}
-            placeholderTextColor={colors.textSecondary}
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-            autoComplete="name-given"
-            textContentType="givenName"
-            returnKeyType="next"
-            submitBehavior="submit"
-            onSubmitEditing={() => surnameRef.current?.focus()}
-          />
-        </View>
-      </View>
+      <AuthField label={t('register.name')}>
+        <AuthTextInput
+          style={s.input}
+          placeholder={t('register.name')}
+          placeholderTextColor={colors.textSecondary}
+          value={name}
+          onChangeText={setName}
+          autoCapitalize="words"
+          autoComplete="name-given"
+          textContentType="givenName"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => surnameRef.current?.focus()}
+        />
+      </AuthField>
 
-      <View style={s.field}>
-        <Text style={s.fieldLabel}>{t('register.surname')}</Text>
-        <View style={s.inputRow}>
-          <AuthTextInput
-            ref={surnameRef}
-            style={s.input}
-            placeholder={t('register.surname')}
-            placeholderTextColor={colors.textSecondary}
-            value={surname}
-            onChangeText={setSurname}
-            autoCapitalize="words"
-            autoComplete="name-family"
-            textContentType="familyName"
-            returnKeyType="next"
-            submitBehavior="submit"
-            onSubmitEditing={() => usernameRef.current?.focus()}
-          />
-        </View>
-      </View>
+      <AuthField label={t('register.surname')}>
+        <AuthTextInput
+          ref={surnameRef}
+          style={s.input}
+          placeholder={t('register.surname')}
+          placeholderTextColor={colors.textSecondary}
+          value={surname}
+          onChangeText={setSurname}
+          autoCapitalize="words"
+          autoComplete="name-family"
+          textContentType="familyName"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => usernameRef.current?.focus()}
+        />
+      </AuthField>
 
-      <View style={s.field}>
-        <Text style={s.fieldLabel}>{t('register.phone')}</Text>
-        <View style={s.inputRow}>
-          <Text style={s.phonePrefix}>+998</Text>
-          <AuthTextInput
-            ref={usernameRef}
-            style={s.input}
-            placeholder="90 123 45 67"
-            placeholderTextColor={colors.textSecondary}
-            value={username}
-            onChangeText={handleUsernameChange}
-            keyboardType="number-pad"
-            autoComplete="tel"
-            textContentType="telephoneNumber"
-          />
-        </View>
-      </View>
+      <AuthField label={t('register.phone')}>
+        <Text style={s.phonePrefix}>+998</Text>
+        <AuthTextInput
+          ref={usernameRef}
+          style={s.input}
+          placeholder="90 123 45 67"
+          placeholderTextColor={colors.textSecondary}
+          value={username}
+          onChangeText={handleUsernameChange}
+          keyboardType="number-pad"
+          autoComplete="tel"
+          textContentType="telephoneNumber"
+        />
+      </AuthField>
 
-      <View style={s.field}>
-        <Text style={s.fieldLabel}>{t('register.password')}</Text>
-        <View style={s.inputRow}>
-          <AuthTextInput
-            style={s.input}
-            placeholder="••••••••"
-            placeholderTextColor={colors.textSecondary}
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
-            autoComplete="password-new"
-            textContentType="newPassword"
-            returnKeyType="done"
-            onSubmitEditing={handleRegister}
-          />
-          <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword((p) => !p)}>
-            <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AuthField label={t('register.password')}>
+        <AuthTextInput
+          style={s.input}
+          placeholder="••••••••"
+          placeholderTextColor={colors.textSecondary}
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+          autoComplete="password-new"
+          textContentType="newPassword"
+          returnKeyType="done"
+          onSubmitEditing={handleRegister}
+        />
+        <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword((p) => !p)}>
+          <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </AuthField>
 
       {errorMessage ? <Text style={s.errorText}>{errorMessage}</Text> : null}
 

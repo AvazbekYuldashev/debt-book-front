@@ -4,6 +4,7 @@ import { resetPassword } from '../api/auth';
 import AuthShell from '../components/AuthShell';
 import AuthButton from '../components/AuthButton';
 import AuthTextInput from '../components/AuthTextInput';
+import AuthField from '../components/AuthField';
 import { useAuthStyles } from '../components/authStyles';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
@@ -42,20 +43,17 @@ const ResetPasswordScreen: React.FC<{ navigation: AuthNavigation }> = ({ navigat
          qolardi. Pastga mixlangani barmoqqa ham yaqin. */
       bottomAction={<AuthButton label={t('reset.submit')} onPress={handleReset} />}
     >
-      <View style={s.field}>
-        <Text style={s.fieldLabel}>{t('reset.phone')}</Text>
-        <View style={s.inputRow}>
-          <Text style={s.phonePrefix}>+998</Text>
-          <AuthTextInput
-            style={s.input}
-            placeholder="90 123 45 67"
-            placeholderTextColor={colors.textSecondary}
-            value={username}
-            onChangeText={handleUsernameChange}
-            keyboardType="number-pad"
-          />
-        </View>
-      </View>
+      <AuthField label={t('reset.phone')}>
+        <Text style={s.phonePrefix}>+998</Text>
+        <AuthTextInput
+          style={s.input}
+          placeholder="90 123 45 67"
+          placeholderTextColor={colors.textSecondary}
+          value={username}
+          onChangeText={handleUsernameChange}
+          keyboardType="number-pad"
+        />
+      </AuthField>
 
       {error ? <Text style={s.errorText}>{error}</Text> : null}
 

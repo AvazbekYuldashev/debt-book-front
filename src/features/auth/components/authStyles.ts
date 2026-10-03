@@ -5,27 +5,6 @@ import { ColorTokens } from '../../../shared/theme/colors';
 
 // Auth ekranlari uchun umumiy maydon/tugma/link stillari (theme-aware).
 export const createAuthStyles = (colors: ColorTokens) => StyleSheet.create({
-  field: {
-    marginBottom: 18,
-  },
-  // Yorliq maydon USTIDA: ichidagi placeholder yozila boshlashi bilan
-  // yo'qolardi va odam "bu qaysi maydon edi" deb qolardi.
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceMuted,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 56,
-  },
   phonePrefix: {
     fontSize: 16,
     color: colors.textPrimary,
