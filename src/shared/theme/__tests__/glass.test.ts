@@ -35,3 +35,41 @@ describe('glass.modal', () => {
     expect(alphaOf(glass.scrim.backgroundColor as string)).toBeLessThan(1);
   });
 });
+
+/**
+ * Foydalanuvchi fon RASMI qo'yilganda sirtlar boshqacha yasaladi.
+ *
+ * Shisha retsepti ilovaning o'z bezakli foni uchun o'ylangan: past
+ * kontrastli va och. Ixtiyoriy fotosurat ustida esa yarim shaffof oq
+ * sirt sut rangli dog'ga aylanib, butun ekranni "xira" qilardi.
+ */
+describe('makeGlass — fon rasmi ustida', () => {
+  it('rasm bor bolsa sirt boshqa rangda', () => {
+    const shadows = makeShadows(lightColors.shadow);
+    const oddiy = makeGlass(lightColors, shadows, false);
+    const rasmda = makeGlass(lightColors, shadows, true);
+
+    expect(rasmda.surface.backgroundColor).not.toBe(oddiy.surface.backgroundColor);
+    expect(rasmda.surface.backgroundColor).toBe(lightColors.glassSurfaceOnPhoto);
+  });
+
+  /** Ko'tarilgan sirt ham, ichki bo'lak ham o'z variantini oladi. */
+  it('barcha shaffof sirtlar almashadi', () => {
+    const shadows = makeShadows(lightColors.shadow);
+    const rasmda = makeGlass(lightColors, shadows, true);
+
+    expect(rasmda.raised.backgroundColor).toBe(lightColors.glassSurfaceStrongOnPhoto);
+    expect(rasmda.muted.backgroundColor).toBe(lightColors.glassMutedOnPhoto);
+    expect(rasmda.pane.backgroundColor).toBe(lightColors.glassSurfaceOnPhoto);
+    expect(rasmda.flush.backgroundColor).toBe(lightColors.glassSurfaceOnPhoto);
+  });
+
+  /** Dialog ATAYIN tegilmaydi: u allaqachon mustahkam fonda. */
+  it('modal sirti ozgarmaydi', () => {
+    const shadows = makeShadows(lightColors.shadow);
+    const oddiy = makeGlass(lightColors, shadows, false);
+    const rasmda = makeGlass(lightColors, shadows, true);
+
+    expect(rasmda.modal.backgroundColor).toBe(oddiy.modal.backgroundColor);
+  });
+});

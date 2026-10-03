@@ -74,14 +74,32 @@ const backdrop = (amount: number): ViewStyle =>
     ? ({ backdropFilter: `blur(${amount}px) saturate(150%)` } as ViewStyle)
     : {};
 
-export const makeGlass = (colors: ColorTokens, shadows: ShadowTokens): GlassTokens => ({
+/**
+ * @param onPhoto foydalanuvchi fon RASMI qo'yilganmi.
+ *
+ * Shisha retsepti ilovaning o'z bezakli foni uchun o'ylangan: past
+ * kontrastli va och. Ixtiyoriy fotosurat ustida esa o'sha yarim shaffof
+ * sirt rasmni yeb qo'yadi - yorug' mavzuda butun ekran sut rangli
+ * pardaga aylanardi. Rasm bor bo'lsa sirtlar deyarli to'ldiriladi va
+ * rasm ular ORASIDA o'z holicha ko'rinadi.
+ */
+export const makeGlass = (
+  colors: ColorTokens,
+  shadows: ShadowTokens,
+  onPhoto = false,
+): GlassTokens => {
+  const surfaceColor = onPhoto ? colors.glassSurfaceOnPhoto : colors.glassSurface;
+  const strongColor = onPhoto ? colors.glassSurfaceStrongOnPhoto : colors.glassSurfaceStrong;
+  const mutedColor = onPhoto ? colors.glassMutedOnPhoto : colors.glassMuted;
+
+  return {
   // Blur ATAYIN yo'q. Bu sirt ro'yxat konteyneri va odatiy karta sifatida
   // ishlatiladi, ya'ni SCROLL paytida siljiydi — har kadrda backdrop qayta
   // hisoblanardi va web'da aynan shu "qotish"ning asosiy sababi bo'lardi.
   // Ambient fon mayda detalsiz bo'lgani uchun shaffoflikning o'zi kerakli
   // "xira shisha" taassurotini beradi.
   surface: {
-    backgroundColor: colors.glassSurface,
+    backgroundColor: surfaceColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
     ...shadows.card,
@@ -89,7 +107,7 @@ export const makeGlass = (colors: ColorTokens, shadows: ShadowTokens): GlassToke
   // Bu sirtlar STATIK va sanoqli (modal, summary) — haqiqiy blur shu yerda
   // o'zini oqlaydi.
   raised: {
-    backgroundColor: colors.glassSurfaceStrong,
+    backgroundColor: strongColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
     ...backdrop(24),
@@ -100,17 +118,17 @@ export const makeGlass = (colors: ColorTokens, shadows: ShadowTokens): GlassToke
   // backdrop'ni allaqachon hisoblab bo'lgan, ichkarida uni takrorlash
   // natijaga hech narsa qo'shmaydi.
   muted: {
-    backgroundColor: colors.glassMuted,
+    backgroundColor: mutedColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
   },
   pane: {
-    backgroundColor: colors.glassSurface,
+    backgroundColor: surfaceColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
   },
   flush: {
-    backgroundColor: colors.glassSurface,
+    backgroundColor: surfaceColor,
   },
   // Dialog sirti: blur mavjud bo'lmagan platformalarda ham matn o'qilishi
   // SHART, shuning uchun shaffoflik yo'q.
@@ -126,4 +144,5 @@ export const makeGlass = (colors: ColorTokens, shadows: ShadowTokens): GlassToke
     backgroundColor: colors.overlay,
     ...backdrop(12),
   },
-});
+  };
+};

@@ -155,13 +155,14 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
           <LanguageProvider>
-            <AppThemeProvider>
-              {/* Fon rasmi mavzuga tayanadi (parda rangi undan olinadi),
-                  shuning uchun AppThemeProvider ICHIDA turadi. */}
-              <BackgroundProvider>
+            {/* Fon rasmi TASHQARIDA: sirtlarning ko'rinishi unga bog'liq
+                (fotosurat ustida shisha boshqacha yasaladi), o'zi esa
+                mavzuga bog'liq emas - faqat sozlamani saqlaydi. */}
+            <BackgroundProvider>
+              <AppThemeProvider>
                 <AppShell />
-              </BackgroundProvider>
-            </AppThemeProvider>
+              </AppThemeProvider>
+            </BackgroundProvider>
           </LanguageProvider>
         </SafeAreaProvider>
       </QueryClientProvider>

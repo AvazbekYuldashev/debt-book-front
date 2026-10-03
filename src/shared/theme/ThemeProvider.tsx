@@ -4,6 +4,7 @@ import { ColorTokens, darkColors, lightColors } from './colors';
 import { applyAutofillStyle } from './applyAutofillStyle';
 import { makeShadows, ShadowTokens } from './elevation';
 import { makeGlass, GlassTokens } from './glass';
+import { useBackground } from './BackgroundProvider';
 import { loadAppFonts } from './fonts';
 import { iconSize } from './iconSizes';
 import { radius, spacing } from './spacing';
@@ -101,8 +102,19 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // faqat shu rang o'zgarganda qayta yasaladi.
   const shadows = useMemo(() => makeShadows(colors.shadow), [colors.shadow]);
 
-  // Shisha sirtlar soyaga tayanadi — shuning uchun soyalardan KEYIN yasaladi.
-  const glass = useMemo(() => makeGlass(colors, shadows), [colors, shadows]);
+  /**
+   * Shisha sirtlar soyaga tayanadi — shuning uchun soyalardan KEYIN yasaladi.
+   *
+   * FON RASMI ham hisobga olinadi: shisha retsepti ilovaning o'z bezakli
+   * foni uchun o'ylangan va ixtiyoriy fotosurat ustida boshqacha
+   * ishlaydi. Shu sababli BackgroundProvider daraxtda bu provayderdan
+   * TASHQARIDA turadi - u mavzuga bog'liq emas, mavzu esa unga bog'liq.
+   */
+  const { imageId } = useBackground();
+  const glass = useMemo(
+    () => makeGlass(colors, shadows, imageId.length > 0),
+    [colors, shadows, imageId],
+  );
 
   const value = useMemo<ThemeValue>(() => ({
     mode,

@@ -75,6 +75,21 @@ export interface ColorTokens {
    * Har mavzu uchun ALOHIDA tanlangan: yorug'da to'yingan, qorong'ida
    * esa ochroq - qora fonda to'q yashil deyarli ko'rinmasdi.
    */
+  /**
+   * Foydalanuvchi FON RASMI qo'yilgandagi sirtlar.
+   *
+   * Shisha retsepti ilovaning O'Z bezakli foni uchun o'ylangan: u past
+   * kontrastli va och, shuning uchun yarim shaffof oq sirt uning ustida
+   * toza ko'rinadi. Ixtiyoriy fotosurat esa bunday emas - to'q rasm
+   * ustida o'sha oq qatlam sut rangli dog'ga aylanadi va butun ekran
+   * "xira" bo'lib qoladi.
+   *
+   * Rasm qo'yilganda sirtlar deyarli to'ldiriladi: karta toza panel
+   * bo'lib turadi, rasm esa ular ORASIDA o'z holicha ko'rinadi.
+   */
+  glassSurfaceOnPhoto: string;
+  glassSurfaceStrongOnPhoto: string;
+  glassMutedOnPhoto: string;
   ctaGradientStart: string;
   ctaGradientEnd: string;
   /** Gradient ustidagi matn - ikkala mavzuda ham o'qilishi tekshirilgan. */
@@ -134,6 +149,11 @@ export const lightColors: ColorTokens = {
   positiveSoft: '#EBF7EF',
   negative: '#C4384B',
   negativeSoft: '#FDEFF1',
+  // Yorug' mavzuda farq KATTA: 0.28 oq to'q rasm ustida sut rangli
+  // parda edi. Deyarli to'ldirilgan oq esa toza karta bo'lib turadi.
+  glassSurfaceOnPhoto: 'rgba(255, 255, 255, 0.92)',
+  glassSurfaceStrongOnPhoto: 'rgba(255, 255, 255, 0.96)',
+  glassMutedOnPhoto: 'rgba(240, 244, 250, 0.92)',
   ctaGradientStart: '#2DD4A7',
   ctaGradientEnd: '#15803D',
   ctaText: '#FFFFFF',
@@ -180,6 +200,12 @@ export const darkColors: ColorTokens = {
   positiveSoft: '#14532D',
   negative: '#F87171',
   negativeSoft: '#3A2121',
+  // Qorong'i mavzuda shisha allaqachon TO'Q: to'q rasm ustida u tabiiy
+  // qo'shilib ketadi, shuning uchun bu yerda deyarli o'zgarish yo'q -
+  // faqat ozgina quyuqroq, matn har qanday rasmda o'qilishi uchun.
+  glassSurfaceOnPhoto: 'rgba(22, 32, 50, 0.78)',
+  glassSurfaceStrongOnPhoto: 'rgba(16, 24, 40, 0.86)',
+  glassMutedOnPhoto: 'rgba(148, 170, 200, 0.10)',
   // Qorong'ida ochroq: to'q yashil qora fonda deyarli ko'rinmasdi.
   ctaGradientStart: '#34D399',
   ctaGradientEnd: '#10B981',
