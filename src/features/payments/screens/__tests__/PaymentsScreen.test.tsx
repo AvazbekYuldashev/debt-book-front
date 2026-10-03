@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import PaymentsScreen from '../PaymentsScreen';
 import { AppThemeProvider } from '../../../../shared/theme';
 import { LanguageProvider } from '../../../../shared/i18n';
@@ -16,9 +16,10 @@ const mockPayments = fetchPaymentHistory as jest.Mock;
 const mockBalance = fetchPaymentSummary as jest.Mock;
 
 /**
- * Ekranda IKKI ALOHIDA tarix bo'lishi kerak: ovozga sarflangan pul va
- * Click orqali to'langan pul. Ular bir paytlar bitta oqimda edi -
- * o'shanda ikkala savolga javob topish qiyin edi.
+ * Ekranda IKKI YON SAHIFA bo'lishi kerak: ovozga sarf va Click orqali
+ * to'ldirish. Ular avval bitta oqimda, keyin bir-birining tagida
+ * turgan edi - o'shanda ikkinchisiga yetib borish uchun birinchisini
+ * oxirigacha aylantirib o'tish kerak edi.
  */
 const show = () => {
   const navigation = { goBack: jest.fn(), navigate: jest.fn() } as any;
@@ -68,49 +69,75 @@ beforeEach(() => {
 afterEach(() => jest.clearAllMocks());
 
 describe('PaymentsScreen', () => {
-  it('ikkala bolim sarlavhasi turadi', async () => {
+  it('ikkala yon sahifa yorligi turadi', async () => {
     show();
     await settle();
 
-    expect(screen.getByText('Ovozlar tarixi')).toBeTruthy();
-    expect(screen.getByText("To'lovlar tarixi")).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Ovozlar' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: "To'ldirish" })).toBeTruthy();
+  });
+
+  /** Balans sahifalardan tashqarida - u butun ekranning bosh raqami. */
+  it('balans yuqorida, sahifadan tashqarida turadi', async () => {
+    show();
+    await settle();
+
+    expect(screen.getByText("9 912,93 so'm")).toBeTruthy();
   });
 
   /** Bitta gapirish - bitta qator, garchi ichida ikkita xizmat bo'lsa ham. */
-  it('ovoz bolimida buyruq bitta qatorda turadi', async () => {
+  it('ovoz sahifasida buyruq bitta qatorda turadi', async () => {
     show();
     await settle();
 
     expect(screen.getByText('9 soniya · Gapni tushunish - 737 token')).toBeTruthy();
   });
 
-  /** To'ldirish "+" bilan: balansga tushgani darhol ko'rinishi kerak. */
-  it('tolovlar bolimida toldirish plus bilan turadi', async () => {
+  /**
+   * Ikkala sahifa ham bir vaqtda chizilgan (yonma-yon surish shuni
+   * talab qiladi), shuning uchun to'lov qatori ham darhol topiladi.
+   */
+  it('toldirish sahifasida tolov plus bilan turadi', async () => {
     show();
     await settle();
 
     expect(screen.getByText("+10 000 so'm")).toBeTruthy();
   });
 
-  /**
-   * Bo'sh bo'lim YO'QOLMAYDI - sarlavhasi va izohi qoladi. G'oyib
-   * bo'lgan bo'lim "umuman yo'q" degan taassurot qoldirardi.
-   */
-  it('tolov bolmasa ham bolim izoh bilan qoladi', async () => {
+  /** Yorliqqa bosish ikkinchi sahifaga olib o'tadi. */
+  it('yorliqqa bosilsa ikkinchi sahifa tanlanadi', async () => {
+    show();
+    await settle();
+
+    const tab = screen.getByRole('tab', { name: "To'ldirish" });
+    await act(async () => { fireEvent.press(tab); });
+
+    expect(screen.getByRole('tab', { name: "To'ldirish" }).props.accessibilityState.selected)
+      .toBe(true);
+  });
+
+  /** Har sahifa o'z jamisi bilan: raqam o'zi tegishli ro'yxat ustida. */
+  it('har sahifa oz jamisi bilan turadi', async () => {
+    show();
+    await settle();
+
+    expect(screen.getByText('Ovozli buyruqlar sarfi')).toBeTruthy();
+    expect(screen.getByText("Click orqali to'ldirish")).toBeTruthy();
+  });
+
+  it('tolov bolmasa bosh holat korsatiladi', async () => {
     mockPayments.mockResolvedValue([]);
     show();
     await settle();
 
-    expect(screen.getByText("To'lovlar tarixi")).toBeTruthy();
     expect(screen.getByText("Hali to'ldirish bo'lmagan")).toBeTruthy();
   });
 
-  it('ovoz bolmasa ham bolim izoh bilan qoladi', async () => {
+  it('ovoz bolmasa bosh holat korsatiladi', async () => {
     mockUsage.mockResolvedValue({ content: [] });
     show();
     await settle();
 
-    expect(screen.getByText('Ovozlar tarixi')).toBeTruthy();
     expect(screen.getByText("Hali ovozli buyruq yo'q")).toBeTruthy();
   });
 });

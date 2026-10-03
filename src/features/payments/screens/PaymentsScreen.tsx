@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  SectionList,
+  FlatList,
   Linking,
   Pressable,
   RefreshControl,
@@ -13,6 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import Card from '../../../shared/ui/Card';
+import EmptyState from '../../../shared/ui/EmptyState';
+import SwipePager, { type SwipePage } from '../../../shared/ui/SwipePager';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
@@ -46,16 +48,21 @@ import UsageDetailModal from '../components/UsageDetailModal';
 const AMOUNTS = [10_000, 25_000, 50_000, 100_000];
 
 /**
- * "To'lovlar": ovozli buyruqlar uchun nima sarflanganini ko'rsatadi.
+ * "To'lovlar": pul qayerga ketgani va qayerdan kelganini ko'rsatadi.
  *
- * NEGA KERAK: ovozni matnga aylantirish DAQIQASIGA to'lanadi, buyruq esa
- * 10-30 soniya davom etadi. Sarf ilgari faqat provayderning oylik
- * hisobida ko'rinardi - u yerda esa qaysi buyruq qancha turgani yo'q.
- * Shu sababli har bir chaqiruv o'z davomiyligi va narxi bilan turadi.
+ * IKKI YON SAHIFA, biri ikkinchisining tagida emas: chapda ovozga sarf,
+ * o'ngda Click orqali to'ldirish. Ular avval bitta oqimda, keyin
+ * bir-birining tagida turgan edi - o'shanda ikkinchisiga yetib borish
+ * uchun birinchisini oxirigacha aylantirib o'tish kerak edi. Yon
+ * sahifada ikkovi teng: bir harakat bilan ikkinchisiga o'tiladi.
  *
- * Jami UCH DAVRDA: bugun, shu oy va boshidan beri. Yolg'iz umumiy raqam
- * o'sib boraveradi va undan "ko'p sarflayapmanmi" degan savolga javob
- * chiqmaydi - taqqoslash uchun yaqin davr kerak.
+ * Har sahifa O'Z jamisi bilan: ovoz sahifasida sarf (bugun, shu oy,
+ * jami), to'ldirish sahifasida esa to'lov tugmalari. Raqam aynan o'zi
+ * tegishli ro'yxat ustida turgani uchun nimaga tegishli ekani izohsiz
+ * ko'rinadi.
+ *
+ * BALANS esa sahifalardan TASHQARIDA, yuqorida: u butun ekranning bosh
+ * raqami va qaysi sahifada turgandan qat'i nazar kerak.
  */
 const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ navigation }) => {
   const theme = useAppTheme();
@@ -77,7 +84,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     setLoading(true);
     setFailed(false);
     try {
-      const [totals, page, balance, payments] = await Promise.all([
+      const [totals, page, balance, history] = await Promise.all([
         fetchVoiceUsageSummary(),
         fetchVoiceUsage(0, 50),
         fetchPaymentSummary(),
@@ -86,7 +93,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
       setSummary(totals);
       setItems(page.content);
       setAccount(balance);
-      setTopUps(payments);
+      setTopUps(history);
     } catch {
       // Sarf tarixi ko'rinmasligi ishni to'xtatmaydi - xabar beramiz, tamom.
       setFailed(true);
@@ -118,29 +125,13 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     }
   }, [t]);
 
-  /**
-   * Ikki ALOHIDA bo'lim: ovozga nima sarflangani va Click orqali nima
-   * to'langani. Ular bir paytlar bitta oqimda edi, lekin aralashganda
-   * ikkala savolga ham javob qiyinlashdi - "ovozga qancha ketdi" deb
-   * qaraganda to'lovlar orasidan terib chiqish kerak bo'lardi, "qancha
-   * to'ladim" deb qaraganda esa o'nlab sarf qatorini aylantirib o'tish.
-   *
-   * Bo'sh bo'lim ham QOLADI: sarlavhasi turgani odamga bu yerda nima
-   * ko'rinishini aytadi, g'oyib bo'lgan bo'lim esa yo'qday tuyulardi.
-   */
-  const sections = useMemo(
-    () => [
-      { key: 'VOICE' as const, title: t('payments.history'), data: voiceHistory(items) },
-      { key: 'TOPUP' as const, title: t('payments.topUpHistory'), data: topUpHistory(topUps) },
-    ],
-    [items, topUps, t],
-  );
+  const voice = useMemo(() => voiceHistory(items), [items]);
+  const payments = useMemo(() => topUpHistory(topUps), [topUps]);
 
-  const total = sections.reduce((sum, section) => sum + section.data.length, 0);
-
-  const renderTopUp = useCallback(
-    (payment: PaymentHistory) => {
-      const cancelled = payment.status === 'CANCELLED';
+  const renderTopUpRow = useCallback(
+    ({ item }: { item: FeedEntry }) => {
+      if (item.kind !== 'TOPUP') return null;
+      const cancelled = item.payment.status === 'CANCELLED';
       return (
         <View style={styles.row}>
           <View style={[styles.rowIcon, !cancelled && styles.rowIconIn]}>
@@ -151,7 +142,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
             />
           </View>
           <View style={styles.rowText}>
-            <Text style={styles.rowWhen}>{formatWhen(payment.paidDate ?? payment.createdDate)}</Text>
+            <Text style={styles.rowWhen}>{formatWhen(item.at)}</Text>
             <Text style={styles.rowDuration}>
               {cancelled ? t('payments.cancelled') : t('payments.toppedUp')}
             </Text>
@@ -159,7 +150,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
           {/* Bekor qilingan to'lov balansga tushmagan, shuning uchun
               "+" belgisi ham, yashil rang ham berilmaydi. */}
           <Text style={[styles.rowCost, !cancelled && styles.rowCostIn]}>
-            {cancelled ? formatSum(payment.amount) : `+${formatSum(payment.amount)}`}
+            {cancelled ? formatSum(item.payment.amount) : `+${formatSum(item.payment.amount)}`}
           </Text>
         </View>
       );
@@ -167,8 +158,10 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     [colors.success, colors.textSecondary, styles, t],
   );
 
-  const renderCommand = useCallback(
-    (command: VoiceCommand) => {
+  const renderVoiceRow = useCallback(
+    ({ item }: { item: FeedEntry }) => {
+      if (item.kind !== 'VOICE') return null;
+      const command = item.command;
       // Bir qatorda IKKALA qism: odam uchun bu bitta ish. Tafsiloti -
       // qaysi qismga qancha ketgani - bosilganda ochiladi.
       const tokens = command.model
@@ -203,134 +196,171 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     [colors.primary, colors.textSecondary, styles, t],
   );
 
-  const renderItem = useCallback(
-    ({ item }: { item: FeedEntry }) =>
-      item.kind === 'TOPUP' ? renderTopUp(item.payment) : renderCommand(item.command),
-    [renderTopUp, renderCommand],
+  /**
+   * Bo'sh sahifa.
+   *
+   * Birinchi yuklashda aylana - "yo'q" deyish erta, hali bilmaymiz.
+   * Keyin esa sababga qarab: ulanmadimi yoki rostdan ham yo'qmi.
+   */
+  const renderEmpty = useCallback(
+    (icon: 'mic-off-outline' | 'card-outline', title: string) =>
+      loading ? (
+        <ActivityIndicator style={styles.loader} color={colors.primary} />
+      ) : (
+        <EmptyState
+          icon={failed ? 'cloud-offline-outline' : icon}
+          title={failed ? t('common.error') : title}
+        />
+      ),
+    [colors.primary, failed, loading, styles, t],
   );
+
+  // Yangilash aylanasi faqat ro'yxat ALLAQACHON ekranda bo'lsa: birinchi
+  // yuklashda uning o'rnida bo'sh sahifaning aylanasi turadi.
+  const refresh = (shown: number) => (
+    <RefreshControl
+      refreshing={loading && shown > 0}
+      onRefresh={load}
+      tintColor={colors.primary}
+    />
+  );
+
+  const renderVoicePage = () => (
+    <FlatList
+      data={voice}
+      renderItem={renderVoiceRow}
+      keyExtractor={feedKey}
+      contentContainerStyle={styles.pageContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={refresh(voice.length)}
+      ListHeaderComponent={
+        <Card style={styles.card}>
+          <Text style={styles.cardTitle}>{t('payments.voiceSpend')}</Text>
+
+          {/* Jami UCH DAVRDA: yolg'iz umumiy raqam o'sib boraveradi va
+              undan "ko'p sarflayapmanmi" degan savolga javob chiqmaydi -
+              taqqoslash uchun yaqin davr kerak. */}
+          <View style={styles.totals}>
+            <View style={styles.total}>
+              <Text style={styles.totalValue}>{formatSum(summary?.today ?? 0)}</Text>
+              <Text style={styles.totalLabel}>{t('payments.today')}</Text>
+            </View>
+            <View style={styles.total}>
+              <Text style={styles.totalValue}>{formatSum(summary?.thisMonth ?? 0)}</Text>
+              <Text style={styles.totalLabel}>{t('payments.thisMonth')}</Text>
+            </View>
+            <View style={styles.total}>
+              <Text style={styles.totalValue}>{formatSum(summary?.total ?? 0)}</Text>
+              <Text style={styles.totalLabel}>{t('payments.allTime')}</Text>
+            </View>
+          </View>
+
+          {summary ? (
+            <>
+              <Text style={styles.rate}>
+                {t('payments.rate', { rate: formatSum(summary.ratePerMinute) })}
+              </Text>
+              <Text style={styles.rate}>
+                {t('payments.tokens', {
+                  today: String(summary.tokensToday),
+                  total: String(summary.tokensTotal),
+                })}
+              </Text>
+            </>
+          ) : null}
+        </Card>
+      }
+      ListEmptyComponent={renderEmpty('mic-off-outline', t('payments.empty'))}
+    />
+  );
+
+  const renderTopUpPage = () => (
+    <FlatList
+      data={payments}
+      renderItem={renderTopUpRow}
+      keyExtractor={feedKey}
+      contentContainerStyle={styles.pageContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={refresh(payments.length)}
+      ListHeaderComponent={
+        <Card style={styles.card}>
+          <View style={styles.soonRow}>
+            <Ionicons name="card-outline" size={18} color={colors.textSecondary} />
+            <Text style={styles.soonTitle}>{t('payments.topUp')}</Text>
+          </View>
+
+          {/* Tugmalar FAQAT server "tayyor" desa chiqadi. Kalitlar
+              ulanmagan bo'lsa bosilganda hech narsa qilmaydigan tugma
+              ishlaydi deb o'ylashga majbur qilardi. */}
+          {account?.clickEnabled ? (
+            <>
+              <Text style={styles.soonNote}>{t('payments.amount')}</Text>
+              <View style={styles.amounts}>
+                {AMOUNTS.map((value) => (
+                  <Pressable
+                    key={value}
+                    disabled={paying}
+                    onPress={() => void topUp(value)}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [
+                      styles.amount,
+                      (pressed || paying) && styles.amountPressed,
+                    ]}
+                  >
+                    <Text style={styles.amountText}>{formatSum(value)}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              {payError ? <Text style={styles.payError}>{payError}</Text> : null}
+            </>
+          ) : (
+            <Text style={styles.soonNote}>{t('payments.topUpSoon')}</Text>
+          )}
+        </Card>
+      }
+      ListEmptyComponent={renderEmpty('card-outline', t('payments.noTopUps'))}
+    />
+  );
+
+  const pages: SwipePage[] = [
+    {
+      key: 'voice',
+      label: t('payments.history'),
+      icon: 'mic-outline',
+      render: renderVoicePage,
+    },
+    {
+      key: 'topups',
+      label: t('payments.topUpHistory'),
+      icon: 'card-outline',
+      render: renderTopUpPage,
+    },
+  ];
 
   return (
     <View style={styles.container}>
       <AmbientBackground />
       <ScreenHeader title={t('payments.title')} onBack={navigation.goBack} />
 
-      <SectionList
-        sections={sections}
-        renderItem={renderItem}
-        keyExtractor={feedKey}
-        stickySectionHeadersEnabled={false}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={loading && total > 0} onRefresh={load} tintColor={colors.primary} />
-        }
-        renderSectionHeader={({ section }) => (
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-        )}
-        /* Bo'sh bo'limga izoh: sarlavha yolg'iz turgani "yuklanmadimi
-           yoki yo'qmi" degan savol qoldirardi. Birinchi yuklashda
-           izoh o'rniga aylana - hali bilmaymiz. */
-        renderSectionFooter={({ section }) =>
-          section.data.length > 0 ? null : loading ? (
-            <ActivityIndicator style={styles.sectionLoader} color={colors.primary} />
-          ) : (
-            <Text style={styles.sectionEmpty}>
-              {failed
-                ? t('common.error')
-                : section.key === 'VOICE'
-                  ? t('payments.empty')
-                  : t('payments.noTopUps')}
-            </Text>
-          )
-        }
-        ListHeaderComponent={
-          <>
-            <Card style={styles.card}>
-              <Text style={styles.cardTitle}>{t('payments.voiceSpend')}</Text>
+      {/* Balans sahifalardan tashqarida: u butun ekranning bosh raqami
+          va qaysi sahifada turgandan qat'i nazar kerak. */}
+      <Card style={styles.balanceCard}>
+        <Text style={styles.cardTitle}>{t('payments.balance')}</Text>
+        <Text style={styles.balance}>{formatSum(account?.balance ?? 0)}</Text>
 
-              <View style={styles.totals}>
-                <View style={styles.total}>
-                  <Text style={styles.totalValue}>{formatSum(summary?.today ?? 0)}</Text>
-                  <Text style={styles.totalLabel}>{t('payments.today')}</Text>
-                </View>
-                <View style={styles.total}>
-                  <Text style={styles.totalValue}>{formatSum(summary?.thisMonth ?? 0)}</Text>
-                  <Text style={styles.totalLabel}>{t('payments.thisMonth')}</Text>
-                </View>
-                <View style={styles.total}>
-                  <Text style={styles.totalValue}>{formatSum(summary?.total ?? 0)}</Text>
-                  <Text style={styles.totalLabel}>{t('payments.allTime')}</Text>
-                </View>
-              </View>
+        <View style={styles.totals}>
+          <View style={styles.total}>
+            <Text style={styles.totalValue}>{formatSum(account?.toppedUp ?? 0)}</Text>
+            <Text style={styles.totalLabel}>{t('payments.toppedUp')}</Text>
+          </View>
+          <View style={styles.total}>
+            <Text style={styles.totalValue}>{formatSum(account?.spent ?? 0)}</Text>
+            <Text style={styles.totalLabel}>{t('payments.spent')}</Text>
+          </View>
+        </View>
+      </Card>
 
-              {summary ? (
-                <>
-                  <Text style={styles.rate}>
-                    {t('payments.rate', { rate: formatSum(summary.ratePerMinute) })}
-                  </Text>
-                  <Text style={styles.rate}>
-                    {t('payments.tokens', {
-                      today: String(summary.tokensToday),
-                      total: String(summary.tokensTotal),
-                    })}
-                  </Text>
-                </>
-              ) : null}
-            </Card>
-
-            <Card style={styles.card}>
-              <Text style={styles.cardTitle}>{t('payments.balance')}</Text>
-              <Text style={styles.balance}>{formatSum(account?.balance ?? 0)}</Text>
-
-              <View style={styles.totals}>
-                <View style={styles.total}>
-                  <Text style={styles.totalValue}>{formatSum(account?.toppedUp ?? 0)}</Text>
-                  <Text style={styles.totalLabel}>{t('payments.toppedUp')}</Text>
-                </View>
-                <View style={styles.total}>
-                  <Text style={styles.totalValue}>{formatSum(account?.spent ?? 0)}</Text>
-                  <Text style={styles.totalLabel}>{t('payments.spent')}</Text>
-                </View>
-              </View>
-            </Card>
-
-            <Card style={styles.card}>
-              <View style={styles.soonRow}>
-                <Ionicons name="card-outline" size={18} color={colors.textSecondary} />
-                <Text style={styles.soonTitle}>{t('payments.topUp')}</Text>
-              </View>
-
-              {/* Tugmalar FAQAT server "tayyor" desa chiqadi. Kalitlar
-                  ulanmagan bo'lsa bosilganda hech narsa qilmaydigan tugma
-                  ishlaydi deb o'ylashga majbur qilardi. */}
-              {account?.clickEnabled ? (
-                <>
-                  <Text style={styles.soonNote}>{t('payments.amount')}</Text>
-                  <View style={styles.amounts}>
-                    {AMOUNTS.map((value) => (
-                      <Pressable
-                        key={value}
-                        disabled={paying}
-                        onPress={() => void topUp(value)}
-                        accessibilityRole="button"
-                        style={({ pressed }) => [
-                          styles.amount,
-                          (pressed || paying) && styles.amountPressed,
-                        ]}
-                      >
-                        <Text style={styles.amountText}>{formatSum(value)}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  {payError ? <Text style={styles.payError}>{payError}</Text> : null}
-                </>
-              ) : (
-                <Text style={styles.soonNote}>{t('payments.topUpSoon')}</Text>
-              )}
-            </Card>
-          </>
-        }
-      />
+      <SwipePager pages={pages} style={styles.pager} />
 
       <UsageDetailModal command={detail} onClose={() => setDetail(null)} />
     </View>
@@ -343,12 +373,20 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flex: 1,
       backgroundColor: 'transparent',
     },
-    content: {
+    pager: {
+      flex: 1,
+    },
+    pageContent: {
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.xl,
     },
     card: {
       marginBottom: spacing.md,
+      padding: spacing.md,
+    },
+    balanceCard: {
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.sm,
       padding: spacing.md,
     },
     cardTitle: {
@@ -394,22 +432,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       color: colors.textSecondary,
       marginTop: spacing.xxs,
     },
-    sectionTitle: {
-      ...typography.label,
-      color: colors.textSecondary,
-      marginTop: spacing.sm,
-      marginBottom: spacing.xs,
-      marginLeft: spacing.xxs,
-    },
-    sectionEmpty: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginLeft: spacing.xxs,
-      marginBottom: spacing.sm,
-    },
-    sectionLoader: {
-      marginVertical: spacing.sm,
-    },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -453,6 +475,9 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     },
     rowCostIn: {
       color: colors.success,
+    },
+    loader: {
+      marginTop: spacing.xl,
     },
     balance: {
       ...typography.display,
