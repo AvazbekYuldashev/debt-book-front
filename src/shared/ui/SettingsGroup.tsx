@@ -2,8 +2,6 @@ import React, { memo, useMemo } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
-import { useBackground } from '../theme/BackgroundProvider';
-import { photoTextHalo } from '../theme/onPhoto';
 
 export interface SettingsGroupProps {
   /** Guruh ustidagi kichik sarlavha. Bo'lmasa chizilmaydi. */
@@ -28,17 +26,9 @@ const SettingsGroup: React.FC<SettingsGroupProps> = ({ title, children, style })
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  // Sarlavha panel TASHQARISIDA, ya'ni fon rasmi ustida turadi - halo
-  // uni har qanday rasmda ajratib beradi.
-  const { imageId } = useBackground();
-  const halo = useMemo(
-    () => photoTextHalo(theme.colors, imageId.length > 0),
-    [theme.colors, imageId],
-  );
-
   return (
     <View style={[styles.wrap, style]}>
-      {title ? <Text style={[styles.title, halo]}>{title}</Text> : null}
+      {title ? <Text style={styles.title}>{title}</Text> : null}
       <View style={styles.panel}>{children}</View>
     </View>
   );
