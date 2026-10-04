@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getInitials, pickAvatarColor } from './avatar';
+import { useAppTheme } from '../theme';
 
 interface InitialsAvatarProps {
   name: string;
@@ -9,7 +10,8 @@ interface InitialsAvatarProps {
 
 /** Rasm bo'lmaganda: ismdan deterministik rangli bosh-harf doiracha. */
 const InitialsAvatar: React.FC<InitialsAvatarProps> = ({ name, size }) => {
-  const { bg, fg } = pickAvatarColor(name);
+  const { colors } = useAppTheme();
+  const { bg, fg } = pickAvatarColor(name, colors);
   return (
     <View
       style={[

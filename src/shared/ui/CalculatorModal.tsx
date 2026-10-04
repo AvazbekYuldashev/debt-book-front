@@ -257,7 +257,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       backgroundColor: colors.glassPrimarySoft,
     },
     keyMuted: {
-      backgroundColor: colors.glassMuted,
+      // Sirt mavzudan: fon rasmi qo'yilganda avtomatik quyuqlashadi.
+      backgroundColor: glass.muted.backgroundColor,
     },
     keyPressed: {
       opacity: 0.6,

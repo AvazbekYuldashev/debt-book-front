@@ -183,7 +183,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       height: 52,
       borderRadius: radius.md,
       // Image ustida ViewStyle spread qilinmaydi — faqat rang.
-      backgroundColor: colors.glassMuted,
+      // Sirt mavzudan: fon rasmi qo'yilganda avtomatik quyuqlashadi.
+      backgroundColor: glass.muted.backgroundColor,
     },
     photoAvatarEmpty: {
       alignItems: 'center',

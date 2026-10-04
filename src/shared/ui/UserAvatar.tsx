@@ -36,7 +36,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ uri, size, name }) => {
     );
   }
 
-  const palette = name ? pickAvatarColor(name) : undefined;
+  const palette = name ? pickAvatarColor(name, colors) : undefined;
 
   return (
     <View

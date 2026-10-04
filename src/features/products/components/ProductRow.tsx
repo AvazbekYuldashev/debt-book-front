@@ -48,7 +48,10 @@ const ProductRow: React.FC<ProductRowProps> = ({
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const avatarColor = useMemo(() => pickAvatarColor(product.name || product.id), [product.name, product.id]);
+  const avatarColor = useMemo(
+    () => pickAvatarColor(product.name || product.id, colors),
+    [product.name, product.id, colors],
+  );
 
   const handleEdit = useCallback(() => onEdit?.(product), [onEdit, product]);
   const handleDelete = useCallback(() => onRequestDelete?.(product), [onRequestDelete, product]);

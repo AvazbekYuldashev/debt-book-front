@@ -860,7 +860,11 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     // Ilgari karta kontent konteyneri edi va bo'shliq uning ICHIGA tushib,
     // karta ekran ostiga yopishib qolardi.
     rowSlice: {
-      backgroundColor: colors.glassSurface,
+      // Sirt MAVZUDAN olinadi, xom tokendan emas: fon rasmi
+      // qo'yilganda shisha quyuqlashadi. Xom token bu almashuvni
+      // o'tkazib yuborar va ro'yxat rasm ustida loyqa dog' bo'lib
+      // qolardi.
+      backgroundColor: glass.surface.backgroundColor,
       marginHorizontal: spacing.md,
     },
     rowFirst: {

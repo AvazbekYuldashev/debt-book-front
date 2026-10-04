@@ -50,7 +50,10 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const avatarColor = useMemo(() => pickAvatarColor(category.name || category.id), [category.name, category.id]);
+  const avatarColor = useMemo(
+    () => pickAvatarColor(category.name || category.id, colors),
+    [category.name, category.id, colors],
+  );
   const photoUri = category.photoId ? buildAttachUrl(category.photoId) : undefined;
 
   const handleOpen = useCallback(() => onOpen(category), [onOpen, category]);
