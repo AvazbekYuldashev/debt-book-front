@@ -141,7 +141,13 @@ export const makeGlass = (
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
+    // Soya ATAYIN yengil: shisha kartada u sirtni fondan ajratish
+    // uchun kerak edi, to'ldirilgan oq kartada esa rangning o'zi
+    // yetarli. Kuchli soya kartani fon ustida "suzayotgandek"
+    // ko'rsatib, shablondagi tinch varaq taassurotini buzardi.
     ...shadows.card,
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
   },
   pane: {
     backgroundColor: surfaceColor,

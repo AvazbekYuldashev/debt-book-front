@@ -230,11 +230,13 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs + 2,
+      // Qator BALANDROQ: yangi uslubda ro'yxat zichligi emas, nafasi
+      // muhim - ko'z bir qatordan ikkinchisiga osongina o'tadi.
+      paddingVertical: spacing.sm,
       gap: spacing.sm,
       // 44 (avatar) + 2*10 = 64px — 44px teginish talabidan baland, lekin
       // ekranga sezilarli ko'proq qator sig'adi.
-      minHeight: 64,
+      minHeight: 72,
     },
     // Android'da android_ripple ishlaydi; iOS/web uchun fon o'zgaradi.
     rowPressed: Platform.OS === 'android' ? {} : { backgroundColor: colors.surfaceMuted },
