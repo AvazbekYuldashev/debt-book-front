@@ -44,3 +44,18 @@ describe('glass.flat', () => {
     expect(glass.flat.borderColor).toBe(lightColors.border);
   });
 });
+
+/**
+ * Qoida: KARTA tekis, ichidagi bo'lak esa shaffof.
+ *
+ * Ota-karta allaqachon to'ldirilgan - ichkarida ikkinchi to'ldirilgan
+ * qatlam ortiqcha og'irlik berardi.
+ */
+describe('tekis va shaffof sirtlar farqi', () => {
+  it('ichki bolak shaffof qoladi', () => {
+    const glass = makeGlass(lightColors, shadows, false);
+
+    expect(String(glass.muted.backgroundColor)).toContain('rgba');
+    expect(String(glass.flat.backgroundColor)).not.toContain('rgba');
+  });
+});

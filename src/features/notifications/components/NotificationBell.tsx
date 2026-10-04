@@ -64,7 +64,7 @@ const createStyles = ({ colors, radius, typography, shadows, glass }: ThemeValue
       width: 48,
       height: 48,
       borderRadius: radius.lg,
-      ...glass.surface,
+      ...glass.flat,
       alignItems: 'center',
       justifyContent: 'center',
       ...shadows.card,
