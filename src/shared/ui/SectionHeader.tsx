@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import PressableScale from './PressableScale';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
+import { titleOutline } from '../theme/textOutline';
 
 interface SectionHeaderProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -78,7 +79,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, activeTheme }: ThemeValue) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
@@ -105,6 +106,8 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       backgroundColor: colors.primarySoft,
     },
     title: {
+      // Kontur: matn har qanday fonda chetlari bilan ajraladi.
+      ...titleOutline(activeTheme === 'dark'),
       ...typography.heading3,
       color: colors.textPrimary,
       flexShrink: 1,

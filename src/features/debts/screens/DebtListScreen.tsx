@@ -28,6 +28,7 @@ import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import { useContactBalances } from '../hooks/useContactBalances';
 import { useNotifications } from '../../notifications/hooks/useNotifications';
 import { useAppTheme } from '../../../shared/theme';
+import { titleOutline } from '../../../shared/theme/textOutline';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { DebtsNavigation } from '../../../app/navigation/types';
@@ -763,7 +764,7 @@ const SearchToggle: React.FC<SearchToggleProps> = ({ label, active, onPress, sty
   </Pressable>
 );
 
-const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -791,6 +792,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       minWidth: 0,
     },
     title: {
+      // Kontur: sarlavha har qanday fonda chetlari bilan ajraladi.
+      ...titleOutline(activeTheme === 'dark'),
       ...typography.display,
       color: colors.textPrimary,
     },

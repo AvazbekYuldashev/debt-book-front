@@ -17,6 +17,7 @@ import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { confirmAction } from '../../../shared/lib/confirm';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
+import { titleOutline } from '../../../shared/theme/textOutline';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import type { ProductsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
@@ -370,7 +371,7 @@ const ProductsScreen: React.FC<Props> = () => {
   );
 };
 
-const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, typography, activeTheme }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -385,6 +386,8 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
       paddingTop: spacing.xxs,
     },
     title: {
+      // Kontur: sarlavha har qanday fonda chetlari bilan ajraladi.
+      ...titleOutline(activeTheme === 'dark'),
       ...typography.display,
       color: colors.textPrimary,
     },

@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useAppTheme } from '../../../shared/theme';
+import { titleOutline } from '../../../shared/theme/textOutline';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
@@ -303,7 +304,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -326,6 +327,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       minWidth: 0,
     },
     title: {
+      // Kontur: sarlavha har qanday fonda chetlari bilan ajraladi.
+      ...titleOutline(activeTheme === 'dark'),
       ...typography.display,
       color: colors.textPrimary,
     },

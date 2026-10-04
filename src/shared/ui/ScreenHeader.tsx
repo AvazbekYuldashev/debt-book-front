@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
+import { titleOutline } from '../theme/textOutline';
 import BackButton from './BackButton';
 
 interface ScreenHeaderProps {
@@ -39,7 +40,7 @@ const ScreenHeader: React.FC<ScreenHeaderProps> = ({ title, subtitle, onBack, ri
   );
 };
 
-const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, typography, activeTheme }: ThemeValue) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
@@ -56,11 +57,15 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
       flex: 1,
     },
     title: {
+      // Kontur: matn har qanday fonda chetlari bilan ajraladi.
+      ...titleOutline(activeTheme === 'dark'),
       ...typography.heading2,
       fontSize: 19,
       color: colors.textPrimary,
     },
     subtitle: {
+      // Kontur: matn har qanday fonda chetlari bilan ajraladi.
+      ...titleOutline(activeTheme === 'dark'),
       ...typography.caption,
       marginTop: 1,
       color: colors.textSecondary,

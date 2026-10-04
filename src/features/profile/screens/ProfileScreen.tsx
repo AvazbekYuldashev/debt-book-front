@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppTheme } from '../../../shared/theme';
+import { titleOutline } from '../../../shared/theme/textOutline';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import Card from '../../../shared/ui/Card';
 import MenuRow from '../../../shared/ui/MenuRow';
@@ -324,7 +325,7 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -347,10 +348,14 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       minWidth: 0,
     },
     title: {
+      // Kontur: sarlavha har qanday fonda chetlari bilan ajraladi.
+      ...titleOutline(activeTheme === 'dark'),
       ...typography.display,
       color: colors.textPrimary,
     },
     subtitle: {
+      // Kontur: izoh ham sarlavha bilan birga fon ustida turadi.
+      ...titleOutline(activeTheme === 'dark'),
       ...typography.bodySmall,
       fontSize: 13,
       lineHeight: 17,

@@ -15,6 +15,7 @@ import type { MainTabNavigation } from '../../../app/navigation/types';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
+import { titleOutline } from '../../../shared/theme/textOutline';
 import UserAvatar from '../../../shared/ui/UserAvatar';
 import InitialsAvatar from '../../../shared/ui/InitialsAvatar';
 import { buildAttachUrl, normalizeAttachUrl } from '../../../shared/lib/attachUrl';
@@ -193,7 +194,7 @@ const WorkspaceSwitcher: React.FC = () => {
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, activeTheme }: ThemeValue) =>
   StyleSheet.create({
     wrapper: {
       paddingHorizontal: spacing.md,
@@ -240,6 +241,8 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     // ikkinchi darajali kulrang emas: bu foydalanuvchi ALMASHTIRA oladigan
     // kontekst, o'qilishi kerak.
     label: {
+      // Kontur: matn har qanday fonda chetlari bilan ajraladi.
+      ...titleOutline(activeTheme === 'dark'),
       ...typography.body,
       fontSize: 17,
       lineHeight: 22,

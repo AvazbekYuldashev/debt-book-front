@@ -11,6 +11,7 @@ import StatusBanner from '../../../shared/ui/StatusBanner';
 import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { useAppTheme } from '../../../shared/theme';
+import { titleOutline } from '../../../shared/theme/textOutline';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
@@ -613,7 +614,7 @@ function toAmount(value: number | string | null | undefined): number {
   return 0;
 }
 
-const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass, activeTheme }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -636,6 +637,8 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       minWidth: 0,
     },
     title: {
+      // Kontur: sarlavha har qanday fonda chetlari bilan ajraladi.
+      ...titleOutline(activeTheme === 'dark'),
       ...typography.display,
       color: colors.textPrimary,
     },
