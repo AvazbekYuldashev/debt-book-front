@@ -18,6 +18,18 @@ import type { ShadowTokens } from './elevation';
 export interface GlassTokens {
   /** Odatiy karta/blok. Blur YO'Q — pastdagi izohga qarang. */
   surface: ViewStyle;
+  /**
+   * TEKIS karta: to'liq to'ldirilgan sirt, nozik chegara, yumshoq soya.
+   *
+   * Shishadan farqi — ostidagi fon KO'RINMAYDI. Shisha ilovaning o'z
+   * bezakli foni uchun o'ylangan va u yerda chiroyli; mazmun zich
+   * bo'lgan ekranlarda esa fon naqshlari matn bilan aralashib,
+   * ro'yxatni "shovqinli" qilib qo'yadi.
+   *
+   * Yangi ekran uslubi shu sirtga tayanadi: oq karta, ko'p bo'sh joy,
+   * fon esa faqat kartalar ORASIDA ko'rinadi.
+   */
+  flat: ViewStyle;
   /** Ko'tarilgan STATIK sirt: modal, summary karta. Bu yerda blur bor. */
   raised: ViewStyle;
   /** Ichki bo'lak: klavisha, chip, ajratilgan maydon. Soyasiz, blursiz. */
@@ -121,6 +133,15 @@ export const makeGlass = (
     backgroundColor: mutedColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
+  },
+  // Chegara shisha qirrasidan ko'ra NOZIKROQ: to'ldirilgan sirtda
+  // qalin chiziq kartani "quti"ga aylantirardi, soya esa uni fondan
+  // o'zi ajratib turadi.
+  flat: {
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    ...shadows.card,
   },
   pane: {
     backgroundColor: surfaceColor,

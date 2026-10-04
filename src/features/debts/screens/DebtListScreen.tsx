@@ -779,9 +779,12 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       justifyContent: 'space-between',
       alignItems: 'center',
       gap: spacing.sm,
-      marginBottom: spacing.sm,
+      // Bo'sh joy kengaytirildi: yangi uslubda bloklar orasidagi
+      // nafas sarlavha ierarxiyasini o'zi ko'rsatadi, qo'shimcha
+      // chiziq yoki ramka kerak bo'lmaydi.
+      marginBottom: spacing.md,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.xxs,
+      paddingTop: spacing.xs,
     },
     titleWrap: {
       flexShrink: 1,
@@ -804,7 +807,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       height: 48,
       paddingHorizontal: spacing.sm,
       borderRadius: radius.lg,
-      ...glass.surface,
+      ...glass.flat,
     },
     searchToggleActive: {
       backgroundColor: colors.primarySoft,
@@ -842,7 +845,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     // qatorlardan yig'ilgani uchun ular yalang'och fonda qolmasin — o'ziga
     // xos karta sirtini shu yerda beramiz.
     emptyCard: {
-      ...glass.surface,
+      ...glass.flat,
       borderRadius: radius.xxl,
       marginHorizontal: spacing.md,
       overflow: 'hidden',
@@ -859,12 +862,17 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     //
     // Ilgari karta kontent konteyneri edi va bo'shliq uning ICHIGA tushib,
     // karta ekran ostiga yopishib qolardi.
+    /**
+     * TEKIS sirt, shisha emas.
+     *
+     * Ro'yxat ekranning asosiy mazmuni: o'nlab qator, har birida ism,
+     * raqam va belgi. Shaffof sirtda fon naqshlari ular bilan
+     * aralashib, ko'z qatorni emas, fonni ko'rardi. To'ldirilgan oq
+     * karta esa mazmunni oldinga chiqaradi, fon faqat kartalar
+     * ORASIDA ko'rinadi.
+     */
     rowSlice: {
-      // Sirt MAVZUDAN olinadi, xom tokendan emas: fon rasmi
-      // qo'yilganda shisha quyuqlashadi. Xom token bu almashuvni
-      // o'tkazib yuborar va ro'yxat rasm ustida loyqa dog' bo'lib
-      // qolardi.
-      backgroundColor: glass.surface.backgroundColor,
+      backgroundColor: glass.flat.backgroundColor,
       marginHorizontal: spacing.md,
     },
     rowFirst: {
