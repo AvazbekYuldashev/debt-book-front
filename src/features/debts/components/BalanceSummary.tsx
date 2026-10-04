@@ -216,17 +216,11 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
 const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     /**
-     * TEKIS karta, shisha emas.
-     *
-     * Bu blokda ekranning eng muhim raqamlari turadi. Shaffof sirtda
-     * fon naqshlari ular ortidan o'tib, summani o'qishni
-     * sekinlashtirardi.
-     *
-     * Ichki bo'shliq ham kengaytirildi: raqamlar karta qirrasiga
-     * yopishib turardi va blok siqilgandek ko'rinardi.
+     * Ichki bo'shliq kengaytirilgan: raqamlar karta qirrasiga yopishib
+     * turardi va blok siqilgandek ko'rinardi.
      */
     card: {
-      ...glass.flat,
+      ...glass.raised,
       borderRadius: radius.xxl,
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.md,

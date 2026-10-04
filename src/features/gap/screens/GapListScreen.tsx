@@ -347,7 +347,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     // qatorlardan yig'ilgani uchun ular yalang'och fonda qolmasin — o'ziga
     // xos karta sirtini shu yerda beramiz.
     emptyCard: {
-      ...glass.flat,
+      ...glass.pane,
       borderRadius: radius.xxl,
       marginHorizontal: spacing.md,
       overflow: 'hidden',
@@ -362,10 +362,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     // Ilgari karta kontent konteyneri edi, bo'shliq uning ichiga tushib
     // karta ekran ostiga yopishib qolardi.
     rowSlice: {
-      // TEKIS sirt - Qarzlar ro'yxati bilan bir xil. Ro'yxat ekranning
-      // asosiy mazmuni; shaffof sirtda fon naqshlari qatorlar bilan
-      // aralashib, ko'z qatorni emas, fonni ko'rardi.
-      backgroundColor: glass.flat.backgroundColor,
+      // Sirt MAVZUDAN olinadi, xom tokendan emas: fon rasmi qo'yilganda
+      // shisha o'zi quyuqlashadi.
+      backgroundColor: glass.surface.backgroundColor,
       marginHorizontal: spacing.md,
     },
     rowFirst: {

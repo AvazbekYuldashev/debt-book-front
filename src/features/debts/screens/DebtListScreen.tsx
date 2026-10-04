@@ -807,7 +807,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       height: 48,
       paddingHorizontal: spacing.sm,
       borderRadius: radius.lg,
-      ...glass.flat,
+      ...glass.surface,
     },
     searchToggleActive: {
       backgroundColor: colors.primarySoft,
@@ -845,7 +845,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     // qatorlardan yig'ilgani uchun ular yalang'och fonda qolmasin — o'ziga
     // xos karta sirtini shu yerda beramiz.
     emptyCard: {
-      ...glass.flat,
+      ...glass.surface,
       borderRadius: radius.xxl,
       marginHorizontal: spacing.md,
       overflow: 'hidden',
@@ -862,17 +862,10 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     //
     // Ilgari karta kontent konteyneri edi va bo'shliq uning ICHIGA tushib,
     // karta ekran ostiga yopishib qolardi.
-    /**
-     * TEKIS sirt, shisha emas.
-     *
-     * Ro'yxat ekranning asosiy mazmuni: o'nlab qator, har birida ism,
-     * raqam va belgi. Shaffof sirtda fon naqshlari ular bilan
-     * aralashib, ko'z qatorni emas, fonni ko'rardi. To'ldirilgan oq
-     * karta esa mazmunni oldinga chiqaradi, fon faqat kartalar
-     * ORASIDA ko'rinadi.
-     */
+    // Sirt MAVZUDAN olinadi, xom tokendan emas: fon rasmi qo'yilganda
+    // shisha o'zi quyuqlashadi va matn o'qiladigan bo'lib qoladi.
     rowSlice: {
-      backgroundColor: glass.flat.backgroundColor,
+      backgroundColor: glass.surface.backgroundColor,
       marginHorizontal: spacing.md,
     },
     rowFirst: {
