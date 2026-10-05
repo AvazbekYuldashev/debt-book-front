@@ -11,7 +11,6 @@ import StatusBanner from '../../../shared/ui/StatusBanner';
 import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { useAppTheme } from '../../../shared/theme';
-import { titleOutline } from '../../../shared/theme/textOutline';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
@@ -632,13 +631,26 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass, act
       paddingHorizontal: spacing.md,
       paddingTop: spacing.xxs,
     },
+    /**
+     * Sarlavha O'Z SIRTIDA.
+     *
+     * U kartalardan tashqarida, to'g'ridan-to'g'ri fon ustida turadi.
+     * Kontur (matn soyasi) ingichka va to'q rasmda to'q matnni
+     * qutqarmasdi - sirt esa kafolat beradi.
+     *
+     * Kenglik MAZMUNGA qarab: butun qator bo'ylab cho'zilsa, u sarlavha
+     * emas, bo'sh panel bo'lib ko'rinardi.
+     */
     titleWrap: {
+      alignSelf: 'flex-start',
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.lg,
+      ...glass.surface,
       flexShrink: 1,
       minWidth: 0,
     },
     title: {
-      // Kontur: sarlavha har qanday fonda chetlari bilan ajraladi.
-      ...titleOutline(activeTheme === 'dark'),
       ...typography.display,
       color: colors.textPrimary,
     },

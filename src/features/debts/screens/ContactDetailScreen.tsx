@@ -458,11 +458,20 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       fontSize: 16,
       color: colors.textOnPrimary,
     },
+    /**
+     * MA'NO RANGI, brend emas.
+     *
+     * "Oldim" qarzni, "Berdim" haqni bildiradi va ro'yxatdagi qizil/
+     * yashil summalar bilan bir tilda bo'lishi kerak. Ilgari "Berdim"
+     * brend rangidan olardi: foydalanuvchi ilova rangini binafsha
+     * qilsa, tugma ham binafsha bo'lib, haq bilan bog'liqligi
+     * yo'qolardi.
+     */
     takeBtn: {
-      backgroundColor: colors.danger,
+      backgroundColor: colors.negative,
     },
     giveBtn: {
-      backgroundColor: colors.primary,
+      backgroundColor: colors.positive,
     },
     readOnlyNote: {
       ...typography.bodySmall,

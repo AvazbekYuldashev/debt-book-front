@@ -323,12 +323,21 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     actionBtn: {
       flex: 1,
     },
+    /**
+     * MA'NO RANGI, brend emas.
+     *
+     * "Oldim" qarzni, "Berdim" haqni bildiradi va ro'yxatdagi qizil/
+     * yashil summalar bilan bir tilda bo'lishi kerak. Ilgari "Berdim"
+     * brend rangidan olardi: foydalanuvchi ilova rangini binafsha
+     * qilsa, tugma ham binafsha bo'lib, haq bilan bog'liqligi
+     * yo'qolardi.
+     */
     takeBtn: {
-      backgroundColor: colors.danger,
+      backgroundColor: colors.negative,
       borderWidth: 0,
     },
     giveBtn: {
-      backgroundColor: colors.primary,
+      backgroundColor: colors.positive,
       borderWidth: 0,
     },
     actionHint: {

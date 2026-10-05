@@ -28,7 +28,6 @@ import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import { useContactBalances } from '../hooks/useContactBalances';
 import { useNotifications } from '../../notifications/hooks/useNotifications';
 import { useAppTheme } from '../../../shared/theme';
-import { titleOutline } from '../../../shared/theme/textOutline';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { DebtsNavigation } from '../../../app/navigation/types';
@@ -787,13 +786,26 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
       paddingHorizontal: spacing.md,
       paddingTop: spacing.xs,
     },
+    /**
+     * Sarlavha O'Z SIRTIDA.
+     *
+     * U kartalardan tashqarida, to'g'ridan-to'g'ri fon ustida turadi.
+     * Kontur (matn soyasi) ingichka va to'q rasmda to'q matnni
+     * qutqarmasdi - sirt esa kafolat beradi.
+     *
+     * Kenglik MAZMUNGA qarab: butun qator bo'ylab cho'zilsa, u sarlavha
+     * emas, bo'sh panel bo'lib ko'rinardi.
+     */
     titleWrap: {
+      alignSelf: 'flex-start',
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.lg,
+      ...glass.surface,
       flexShrink: 1,
       minWidth: 0,
     },
     title: {
-      // Kontur: sarlavha har qanday fonda chetlari bilan ajraladi.
-      ...titleOutline(activeTheme === 'dark'),
       ...typography.display,
       color: colors.textPrimary,
     },
