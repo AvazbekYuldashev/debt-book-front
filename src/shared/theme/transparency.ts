@@ -39,24 +39,28 @@ const WITHOUT_PHOTO: Record<TransparencyLevel, AlphaSet> = {
 /**
  * FOTOSURAT ustida mavzular TENG EMAS.
  *
- * Yorug' mavzuda sirt OQ. To'q rasm ustida oq rangning o'rta alfasi
- * sut rangli tuman beradi: rasm ham ko'rinmaydi, karta ham toza emas.
- * Qorong'ida esa tus to'q ko'k-kulrang - u rasmning o'ziga qo'shilib
- * ketadi va past alfada ham tabiiy chiqadi.
+ * Yorug' mavzuda sirt OQ, qorong'ida esa to'q ko'k-kulrang. To'q rasm
+ * ustida oq rangning O'RTA alfasi sut rangli tuman beradi - rasm ham
+ * ko'rinmaydi, karta ham toza emas. To'q tus esa rasmning o'ziga
+ * qo'shilib ketadi va o'rta alfada ham tabiiy chiqadi.
  *
- * Shu sababli bir xil daraja ikki mavzuda turli raqam oladi. Yorug'
- * mavzu quyuqroq tomonga suriladi: oq sirt uchun ishonchli oraliq
- * faqat shu yerda - u yerda u tuman emas, TOZA KARTA bo'lib o'qiladi.
+ * Shu sababli yorug' mavzuda o'sha "loyqa" oraliqdan QOCHILADI: "Ko'p"
+ * deyarli nolga tushadi (rasm o'z holicha ko'rinadi), "Kam" esa toza
+ * oq kartaga chiqadi. O'rtadagi qiymat ikkala uchdan ham uzoqroq.
+ *
+ * EVAZIGA: "Ko'p" tanlanganda yorug' mavzudagi to'q matn to'q rasm
+ * ustida qoladi. Bu foydalanuvchi tanlovi - shuning uchun u sozlama,
+ * dasturning qarori emas.
  */
 const WITH_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
-  clear: { surface: 0.7, strong: 0.78, muted: 0.62 },
-  medium: { surface: 0.85, strong: 0.9, muted: 0.8 },
+  clear: { surface: 0.08, strong: 0.14, muted: 0.06 },
+  medium: { surface: 0.5, strong: 0.62, muted: 0.42 },
   solid: { surface: 0.95, strong: 0.97, muted: 0.92 },
 };
 
 const WITH_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
-  clear: { surface: 0.35, strong: 0.5, muted: 0.28 },
-  medium: { surface: 0.6, strong: 0.72, muted: 0.52 },
+  clear: { surface: 0.08, strong: 0.14, muted: 0.06 },
+  medium: { surface: 0.45, strong: 0.6, muted: 0.38 },
   solid: { surface: 0.85, strong: 0.92, muted: 0.8 },
 };
 

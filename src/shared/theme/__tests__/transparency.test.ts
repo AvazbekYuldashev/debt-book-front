@@ -51,31 +51,38 @@ describe('glassAlpha', () => {
     expect(medium).toBeLessThan(solid);
   });
 
-  /**
-   * FOTOSURAT ustida har daraja quyuqroq: ilovaning o'z foni past
-   * kontrastli, ixtiyoriy rasm esa emas.
-   */
-  it('rasm ustida quyuqroq', () => {
-    for (const item of TRANSPARENCY_LEVELS) {
-      for (const isDark of [false, true]) {
-        expect(glassAlpha(item.id, true, isDark).surface)
-          .toBeGreaterThan(glassAlpha(item.id, false).surface);
-      }
+  /** Har jadvalda darajalar tartibda: ko'p -> o'rta -> kam. */
+  it('har jadvalda darajalar tartibda', () => {
+    for (const isDark of [false, true]) {
+      const clear = glassAlpha('clear', true, isDark).surface;
+      const medium = glassAlpha('medium', true, isDark).surface;
+      const solid = glassAlpha('solid', true, isDark).surface;
+
+      expect(clear).toBeLessThan(medium);
+      expect(medium).toBeLessThan(solid);
     }
   });
 
   /**
-   * RASM USTIDA MAVZULAR TENG EMAS.
+   * "KO'P" DEGANI HAQIQATAN SHAFFOF.
    *
-   * Yorug' mavzuda sirt oq: to'q rasm ustida o'rta alfa sut rangli
-   * tuman beradi. Qorong'ida esa tus rasmning o'ziga qo'shilib ketadi.
-   * Shuning uchun yorug' mavzu har darajada QUYUQROQ bo'lishi kerak.
+   * Yarim shaffof oq sirt to'q rasm ustida sut rangli tuman berardi -
+   * rasm ham ko'rinmay, karta ham toza bo'lmay qolardi. Eng shaffof
+   * daraja o'sha loyqa oraliqdan butunlay chiqib ketishi kerak.
    */
-  it('yorug mavzu rasm ustida quyuqroq', () => {
-    for (const item of TRANSPARENCY_LEVELS) {
-      expect(glassAlpha(item.id, true, false).surface)
-        .toBeGreaterThan(glassAlpha(item.id, true, true).surface);
+  it('eng shaffof daraja deyarli korinmas', () => {
+    for (const isDark of [false, true]) {
+      expect(glassAlpha('clear', true, isDark).surface).toBeLessThan(0.15);
     }
+  });
+
+  /**
+   * O'RTA darajada yorug' mavzu QUYUQROQ: oq tus to'q rasm bilan
+   * aralashganda tuman beradi, to'q tus esa unga qo'shilib ketadi.
+   */
+  it('orta darajada yorug mavzu quyuqroq', () => {
+    expect(glassAlpha('medium', true, false).surface)
+      .toBeGreaterThan(glassAlpha('medium', true, true).surface);
   });
 
   /** Rasmsiz esa ikki mavzu bir xil - u yerda fon past kontrastli. */
