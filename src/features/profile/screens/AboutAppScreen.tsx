@@ -8,6 +8,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { APP_VERSION_CODE } from '../../../shared/appVersion';
+import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
 import {
@@ -57,7 +58,7 @@ const AboutAppScreen: React.FC<ProfileScreenProps<typeof ROUTES.ABOUT_APP>> = ({
           </Text>
         </Card>
 
-        <Text style={styles.sectionTitle}>{t('about.teamSection')}</Text>
+        <SurfaceLabel style={styles.sectionTitle}>{t('about.teamSection')}</SurfaceLabel>
 
         {APP_CREDITS.map((person) => (
           <Card key={person.roleKey} style={styles.card}>
@@ -86,7 +87,7 @@ const AboutAppScreen: React.FC<ProfileScreenProps<typeof ROUTES.ABOUT_APP>> = ({
           </Card>
         ))}
 
-        <Text style={styles.sectionTitle}>{t('about.documentsSection')}</Text>
+        <SurfaceLabel style={styles.sectionTitle}>{t('about.documentsSection')}</SurfaceLabel>
 
         <Card style={styles.card}>
           <Row label={t('about.certificate')} value={APP_CERTIFICATE.number} styles={styles} />
@@ -158,10 +159,9 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       ...typography.caption,
       color: colors.textSecondary,
     },
+    // Yorliq fon ustida turadi - sirti SurfaceLabel dan keladi, bu
+    // yerda faqat o'rni beriladi.
     sectionTitle: {
-      ...typography.label,
-      fontWeight: '700',
-      color: colors.textSecondary,
       marginTop: spacing.xs,
       marginLeft: spacing.xxs,
     },

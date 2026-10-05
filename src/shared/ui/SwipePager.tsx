@@ -166,7 +166,7 @@ const SwipePager: React.FC<SwipePagerProps> = ({ pages, style, onPageChange }) =
   );
 };
 
-const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     wrap: {
       flex: 1,
@@ -174,14 +174,29 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
     scroll: {
       flex: 1,
     },
+    /**
+     * Yorliqlar qatori O'Z SIRTIDA.
+     *
+     * U kartalardan tashqarida, to'g'ridan-to'g'ri fonda turardi va
+     * foydalanuvchi to'q rasm qo'yganda yorug' mavzudagi to'q matn unga
+     * qo'shilib ketardi. Sirt kafolat beradi: rasm qanday bo'lsa ham
+     * yorliq o'z foni ustida turadi.
+     *
+     * Yon ta'siri yaxshi - qator endi segmentli boshqaruvga o'xshaydi
+     * va bosiladigan joy ko'rinib turadi.
+     */
     tabs: {
       flexDirection: 'row',
-      marginBottom: spacing.xs,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.sm,
+      borderRadius: radius.lg,
+      overflow: 'hidden',
+      ...glass.surface,
     },
     tab: {
       flex: 1,
       alignItems: 'center',
-      paddingTop: spacing.xxs,
+      paddingTop: spacing.xs,
       gap: spacing.xxs + 2,
     },
     tabPressed: {
