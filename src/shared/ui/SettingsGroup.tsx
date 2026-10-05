@@ -28,7 +28,13 @@ const SettingsGroup: React.FC<SettingsGroupProps> = ({ title, children, style })
 
   return (
     <View style={[styles.wrap, style]}>
-      {title ? <Text style={styles.title}>{title}</Text> : null}
+      {/* Sarlavha O'Z SIRTIDA: u panel tashqarisida, fon ustida
+          turadi va to'q rasmda yorug' mavzudagi to'q matn yo'qolardi. */}
+      {title ? (
+        <View style={styles.titleWrap}>
+          <Text style={styles.title}>{title}</Text>
+        </View>
+      ) : null}
       <View style={styles.panel}>{children}</View>
     </View>
   );
@@ -39,6 +45,19 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     wrap: {
       marginBottom: spacing.lg,
     },
+    /**
+     * Kengligi MAZMUNGA qarab: butun qator bo'ylab cho'zilsa, u
+     * sarlavha emas, bo'sh panel bo'lib ko'rinardi.
+     */
+    titleWrap: {
+      alignSelf: 'flex-start',
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.pill,
+      marginBottom: spacing.xs,
+      marginLeft: spacing.xxs,
+      ...glass.surface,
+    },
     title: {
       ...typography.caption,
       fontSize: 12,
@@ -46,8 +65,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       letterSpacing: 0.6,
       textTransform: 'uppercase',
       color: colors.textSecondary,
-      marginBottom: spacing.xs,
-      marginLeft: spacing.sm,
     },
     // Panel ichidagi qatorlar o'z ajratuvchisini chizadi, shuning uchun
     // bu yerda faqat sirt va burchaklar.

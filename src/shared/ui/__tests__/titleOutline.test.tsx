@@ -43,10 +43,24 @@ describe('sarlavha konturi', () => {
     expect(styleOf(screen.getByText('Hisob va ilova')).textShadowColor).toBe('#FFFFFF');
   });
 
-  it('bolim sarlavhasida kontur bor', async () => {
+  /**
+   * BO'LIM SARLAVHASIDA KONTUR EMAS, SIRT.
+   *
+   * U ekran o'rtasida, yuqoridagi pardadan pastda turadi - u yerda fon
+   * hech narsa bilan yumshatilmaydi. Ingichka kontur to'q rasmda to'q
+   * matnni qutqarmasdi, shuning uchun yorliq o'z foniga ko'chdi.
+   */
+  it('bolim sarlavhasi oz sirtida turadi', async () => {
     show(<SectionHeader title="Kontaktlar" icon="people" />);
     await settle();
 
-    expect(styleOf(screen.getByText('Kontaktlar')).textShadowColor).toBe('#FFFFFF');
+    const label = screen.getByText('Kontaktlar');
+    expect(styleOf(label).textShadowColor).toBeUndefined();
+
+    // Yorliqni o'rab turgan qatorda fon bo'lishi shart.
+    const wrap = label.parent?.parent;
+    const wrapStyle = StyleSheet.flatten(wrap?.props?.style) as Record<string, unknown>;
+    expect(wrapStyle.backgroundColor).toBeTruthy();
+    expect(wrapStyle.borderRadius).toBeTruthy();
   });
 });

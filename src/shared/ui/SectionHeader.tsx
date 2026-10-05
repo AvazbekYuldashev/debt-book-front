@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import PressableScale from './PressableScale';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
-import { titleOutline } from '../theme/textOutline';
 
 interface SectionHeaderProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -49,6 +48,13 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
 
   return (
     <View style={styles.row}>
+      {/* Yorliq O'Z SIRTIDA, tabletka ichida.
+          Bo'lim sarlavhasi ekranning o'rtasida, kartalardan tashqarida
+          turadi va fon rasmi to'q bo'lsa yorug' mavzudagi to'q matn
+          unga qo'shilib ketardi. Kontur yetarli emasdi: ingichka oq
+          chiziq to'q fonda to'q matnni qutqarmaydi. Tabletka esa
+          matnga o'z foni beradi - rasm qanday bo'lishidan qat'i nazar
+          o'qiladi. */}
       <View style={styles.left}>
         {iconBadge ? (
           <View style={styles.iconWrap}>
@@ -79,7 +85,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows, activeTheme }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
@@ -89,10 +95,22 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, activeThem
       paddingHorizontal: spacing.md,
       marginBottom: spacing.xs,
     },
+    /**
+     * Yorliq tabletkasi: matnga O'Z foni.
+     *
+     * Kengligi mazmunga qarab (`alignSelf: flex-start`) - butun qator
+     * bo'ylab cho'zilsa, u sarlavha emas, bo'sh panel bo'lib ko'rinardi.
+     */
     left: {
       flexDirection: 'row',
       alignItems: 'center',
+      alignSelf: 'flex-start',
       gap: spacing.xs,
+      paddingVertical: spacing.xxs,
+      paddingRight: spacing.sm,
+      paddingLeft: spacing.xxs,
+      borderRadius: radius.pill,
+      ...glass.surface,
       // Sarlavha uzun bo'lsa harakat tugmasini siqib chiqarmasin.
       flexShrink: 1,
       minWidth: 0,
@@ -106,8 +124,6 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, activeThem
       backgroundColor: colors.primarySoft,
     },
     title: {
-      // Kontur: matn har qanday fonda chetlari bilan ajraladi.
-      ...titleOutline(activeTheme === 'dark'),
       ...typography.heading3,
       color: colors.textPrimary,
       flexShrink: 1,
