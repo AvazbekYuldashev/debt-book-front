@@ -57,8 +57,32 @@ describe('glassAlpha', () => {
    */
   it('rasm ustida quyuqroq', () => {
     for (const item of TRANSPARENCY_LEVELS) {
-      expect(glassAlpha(item.id, true).surface)
-        .toBeGreaterThan(glassAlpha(item.id, false).surface);
+      for (const isDark of [false, true]) {
+        expect(glassAlpha(item.id, true, isDark).surface)
+          .toBeGreaterThan(glassAlpha(item.id, false).surface);
+      }
+    }
+  });
+
+  /**
+   * RASM USTIDA MAVZULAR TENG EMAS.
+   *
+   * Yorug' mavzuda sirt oq: to'q rasm ustida o'rta alfa sut rangli
+   * tuman beradi. Qorong'ida esa tus rasmning o'ziga qo'shilib ketadi.
+   * Shuning uchun yorug' mavzu har darajada QUYUQROQ bo'lishi kerak.
+   */
+  it('yorug mavzu rasm ustida quyuqroq', () => {
+    for (const item of TRANSPARENCY_LEVELS) {
+      expect(glassAlpha(item.id, true, false).surface)
+        .toBeGreaterThan(glassAlpha(item.id, true, true).surface);
+    }
+  });
+
+  /** Rasmsiz esa ikki mavzu bir xil - u yerda fon past kontrastli. */
+  it('rasmsiz mavzular teng', () => {
+    for (const item of TRANSPARENCY_LEVELS) {
+      expect(glassAlpha(item.id, false, false))
+        .toEqual(glassAlpha(item.id, false, true));
     }
   });
 });

@@ -89,10 +89,11 @@ export const makeGlass = (
   shadows: ShadowTokens,
   onPhoto = false,
   level: TransparencyLevel = DEFAULT_TRANSPARENCY,
+  isDark = false,
 ): GlassTokens => {
   // TUS mavzudan, ALFA sozlamadan. Shu sababli shaffoflikni o'zgartirish
   // sirtning rangini emas, faqat qalinligini o'zgartiradi.
-  const alpha = glassAlpha(level, onPhoto);
+  const alpha = glassAlpha(level, onPhoto, isDark);
   const surfaceColor = reAlpha(
     onPhoto ? colors.glassSurfaceOnPhoto : colors.glassSurface, alpha.surface);
   const strongColor = reAlpha(

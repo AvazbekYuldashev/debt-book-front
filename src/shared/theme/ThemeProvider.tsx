@@ -131,8 +131,8 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // bog'liq va uni dastur bila olmaydi.
   const { level } = useTransparency();
   const glass = useMemo(
-    () => makeGlass(colors, shadows, imageId.length > 0, level),
-    [colors, shadows, imageId, level],
+    () => makeGlass(colors, shadows, imageId.length > 0, level, activeTheme === 'dark'),
+    [colors, shadows, imageId, level, activeTheme],
   );
 
   const value = useMemo<ThemeValue>(() => ({

@@ -36,10 +36,28 @@ const WITHOUT_PHOTO: Record<TransparencyLevel, AlphaSet> = {
   solid: { surface: 0.55, strong: 0.7, muted: 0.4 },
 };
 
-const WITH_PHOTO: Record<TransparencyLevel, AlphaSet> = {
-  clear: { surface: 0.45, strong: 0.6, muted: 0.35 },
-  medium: { surface: 0.72, strong: 0.82, muted: 0.65 },
-  solid: { surface: 0.92, strong: 0.96, muted: 0.88 },
+/**
+ * FOTOSURAT ustida mavzular TENG EMAS.
+ *
+ * Yorug' mavzuda sirt OQ. To'q rasm ustida oq rangning o'rta alfasi
+ * sut rangli tuman beradi: rasm ham ko'rinmaydi, karta ham toza emas.
+ * Qorong'ida esa tus to'q ko'k-kulrang - u rasmning o'ziga qo'shilib
+ * ketadi va past alfada ham tabiiy chiqadi.
+ *
+ * Shu sababli bir xil daraja ikki mavzuda turli raqam oladi. Yorug'
+ * mavzu quyuqroq tomonga suriladi: oq sirt uchun ishonchli oraliq
+ * faqat shu yerda - u yerda u tuman emas, TOZA KARTA bo'lib o'qiladi.
+ */
+const WITH_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
+  clear: { surface: 0.7, strong: 0.78, muted: 0.62 },
+  medium: { surface: 0.85, strong: 0.9, muted: 0.8 },
+  solid: { surface: 0.95, strong: 0.97, muted: 0.92 },
+};
+
+const WITH_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
+  clear: { surface: 0.35, strong: 0.5, muted: 0.28 },
+  medium: { surface: 0.6, strong: 0.72, muted: 0.52 },
+  solid: { surface: 0.85, strong: 0.92, muted: 0.8 },
 };
 
 /** Noma'lum daraja standartga tushadi - eski ilova yangisini yuborsa ham. */
@@ -48,8 +66,14 @@ export const findTransparency = (id: string | null | undefined): TransparencyLev
     ? (id as TransparencyLevel)
     : DEFAULT_TRANSPARENCY;
 
-export const glassAlpha = (level: TransparencyLevel, onPhoto: boolean): AlphaSet =>
-  (onPhoto ? WITH_PHOTO : WITHOUT_PHOTO)[level];
+export const glassAlpha = (
+  level: TransparencyLevel,
+  onPhoto: boolean,
+  isDark = false,
+): AlphaSet => {
+  if (!onPhoto) return WITHOUT_PHOTO[level];
+  return (isDark ? WITH_PHOTO_DARK : WITH_PHOTO_LIGHT)[level];
+};
 
 /**
  * `rgba(...)` satrining faqat ALFASINI almashtiradi.
