@@ -149,6 +149,18 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
    * Xizmat esa daqiqasiga to'lanadi - o'lchovsiz sarfni bilib bo'lmaydi.
    */
   const startedAtRef = useRef<number>(0);
+  /**
+   * Barmoq hali tugmada turibdimi.
+   *
+   * NEGA KERAK: yozish BOSIB TURIB bajariladi, `start` esa asinxron -
+   * u mikrofon ruxsatini kutadi. Odam tugmani tezda qo'yib yuborsa,
+   * `stop` hali mavjud bo'lmagan yozuvchini topa olmay qaytar, keyin
+   * yozuvchi ishga tushib, MIKROFON YONIB QOLARDI.
+   *
+   * Shuning uchun uzilish shu bayroqqa yoziladi va yozuvchi tayyor
+   * bo'lgach uni darhol to'xtatadi.
+   */
+  const holdingRef = useRef(false);
   const chunksRef = useRef<BlobPart[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Komponent yopilgach natijani qo'ymaslik uchun — modal yopilganda
@@ -234,7 +246,9 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
   );
 
   const stop = useCallback(() => {
+    holdingRef.current = false;
     const recorder = recorderRef.current;
+    // Yozuvchi hali yaratilmagan - bayroq tushdi, `start` o'zi to'xtatadi.
     if (!recorder || recorder.state === 'inactive') return;
     // `onstop` ichida blob yig'iladi — shuning uchun bu yerda faqat to'xtatamiz.
     recorder.stop();
@@ -248,6 +262,7 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
     }
     if (state !== 'idle') return;
     setError(null);
+    holdingRef.current = true;
 
     const MediaRecorderCtor = (window as unknown as { MediaRecorder: typeof MediaRecorder }).MediaRecorder;
     const mimeType = pickMimeType((type) =>
@@ -275,8 +290,11 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
       return;
     }
 
-    if (!aliveRef.current) {
+    // Ruxsat so'rovi davomida barmoq uzilgan bo'lishi mumkin - o'shanda
+    // yozuvni umuman boshlamaymiz, aks holda mikrofon yonib qolardi.
+    if (!aliveRef.current || !holdingRef.current) {
       stream.getTracks().forEach((track) => track.stop());
+      if (aliveRef.current) setState('idle');
       return;
     }
 

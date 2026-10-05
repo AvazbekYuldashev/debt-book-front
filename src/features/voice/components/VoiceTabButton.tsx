@@ -51,7 +51,19 @@ const VoiceTabButton: React.FC = () => {
   return (
     <View style={styles.wrap} pointerEvents="box-none">
       <Pressable
-        onPress={recording ? voice.stop : voice.start}
+        /**
+         * BOSIB TURIB GAPIRILADI, qo'yib yuborilganda to'xtaydi.
+         *
+         * Ilgari bosish yozishni boshlar, ikkinchi bosish to'xtatardi.
+         * Odam gapirib bo'lgach tugmani qidirib topguncha bir necha
+         * soniya o'tib ketar, o'sha jimlik esa ovoz uzunligiga qo'shilib,
+         * pulga tushardi (tanish DAQIQASIGA to'lanadi).
+         *
+         * Barmoq uzilishi tabiiy chegara: odam gapirishni to'xtatgan
+         * payt bilan yozuv tugashi ustma-ust tushadi.
+         */
+        onPressIn={voice.start}
+        onPressOut={voice.stop}
         disabled={working || !ready}
         accessibilityRole="button"
         accessibilityState={{ disabled: !ready, busy: working }}

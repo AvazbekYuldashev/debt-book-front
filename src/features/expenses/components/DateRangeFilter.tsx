@@ -74,9 +74,13 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
           value={parts.year}
           onChange={(e: any) => onChange(updateDatePart(value, 'year', e.target.value))}
         >
-          <option value="">{t('expenses.year')}</option>
+          <option value="" style={styles.segmentOption as any}>{t('expenses.year')}</option>
           {yearOptions.map((year) => (
-            <option key={`${prefix}-year-${year}`} value={year}>
+            <option
+              key={`${prefix}-year-${year}`}
+              value={year}
+              style={styles.segmentOption as any}
+            >
               {year}
             </option>
           ))}
@@ -86,9 +90,13 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
           value={parts.month}
           onChange={(e: any) => onChange(updateDatePart(value, 'month', e.target.value))}
         >
-          <option value="">{t('expenses.month')}</option>
+          <option value="" style={styles.segmentOption as any}>{t('expenses.month')}</option>
           {MONTHS.map((month) => (
-            <option key={`${prefix}-month-${month}`} value={month}>
+            <option
+              key={`${prefix}-month-${month}`}
+              value={month}
+              style={styles.segmentOption as any}
+            >
               {month}
             </option>
           ))}
@@ -98,9 +106,13 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
           value={parts.day}
           onChange={(e: any) => onChange(updateDatePart(value, 'day', e.target.value))}
         >
-          <option value="">{t('expenses.day')}</option>
+          <option value="" style={styles.segmentOption as any}>{t('expenses.day')}</option>
           {DAYS.map((day) => (
-            <option key={`${prefix}-day-${day}`} value={day}>
+            <option
+              key={`${prefix}-day-${day}`}
+              value={day}
+              style={styles.segmentOption as any}
+            >
               {day}
             </option>
           ))}
@@ -264,15 +276,34 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       flexDirection: 'row',
       gap: spacing.xs,
     },
+    /**
+     * Fon SHAFFOF EMAS.
+     *
+     * Ochiladigan ro'yxatni brauzerning o'zi chizadi va u `select`
+     * elementining rangini meros qilib oladi. Shisha sirt berilganda
+     * ro'yxat deyarli ko'rinmay qolardi: och kulrang fonda och matn.
+     * Shu sababli bu yerda mavzuning to'ldirilgan sirti ishlatiladi.
+     */
     segmentSelect: {
       flex: 1,
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: radius.sm,
-      ...glass.muted,
+      backgroundColor: colors.surface,
       color: colors.textPrimary,
       paddingHorizontal: spacing.xs,
       paddingVertical: spacing.xs,
+    },
+    /**
+     * Ro'yxatdagi bandlar ham ALOHIDA bo'yaladi.
+     *
+     * Ba'zi brauzerlar `option` ni ota-elementdan emas, tizim
+     * mavzusidan chizadi - qorong'i mavzuda oq fonda oq matn chiqib
+     * qolardi.
+     */
+    segmentOption: {
+      backgroundColor: colors.surface,
+      color: colors.textPrimary,
     },
     mobileDateRange: {
       marginTop: spacing.sm,
