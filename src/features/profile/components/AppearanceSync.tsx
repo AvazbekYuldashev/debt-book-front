@@ -2,15 +2,16 @@ import { useContext, useEffect } from 'react';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { useBackground } from '../../../shared/theme/BackgroundProvider';
 import { useAccent } from '../../../shared/theme/AccentProvider';
+import { useTransparency } from '../../../shared/theme/TransparencyProvider';
 
 /**
- * Hisobdagi ko'rinish sozlamalarini ilovaga ulaydi: fon rasmi va
- * asosiy rang.
+ * Hisobdagi ko'rinish sozlamalarini ilovaga ulaydi: fon rasmi, asosiy
+ * rang va sirtlarning shaffofligi.
  *
- * NEGA ALOHIDA KOMPONENT: ikkala provayder ham daraxtda `AuthProvider`
+ * NEGA ALOHIDA KOMPONENT: uchala provayder ham daraxtda `AuthProvider`
  * dan YUQORIDA turadi (mavzu ularga tayanadi, o'zlari esa mavzuga
  * tayanmaydi), shuning uchun ular profilni o'zlari o'qiy olmaydi. Bu
- * komponent esa uchala kontekst ichida turadi va ularni bog'laydi.
+ * komponent esa hamma kontekst ichida turadi va ularni bog'laydi.
  *
  * Hech narsa chizmaydi.
  */
@@ -18,10 +19,12 @@ const AppearanceSync: React.FC = () => {
   const { profile } = useContext(AuthContext);
   const { adopt } = useBackground();
   const { adoptAccent } = useAccent();
+  const { adoptLevel } = useTransparency();
 
   const id = profile?.id ?? null;
   const background = profile?.background;
   const accent = profile?.accent;
+  const glassLevel = profile?.glassLevel;
 
   useEffect(() => {
     // Maydonlar bo'yicha bog'lanish: obyektning o'zi har renderda yangi
@@ -33,6 +36,10 @@ const AppearanceSync: React.FC = () => {
   useEffect(() => {
     adoptAccent(id, accent ?? null);
   }, [id, accent, adoptAccent]);
+
+  useEffect(() => {
+    adoptLevel(id, glassLevel ?? null);
+  }, [id, glassLevel, adoptLevel]);
 
   return null;
 };

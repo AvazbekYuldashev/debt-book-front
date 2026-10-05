@@ -51,6 +51,12 @@ export const updateProfileAccent = async (accent: string, token?: string): Promi
   await apiClient.put<AppResponse<string>>('/profile/accent', { accent });
 };
 
+/** Sirtlarning shaffofligini hisobga saqlaydi. */
+export const updateProfileGlass = async (level: string, token?: string): Promise<void> => {
+  setApiAuthToken(token);
+  await apiClient.put<AppResponse<string>>('/profile/glass', { level });
+};
+
 /** Ilova fonini hisobga saqlaydi - har qurilmada o'sha fon ko'rinadi. */
 export const updateProfileBackground = async (
   dto: ProfileBackgroundUpdateDTO,

@@ -44,24 +44,28 @@ describe('glass.modal', () => {
  * sirt sut rangli dog'ga aylanib, butun ekranni "xira" qilardi.
  */
 describe('makeGlass — fon rasmi ustida', () => {
-  it('rasm bor bolsa sirt boshqa rangda', () => {
+  it('rasm bor bolsa sirt quyuqroq', () => {
     const shadows = makeShadows(lightColors.shadow);
     const oddiy = makeGlass(lightColors, shadows, false);
     const rasmda = makeGlass(lightColors, shadows, true);
 
     expect(rasmda.surface.backgroundColor).not.toBe(oddiy.surface.backgroundColor);
-    expect(rasmda.surface.backgroundColor).toBe(lightColors.glassSurfaceOnPhoto);
+    // Aniq alfa SOZLAMADAN keladi, shuning uchun bu yerda faqat yo'nalish
+    // tekshiriladi: rasm ustida sirt quyuqroq bo'lishi SHART.
+    expect(alphaOf(rasmda.surface.backgroundColor as string))
+      .toBeGreaterThan(alphaOf(oddiy.surface.backgroundColor as string));
   });
 
   /** Ko'tarilgan sirt ham, ichki bo'lak ham o'z variantini oladi. */
   it('barcha shaffof sirtlar almashadi', () => {
     const shadows = makeShadows(lightColors.shadow);
+    const oddiy = makeGlass(lightColors, shadows, false);
     const rasmda = makeGlass(lightColors, shadows, true);
 
-    expect(rasmda.raised.backgroundColor).toBe(lightColors.glassSurfaceStrongOnPhoto);
-    expect(rasmda.muted.backgroundColor).toBe(lightColors.glassMutedOnPhoto);
-    expect(rasmda.pane.backgroundColor).toBe(lightColors.glassSurfaceOnPhoto);
-    expect(rasmda.flush.backgroundColor).toBe(lightColors.glassSurfaceOnPhoto);
+    for (const key of ['raised', 'muted', 'pane', 'flush'] as const) {
+      expect(alphaOf(rasmda[key].backgroundColor as string))
+        .toBeGreaterThan(alphaOf(oddiy[key].backgroundColor as string));
+    }
   });
 
   /** Dialog ATAYIN tegilmaydi: u allaqachon mustahkam fonda. */

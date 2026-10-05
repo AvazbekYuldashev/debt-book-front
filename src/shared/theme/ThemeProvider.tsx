@@ -6,6 +6,7 @@ import { makeShadows, ShadowTokens } from './elevation';
 import { makeGlass, GlassTokens } from './glass';
 import { useBackground } from './BackgroundProvider';
 import { useAccent } from './AccentProvider';
+import { useTransparency } from './TransparencyProvider';
 import { applyAccent } from './accent';
 import { loadAppFonts } from './fonts';
 import { iconSize } from './iconSizes';
@@ -126,9 +127,12 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    * TASHQARIDA turadi - u mavzuga bog'liq emas, mavzu esa unga bog'liq.
    */
   const { imageId } = useBackground();
+  // Shaffoflik darajasi foydalanuvchi sozlamasi: to'g'ri qiymat fonga
+  // bog'liq va uni dastur bila olmaydi.
+  const { level } = useTransparency();
   const glass = useMemo(
-    () => makeGlass(colors, shadows, imageId.length > 0),
-    [colors, shadows, imageId],
+    () => makeGlass(colors, shadows, imageId.length > 0, level),
+    [colors, shadows, imageId, level],
   );
 
   const value = useMemo<ThemeValue>(() => ({

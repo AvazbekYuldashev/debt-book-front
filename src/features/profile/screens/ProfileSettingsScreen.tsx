@@ -7,13 +7,15 @@ import SettingsRow from '../../../shared/ui/SettingsRow';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useAccent } from '../../../shared/theme/AccentProvider';
+import { useTransparency } from '../../../shared/theme/TransparencyProvider';
+import { TRANSPARENCY_LEVELS } from '../../../shared/theme/transparency';
 import { ACCENTS } from '../../../shared/theme/accent';
 import { useI18n } from '../../../shared/i18n';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
 import type { ThemeMode } from '../../../shared/theme/ThemeProvider';
 import BackgroundPicker from '../components/BackgroundPicker';
-import { updateProfileAccent } from '../api/profile';
+import { updateProfileAccent, updateProfileGlass } from '../api/profile';
 import { AuthContext } from '../../auth/context/AuthContext';
 
 const THEME_MODES: { mode: ThemeMode; labelKey: string }[] = [
@@ -42,6 +44,7 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
   const { mode, setMode, activeTheme } = theme;
   const { t, lang, setLang, langs } = useI18n();
   const { accent, setAccent } = useAccent();
+  const { level, setLevel } = useTransparency();
   const { profile, setProfile } = React.useContext(AuthContext);
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -58,6 +61,15 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
     if (!token) return;
     void updateProfileAccent(id, token)
       .then(() => setProfile((current) => (current ? { ...current, accent: id } : current)))
+      .catch(() => undefined);
+  };
+
+  /** Shaffoflik ham darhol qo'llanadi - rang bilan bir xil naqsh. */
+  const chooseGlass = (id: typeof TRANSPARENCY_LEVELS[number]['id']) => {
+    setLevel(id);
+    if (!token) return;
+    void updateProfileGlass(id, token)
+      .then(() => setProfile((current) => (current ? { ...current, glassLevel: id } : current)))
       .catch(() => undefined);
   };
 
@@ -103,6 +115,20 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
               selected={item.id === accent}
               onPress={() => chooseAccent(item.id)}
               isLast={index === ACCENTS.length - 1}
+            />
+          ))}
+        </SettingsGroup>
+
+        {/* Shaffoflik rangdan keyin: ikkovi ham ko'rinish sozlamasi va
+            natijasi darhol ekranda ko'rinadi. */}
+        <SettingsGroup title={t('glass.title')}>
+          {TRANSPARENCY_LEVELS.map((item, index) => (
+            <SettingsRow
+              key={item.id}
+              label={t(item.labelKey)}
+              selected={item.id === level}
+              onPress={() => chooseGlass(item.id)}
+              isLast={index === TRANSPARENCY_LEVELS.length - 1}
             />
           ))}
         </SettingsGroup>

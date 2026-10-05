@@ -1,6 +1,7 @@
 import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 import type { ColorTokens } from './colors';
 import type { ShadowTokens } from './elevation';
+import { DEFAULT_TRANSPARENCY, glassAlpha, reAlpha, type TransparencyLevel } from './transparency';
 
 // ============================================================
 //  "Shisha" sirtlar — ilovaning ikkinchi imzo qatlami.
@@ -87,10 +88,17 @@ export const makeGlass = (
   colors: ColorTokens,
   shadows: ShadowTokens,
   onPhoto = false,
+  level: TransparencyLevel = DEFAULT_TRANSPARENCY,
 ): GlassTokens => {
-  const surfaceColor = onPhoto ? colors.glassSurfaceOnPhoto : colors.glassSurface;
-  const strongColor = onPhoto ? colors.glassSurfaceStrongOnPhoto : colors.glassSurfaceStrong;
-  const mutedColor = onPhoto ? colors.glassMutedOnPhoto : colors.glassMuted;
+  // TUS mavzudan, ALFA sozlamadan. Shu sababli shaffoflikni o'zgartirish
+  // sirtning rangini emas, faqat qalinligini o'zgartiradi.
+  const alpha = glassAlpha(level, onPhoto);
+  const surfaceColor = reAlpha(
+    onPhoto ? colors.glassSurfaceOnPhoto : colors.glassSurface, alpha.surface);
+  const strongColor = reAlpha(
+    onPhoto ? colors.glassSurfaceStrongOnPhoto : colors.glassSurfaceStrong, alpha.strong);
+  const mutedColor = reAlpha(
+    onPhoto ? colors.glassMutedOnPhoto : colors.glassMuted, alpha.muted);
 
   return {
   // Blur ATAYIN yo'q. Bu sirt ro'yxat konteyneri va odatiy karta sifatida

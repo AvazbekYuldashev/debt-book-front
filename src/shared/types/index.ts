@@ -12,6 +12,8 @@ export interface ProfileDTO {
   status?: string;
   /** Ilovaning asosiy rangi - hisobga bog'langan. */
   accent?: string | null;
+  /** Sirtlarning shaffoflik darajasi - hisobga bog'langan. */
+  glassLevel?: string | null;
   /** Ilova foni - hisobga bog'langan, qurilmaga emas. */
   background?: {
     imageId?: string | null;

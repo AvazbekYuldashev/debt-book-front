@@ -13,7 +13,13 @@ import { PinProvider } from './src/features/auth/pin/PinContext';
 import { WorkspaceProvider } from './src/features/business/context/WorkspaceContext';
 import { CurrencyProvider } from './src/features/debts/context/CurrencyContext';
 import { ContactAvatarsProvider } from './src/features/debts/context/contactAvatars';
-import { AccentProvider, AppThemeProvider, BackgroundProvider, useAppTheme } from './src/shared/theme';
+import {
+  AccentProvider,
+  AppThemeProvider,
+  BackgroundProvider,
+  TransparencyProvider,
+  useAppTheme,
+} from './src/shared/theme';
 import { LanguageProvider } from './src/shared/i18n';
 import ErrorBoundary from './src/shared/ui/ErrorBoundary';
 import AppFrame from './src/shared/ui/AppFrame';
@@ -167,9 +173,11 @@ export default function App() {
                 mavzuga tayanmaydi - faqat sozlamani saqlaydi. */}
             <BackgroundProvider>
               <AccentProvider>
-                <AppThemeProvider>
-                  <AppShell />
-                </AppThemeProvider>
+                <TransparencyProvider>
+                  <AppThemeProvider>
+                    <AppShell />
+                  </AppThemeProvider>
+                </TransparencyProvider>
               </AccentProvider>
             </BackgroundProvider>
           </LanguageProvider>

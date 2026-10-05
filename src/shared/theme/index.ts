@@ -9,3 +9,5 @@ export * from './backgroundSettings';
 export * from './BackgroundProvider';
 export * from './accent';
 export * from './AccentProvider';
+export * from './transparency';
+export * from './TransparencyProvider';
