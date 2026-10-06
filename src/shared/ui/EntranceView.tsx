@@ -1,7 +1,5 @@
-import React, { memo, useEffect, useMemo, useRef } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Platform, type StyleProp, type ViewStyle } from 'react-native';
-
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 interface EntranceViewProps {
   children: React.ReactNode;
@@ -24,6 +22,15 @@ interface EntranceViewProps {
  *
  * `FadeInView` dan farqi: scale'ni ham qo'llab-quvvatlaydi va stagger uchun
  * mo'ljallangan (ro'yxat elementlari ketma-ket chiqadi).
+ *
+ * Web'da animatsiya tugagach opacity/transform butunlay OLIB TASHLANADI.
+ * Ular qolsa (opacity 1, identity transform) ham ko'zga hech narsa
+ * o'zgarmaydi, lekin Chromium shu element ichidagi scroller'dagi
+ * `backdrop-filter` ni animatsiyadan keyin qayta hisoblamaydi: mijoz
+ * sahifasidagi tarix kartasi (ContactDetail, glass.pane) fon rasmi
+ * ustida muzlamay, rasm qumi va yoriqlari matn ortida keskin qolardi -
+ * qarzlar ro'yxati esa EntranceView'siz bo'lgani uchun muzli edi.
+ * Native'da bu muammo yo'q va u yer o'zgarmaydi.
  */
 const EntranceView: React.FC<EntranceViewProps> = ({
   children,
@@ -34,18 +41,30 @@ const EntranceView: React.FC<EntranceViewProps> = ({
   fromScale = 1,
 }) => {
   const progress = useRef(new Animated.Value(0)).current;
+  // Platforma render paytida o'qiladi (modul yuklanganda emas) - testlar
+  // web yo'lini ham tekshira olsin.
+  const isWeb = Platform.OS === 'web';
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
+    // stop() ham callback'ni (finished: false) chaqiradi; unmount yoki
+    // qayta ishga tushishdan keyin state yozilmasin.
+    let alive = true;
     const animation = Animated.timing(progress, {
       toValue: 1,
       duration,
       delay,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: USE_NATIVE_DRIVER,
+      useNativeDriver: !isWeb,
     });
-    animation.start();
-    return () => animation.stop();
-  }, [progress, delay, duration]);
+    animation.start(({ finished }) => {
+      if (alive && finished && isWeb) setDone(true);
+    });
+    return () => {
+      alive = false;
+      animation.stop();
+    };
+  }, [progress, delay, duration, isWeb]);
 
   const animatedStyle = useMemo(
     () => ({
@@ -58,6 +77,9 @@ const EntranceView: React.FC<EntranceViewProps> = ({
     [progress, fromY, fromScale],
   );
 
+  // Element turi o'sha-o'sha (Animated.View): faqat style almashadi, bolalar
+  // qayta mount bo'lmaydi - ro'yxat scroll holati va fokus saqlanadi.
+  if (done) return <Animated.View style={style}>{children}</Animated.View>;
   return <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>;
 };
 

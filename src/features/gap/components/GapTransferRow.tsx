@@ -7,6 +7,7 @@ import { useI18n } from '../../../shared/i18n';
 import { formatGapAmount, formatGapDate } from '../model/gapFormat';
 import { splitLegacyCalcNote } from '../../../shared/lib/calcNote';
 import { GapTransferDTO, toAmount, unitOf } from '../types/gap';
+import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 
 interface GapTransferRowProps {
   item: GapTransferDTO;
@@ -73,6 +74,8 @@ const GapTransferRow: React.FC<GapTransferRowProps> = ({
       ]}
       accessibilityRole={actionable ? 'button' : undefined}
       accessibilityLabel={item.counterpartyName ?? undefined}
+      // To'liq enli qator yumaloq karta ichida - halqa ichkariga chiziladi.
+      dataSet={FOCUS_INSET}
     >
       <View
         style={[

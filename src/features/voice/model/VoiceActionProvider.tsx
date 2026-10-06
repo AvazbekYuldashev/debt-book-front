@@ -13,12 +13,23 @@ export interface VoiceAction {
 interface VoiceActionValue {
   /** Joriy ekran ovozni qabul qila oladimi va qanday. */
   action: VoiceAction | null;
-  register: (action: VoiceAction | null) => void;
+  /**
+   * `null` qabul qilmaydi: ko'r-ko'rona tozalash aynan tab almashish
+   * poygasini yaratgan edi. Tozalash faqat `unregister` orqali.
+   */
+  register: (action: VoiceAction) => void;
+  /**
+   * Ro'yxatni FAQAT hali shu ishlovchi turgan bo'lsa tozalaydi.
+   * Ketayotgan ekran yangi kelgan ekranning ishlovchisini o'chirib
+   * yubormasligi uchun (pastdagi `useRegisterVoiceAction` ga qarang).
+   */
+  unregister: (own: VoiceAction) => void;
 }
 
 const VoiceActionContext = createContext<VoiceActionValue>({
   action: null,
   register: () => undefined,
+  unregister: () => undefined,
 });
 
 /**
@@ -36,11 +47,20 @@ const VoiceActionContext = createContext<VoiceActionValue>({
 export const VoiceActionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [action, setAction] = useState<VoiceAction | null>(null);
 
-  const register = useCallback((next: VoiceAction | null) => {
+  const register = useCallback((next: VoiceAction) => {
     setAction(next);
   }, []);
 
-  const value = useMemo<VoiceActionValue>(() => ({ action, register }), [action, register]);
+  // Funksional yangilash: solishtirish JORIY qiymat bilan bo'ladi, effekt
+  // yozilgan paytdagi eskirgan nusxa bilan emas.
+  const unregister = useCallback((own: VoiceAction) => {
+    setAction((cur) => (cur === own ? null : cur));
+  }, []);
+
+  const value = useMemo<VoiceActionValue>(
+    () => ({ action, register, unregister }),
+    [action, register, unregister],
+  );
 
   return <VoiceActionContext.Provider value={value}>{children}</VoiceActionContext.Provider>;
 };
@@ -55,12 +75,22 @@ export const useVoiceAction = (): VoiceAction | null => useContext(VoiceActionCo
  * ro'yxat ham har renderda yangilanib turardi.
  */
 export const useRegisterVoiceAction = (action: VoiceAction | null): void => {
-  const { register } = useContext(VoiceActionContext);
+  const { register, unregister } = useContext(VoiceActionContext);
   const focused = useIsFocused();
 
   useEffect(() => {
     if (!focused || !action) return undefined;
     register(action);
-    return () => register(null);
-  }, [focused, action, register]);
+    /**
+     * Tozalash FAQAT O'ZINIKINI.
+     *
+     * Ilgari bu yerda `register(null)` edi va Qarzlar -> Gap kassa
+     * o'tishida Gap'dagi mikrofon o'chiq qolardi. Tartib shunday:
+     * yangi ochilgan Gap ekrani mount paytidayoq fokusda bo'ladi va
+     * ishlovchisini yozadi; navigator esa Qarzlarga "blur" ni KEYINGI
+     * commit'da yuboradi - Qarzlarning tozalashi shundagina ishlab,
+     * Gap'ning yangi ishlovchisini o'chirib yuborardi.
+     */
+    return () => unregister(action);
+  }, [focused, action, register, unregister]);
 };

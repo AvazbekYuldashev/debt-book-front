@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { pickAndUploadImage } from '../lib/pickImage';
@@ -11,13 +11,14 @@ import { photoBlur, type BackgroundFit } from '../../../shared/theme/backgroundS
 import { buildAttachUrl } from '../../../shared/lib/attachUrl';
 import { useI18n } from '../../../shared/i18n';
 import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
+import { BackgroundPhoto } from '../../../shared/ui/AmbientBackground';
 
 /**
- * Xiralik darajalari.
+ * Xiralik darajalari: Yo'q / Kam / O'rta / Kuchli.
  *
- * Uzluksiz slider o'rniga uchta tayyor daraja: loyihada slider paketi yo'q,
- * uni qo'shish esa shu bitta sozlama uchun ortiqcha. Uchta daraja amalda
- * yetarli — odam aniq foizni emas, "matn o'qilyaptimi" ni tanlaydi.
+ * Uzluksiz slider o'rniga to'rtta tayyor daraja: loyihada slider paketi
+ * yo'q, uni qo'shish esa shu bitta sozlama uchun ortiqcha. Odam aniq
+ * pikselni emas, "rasm qanchalik xira" ni tanlaydi; "Yo'q" - rasm asl holida.
  */
 const DIM_LEVELS: { value: number; labelKey: string }[] = [
   { value: 0, labelKey: 'background.dimNone' },
@@ -30,6 +31,26 @@ const FIT_OPTIONS: { value: BackgroundFit; icon: keyof typeof Ionicons.glyphMap;
   { value: 'cover', icon: 'expand-outline', labelKey: 'background.fitCover' },
   { value: 'contain', icon: 'scan-outline', labelKey: 'background.fitContain' },
 ];
+
+/**
+ * Web: radio bo'sh joy (Space) bilan tanlanadi (WAI-ARIA).
+ *
+ * react-native-web Space'ni faqat `button` rolida bosish deb biladi -
+ * `role="radio"` da u tanlash o'rniga sahifani aylantirardi (Enter'ni RNW
+ * o'zi ishlaydi). SettingsRow'dagi bilan bir xil qoida. Shu sababli
+ * variantlar Pressable: RNW TouchableOpacity o'zining onKeyDown'i bilan
+ * berilganini yopib qo'yadi, Pressable esa ikkalasini ham chaqiradi.
+ */
+const webSpaceSelects = (onPress: () => void): object | null =>
+  Platform.OS === 'web'
+    ? {
+        onKeyDown: (event: { key: string; repeat?: boolean; preventDefault: () => void }) => {
+          if (event.key !== ' ' || event.repeat) return;
+          event.preventDefault();
+          onPress();
+        },
+      }
+    : null;
 
 /**
  * Namuna ekrandan ancha kichik: bir xil piksel blur unda ancha kuchli
@@ -118,26 +139,22 @@ const BackgroundPicker: React.FC = () => {
 
   return (
     <View>
-      <Text style={styles.title}>{t('background.title')}</Text>
+      {/* Sarlavha yo'q: blokni SettingsGroup'ning o'z sarlavhasi nomlaydi,
+          ichkarida takrorlansa "Fon rasmi" ketma-ket ikki marta turardi. */}
       <Text style={styles.hint}>{t('background.hint')}</Text>
 
       {/* Ko'rinish namunasi: xiralik (blur) shu yerda ham qo'llanadi,
-          shuning uchun odam tanlashdan oldin natijani ko'ra oladi. */}
+          shuning uchun odam tanlashdan oldin natijani ko'ra oladi. Ekrandagi
+          fon bilan bir xil primitiv - kattalashtirilmaydi, kesim "Yo'q" dagi
+          bilan bir xil, faqat xiralik o'zgaradi. */}
       <View style={styles.preview}>
         {hasImage ? (
           <>
-            <Image
-              source={{ uri: buildAttachUrl(imageId) }}
-              style={{
-                position: 'absolute',
-                top: -previewBlur * 2,
-                left: -previewBlur * 2,
-                right: -previewBlur * 2,
-                bottom: -previewBlur * 2,
-              }}
-              resizeMode={fit}
-              blurRadius={previewBlur > 0 ? previewBlur : undefined}
-              accessibilityIgnoresInvertColors
+            <BackgroundPhoto
+              uri={buildAttachUrl(imageId)}
+              fit={fit}
+              blur={previewBlur}
+              style={StyleSheet.absoluteFill}
             />
             {/* Ilovada matn doim sirt ustida turadi - namunada ham shunday.
                 Yalang'och matn yorug' mavzuda to'q rasm ustida ko'rinmasdi. */}
@@ -190,16 +207,29 @@ const BackgroundPicker: React.FC = () => {
       {hasImage ? (
         <>
           <Text style={styles.groupLabel}>{t('background.fit')}</Text>
-          <View style={styles.optionRow}>
+          {/* Variantlar - bittasigina tanlanadigan guruh: ekran o'quvchi
+              "tugma" emas, "radio, tanlangan" deb aytsin. */}
+          <View
+            style={styles.optionRow}
+            accessibilityRole="radiogroup"
+            accessibilityLabel={t('background.fit')}
+          >
             {FIT_OPTIONS.map((option) => {
               const active = fit === option.value;
               return (
-                <TouchableOpacity
+                <Pressable
                   key={option.value}
-                  style={[styles.option, active && styles.optionActive]}
+                  style={({ pressed }) => [
+                    styles.option,
+                    active && styles.optionActive,
+                    pressed && styles.optionPressed,
+                  ]}
                   onPress={() => applyFit(option.value)}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
+                  accessibilityRole="radio"
+                  // aria-checked: react-native-web accessibilityState'ni o'qimaydi
+                  // (SettingsRow'dagi kabi), RN esa uni o'zi aylantiradi.
+                  aria-checked={active}
+                  {...webSpaceSelects(() => applyFit(option.value))}
                 >
                   <Ionicons
                     name={option.icon}
@@ -209,27 +239,38 @@ const BackgroundPicker: React.FC = () => {
                   <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>
                     {t(option.labelKey)}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
           </View>
 
           <Text style={styles.groupLabel}>{t('background.dim')}</Text>
-          <View style={styles.optionRow}>
+          <View
+            style={styles.optionRow}
+            accessibilityRole="radiogroup"
+            accessibilityLabel={t('background.dim')}
+          >
             {DIM_LEVELS.map((level) => {
               const active = Math.abs(dim - level.value) < 0.01;
               return (
-                <TouchableOpacity
+                <Pressable
                   key={level.labelKey}
-                  style={[styles.option, active && styles.optionActive]}
+                  style={({ pressed }) => [
+                    styles.option,
+                    active && styles.optionActive,
+                    pressed && styles.optionPressed,
+                  ]}
                   onPress={() => applyDim(level.value)}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
+                  accessibilityRole="radio"
+                  // aria-checked: react-native-web accessibilityState'ni o'qimaydi
+                  // (SettingsRow'dagi kabi), RN esa uni o'zi aylantiradi.
+                  aria-checked={active}
+                  {...webSpaceSelects(() => applyDim(level.value))}
                 >
                   <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>
                     {t(level.labelKey)}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
           </View>
@@ -241,15 +282,9 @@ const BackgroundPicker: React.FC = () => {
 
 const createStyles = ({ colors, radius, spacing, typography }: ThemeValue) =>
   StyleSheet.create({
-    title: {
-      ...typography.bodySmall,
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
+    // Blokning birinchi qatori: tepa bo'shlig'ini o'rab turgan blok padding'i beradi.
     hint: {
       ...typography.caption,
-      marginTop: spacing.xxs,
       color: colors.textSecondary,
     },
     preview: {
@@ -354,6 +389,10 @@ const createStyles = ({ colors, radius, spacing, typography }: ThemeValue) =>
       fontSize: 12,
       fontWeight: '600',
       color: colors.textSecondary,
+    },
+    // TouchableOpacity'dagi activeOpacity bilan bir xil sezgi.
+    optionPressed: {
+      opacity: 0.85,
     },
     optionLabelActive: {
       color: colors.primary,

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Platform, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import SettingsRow from '../SettingsRow';
 import SettingsGroup from '../SettingsGroup';
@@ -18,7 +19,13 @@ const show = (node: React.ReactElement) =>
 /** AppThemeProvider birinchi renderda null qaytaradi - uni tinchitamiz. */
 const settle = () => act(async () => { await Promise.resolve(); });
 
+/** Ekrandagi ikonkalar nomi - o'ng chetdagi belgi turini tekshirish uchun. */
+const iconNames = () => screen.UNSAFE_queryAllByType(Ionicons).map((icon) => icon.props.name);
+
 describe('SettingsRow', () => {
+  // Platform.OS almashtirilgan bo'lsa - test yiqilsa ham qaytariladi.
+  afterEach(() => jest.restoreAllMocks());
+
   it('nomi korsatiladi', async () => {
     show(<SettingsRow label="Til" />);
     await settle();
@@ -42,13 +49,94 @@ describe('SettingsRow', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  /** Tanlangan band ekranga "tanlangan" deb e'lon qilinadi. */
-  it('tanlangan band belgilanadi', async () => {
+  /** Tanlov bandi ekranga RADIO deb, holati bilan e'lon qilinadi. */
+  it('tanlangan band radio va belgilangan', async () => {
     show(<SettingsRow label="English" selected onPress={() => {}} />);
     await settle();
 
-    expect(screen.getByRole('button', { name: 'English' }).props.accessibilityState.selected)
-      .toBe(true);
+    expect(screen.getByRole('radio', { name: 'English', checked: true })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'English' })).toBeNull();
+  });
+
+  it('tanlanmagan band ham radio, lekin belgilanmagan', async () => {
+    const onPress = jest.fn();
+    show(<SettingsRow label="Русский" selected={false} onPress={onPress} />);
+    await settle();
+
+    const row = screen.getByRole('radio', { name: 'Русский', checked: false });
+    fireEvent.press(row);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Tanlov bandida strelka YO'Q: strelka "sahifa ochiladi" degani. Ilgari
+   * tanlanmagan til/mavzu/rang bandlari ham strelka olib, ochiladigan
+   * hujjat qatorlaridan farq qilmasdi.
+   */
+  it('tanlov bandida strelka chizilmaydi', async () => {
+    show(
+      <>
+        <SettingsRow label="English" selected onPress={() => {}} />
+        <SettingsRow label="Русский" selected={false} onPress={() => {}} />
+      </>,
+    );
+    await settle();
+
+    expect(iconNames()).toEqual(['checkmark']);
+  });
+
+  /**
+   * Web: radio bo'sh joy bilan tanlanadi. react-native-web Space'ni faqat
+   * button rolida bosish deb biladi - radio'da sahifa aylanib ketardi.
+   */
+  it("web'da bo'sh joy tanlov bandini tanlaydi", async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    const onPress = jest.fn();
+    const preventDefault = jest.fn();
+    show(<SettingsRow label="Tungi" selected={false} onPress={onPress} />);
+    await settle();
+
+    const row = screen.getByRole('radio', { name: 'Tungi' });
+    row.props.onKeyDown({ key: 'ArrowDown', preventDefault });
+    row.props.onKeyDown({ key: ' ', repeat: true, preventDefault });
+    expect(onPress).not.toHaveBeenCalled();
+
+    row.props.onKeyDown({ key: ' ', preventDefault });
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Bosilmaydigan tanlov bandi o'chiq radio: ekran o'quvchi uni ko'radi,
+   * lekin web'da Tab unda to'xtamaydi (RNW radio div'ga tabindex=0 berardi).
+   */
+  it("bosilmaydigan tanlov bandi o'chiq radio, Tab to'xtash joyi emas", async () => {
+    show(<SettingsRow label="O'zbekcha" selected />);
+    await settle();
+
+    const row = screen.getByRole('radio', { name: "O'zbekcha", checked: true, disabled: true });
+    expect(row.props.focusable).toBe(false);
+  });
+
+  /** Ochiladigan qator - tugma va strelka bilan; radio emas. */
+  it('ochiladigan qator tugma va strelkali', async () => {
+    show(<SettingsRow label="Shartlar" onPress={() => {}} />);
+    await settle();
+
+    expect(screen.getByRole('button', { name: 'Shartlar' })).toBeTruthy();
+    expect(screen.queryByRole('radio')).toBeNull();
+    expect(iconNames()).toEqual(['chevron-forward']);
+  });
+
+  /**
+   * Web: qator overflow:hidden guruh panelining to'liq enida - klaviatura
+   * halqasi ichkariga chiziladi (aks holda panel uni 1px chiziqqa kesardi).
+   */
+  it('bosiladigan qator fokus halqasini ichkariga oladi', async () => {
+    show(<SettingsRow label="Shartlar" onPress={() => {}} />);
+    await settle();
+
+    expect(screen.getByRole('button', { name: 'Shartlar' }).props.dataSet).toEqual({ focus: 'inset' });
   });
 
   /** Bosilmaydigan qator tugma bo'lmaydi - bosib ko'rishga undamaydi. */

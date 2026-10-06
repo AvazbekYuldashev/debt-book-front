@@ -8,6 +8,7 @@ import UserAvatar from '../../../shared/ui/UserAvatar';
 import GapAmountStack from './GapAmountStack';
 import { GapMemberDTO, GapUnit, netByUnit, toAmount } from '../types/gap';
 import { formatGapAmount } from '../model/gapFormat';
+import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 
 const AVATAR_SIZE = 46;
 
@@ -59,6 +60,8 @@ const GapMemberRow: React.FC<GapMemberRowProps> = ({
       ]}
       accessibilityRole={onPress ? 'button' : 'text'}
       accessibilityLabel={item.memberName}
+      // To'liq enli qator yumaloq karta ichida - halqa ichkariga chiziladi.
+      dataSet={FOCUS_INSET}
     >
       <UserAvatar uri={undefined} size={AVATAR_SIZE} />
 

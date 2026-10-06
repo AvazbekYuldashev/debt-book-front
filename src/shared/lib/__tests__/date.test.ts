@@ -9,6 +9,7 @@ import {
   splitDateParts,
   updateDatePart,
 } from '../date';
+import { translate } from '../../i18n';
 
 describe('parseBackendDate / formatBackendDateTime', () => {
   it('ISO datetime — kun/oy chalkashmaydi (11-iyul noyabr bo‘lib ketmaydi)', () => {
@@ -77,17 +78,48 @@ describe('getCurrentWeekRange', () => {
 });
 
 describe('buildDurationLabel', () => {
-  it('oy va kunlarni hisoblaydi', () => {
-    expect(buildDurationLabel('2024-01-01', '2024-03-04')).toBe('2 oy 3 kunlik');
+  // Haqiqiy lug'at: kalitlar va `{param}` interpolyatsiyasi ham tekshiriladi.
+  const uz = (key: string, params?: Record<string, string | number>) =>
+    translate(key, 'uz', params);
+  const ru = (key: string, params?: Record<string, string | number>) =>
+    translate(key, 'ru', params);
+  const en = (key: string, params?: Record<string, string | number>) =>
+    translate(key, 'en', params);
+
+  it('oxirgi kun ham hisobga kiradi (1–6 oktyabr = 6 kun)', () => {
+    expect(buildDurationLabel('2026-10-01', '2026-10-06', uz)).toBe('6 kunlik');
   });
 
-  it('bir xil sana uchun "0 kunlik" qaytaradi', () => {
-    expect(buildDurationLabel('2024-01-01', '2024-01-01')).toBe('0 kunlik');
+  it('bir xil sana — 1 kun (oyning 1-kunida "0 kunlik" chiqmaydi)', () => {
+    expect(buildDurationLabel('2024-01-01', '2024-01-01', uz)).toBe('1 kunlik');
+  });
+
+  it("to'liq oy — 1 oylik", () => {
+    expect(buildDurationLabel('2024-01-01', '2024-01-31', uz)).toBe('1 oylik');
+  });
+
+  it('oy va kunlarni hisoblaydi', () => {
+    expect(buildDurationLabel('2024-01-01', '2024-03-04', uz)).toBe('2 oy 4 kunlik');
+  });
+
+  it('yil, oy va kun birga', () => {
+    expect(buildDurationLabel('2023-01-01', '2024-02-02', uz)).toBe('1 yil 1 oy 2 kunlik');
+  });
+
+  it('oy oxiridan boshlansa kursor siljimaydi (31-yanvar → 31-mart)', () => {
+    // 31-yanvar + 2 oy = 31-mart; oxirgi kun ham kiradi -> 2 oy 1 kun.
+    expect(buildDurationLabel('2024-01-31', '2024-03-31', uz)).toBe('2 oy 1 kunlik');
+  });
+
+  it('joriy tilda chiqadi (ru / en)', () => {
+    expect(buildDurationLabel('2026-10-01', '2026-10-06', ru)).toBe('за 6 дн.');
+    expect(buildDurationLabel('2024-01-01', '2024-03-04', en)).toBe('2 mo 4 d');
   });
 
   it('noto\'g\'ri yoki teskari oraliqda bo\'sh satr qaytaradi', () => {
-    expect(buildDurationLabel('2024-03-01', '2024-01-01')).toBe('');
-    expect(buildDurationLabel('bad', '2024-01-01')).toBe('');
+    expect(buildDurationLabel('2024-03-01', '2024-01-01', uz)).toBe('');
+    expect(buildDurationLabel('bad', '2024-01-01', uz)).toBe('');
+    expect(buildDurationLabel('2024-01-01', '2024-02-30', uz)).toBe('');
   });
 });
 

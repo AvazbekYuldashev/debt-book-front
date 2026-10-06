@@ -2,6 +2,16 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, DimensionValue, Easing, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useAppTheme } from '../theme';
 
+/**
+ * Yugurib o'tadigan yorug' chiziq - ko'rinishga qarab.
+ *
+ * Yorug'da oq yaltirash. Qorong'ida o'sha oq 45% to'q blok ustida keskin
+ * oq chiziq bo'lib chaqnardi; sovuq kulrang-ko'k tusning (surfaceMuted
+ * oilasi) nozik qatlami esa "yuklanmoqda" ni bildiradi, ko'zni olmaydi.
+ */
+const SHIMMER_LIGHT = 'rgba(255,255,255,0.45)';
+const SHIMMER_DARK = 'rgba(148,170,200,0.10)';
+
 interface SkeletonShimmerProps {
   height?: number;
   width?: DimensionValue;
@@ -15,7 +25,7 @@ const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
   borderRadius = 10,
   style,
 }) => {
-  const { colors } = useAppTheme();
+  const { colors, activeTheme } = useAppTheme();
   const progress = useRef(new Animated.Value(0)).current;
   const [layoutWidth, setLayoutWidth] = useState(0);
 
@@ -55,7 +65,10 @@ const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
       <Animated.View
         style={[
           styles.shimmerBar,
-          { transform: [{ translateX: shimmerTranslate }] },
+          {
+            backgroundColor: activeTheme === 'dark' ? SHIMMER_DARK : SHIMMER_LIGHT,
+            transform: [{ translateX: shimmerTranslate }],
+          },
         ]}
       />
     </View>
@@ -66,14 +79,17 @@ export const SkeletonCardList: React.FC<{ count?: number; containerStyle?: Style
   count = 4,
   containerStyle,
 }) => {
-  const { spacing, colors } = useAppTheme();
+  const { spacing, glass } = useAppTheme();
 
+  // Skelet kartasi HAQIQIY karta retseptida (glass.surface): yarim shaffof,
+  // fon rasmida muzli, "Shaffoflik" ga bo'ysunadi. Tekis surface bo'lsa,
+  // ma'lumot kelganda ro'yxat qattiq plitadan shishaga "sakrardi".
   return (
     <View style={containerStyle}>
       {Array.from({ length: count }, (_, index) => (
         <View
           key={`skeleton-card-${index}`}
-          style={[styles.card, { marginBottom: spacing.sm, backgroundColor: colors.surface }]}
+          style={[styles.card, glass.surface, { marginBottom: spacing.sm }]}
         >
           <SkeletonShimmer height={18} width="62%" borderRadius={8} />
           <SkeletonShimmer height={14} width="38%" borderRadius={8} style={{ marginTop: spacing.xs }} />
@@ -141,7 +157,6 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: '35%',
-    backgroundColor: 'rgba(255,255,255,0.45)',
   },
   card: {
     padding: 14,

@@ -1,9 +1,10 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n';
+import { FOCUS_SELF } from './focusRing';
 
 interface SearchFieldProps extends Omit<TextInputProps, 'style' | 'value' | 'onChangeText'> {
   value: string;
@@ -21,6 +22,8 @@ const SearchField: React.FC<SearchFieldProps> = ({
   value,
   onChangeText,
   accessibilityLabel,
+  onFocus,
+  onBlur,
   ...rest
 }) => {
   const theme = useAppTheme();
@@ -28,8 +31,29 @@ const SearchField: React.FC<SearchFieldProps> = ({
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  /**
+   * Fokus - butun "pill" chegarasi brand rangida, Input bilan bir xil.
+   * Web'dagi umumiy halqa matn maydoniga sichqoncha/barmoq bilan
+   * bosilganda chizilmaydi, shuning uchun ko'rsatkichni maydon o'zi beradi.
+   */
+  const [focused, setFocused] = useState(false);
+  const handleFocus = useCallback<NonNullable<TextInputProps['onFocus']>>(
+    (event) => {
+      setFocused(true);
+      onFocus?.(event);
+    },
+    [onFocus],
+  );
+  const handleBlur = useCallback<NonNullable<TextInputProps['onBlur']>>(
+    (event) => {
+      setFocused(false);
+      onBlur?.(event);
+    },
+    [onBlur],
+  );
+
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, focused && styles.wrapFocused]}>
       <Ionicons name="search-outline" size={iconSize.md} color={colors.textSecondary} />
       <TextInput
         style={styles.input}
@@ -38,7 +62,10 @@ const SearchField: React.FC<SearchFieldProps> = ({
         placeholderTextColor={colors.textSecondary}
         accessibilityLabel={accessibilityLabel}
         returnKeyType="search"
+        dataSet={FOCUS_SELF}
         {...rest}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
       />
       {value ? (
         <Pressable
@@ -66,6 +93,11 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       borderRadius: radius.lg,
       ...glass.pane,
       ...shadows.card,
+    },
+    // Faqat rang almashadi, eni pane'niki (hairline) qoladi: fokusda
+    // maydon bir piksel ham siljimaydi.
+    wrapFocused: {
+      borderColor: colors.primary,
     },
     input: {
       ...typography.body,

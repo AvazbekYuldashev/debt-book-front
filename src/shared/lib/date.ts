@@ -137,51 +137,53 @@ function addMonthsSafe(date: Date, months: number): Date {
   return new Date(first.getFullYear(), first.getMonth(), Math.min(d, lastDay));
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Kalendar kuni tartib raqami. UTC orqali: yozgi vaqtga o'tish kuni 23 soat
+// bo'lib, millisekund ayirmasi bir kunni "yeb" qo'ymasin.
+const dayNumber = (date: Date): number =>
+  Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY_MS;
+
+/** `from` (kiradi) dan `to` (kirmaydi) gacha: to'liq yil, oy va qolgan kunlar. */
 function diffYmd(from: Date, to: Date): { years: number; months: number; days: number } {
   if (to < from) return { years: 0, months: 0, days: 0 };
 
-  let years = 0;
-  let months = 0;
-  let cursor = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  // Oylar har safar `from`ning o'zidan qo'shiladi: 31-yanvardan boshlansa
+  // kursor fevralda 29 ga qisqarib, keyingi oylarga siljib ketmasin.
+  let totalMonths = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
+  if (totalMonths > 0 && addMonthsSafe(from, totalMonths) > to) totalMonths -= 1;
 
-  while (true) {
-    const next = addMonthsSafe(cursor, 12);
-    if (next <= to) {
-      years += 1;
-      cursor = next;
-    } else {
-      break;
-    }
-  }
-
-  while (true) {
-    const next = addMonthsSafe(cursor, 1);
-    if (next <= to) {
-      months += 1;
-      cursor = next;
-    } else {
-      break;
-    }
-  }
-
-  const dayMs = 24 * 60 * 60 * 1000;
-  const days = Math.floor((to.getTime() - cursor.getTime()) / dayMs);
-  return { years, months, days };
+  const cursor = addMonthsSafe(from, totalMonths);
+  return {
+    years: Math.floor(totalMonths / 12),
+    months: totalMonths % 12,
+    days: dayNumber(to) - dayNumber(cursor),
+  };
 }
 
-/** Oraliq davomiyligini o'qiladigan yorliqqa aylantiradi ("2 oy 3 kunlik"). */
-export function buildDurationLabel(fromDate: string, endDate: string): string {
+/** `useI18n().t` bilan bir xil shakl — lib qatlami React kontekstiga bog'lanmaydi. */
+export type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
+
+/**
+ * Oraliq davomiyligini joriy tildagi yorliqqa aylantiradi ("2 oy 4 kunlik").
+ * Noto'g'ri yoki teskari oraliqda bo'sh satr.
+ */
+export function buildDurationLabel(fromDate: string, endDate: string, t: TranslateFn): string {
   const from = parseInputDate(fromDate);
   const to = parseInputDate(endDate);
   if (!from || !to || to < from) return '';
 
-  const { years, months, days } = diffYmd(from, to);
+  // Oxirgi kun ham KIRADI — xarajat so'rovi ham `endDate`ni shunday filtrlaydi:
+  // 1–6 oktyabr = 6 kun, bitta kun = 1 kun (avval "5 kunlik" / "0 kunlik" edi).
+  const endExclusive = new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1);
+  const { years, months, days } = diffYmd(from, endExclusive);
+
+  // Oraliq kamida bir kun, shuning uchun qismlardan biri doim bor.
   const parts: string[] = [];
-  if (years > 0) parts.push(`${years} yil`);
-  if (months > 0) parts.push(`${months} oy`);
-  if (days > 0) parts.push(`${days} kun`);
-  if (parts.length === 0) return '0 kunlik';
-  return `${parts.join(' ')}lik`;
+  if (years > 0) parts.push(t('duration.years', { count: years }));
+  if (months > 0) parts.push(t('duration.months', { count: months }));
+  if (days > 0) parts.push(t('duration.days', { count: days }));
+  return t('duration.label', { value: parts.join(' ') });
 }
 
 /** Date-picker uchun boshlang'ich qiymat (noto'g'ri satr bo'lsa — bugun). */

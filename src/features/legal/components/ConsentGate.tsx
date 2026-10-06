@@ -131,9 +131,11 @@ const ConsentGate: React.FC = () => {
 
 const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
+    // Boshqa dialoglar bilan bitta retsept (mavzu rangidagi qoraytirish +
+    // xiralashtirish). Qattiq qora 60% faqat shu oynada edi.
     backdrop: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.6)',
+      ...glass.scrim,
       alignItems: 'center',
       justifyContent: 'center',
       padding: spacing.md,
@@ -143,8 +145,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       // ATAYIN QUYUQ, shisha emas: bu huquqiy rozilik matni. Ortidagi
       // ro'yxat matn ostidan o'tsa, foydalanuvchi nimaga rozi
       // bo'layotganini o'qiy olmaydi — bezak bu yerda o'qilishdan
-      // ustun turmaydi.
-      backgroundColor: colors.surface,
+      // ustun turmaydi. glass.modal aynan shunday (yopiq) sirt, ustiga
+      // boshqa dialoglardagi chegara va soya.
+      ...glass.modal,
       borderRadius: radius.lg,
       padding: spacing.md,
     },

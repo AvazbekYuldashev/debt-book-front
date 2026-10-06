@@ -442,13 +442,17 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       color: colors.textSecondary,
       marginTop: spacing.xxs,
     },
+    // Qatorlar to'g'ridan-to'g'ri FON ustida (FlatList, karta ichida
+    // emas) - shuning uchun shisha sirt: rasmda muzli, "Shaffoflik" ga
+    // bo'ysunadi. Tekis surface tepadagi shisha kartalar ostida qattiq
+    // plitalar bo'lib turardi.
     row: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm,
       borderRadius: radius.md,
-      backgroundColor: colors.surface,
+      ...glass.pane,
       marginBottom: spacing.xs,
     },
     rowIcon: {

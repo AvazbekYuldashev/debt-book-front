@@ -7,6 +7,8 @@ import UserAvatar from '../../../shared/ui/UserAvatar';
 import IconButton from '../../../shared/ui/IconButton';
 import BalanceBadge from '../../../shared/ui/BalanceBadge';
 import { formatMoney, formatSignedMoney } from '../../../shared/lib/money';
+import { formatPhoneDisplay } from '../../../shared/lib/phone';
+import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 import type { CurrencyNet } from '../../../shared/lib/currency';
 import type { Contact } from '../context/ContactsContext';
 import { CurrencyContext } from '../context/CurrencyContext';
@@ -105,7 +107,9 @@ const ContactRow: React.FC<ContactRowProps> = ({
   // Ism ostidagi qator: shaxsda telefon raqami, biznesda esa username —
   // biznesni aynan shu nom bilan qo'shishadi va topishadi. Biznesda telefon
   // umuman yo'q, username hali qo'yilmagan bo'lsa qator bo'sh qoladi.
-  const subtitle = isBusiness ? contact.username || '' : contact.phone || '';
+  // Telefon mijoz sahifasidagi (ContactBalanceHeader) bilan BIR XIL
+  // formatda: ro'yxatda "998..." va ichkarida "+998..." bo'lmasin.
+  const subtitle = isBusiness ? contact.username || '' : formatPhoneDisplay(contact.phone);
 
   /**
    * Tartib: avval asosiy valyuta, keyin QIYMATI bo'yicha kamayish tartibida.
@@ -147,6 +151,8 @@ const ContactRow: React.FC<ContactRowProps> = ({
         onPress={handlePress}
         accessibilityRole="button"
         accessibilityLabel={contact.fullName}
+        // Birinchi/oxirgi qator kartaning overflow:hidden burchagida - halqa ichkariga.
+        dataSet={FOCUS_INSET}
       >
         {/* Rasm biriktirilgan bo'lsa avatar bosiladi va rasm to'liq ekranda ochiladi;
             rasm bo'lmasa bosish qatorning o'ziga (mijozni ochishga) o'tadi. */}

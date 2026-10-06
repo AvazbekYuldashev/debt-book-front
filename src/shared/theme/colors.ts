@@ -170,7 +170,12 @@ export const darkColors: ColorTokens = {
   outline: '#334155',
   background: '#0B1120',
   surface: '#162032',
-  surfaceMuted: '#1E293B',
+  // Ichki bo'lak (chip, relsa, trek) - yorug'dagi rgba(16,28,54,0.05) ning
+  // aksi: ota-sirtdan DOIM bir pog'ona OCH. Ilgari tekis #1E293B edi va
+  // rasm ustidagi muzli to'q karta bilan deyarli bir xil chiqardi - Gap
+  // birlik relsasi va chiplar kartada yo'qolib qolardi. Barcha
+  // iste'molchilar shaffof qiymatga tayyor: yorug'da u allaqachon shaffof.
+  surfaceMuted: 'rgba(148, 170, 200, 0.10)',
   textPrimary: '#E6ECF6',
   textSecondary: '#93A3BC',
   textOnPrimary: '#06240F',
@@ -179,7 +184,8 @@ export const darkColors: ColorTokens = {
   border: '#2A3A52',
   shadow: '#000000',
   danger: '#F87171',
-  dangerMuted: '#3A2121',
+  // negativeSoft bilan bir xil - sababi pastda.
+  dangerMuted: '#5A1D24',
   success: '#34D399',
   warning: '#FBBF24',
   overlay: 'rgba(2, 6, 23, 0.70)',
@@ -192,20 +198,37 @@ export const darkColors: ColorTokens = {
   // Qorong'i mavzuda shisha OQ emas, sovuq kulrang-ko'k: oq qatlam qora fonda
   // "tuman" bo'lib ko'rinardi va matn kontrastini yeb qo'yardi.
   glassSurface: 'rgba(30, 41, 64, 0.40)',
-  glassSurfaceStrong: 'rgba(22, 32, 50, 0.58)',
-  glassMuted: 'rgba(148, 170, 200, 0.07)',
+  // Qorong'ida "ko'tarilgan" sirt kartadan OCHROQ (yoki teng) bo'lishi
+  // shart - balandlik belgisi shu. Ilgari u kartadan TO'Q edi va summary
+  // karta ekrandagi "qora teshik" bo'lib ko'rinardi. Yorug'da allaqachon
+  // shunday: u yerda raised oqroq.
+  glassSurfaceStrong: 'rgba(34, 46, 70, 0.58)',
+  // TO'Q slate (slate-700 oilasi), kartadan bir pog'ona och. Daraja jadvali
+  // (transparency.ts) token alfasini ALMASHTIRADI (0.55..1.0), shuning
+  // uchun rgb HAR QANDAY alfada to'q chip bo'lib o'qilishi shart. Eski och
+  // slate (148,170,200) faqat ~7% da ishlardi - jadval uni sut rangli,
+  // "Yo'q" da esa to'liq yopiq och kulrang blokka aylantirardi va ustidagi
+  // oq/yashil matn 1.1-2:1 gacha tushardi.
+  glassMuted: 'rgba(44, 58, 84, 0.65)',
   glassBorder: 'rgba(255, 255, 255, 0.15)',
   glassPrimarySoft: 'rgba(74, 222, 128, 0.14)',
   positive: '#4ADE80',
   positiveSoft: '#14532D',
   negative: '#F87171',
-  negativeSoft: '#3A2121',
+  // To'yingan to'q qizil: positiveSoft (#14532D) bilan bir xil vaznda.
+  // Eski #3A2121 rangsiz dog' edi va yashil yonida "o'chgan" ko'rinardi.
+  // Ustida negative matn (BalanceBadge, StatusBanner) - kontrast 4.6:1,
+  // AA dan past tushmasligi SHART (test qulflaydi).
+  negativeSoft: '#5A1D24',
   // Qorong'i mavzuda shisha allaqachon TO'Q: to'q rasm ustida u tabiiy
   // qo'shilib ketadi, shuning uchun bu yerda deyarli o'zgarish yo'q -
   // faqat ozgina quyuqroq, matn har qanday rasmda o'qilishi uchun.
   glassSurfaceOnPhoto: 'rgba(22, 32, 50, 0.78)',
-  glassSurfaceStrongOnPhoto: 'rgba(16, 24, 40, 0.86)',
-  glassMutedOnPhoto: 'rgba(148, 170, 200, 0.10)',
+  // Kartadan bir pog'ona och - yuqoridagi glassSurfaceStrong bilan bir sabab.
+  glassSurfaceStrongOnPhoto: 'rgba(26, 37, 57, 0.86)',
+  // glassMuted bilan bir sabab: rasm ustida jadval alfasi 0.7..1.0, och
+  // slate esa to'q rasmda sut rangli plitaga aylanardi.
+  glassMutedOnPhoto: 'rgba(44, 58, 84, 0.80)',
   // Qorong'ida ochroq: to'q yashil qora fonda deyarli ko'rinmasdi.
   ctaGradientStart: '#34D399',
   ctaGradientEnd: '#10B981',

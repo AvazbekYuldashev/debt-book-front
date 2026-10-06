@@ -1,6 +1,16 @@
-import React, { useContext, useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
+  type LayoutChangeEvent,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import {
+  BottomTabBarHeightCallbackContext,
   createBottomTabNavigator,
   type BottomTabBarProps,
 } from '@react-navigation/bottom-tabs';
@@ -17,6 +27,10 @@ import { useI18n } from '../../shared/i18n';
 import { WorkspaceContext } from '../../features/business/context/WorkspaceContext';
 import { useAppTheme } from '../../shared/theme';
 import type { ThemeValue } from '../../shared/theme/ThemeProvider';
+import { useBackground } from '../../shared/theme/BackgroundProvider';
+import { photoBlur } from '../../shared/theme/backgroundSettings';
+import { buildAttachUrl } from '../../shared/lib/attachUrl';
+import { BackgroundPhoto } from '../../shared/ui/AmbientBackground';
 import VoiceTabButton from '../../features/voice/components/VoiceTabButton';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -108,8 +122,15 @@ const TabItem: React.FC<TabItemProps> = ({
  * Standart `tabBarIcon` bilan bo'lmasdi: faol ko'rsatkich nuqtasi MATN
  * OSTIDA turishi kerak, navigator esa faqat ikonka joyini beradi (matn
  * doim eng oxirida chiziladi).
+ *
+ * Fon rasmi qo'yilgan bo'lsa panel ham rasm USTIDA turadi: sahnalardagi
+ * rasm panel tepasida kesiladi, shuning uchun panel rasmning o'zi yopib
+ * turgan bo'lagini o'zi chizadi va ustiga kartalar bilan bir xil shisha
+ * (glass.flush) qo'yadi. Aks holda shisha tekis rangni muzlatardi:
+ * "Shaffoflik" panelga ta'sir qilmas, rasm panel chizig'ida keskin uzilib,
+ * ovoz tugmasi ikki xil fon ustida qolardi.
  */
-const AppTabBar: React.FC<BottomTabBarProps & { labelOf: (routeName: string) => string }> = ({
+export const AppTabBar: React.FC<BottomTabBarProps & { labelOf: (routeName: string) => string }> = ({
   state,
   navigation,
   labelOf,
@@ -118,15 +139,56 @@ const AppTabBar: React.FC<BottomTabBarProps & { labelOf: (routeName: string) => 
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
+  const { imageId, fit, dim } = useBackground();
+  const hasPhoto = imageId.length > 0;
+
+  // Maxsus tabBar balandligini navigatorga O'ZI aytishi shart: aks holda
+  // sahnalar standart (~49px) qiymatni oladi va rasm qutisini panel
+  // ostiga noto'g'ri uzaytiradi - panel bo'lagi bilan kesim mos kelmaydi.
+  const reportHeight = useContext(BottomTabBarHeightCallbackContext);
+  // Panel pastki chetidan ramka tepasigacha: sahnalardagi rasm qutisi
+  // (tepaga bog'langan, panel bilan birga) aynan shu balandlikda.
+  const [frameHeight, setFrameHeight] = useState(0);
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const { y, height } = event.nativeEvent.layout;
+      reportHeight?.(height);
+      setFrameHeight(y + height);
+    },
+    [reportHeight],
+  );
 
   return (
     <View
       style={[
         styles.bar,
+        hasPhoto ? null : styles.barSurface,
         // Gesture/navigatsiya paneliga yopishib qolmasligi uchun pastki inset.
         { height: BAR_HEIGHT + insets.bottom, paddingBottom: insets.bottom },
       ]}
+      onLayout={handleLayout}
     >
+      {hasPhoto ? (
+        <>
+          {/* Rasmning panel ostidagi bo'lagi: quti pastga bog'langan va
+              ramka balandligida - sahnadagi quti bilan AYNAN bir xil, shu
+              sababli rasm chegarada uzilmay davom etadi. */}
+          <View style={styles.photoSlice} pointerEvents="none">
+            {frameHeight > 0 ? (
+              <BackgroundPhoto
+                uri={buildAttachUrl(imageId)}
+                fit={fit}
+                blur={photoBlur(dim)}
+                style={[styles.photoBox, { height: frameHeight }]}
+              />
+            ) : null}
+          </View>
+          {/* Shisha alohida qatlam: backdrop-filter faqat element ORTIDAGINI
+              muzlatadi, o'z bolalarini emas - ildizga qo'yilsa rasm bo'lagini
+              ko'rmasdi. "Yo'q" da fon to'liq, rasm yopiladi. */}
+          <View style={styles.photoGlass} pointerEvents="none" />
+        </>
+      ) : null}
       {state.routes.map((route, index) => {
         const focused = state.index === index;
         // Ovoz tugmasi O'RTADA: tablar soni juft (4 ta), shuning uchun
@@ -213,18 +275,45 @@ const BottomTabNavigator: React.FC = () => {
 
 const createStyles = ({ colors, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
-    // Yuqori burchaklar ATAYIN yumaloqlanmagan: panel yarim shaffof, burchak
-    // kesilgan joyda esa uning ortidagi tekis `background` ochilib qolardi.
-    // Ekranning o'zi ambient gradient bilan bo'yalgani uchun o'sha ikki
-    // uchburchak oq "tishcha" bo'lib ko'rinardi. Ambient qatlam har ekranning
-    // ICHIDA — panel ostiga yetib bormaydi, shuning uchun burchakni fonga
-    // moslashning iloji yo'q. Panelni chetdan chetga tekis qoldiramiz;
-    // ajratishni yuqoriga tushadigan soya beradi.
+    // Panel chetdan chetga TEKIS: yuqori burchaklar yumaloqlansa, kesilgan
+    // uchburchaklarda panel ortidagi tekis navigator foni ochilib qolardi
+    // (sahna foni panel tepasida tugaydi).
+    //
+    // Tepadagi ingichka chiziq SHART: "Shaffoflik: Yo'q" da kartalar ham,
+    // panel ham to'liq sirt va bir xil rangda - chiziqsiz oxirgi karta
+    // panelga qo'shilib ketardi, yuqoriga tushadigan soya esa to'q fonda
+    // ko'rinmaydi. glass.flush'dagi "chegarasiz" sababi (yumaloq chetda
+    // siniq) bu yerga tegishli emas - chet tekis.
+    //
+    // Sirt (glass.flush) rasmsiz holatda shu yerning o'zida; rasm bor
+    // bo'lsa u alohida qatlamda (photoGlass), chunki ildizdagi
+    // backdrop-filter o'z bolasi bo'lgan rasm bo'lagini muzlatmaydi.
     bar: {
       flexDirection: 'row',
       alignItems: 'stretch',
-      ...glass.flush,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.glassBorder,
       ...shadows.nav,
+    },
+    barSurface: {
+      ...glass.flush,
+    },
+    // Rasm bo'lagi ortida tema foni: "Sig'dirish" da rasm chetlaridagi bo'sh
+    // joy sahnadagidek bo'yaladi.
+    photoSlice: {
+      ...StyleSheet.absoluteFill,
+      overflow: 'hidden',
+      backgroundColor: colors.background,
+    },
+    photoBox: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    photoGlass: {
+      ...StyleSheet.absoluteFill,
+      ...glass.flush,
     },
     // `justifyContent` ATAYIN 'center' emas: markazlashtirilganda pastdagi
     // nuqta panel chetiga tegib qirqilardi. Yuqoridan aniq bo'shliq beriladi.

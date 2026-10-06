@@ -437,7 +437,7 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
   );
 
   const totalLabelText = useMemo(() => {
-    const duration = buildDurationLabel(fromDate, endDate);
+    const duration = buildDurationLabel(fromDate, endDate, t);
     return duration ? `${t('expenses.totalLabel')} (${duration}):` : `${t('expenses.totalLabel')}:`;
   }, [endDate, fromDate, t]);
 
@@ -557,10 +557,14 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         </View>
       </ScrollView>
 
+      {/* Bo'sh ro'yxat matni «+» ga ishora qiladi — tugma Gap ekranidagi
+          kabi bir xil qoida bilan "nafas oladi". Yuklanayotganda emas:
+          skeleton paytida bo'sh deb hisoblanmaydi. */}
       {allowCategoryManage ? (
         <FloatingActionButton
           onPress={openCreateCategory}
           accessibilityLabel={t('expenses.addCategory')}
+          pulse={!loading && sortedCategories.length === 0}
         />
       ) : null}
 

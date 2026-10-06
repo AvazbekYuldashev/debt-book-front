@@ -1,5 +1,16 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, type LayoutChangeEvent, Platform, StyleSheet, View } from 'react-native';
+import React, { memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  Image,
+  type LayoutChangeEvent,
+  Platform,
+  type StyleProp,
+  StyleSheet,
+  View,
+  type ViewStyle,
+} from 'react-native';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import Svg, {
   Circle,
   Defs,
@@ -14,7 +25,7 @@ import Svg, {
 import { useAppTheme } from '../theme';
 import { useBackground } from '../theme/BackgroundProvider';
 import { buildAttachUrl } from '../lib/attachUrl';
-import { photoBlur } from '../theme/backgroundSettings';
+import { photoBlur, type BackgroundFit } from '../theme/backgroundSettings';
 
 // ============================================================
 //  Ilova "imzo" foni: yengil ko'k-yashil gradient, yumshoq tepaliklar
@@ -105,6 +116,62 @@ const Sprig = memo<SprigProps>(({ x, y, rotate, scale, color, opacity }) => (
 ));
 Sprig.displayName = 'Sprig';
 
+export interface BackgroundPhotoProps {
+  uri: string;
+  fit: BackgroundFit;
+  /** Blur radiusi, px - faqat photoBlur(dim) dan. 0 = rasm asl holida. */
+  blur: number;
+  /** Rasm AYNAN shu qutiga chiziladi: kattalashtirilmaydi, siljimaydi. */
+  style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * Foydalanuvchi fon rasmi - ekran sahnasi, tab bar bo'lagi va sozlamadagi
+ * namuna UCHALASI shu bitta primitivdan chiziladi. Shu sababli bir xil
+ * qutida rasm piksel-piksel bir xil tushadi va "Xiralik" hamma joyda bir
+ * xil ishlaydi.
+ *
+ * Web'da blur rasmning o'ziga EMAS, ustidagi `backdrop-filter` qatlamiga
+ * beriladi. Rasmga beriladigan `filter: blur` chetlarini SHAFFOFGA
+ * so'ndiradi (ostidan fon rangi hoshiya bo'lib chiqadi) - shuni yashirish
+ * uchun ilgari rasm blur*2 ga kattalashtirilardi, u esa "Xiralik"
+ * almashganda rasmni 3-14% ga zoom qilib, kesimini surardi. backdrop-filter
+ * chetlarni oyna kabi qaytarib (mirror/clamp) oladi - hoshiya yo'q, kesim
+ * "Yo'q" dagi bilan aynan bir xil.
+ *
+ * Native'da (blurRadius) bitmap xiralashadi, chetida shaffof hoshiya yo'q -
+ * u yerda kattalashtirishga hech qachon hojat bo'lmagan.
+ *
+ * blur 0 - oddiy Image, hech qanday qatlamsiz: rasm ASL holida.
+ */
+export const BackgroundPhoto = memo<BackgroundPhotoProps>(({ uri, fit, blur, style }) => {
+  const source = useMemo(() => ({ uri }), [uri]);
+  const isWeb = Platform.OS === 'web';
+  return (
+    <View style={style} pointerEvents="none">
+      <Image
+        source={source}
+        style={StyleSheet.absoluteFill}
+        resizeMode={fit}
+        blurRadius={!isWeb && blur > 0 ? blur : undefined}
+        accessibilityIgnoresInvertColors
+      />
+      {isWeb && blur > 0 ? (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            // glass.ts dagi `backdrop` bilan bir xil cast: RN tiplarida bu
+            // xossa yo'q, RNW esa uni CSS'ga o'zi o'tkazadi.
+            { backdropFilter: `blur(${blur}px)` } as ViewStyle,
+          ]}
+          pointerEvents="none"
+        />
+      ) : null}
+    </View>
+  );
+});
+BackgroundPhoto.displayName = 'BackgroundPhoto';
+
 /**
  * Ekran ostidagi dekorativ qatlam. Ishlatilishi: kontentdan OLDIN, absolyut
  * to'ldirish sifatida qo'yiladi; ekran konteyneri fonini `transparent`
@@ -115,6 +182,9 @@ const AmbientBackground: React.FC = () => {
   const { colors, activeTheme } = useAppTheme();
   const { imageId, fit, dim } = useBackground();
   const fade = useRef(new Animated.Value(0)).current;
+  // Tablar ichida - pastki panel balandligi (u o'zi xabar beradi, qarang
+  // BottomTabNavigator). Tablardan tashqarida (kirish ekranlari) - undefined.
+  const tabBarHeight = useContext(BottomTabBarHeightContext) ?? 0;
 
   // O'lcham KONTEYNERdan olinadi, oyna o'lchamidan EMAS.
   //
@@ -151,24 +221,35 @@ const AmbientBackground: React.FC = () => {
   // o'qilishini rasm emas, ularning o'z muzli shishasi ta'minlaydi
   // (glass.ts), tepadagi sarlavhalar ham o'z sirtida.
   if (imageId) {
-    const blur = photoBlur(dim);
-    // Blur'li rasm chetlari xiralashib, ostidagi fon rangi "nur" bo'lib
-    // chiqmasin deb rasm ekrandan biroz kattaroq chiziladi, ortiqchasi esa
-    // kesiladi. Blur'siz bunga hojat yo'q.
-    const bleed = blur * 2;
+    // Rasm qutisi - BUTUN ilova ramkasi, pastki panel bilan birga, tepaga
+    // bog'langan. Sahna panel tepasida tugaydi, lekin rasm uning ostiga
+    // ham davom etadi (ortiqchasini konteynerning overflow'i kesadi).
+    // Panel o'z bo'lagini AYNAN shu qutidan chizadi (BottomTabNavigator):
+    // qutilar bir xil bo'lgani uchun cover/contain kesimi ham bir xil va
+    // rasm panel chizig'ida uzilmaydi. photoTone ham rasmni to'liq ekran
+    // nisbatida o'lchaydi - bu quti o'sha nisbatga mos.
+    //
+    // Balandlik onLayout'siz, `bottom: -panel` bilan: birinchi kadrdanoq
+    // to'g'ri, o'lchov kelganda rasm sakramaydi.
+    const box: StyleProp<ViewStyle> =
+      tabBarHeight > 0
+        ? { position: 'absolute', top: 0, left: 0, right: 0, bottom: -tabBarHeight }
+        : StyleSheet.absoluteFill;
     return (
       <View
         style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, overflow: 'hidden' }]}
         pointerEvents="none"
+        // Rasmga o'lcham kerak emas, lekin o'lchov yangilanib tursin: rasm
+        // olib tashlanganda SVG fon shu View'ning o'zida, qayta o'lchov
+        // kutmasdan chiziladi.
         onLayout={handleLayout}
       >
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
-          <Image
-            source={{ uri: buildAttachUrl(imageId) }}
-            style={{ position: 'absolute', top: -bleed, left: -bleed, right: -bleed, bottom: -bleed }}
-            resizeMode={fit}
-            blurRadius={blur > 0 ? blur : undefined}
-            accessibilityIgnoresInvertColors
+          <BackgroundPhoto
+            uri={buildAttachUrl(imageId)}
+            fit={fit}
+            blur={photoBlur(dim)}
+            style={box}
           />
         </Animated.View>
       </View>

@@ -65,15 +65,23 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       paddingVertical: spacing.xl,
       paddingHorizontal: spacing.lg,
     },
-    // Ikki qavatli doira — "yumshoq nur" ta'siri, og'ir soyasiz.
+    /**
+     * Ikki qavatli doira — "yumshoq nur" ta'siri, og'ir soyasiz.
+     *
+     * Yumshoqlik FAQAT halqa fonida (yarim shaffof brend rangi). Ilgari
+     * butun blokka `opacity` berilardi va u ichidagi ikonkani ham so'ndirib,
+     * o'chirilgan (disabled) holatdek ko'rsatardi: yorug'da kontrast 2.8:1.
+     * Tekis primarySoft esa yorug'da oq kartada yo'qolar, qorong'ida og'ir
+     * to'q yashil "donut" bo'lardi. Shaffof tus ikkala ko'rinishda bir xil
+     * vaznda o'qiladi va aksent rangiga ergashadi.
+     */
     iconOuter: {
       width: 96,
       height: 96,
       borderRadius: radius.pill,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.primarySoft,
-      opacity: 0.7,
+      backgroundColor: colors.glassPrimarySoft,
     },
     iconInner: {
       width: 64,

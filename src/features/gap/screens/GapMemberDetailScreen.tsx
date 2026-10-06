@@ -9,7 +9,9 @@ import type { GapScreenProps } from '../../../app/navigation/types';
 import type { ROUTES } from '../../../app/navigation/routes';
 import { useConfirmGapTransfer, useCreateGapTransfer, useGapMemberDetail } from '../hooks/useGap';
 import Button from '../../../shared/ui/Button';
+import { VOICE_BUTTON_CLEARANCE } from '../../../shared/ui/fabLayout';
 import StatusBanner from '../../../shared/ui/StatusBanner';
+import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
 import GapTransferRow from '../components/GapTransferRow';
 import GapMemberBalanceHeader from '../components/GapMemberBalanceHeader';
 import GapTransferFormModal from '../components/GapTransferFormModal';
@@ -229,11 +231,13 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
       {/* Qarzlar bo'limidagi kabi: ikkita to'la enli tugma — "Oldim" qizil,
           "Berdim" yashil. O'z hisobimda amal yo'q. */}
       {isSelf ? (
-        <Text style={styles.actionHint}>
+        // Qarzlardagi "faqat ko'rish" izohi bilan AYNAN bir xil: tugmalar
+        // o'rnida turgan izoh ikkala bo'limda bitta komponent.
+        <SurfaceLabel multiline style={styles.actionHint} textStyle={styles.actionHintText}>
           {items.some((item) => item.transfer.canConfirm)
             ? t('gap.tapToConfirm')
             : t('gap.selfLedger')}
-        </Text>
+        </SurfaceLabel>
       ) : (
         <View style={styles.actionBar}>
           <Button
@@ -311,7 +315,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
-      paddingBottom: spacing.md,
+      // Ovoz doirasi paneldan yuqoriga chiqadi - tugmalar undan yuqorida.
+      paddingBottom: VOICE_BUTTON_CLEARANCE,
       // Fon va yuqori chegara YO'Q — Qarzlar bo'limidagi bilan bir xil.
       // Tekis fon berilganda tugmalar ostida shaffofmas oq chiziq qolardi.
     },
@@ -335,13 +340,25 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       backgroundColor: colors.positive,
       borderWidth: 0,
     },
+    /**
+     * O'z hisobimdagi izoh. Sirt SurfaceLabel'dan, bu yerda faqat
+     * joylashuv - o'rtada, ovoz doirasidan yuqorida.
+     *
+     * Ilgari `glass.muted` li 11px matn edi va ekran enida to'g'ridan-
+     * to'g'ri fon rasmida turardi: `muted` muzlatishsiz (faqat muzli sirt
+     * ICHIDA yashaydi) - rasm ustida matn ortidan yoriq va nuqtalar
+     * ko'rinardi, 11px esa o'qib bo'lmasdi.
+     */
     actionHint: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textSecondary,
+      alignSelf: 'center',
+      marginTop: spacing.md,
+      marginBottom: VOICE_BUTTON_CLEARANCE,
+      marginHorizontal: spacing.md,
+    },
+    actionHintText: {
+      ...typography.bodySmall,
       textAlign: 'center',
-      paddingVertical: spacing.sm,
-      ...glass.muted,
+      color: colors.textSecondary,
     },
   });
 

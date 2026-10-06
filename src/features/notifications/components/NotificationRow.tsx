@@ -5,6 +5,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { formatDateTime } from '../../../shared/lib/money';
 import type { NotificationDTO } from '../types/notification';
+import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 
 interface NotificationRowProps {
   notification: NotificationDTO;
@@ -32,6 +33,8 @@ const NotificationRow: React.FC<NotificationRowProps> = ({ notification, isLast,
       ]}
       accessibilityRole="button"
       accessibilityLabel={notification.message}
+      // To'liq enli qator yumaloq karta ichida - halqa ichkariga chiziladi.
+      dataSet={FOCUS_INSET}
     >
       <View style={[styles.iconWrap, { backgroundColor: unread ? colors.primarySoft : colors.surfaceMuted }]}>
         <Ionicons name="swap-horizontal" size={18} color={unread ? colors.primary : colors.textSecondary} />

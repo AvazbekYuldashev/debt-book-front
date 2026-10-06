@@ -105,6 +105,12 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
   const selectedUnit = units.find((unit) => unit.code === unitCode);
   const zeroText = selectedUnit ? formatGapAmount(0, selectedUnit) : '0';
 
+  // Faqat "Hammasi" bo'lsa filtrda tanlov yo'q — yolg'iz chip qotib qolgan
+  // progress chizig'iga o'xshardi. Lekin birlik filtri allaqachon tanlangan
+  // bo'lsa (raqam bosilgan, birliklar ro'yxati kelmagan) "Hammasi"ga qaytish
+  // yo'li qolishi shart.
+  const showUnitRail = units.length > 0 || unitCode !== 'ALL';
+
   const renderTile = (
     direction: GapSortDirection,
     label: string,
@@ -134,10 +140,13 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
             {label}
           </Text>
         </View>
+        {/* Yuklanish va nol NEYTRAL kulrangda (BalanceSummary, ContactRow
+            bilan bir xil): qizil "0" ochiq qarzdek o'qiladi. Kategoriyani
+            rangli ikonka bildiradi. */}
         {loading ? (
-          <Text style={[styles.value, { color }]}>—</Text>
+          <Text style={[styles.value, styles.valueIdle]}>—</Text>
         ) : shown.length === 0 ? (
-          <Text style={[styles.value, { color }]} numberOfLines={1}>
+          <Text style={[styles.value, styles.valueIdle]} numberOfLines={1}>
             {zeroText}
           </Text>
         ) : (
@@ -231,25 +240,32 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
       ) : null}
 
       {/* Birlik soni oldindan noma'lum — chiplar gorizontal siljiydi. */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterBar}
-        style={styles.filterScroll}
-      >
-        {renderChip('ALL', t('gap.filterAll'))}
-        {units.map((unit) => renderChip(unit.code, unit.label))}
-      </ScrollView>
+      {showUnitRail ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterBar}
+          style={styles.filterScroll}
+        >
+          {renderChip('ALL', t('gap.filterAll'))}
+          {units.map((unit) => renderChip(unit.code, unit.label))}
+        </ScrollView>
+      ) : null}
     </View>
   );
 };
 
 const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
+    // Ichki chekka har tomonda ~16px: yuqorida sm + qator tepasi (xxs),
+    // pastda md. Pastki element (rail, "Yana N ta" yoki kataklar) shu
+    // padding'ga to'g'ridan-to'g'ri tayanadi — avval rail chegaraga 8px
+    // qolib, karta siqilgandek ko'rinardi.
     card: {
       ...glass.pane,
       borderRadius: radius.xl,
-      paddingVertical: spacing.xs,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.md,
       paddingHorizontal: spacing.md,
       marginHorizontal: spacing.md,
       marginBottom: spacing.sm,
@@ -259,10 +275,12 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       // bo'ladi. Token shu qoidani bir joyda ushlab turadi.
       ...shadows.raised,
     },
+    // Faqat tepadan: pastki bo'shliq qolsa, rail'siz holatda kataklar
+    // ostida 16 emas 20px chiqib, yuqori/pastki chekka nosimmetrik bo'lardi.
     row: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      paddingVertical: spacing.xxs,
+      paddingTop: spacing.xxs,
     },
     tile: {
       flex: 1,
@@ -295,6 +313,9 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       letterSpacing: -0.2,
       fontVariant: ['tabular-nums'],
     },
+    valueIdle: {
+      color: colors.textSecondary,
+    },
     amountBlock: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -320,12 +341,13 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       height: 1,
       backgroundColor: colors.border,
     },
+    // Kataklardan 8px (avvalgi qator pastki xxs + xxs bilan bir xil).
     toggle: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: spacing.xxs,
-      paddingTop: spacing.xxs,
+      paddingTop: spacing.xs,
     },
     togglePressed: {
       opacity: 0.6,
@@ -336,8 +358,9 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       fontWeight: '700',
       color: colors.primary,
     },
+    // Kataklardan 12px (avvalgi qator pastki xxs + xs bilan bir xil).
     filterScroll: {
-      marginTop: spacing.xs,
+      marginTop: spacing.sm,
       flexGrow: 0,
       borderRadius: radius.pill,
       backgroundColor: colors.surfaceMuted,

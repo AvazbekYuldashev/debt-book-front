@@ -99,11 +99,14 @@ const GapVoiceResultModal: React.FC<GapVoiceResultModalProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
+    // Scrim va karta ilovaning umumiy modal retseptidan: ikkala mavzuda,
+    // fon rasmi ustida ham boshqa dialoglar bilan bir xil ko'rinadi.
+    // Qattiq yozilgan qora parda yorug' mavzuda kirlangan kulrang berardi.
     backdrop: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.45)',
+      ...glass.scrim,
       alignItems: 'center',
       justifyContent: 'center',
       padding: spacing.md,
@@ -111,10 +114,9 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     card: {
       width: '100%',
       maxWidth: 420,
-      backgroundColor: colors.surface,
+      ...glass.modal,
       borderRadius: radius.lg,
       padding: spacing.md,
-      ...shadows.card,
     },
     titleRow: {
       flexDirection: 'row',
