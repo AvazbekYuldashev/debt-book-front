@@ -48,9 +48,9 @@ const WITHOUT_PHOTO: Record<TransparencyLevel, AlphaSet> = {
  * deyarli nolga tushadi (rasm o'z holicha ko'rinadi), "Kam" esa toza
  * oq kartaga chiqadi. O'rtadagi qiymat ikkala uchdan ham uzoqroq.
  *
- * EVAZIGA: "Ko'p" tanlanganda yorug' mavzudagi to'q matn to'q rasm
- * ustida qoladi. Bu foydalanuvchi tanlovi - shuning uchun u sozlama,
- * dasturning qarori emas.
+ * "Ko'p" da sirt matnga fon bermaydi va yorug' mavzudagi to'q matn to'q
+ * rasm ustida qolardi. Buni sirt emas, MAVZU hal qiladi: rasm o'lchanadi
+ * va matn o'qilmasa, o'qiladigan mavzu ko'rsatiladi (photoTone.ts).
  */
 const WITH_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
   clear: { surface: 0.08, strong: 0.14, muted: 0.06 },
