@@ -15,6 +15,7 @@ import { ROUTES } from '../../../app/navigation/routes';
 import type { ProfileNavigation } from '../../../app/navigation/types';
 import { useI18n } from '../../../shared/i18n';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
+import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import BusinessCard from '../components/BusinessCard';
@@ -80,7 +81,10 @@ const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navig
         {isLoading ? (
           <SkeletonCardList count={3} />
         ) : businesses.length === 0 ? (
-          <Text style={styles.empty}>{t('workspace.noBusiness')}</Text>
+          // Matn fonda emas, kartada: to'q fon rasmida ham o'qiladi.
+          <View style={styles.emptyCard}>
+            <Text style={styles.empty}>{t('workspace.noBusiness')}</Text>
+          </View>
         ) : (
           businesses.map((business) => (
             <BusinessCard
@@ -92,7 +96,11 @@ const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navig
             />
           ))
         )}
-        {errorText ? <Text style={styles.error}>{errorText}</Text> : null}
+        {errorText ? (
+          <SurfaceLabel multiline style={styles.errorWrap} textStyle={styles.error}>
+            {errorText}
+          </SurfaceLabel>
+        ) : null}
       </ScrollView>
 
       <FloatingActionButton
@@ -112,7 +120,7 @@ const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navig
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -128,15 +136,23 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       padding: spacing.md,
       paddingBottom: 96,
     },
+    emptyCard: {
+      ...glass.pane,
+      borderRadius: radius.xxl,
+      padding: spacing.lg,
+      marginTop: spacing.md,
+      overflow: 'hidden',
+    },
     empty: {
       ...typography.body,
       textAlign: 'center',
       color: colors.textSecondary,
-      marginTop: spacing.md,
+    },
+    errorWrap: {
+      marginTop: spacing.xs,
     },
     error: {
       ...typography.caption,
-      marginTop: spacing.xs,
       color: colors.danger,
     },
   });

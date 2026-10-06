@@ -9,6 +9,7 @@ import type { GapScreenProps } from '../../../app/navigation/types';
 import type { ROUTES } from '../../../app/navigation/routes';
 import { useConfirmGapTransfer, useCreateGapTransfer, useGapMemberDetail } from '../hooks/useGap';
 import Button from '../../../shared/ui/Button';
+import StatusBanner from '../../../shared/ui/StatusBanner';
 import GapTransferRow from '../components/GapTransferRow';
 import GapMemberBalanceHeader from '../components/GapMemberBalanceHeader';
 import GapTransferFormModal from '../components/GapTransferFormModal';
@@ -222,7 +223,8 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         }
       />
 
-      {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+      {/* Xato fonda emas, o'z sirtida: to'q fon rasmida ham o'qiladi. */}
+      {actionError ? <StatusBanner tone="error" message={actionError} /> : null}
 
       {/* Qarzlar bo'limidagi kabi: ikkita to'la enli tugma — "Oldim" qizil,
           "Berdim" yashil. O'z hisobimda amal yo'q. */}
@@ -303,13 +305,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       textAlign: 'center',
       color: colors.textSecondary,
       paddingVertical: spacing.lg,
-    },
-    error: {
-      ...typography.caption,
-      color: colors.danger,
-      textAlign: 'center',
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.xs,
     },
     actionBar: {
       flexDirection: 'row',

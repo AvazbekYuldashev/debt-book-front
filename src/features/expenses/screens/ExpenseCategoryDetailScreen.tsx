@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
+import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -204,8 +205,16 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
         contentContainerStyle={styles.listContent}
+        // Bo'sh ro'yxat xabari to'g'ridan-to'g'ri fonda turadi - o'z sirti
+        // bo'lmasa, to'q fon rasmida yorug' mavzuning to'q matni yo'qolardi.
         ListEmptyComponent={
-          loading ? <SkeletonCardList count={4} /> : <Text style={styles.emptyText}>{t('expenses.noExpenses')}</Text>
+          loading ? (
+            <SkeletonCardList count={4} />
+          ) : (
+            <SurfaceLabel style={styles.emptyLabel} textStyle={styles.emptyText}>
+              {t('expenses.noExpenses')}
+            </SurfaceLabel>
+          )
         }
         renderItem={({ item }) => (
           <ExpenseRow
@@ -281,11 +290,14 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.lg,
     },
+    emptyLabel: {
+      alignSelf: 'center',
+      marginTop: spacing.lg,
+    },
     emptyText: {
       ...typography.body,
       textAlign: 'center',
       color: colors.textSecondary,
-      marginTop: spacing.lg,
     },
   });
 
