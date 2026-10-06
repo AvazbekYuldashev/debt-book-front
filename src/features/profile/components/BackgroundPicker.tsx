@@ -7,7 +7,7 @@ import { updateProfileBackground } from '../api/profile';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useBackground } from '../../../shared/theme/BackgroundProvider';
-import { photoBlur, type BackgroundFit } from '../../../shared/theme/backgroundSettings';
+import { PHOTO_BLUR, type BackgroundFit } from '../../../shared/theme/backgroundSettings';
 import { buildAttachUrl } from '../../../shared/lib/attachUrl';
 import { useI18n } from '../../../shared/i18n';
 import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
@@ -55,7 +55,7 @@ const BackgroundPicker: React.FC = () => {
 
   const token = profile?.jwt;
   const hasImage = imageId.length > 0;
-  const previewBlur = Math.round(photoBlur(dim) * PREVIEW_BLUR_SCALE);
+  const previewBlur = Math.round(PHOTO_BLUR * PREVIEW_BLUR_SCALE);
 
   /**
    * Sozlamani HISOBGA saqlaydi.
@@ -121,9 +121,8 @@ const BackgroundPicker: React.FC = () => {
       <Text style={styles.title}>{t('background.title')}</Text>
       <Text style={styles.hint}>{t('background.hint')}</Text>
 
-      {/* Ko'rinish namunasi: xiralik (blur va parda) ham shu yerda
-          qo'llanadi, shuning uchun odam tanlashdan oldin matn o'qilishini
-          ko'ra oladi. */}
+      {/* Ko'rinish namunasi: blur va parda ham shu yerda qo'llanadi,
+          shuning uchun odam tanlashdan oldin natijani ko'ra oladi. */}
       <View style={styles.preview}>
         {hasImage ? (
           <>
@@ -137,7 +136,7 @@ const BackgroundPicker: React.FC = () => {
                 bottom: -previewBlur * 2,
               }}
               resizeMode={fit}
-              blurRadius={previewBlur > 0 ? previewBlur : undefined}
+              blurRadius={previewBlur}
               accessibilityIgnoresInvertColors
             />
             <View

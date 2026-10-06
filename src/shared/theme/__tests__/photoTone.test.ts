@@ -102,21 +102,16 @@ describe('readableTheme', () => {
   });
 
   /**
-   * "O'rta" da oq sirt to'q rasm ustida kulrang bo'lib qoladi: asosiy matn
-   * o'qiladi, kulrang yorliqlar esa yo'qolardi (skrinshot: Sozlamalar).
+   * "O'rta" va "Kam" da yorug' mavzuning sirti toza oq karta: hatto qop-
+   * qora rasmda ham asosiy va kulrang matn hamma joyda o'qiladi, mavzu
+   * esa o'zgarmaydi.
    */
-  it("O'rta + to'q rasm -> qorong'i mavzu (kulrang matn uchun)", () => {
-    expect(readableTheme('light', uniform(DARK), 0, 'medium')).toBe('dark');
-  });
-
-  /** "Kam" da sirt deyarli to'liq oq karta - yorug' mavzu qoladi. */
-  it("Kam da yorug' mavzu to'q rasmda ham qoladi", () => {
-    expect(readableTheme('light', uniform(DARK), 0, 'solid')).toBe('light');
-  });
-
-  /** O'rtacha yorqin rasmda "O'rta" da yorug' mavzu o'qiladi va qoladi. */
-  it("o'rtacha rasmda O'rta da yorug' mavzu qoladi", () => {
-    expect(readableTheme('light', uniform({ r: 140, g: 140, b: 140 }), 0, 'medium')).toBe('light');
+  it("O'rta va Kam da yorug' mavzu har qanday rasmda o'qiladi", () => {
+    const black = uniform({ r: 0, g: 0, b: 0 });
+    for (const level of ['medium', 'solid'] as const) {
+      expect(readableShare(black, 'light', 0, level)).toBe(1);
+      expect(readableTheme('light', uniform(DARK), 0, level)).toBe('light');
+    }
   });
 
   /** Kuchli parda rasmni o'zi oqartiradi - almashtirish shart emas. */

@@ -85,6 +85,15 @@ describe('glassAlpha', () => {
       .toBeGreaterThan(glassAlpha('medium', true, true).surface);
   });
 
+  /**
+   * Yorug' mavzuda "O'rta" loyqa oraliqda TURMAYDI: 0.5 atrofidagi oq
+   * to'q rasm ustida kulrang "soya" bo'lib ko'rinardi. U toza kartaga
+   * yaqin bo'lishi shart.
+   */
+  it("yorug' mavzuda O'rta toza karta", () => {
+    expect(glassAlpha('medium', true, false).surface).toBeGreaterThanOrEqual(0.8);
+  });
+
   /** Rasmsiz esa ikki mavzu bir xil - u yerda fon past kontrastli. */
   it('rasmsiz mavzular teng', () => {
     for (const item of TRANSPARENCY_LEVELS) {

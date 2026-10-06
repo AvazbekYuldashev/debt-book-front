@@ -45,8 +45,13 @@ const WITHOUT_PHOTO: Record<TransparencyLevel, AlphaSet> = {
  * qo'shilib ketadi va o'rta alfada ham tabiiy chiqadi.
  *
  * Shu sababli yorug' mavzuda o'sha "loyqa" oraliqdan QOCHILADI: "Ko'p"
- * deyarli nolga tushadi (rasm o'z holicha ko'rinadi), "Kam" esa toza
- * oq kartaga chiqadi. O'rtadagi qiymat ikkala uchdan ham uzoqroq.
+ * deyarli nolga tushadi (rasm o'z holicha ko'rinadi), "O'rta" va "Kam"
+ * esa toza oq kartaga chiqadi.
+ *
+ * "O'rta" ilgari 0.5 edi - aynan loyqa oraliqning o'rtasi: to'q rasm
+ * ustida karta kulrang "soya" bo'lib ko'rinardi, kulrang yozuvlar esa
+ * unda yo'qolardi. Endi u toza karta (0.84), rasm esa uning ostidan
+ * ozgina sezilib turadi - "Kam" dan farqi shu.
  *
  * "Ko'p" da sirt matnga fon bermaydi va yorug' mavzudagi to'q matn to'q
  * rasm ustida qolardi. Buni sirt emas, MAVZU hal qiladi: rasm o'lchanadi
@@ -54,8 +59,8 @@ const WITHOUT_PHOTO: Record<TransparencyLevel, AlphaSet> = {
  */
 const WITH_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
   clear: { surface: 0.08, strong: 0.14, muted: 0.06 },
-  medium: { surface: 0.5, strong: 0.62, muted: 0.42 },
-  solid: { surface: 0.95, strong: 0.97, muted: 0.92 },
+  medium: { surface: 0.84, strong: 0.9, muted: 0.78 },
+  solid: { surface: 0.96, strong: 0.98, muted: 0.94 },
 };
 
 const WITH_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {

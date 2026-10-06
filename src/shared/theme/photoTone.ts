@@ -49,10 +49,9 @@ export const MIN_TEXT_CONTRAST = 4.5;
  * Ikkinchi darajali (kulrang) matn uchun kontrast - WCAG ning eng past
  * chegarasi (3:1).
  *
- * NEGA ALOHIDA: faqat asosiy matnga qaralganda yorug' mavzu "O'rta"
- * shaffoflikda to'q rasm ustida o'tib ketardi (6.3), lekin kulrang
- * yorliqlar - "Kam / O'rta / Kuchli", "Moslash", telefon raqamlari -
- * sut rangli sirtda 2.6 gacha tushib, ko'rinmay qolardi.
+ * NEGA ALOHIDA: asosiy matn o'qilsa ham kulrang yorliqlar - "Kam / O'rta
+ * / Kuchli", "Moslash", telefon raqamlari - yarim shaffof sirtda 2.6
+ * gacha tushib, ko'rinmay qolishi mumkin.
  */
 export const MIN_SECONDARY_CONTRAST = 3;
 
@@ -178,9 +177,9 @@ export const readableShare = (
  * joyda o'qilsagina, almashtiriladi - aks holda tanlovni bekorga buzgan
  * bo'lardik.
  *
- * To'q rasmda yorug' mavzu "Ko'p" va "O'rta" da almashadi: sirt kulrang
- * matnga yetarli fon bermaydi. "Kam" da sirt deyarli to'liq oq karta va
- * yorug' mavzu o'z holicha qoladi.
+ * Amalda bu faqat "Ko'p" shaffoflikda ishlaydi: u yerda sirt matnga fon
+ * bermaydi. "O'rta" va "Kam" da yorug' mavzuning sirti toza oq karta va
+ * har qanday rasmda o'qiladi.
  */
 export const readableTheme = (
   preferred: ThemeName,
