@@ -185,9 +185,12 @@ const createStyles = ({ colors, spacing, radius, typography, glass, shadows }: T
       paddingVertical: spacing.xs,
       paddingHorizontal: spacing.sm,
       borderRadius: radius.pill,
+      // O'z sirti: qator fon rasmi ustida turadi, surfaceMuted esa yorug'
+      // mavzuda deyarli shaffof - tanlanmagan chip yozuvi to'q rasmda
+      // o'qilmasdi. pane chegaradan OLDIN: 1px chegara saqlanadi.
+      ...glass.pane,
       borderWidth: 1,
       borderColor: colors.border,
-      backgroundColor: colors.surfaceMuted,
       maxWidth: 180,
     },
     chipSelected: {
@@ -210,8 +213,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass, shadows }: T
       alignItems: 'center',
       gap: 4,
       borderStyle: 'dashed',
+      // Fon chip'dan meros (pane): shaffof bo'lsa "+" yozuvi rasm ustida qolardi.
       borderColor: colors.primary,
-      backgroundColor: 'transparent',
     },
     addText: {
       fontSize: 13,

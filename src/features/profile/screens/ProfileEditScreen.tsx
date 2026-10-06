@@ -6,6 +6,7 @@ import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import Card from '../../../shared/ui/Card';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
+import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
@@ -208,8 +209,17 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            {/* Kartadan tashqarida, fonda turadi - o'z sirtida bo'lmasa fon
+                rasmiga qo'shilib ketardi. Server xatosi uzun bo'lishi mumkin,
+                shuning uchun multiline (qirqilmasin). */}
             {status ? (
-              <Text style={[styles.status, statusError && styles.statusError]}>{status}</Text>
+              <SurfaceLabel
+                multiline
+                style={styles.labelWrap}
+                textStyle={[styles.status, statusError && styles.statusError]}
+              >
+                {status}
+              </SurfaceLabel>
             ) : null}
 
             <Card style={styles.card}>
@@ -251,7 +261,10 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
               )}
             </Card>
 
-            <Text style={styles.hint}>{t('profile.personalInPersonalWorkspace')}</Text>
+            {/* Karta tashqarisidagi izoh - fon rasmi ustida o'qilishi uchun o'z sirtida. */}
+            <SurfaceLabel multiline style={styles.labelWrap} textStyle={styles.hint}>
+              {t('profile.personalInPersonalWorkspace')}
+            </SurfaceLabel>
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
@@ -269,8 +282,15 @@ const ProfileEditScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_EDIT>
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* Biznes tarmog'idagi kabi: fonda turgani uchun o'z sirtida. */}
           {status ? (
-            <Text style={[styles.status, statusError && styles.statusError]}>{status}</Text>
+            <SurfaceLabel
+              multiline
+              style={styles.labelWrap}
+              textStyle={[styles.status, statusError && styles.statusError]}
+            >
+              {status}
+            </SurfaceLabel>
           ) : null}
 
           <Card style={styles.card}>
@@ -372,6 +392,10 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
       fontSize: 12,
       fontWeight: '700',
       color: colors.textSecondary,
+    },
+    // Status va izoh matni o'rtada turardi - yorliq ham o'rtada qoladi.
+    labelWrap: {
+      alignSelf: 'center',
     },
     status: {
       ...typography.caption,

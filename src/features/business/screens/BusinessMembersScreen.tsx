@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import BusinessMembersTable from '../components/BusinessMembersTable';
 import WorkspaceSwitcher from '../components/WorkspaceSwitcher';
@@ -20,6 +20,7 @@ import { canManageMembers, isBusinessOwner } from '../../../shared/lib/permissio
 import { confirmAction } from '../../../shared/lib/confirm';
 import { useI18n } from '../../../shared/i18n';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
+import StatusBanner from '../../../shared/ui/StatusBanner';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
@@ -157,7 +158,8 @@ const BusinessMembersScreen: React.FC<Props> = ({ route, navigation }) => {
       <View style={styles.header}>
         <ScreenHeader title={t('members.title')} subtitle={businessName} onBack={navigation.goBack} />
         <WorkspaceSwitcher />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {/* Xato fonda emas, o'z sirtida: to'q fon rasmida ham o'qiladi. */}
+        {error ? <StatusBanner tone="error" message={error} /> : null}
       </View>
 
       <ScrollView
@@ -193,7 +195,7 @@ const BusinessMembersScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ spacing }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -208,12 +210,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     content: {
       padding: spacing.md,
       paddingBottom: 96,
-    },
-    error: {
-      ...typography.caption,
-      color: colors.danger,
-      marginBottom: spacing.xs,
-      paddingHorizontal: spacing.md,
     },
   });
 

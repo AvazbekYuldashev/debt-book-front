@@ -7,6 +7,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import Card from '../../../shared/ui/Card';
 import MenuRow from '../../../shared/ui/MenuRow';
 import Button from '../../../shared/ui/Button';
+import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import EntranceView from '../../../shared/ui/EntranceView';
 import ScreenTopBar from '../../../app/components/ScreenTopBar';
@@ -239,8 +240,16 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
           )}
         </Card>
 
+        {/* Kartalar orasida, to'g'ridan-to'g'ri fonda - o'z sirtisiz fon
+            rasmiga qo'shilib ketardi. Xato uzun bo'lishi mumkin: multiline. */}
         {status ? (
-          <Text style={[styles.status, statusError && styles.statusError]}>{status}</Text>
+          <SurfaceLabel
+            multiline
+            style={styles.statusWrap}
+            textStyle={[styles.status, statusError && styles.statusError]}
+          >
+            {status}
+          </SurfaceLabel>
         ) : null}
 
         <View style={styles.actionsRow}>
@@ -410,6 +419,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
       color: colors.textPrimary,
       textAlign: 'center',
       marginTop: spacing.xs,
+    },
+    statusWrap: {
+      alignSelf: 'center',
     },
     status: {
       ...typography.caption,

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
+import StatusBanner from '../../../shared/ui/StatusBanner';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
@@ -164,7 +165,8 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
         loading={groupQuery.isLoading}
       />
 
-      {addError ? <Text style={styles.error}>{addError}</Text> : null}
+      {/* Xato fonda emas, o'z sirtida: to'q fon rasmida ham o'qiladi. */}
+      {addError ? <StatusBanner tone="error" message={addError} /> : null}
 
       <FlatList
         style={styles.list}
@@ -248,13 +250,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     skeleton: {
       padding: spacing.md,
-    },
-    error: {
-      ...typography.caption,
-      color: colors.danger,
-      textAlign: 'center',
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.xs,
     },
     empty: {
       alignItems: 'center',

@@ -62,15 +62,20 @@ const BusinessMembersTable: React.FC<BusinessMembersTableProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     list: {
       gap: spacing.sm,
     },
+    // Ikonka va matn fonda emas, kartada: to'q fon rasmida ham o'qiladi.
     emptyWrap: {
+      ...glass.pane,
+      borderRadius: radius.xxl,
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: spacing.xl,
+      // Endi bu karta: matn uning chetiga yopishib qolmasin.
+      paddingHorizontal: spacing.lg,
       gap: spacing.xs,
     },
     empty: {

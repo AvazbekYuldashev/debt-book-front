@@ -7,6 +7,7 @@ import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import SearchField from '../../../shared/ui/SearchField';
 import StatusBanner from '../../../shared/ui/StatusBanner';
+import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
 import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
@@ -17,7 +18,6 @@ import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { confirmAction } from '../../../shared/lib/confirm';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
-import { titleOutline } from '../../../shared/theme/textOutline';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import type { ProductsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
@@ -238,9 +238,15 @@ const ProductsScreen: React.FC<Props> = () => {
     [profile?.jwt, loadProducts, t]
   );
 
+  // Bo'sh holat o'z kartasida: aks holda sarlavha va izoh to'g'ridan-to'g'ri
+  // fon rasmi ustida qolib, to'q rasmda o'qilmasdi. EmptyState'ning `card`i
+  // emas: u yana marginHorizontal qo'shadi, kontent esa allaqachon
+  // chekinishli - karta qidiruv maydoni va ro'yxatdan torroq chiqardi.
+  const inCard = (node: React.ReactNode) => <View style={styles.emptyCard}>{node}</View>;
+
   const renderBody = () => {
     if (!isBusiness) {
-      return (
+      return inCard(
         <EmptyState
           icon="business-outline"
           title={t('products.businessOnly')}
@@ -254,7 +260,7 @@ const ProductsScreen: React.FC<Props> = () => {
     }
 
     if (products.length === 0) {
-      return (
+      return inCard(
         <EmptyState
           icon="pricetags-outline"
           title={t('products.empty')}
@@ -266,7 +272,7 @@ const ProductsScreen: React.FC<Props> = () => {
     }
 
     if (visibleProducts.length === 0) {
-      return (
+      return inCard(
         <EmptyState
           icon="search-outline"
           title={t('products.notFound')}
@@ -277,7 +283,7 @@ const ProductsScreen: React.FC<Props> = () => {
 
     return (
       <EntranceView>
-        <Text style={styles.count}>{t('products.count', { count: visibleProducts.length })}</Text>
+        <SurfaceLabel style={styles.count}>{t('products.count', { count: visibleProducts.length })}</SurfaceLabel>
         <Card style={styles.listCard}>
           {visibleProducts.map((product, index) => (
             <ProductRow
@@ -292,7 +298,11 @@ const ProductsScreen: React.FC<Props> = () => {
             />
           ))}
         </Card>
-        {!allowWrite ? <Text style={styles.readOnly}>{t('products.readOnly')}</Text> : null}
+        {!allowWrite ? (
+          <SurfaceLabel style={styles.readOnly} textStyle={styles.readOnlyText} multiline>
+            {t('products.readOnly')}
+          </SurfaceLabel>
+        ) : null}
       </EntranceView>
     );
   };
@@ -303,9 +313,11 @@ const ProductsScreen: React.FC<Props> = () => {
       <EntranceView style={styles.header} duration={300} fromY={12}>
         <ScreenTopBar />
         <View style={styles.headerRow}>
-          <Text style={styles.title} numberOfLines={1}>
-            {t('products.title')}
-          </Text>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title} numberOfLines={1}>
+              {t('products.title')}
+            </Text>
+          </View>
         </View>
         {error ? (
           <View style={styles.banner}>
@@ -371,7 +383,7 @@ const ProductsScreen: React.FC<Props> = () => {
   );
 };
 
-const createStyles = ({ colors, spacing, typography, activeTheme }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -385,9 +397,18 @@ const createStyles = ({ colors, spacing, typography, activeTheme }: ThemeValue) 
       paddingHorizontal: spacing.md,
       paddingTop: spacing.xxs,
     },
+    // Sarlavha o'z sirtida (DebtListScreen bilan bir xil): kontur to'q
+    // rasmda yorug' mavzudagi to'q matnni qutqarmaydi, sirt esa kafolat.
+    titleWrap: {
+      alignSelf: 'flex-start',
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.lg,
+      ...glass.surface,
+      flexShrink: 1,
+      minWidth: 0,
+    },
     title: {
-      // Kontur: sarlavha har qanday fonda chetlari bilan ajraladi.
-      ...titleOutline(activeTheme === 'dark'),
       ...typography.display,
       color: colors.textPrimary,
     },
@@ -407,20 +428,25 @@ const createStyles = ({ colors, spacing, typography, activeTheme }: ThemeValue) 
       paddingTop: spacing.xs,
       paddingBottom: FAB_CLEARANCE,
     },
+    emptyCard: {
+      ...glass.surface,
+      borderRadius: radius.xxl,
+    },
+    // Faqat joylashuv: shrift va rangni SurfaceLabel beradi.
     count: {
-      ...typography.caption,
       marginBottom: spacing.xs,
       marginLeft: spacing.xxs,
-      color: colors.textSecondary,
     },
     listCard: {
       padding: spacing.xxs,
     },
+    // alignSelf center: pill markazda qoladi (SurfaceLabel'ning flex-start'i ustidan).
     readOnly: {
-      ...typography.caption,
+      alignSelf: 'center',
       marginTop: spacing.sm,
+    },
+    readOnlyText: {
       textAlign: 'center',
-      color: colors.textSecondary,
     },
   });
 

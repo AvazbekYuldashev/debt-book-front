@@ -201,16 +201,26 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
    *
    * Birinchi yuklashda aylana - "yo'q" deyish erta, hali bilmaymiz.
    * Keyin esa sababga qarab: ulanmadimi yoki rostdan ham yo'qmi.
+   *
+   * Ikkalasi ham kartadan tashqarida, to'g'ridan-to'g'ri fonda turadi -
+   * shuning uchun o'z sirtida: fon rasmi qo'yilganda matn va aylana unga
+   * qo'shilib ketardi. EmptyState'ning `card` i emas, Card: u yon chekinish
+   * qo'shadi, sahifada esa u allaqachon bor - tepadagi karta bilan bir
+   * kenglikda tursin.
    */
   const renderEmpty = useCallback(
     (icon: 'mic-off-outline' | 'card-outline', title: string) =>
       loading ? (
-        <ActivityIndicator style={styles.loader} color={colors.primary} />
+        <View style={styles.loader}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
       ) : (
-        <EmptyState
-          icon={failed ? 'cloud-offline-outline' : icon}
-          title={failed ? t('common.error') : title}
-        />
+        <Card style={styles.emptyCard}>
+          <EmptyState
+            icon={failed ? 'cloud-offline-outline' : icon}
+            title={failed ? t('common.error') : title}
+          />
+        </Card>
       ),
     [colors.primary, failed, loading, styles, t],
   );
@@ -367,7 +377,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -479,8 +489,17 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
     rowCostIn: {
       color: colors.positive,
     },
+    // Aylana uchun kichik doira: butun kenglikdagi bo'sh karta ortiqcha.
     loader: {
+      alignSelf: 'center',
       marginTop: spacing.xl,
+      padding: spacing.sm,
+      borderRadius: radius.pill,
+      ...glass.pane,
+    },
+    // EmptyState o'z ichki chekinishiga ega - Card'nikini qo'shmaymiz.
+    emptyCard: {
+      padding: 0,
     },
     balance: {
       ...typography.display,

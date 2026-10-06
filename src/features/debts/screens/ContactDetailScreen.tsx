@@ -8,6 +8,7 @@ import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import PressableScale from '../../../shared/ui/PressableScale';
 import SectionHeader from '../../../shared/ui/SectionHeader';
+import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
 import SwipePager, { type SwipePage } from '../../../shared/ui/SwipePager';
 import StatusBanner from '../../../shared/ui/StatusBanner';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
@@ -377,7 +378,12 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           </PressableScale>
         </EntranceView>
       ) : (
-        <Text style={styles.readOnlyNote}>{t('contact.readOnly')}</Text>
+        // Tugmalar o'rnida, to'g'ridan-to'g'ri fonda - o'z sirtisiz fon
+        // rasmiga qo'shilib ketardi. multiline: katta shriftda qirqilmasin
+        // (tugmalar nega yo'qligining yagona izohi).
+        <SurfaceLabel multiline style={styles.readOnlyNote} textStyle={styles.readOnlyText}>
+          {t('contact.readOnly')}
+        </SurfaceLabel>
       )}
 
       <MoneyActionModal
@@ -473,12 +479,17 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     giveBtn: {
       backgroundColor: colors.positive,
     },
+    // Sirt SurfaceLabel'dan; bu yerda faqat joylashuv - o'rtada.
     readOnlyNote: {
+      alignSelf: 'center',
+      marginTop: spacing.md,
+      marginBottom: spacing.md,
+      marginHorizontal: spacing.md,
+    },
+    readOnlyText: {
       ...typography.bodySmall,
       textAlign: 'center',
       color: colors.textSecondary,
-      marginTop: spacing.md,
-      paddingVertical: spacing.sm,
     },
     centered: {
       flex: 1,
