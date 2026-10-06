@@ -5,14 +5,18 @@ import { AppThemeProvider, useAppTheme } from '../ThemeProvider';
 import { BackgroundProvider, useBackground } from '../BackgroundProvider';
 import { TransparencyProvider, useTransparency } from '../TransparencyProvider';
 import type { TransparencyLevel } from '../transparency';
-import type { Rgb } from '../photoTone';
+import type { PhotoSample } from '../photoTone';
 
-const mockSample = jest.fn<Promise<Rgb | null>, [string]>();
+const mockSample = jest.fn<Promise<PhotoSample | null>, [string, string, number]>();
 jest.mock('../photoColor', () => ({
-  samplePhotoColor: (url: string) => mockSample(url),
+  samplePhoto: (url: string, fit: string, aspect: number) => mockSample(url, fit, aspect),
 }));
 
-const DARK_PHOTO = { r: 58, g: 68, b: 84 };
+const DARK_PHOTO: PhotoSample = {
+  rows: 4,
+  cols: 2,
+  cells: Array.from({ length: 8 }, () => ({ r: 58, g: 68, b: 84, a: 1 })),
+};
 
 const Probe: React.FC<{ level: TransparencyLevel; image: boolean }> = ({ level, image }) => {
   const { activeTheme, mode, setMode, photoAdapted } = useAppTheme();
@@ -62,7 +66,11 @@ describe('AppThemeProvider - fon rasmi ustida', () => {
     await settle();
 
     expect(screen.getByTestId('theme').props.children).toBe('dark|light|adapted');
-    expect(mockSample).toHaveBeenCalledWith(expect.stringContaining('/attach/open/photo-1'));
+    expect(mockSample).toHaveBeenCalledWith(
+      expect.stringContaining('/attach/open/photo-1'),
+      'cover',
+      expect.any(Number),
+    );
   });
 
   it("O'rta darajada yorug' mavzu qoladi", async () => {

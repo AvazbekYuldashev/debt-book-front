@@ -2,15 +2,16 @@ import React, { useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
+import { APP_COLUMN_WIDTH } from '../theme/layout';
 
 /**
- * Yig'ilgan ustun eni: uzun ro'yxatlar uchun qulay, cho'zilib ketmaydigan.
+ * Yig'ilgan ustun eni (qiymat mavzu qatlamida - layout.ts).
  *
  * Eksport qilingan, chunki gorizontal sahifalash (SwipePager) bir sahifa
  * enini BILISHI shart, o'lchash esa bu muhitda ishonchsiz (pastdagi izohga
  * qarang). Ilova bitta ustun — shuning uchun sahifa eni ham aynan shu.
  */
-export const APP_COLUMN_WIDTH = 560;
+export { APP_COLUMN_WIDTH };
 
 /**
  * Ilovani keng ekranda markazlashtirilgan ustunga yig'adi.
