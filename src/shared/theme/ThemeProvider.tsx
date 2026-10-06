@@ -120,7 +120,15 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    * o'zgarmaydi: rasm olib tashlansa yoki almashsa, u qaytadi.
    */
   const preferredTheme = resolveActiveTheme(mode, systemScheme);
-  const activeTheme = imageId && photo ? photoTheme(preferredTheme, photo) : preferredTheme;
+  // Shaffoflik darajasi foydalanuvchi sozlamasi: to'g'ri qiymat fonga
+  // bog'liq va uni dastur bila olmaydi. Ko'rinish ham unga bog'liq:
+  // shaffof sirtda matn rasmning o'zi ustida turadi.
+  const { level } = useTransparency();
+  const activeTheme = useMemo(
+    () => (imageId && photo ? photoTheme(preferredTheme, photo, level) : preferredTheme),
+    [imageId, photo, preferredTheme, level],
+  );
+  const hasPhoto = imageId.length > 0;
   /**
    * Mavzu palitrasi + foydalanuvchi tanlagan ASOSIY RANG.
    *
@@ -133,8 +141,11 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { accent } = useAccent();
   const colors = useMemo(() => {
     const base = activeTheme === 'dark' ? darkColors : lightColors;
-    return applyAccent(base, accent, activeTheme === 'dark');
-  }, [activeTheme, accent]);
+    const tinted = applyAccent(base, accent, activeTheme === 'dark');
+    // Fon rasmi ustida kulrang matn bir pog'ona kontrastliroq: ortida
+    // ixtiyoriy fotosurat turadi (colors.ts textSecondaryOnPhoto).
+    return hasPhoto ? { ...tinted, textSecondary: tinted.textSecondaryOnPhoto } : tinted;
+  }, [activeTheme, accent, hasPhoto]);
 
   /**
    * Web'da brauzer o'zi chizadigan qismlar - autofill foni, fokus halqasi,
@@ -198,12 +209,9 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    * ishlaydi. Shu sababli BackgroundProvider daraxtda bu provayderdan
    * TASHQARIDA turadi - u mavzuga bog'liq emas, mavzu esa unga bog'liq.
    */
-  // Shaffoflik darajasi foydalanuvchi sozlamasi: to'g'ri qiymat fonga
-  // bog'liq va uni dastur bila olmaydi.
-  const { level } = useTransparency();
   const glass = useMemo(
-    () => makeGlass(colors, shadows, imageId.length > 0, level, activeTheme === 'dark'),
-    [colors, shadows, imageId, level, activeTheme],
+    () => makeGlass(colors, shadows, hasPhoto, level, activeTheme === 'dark'),
+    [colors, shadows, hasPhoto, level, activeTheme],
   );
 
   const value = useMemo<ThemeValue>(() => ({

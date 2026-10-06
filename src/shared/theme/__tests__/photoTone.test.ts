@@ -35,6 +35,38 @@ const BRIGHT = { r: 236, g: 234, b: 228 };
 /** Ikkinchi skrinshot: tepasi och ko'kish tosh, pasti to'q. */
 const BRIGHT_TOP = { r: 150, g: 170, b: 195 };
 const DARK_BOTTOM = { r: 45, g: 55, b: 70 };
+/** To'yingan o'rtacha rang - eski kulrang matn "Ko'p" da 3:1 dan tushardi. */
+const MAGENTA = { r: 220, g: 30, b: 160 };
+const MID_GRAY = { r: 128, g: 128, b: 128 };
+
+const LEVELS = TRANSPARENCY_LEVELS.map((item) => item.id);
+
+/** HSV -> RGB (0..255): rang aylanasini aylanib chiqish uchun. */
+const hsv = (h: number, sat: number, val: number): Rgb => {
+  const f = (n: number) => {
+    const k = (n + h / 60) % 6;
+    return 255 * (val - val * sat * Math.max(0, Math.min(k, 4 - k, 1)));
+  };
+  return { r: f(5), g: f(3), b: f(1) };
+};
+
+/**
+ * Har xil bir tusli rasmlar: butun kulrang shkala va rang aylanasi
+ * (to'yingan va so'ngan, to'q va och). Kichik to'r - rasm bir xil, tezlik
+ * uchun.
+ */
+const SWEEP: { name: string; photo: PhotoSample }[] = [];
+for (let v = 0; v <= 255; v += 15) {
+  SWEEP.push({ name: `kulrang ${v}`, photo: { rows: 4, cols: 1, cells: Array(4).fill({ r: v, g: v, b: v, a: 1 }) } });
+}
+for (let h = 0; h < 360; h += 30) {
+  for (const sat of [0.4, 0.7, 1]) {
+    for (const val of [0.3, 0.55, 0.8, 1]) {
+      const color = hsv(h, sat, val);
+      SWEEP.push({ name: `hsv(${h}, ${sat}, ${val})`, photo: { rows: 4, cols: 1, cells: Array(4).fill({ ...color, a: 1 }) } });
+    }
+  }
+}
 
 describe('parseColor', () => {
   it('hex va rgba satrlarini oqiydi', () => {
@@ -88,16 +120,52 @@ describe('shaffoflik jadvallari', () => {
     oppoq: PHOTOS.oppoq,
     "to'q tosh": PHOTOS["to'q tosh"],
     och: PHOTOS.och,
+    pushti: uniform(MAGENTA),
+    kulrang: uniform(MID_GRAY),
   };
   for (const preferred of ['light', 'dark'] as const) {
     for (const level of ['medium', 'clear'] as const) {
       it(`${preferred} rejim / ${level}: ko'rinish rasmga mos va o'qiladi`, () => {
         for (const [name, photo] of Object.entries(TONED)) {
-          const look = photoTheme(preferred, photo);
+          const look = photoTheme(preferred, photo, level);
           expect([name, look, readableShare(photo, look, level)]).toEqual([name, look, 1]);
         }
       });
     }
+  }
+
+  /**
+   * Web: HAR daraja ("Ko'p" - to'liq shaffof ham) HAR QANDAY bir tusli
+   * rasmda o'qiladi - kulrang shkala va butun rang aylanasi. Matnni
+   * ko'rinish (photoTheme) va muzlatishning yorqinlik tuzatishi o'qitadi.
+   */
+  for (const preferred of ['light', 'dark'] as const) {
+    it(`web: ${preferred} rejim - hamma darajada butun rang aylanasi o'qiladi`, () => {
+      const unreadable: string[] = [];
+      for (const level of LEVELS) {
+        for (const { name, photo } of SWEEP) {
+          const look = photoTheme(preferred, photo, level);
+          if (readableShare(photo, look, level) < 1) unreadable.push(`${level}: ${name} (${look})`);
+        }
+      }
+      expect(unreadable).toEqual([]);
+    });
+  }
+
+  /**
+   * Telefon: muzlatish ham, ko'rinishning rasmga moslashuvi ham yo'q - har
+   * daraja, tanlangan rejimning o'zida, butun rang aylanasida o'qiladi.
+   */
+  for (const theme of ['light', 'dark'] as const) {
+    it(`telefon: ${theme} - hamma darajada butun rang aylanasi o'qiladi`, () => {
+      const unreadable: string[] = [];
+      for (const level of LEVELS) {
+        for (const { name, photo } of SWEEP) {
+          if (readableShare(photo, theme, level, false) < 1) unreadable.push(`${level}: ${name}`);
+        }
+      }
+      expect(unreadable).toEqual([]);
+    });
   }
 
   /**
@@ -165,6 +233,40 @@ describe('photoTheme', () => {
       ),
     };
     expect(photoTheme('light', neon)).toBe('dark');
+  });
+
+  /**
+   * Shaffoflik darajasi hisobga olinadi: yopiq sirtda ikkala ko'rinish
+   * ham o'qiladi - tanlov saqlanadi. To'liq shaffof "Ko'p" da esa matn
+   * rasmning o'zi ustida: o'rtacha kulrangda oq yozuv o'qiladi, to'q
+   * emas.
+   */
+  it("o'rtacha fonda tanlov saqlanadi, Ko'p da yozuv rasmga ergashadi", () => {
+    const mid = uniform(MID_GRAY);
+    for (const level of ['none', 'solid', 'medium'] as const) {
+      expect([level, photoTheme('light', mid, level)]).toEqual([level, 'light']);
+    }
+    expect(photoTheme('light', mid, 'clear')).toBe('dark');
+    expect(photoTheme('light', uniform(MAGENTA), 'clear')).toBe('dark');
+  });
+
+  /** Foydalanuvchi talabi: yorug' rejim + to'q fon - HAR darajada oq yozuv. */
+  it("to'q fonda har darajada oq yozuv", () => {
+    for (const level of LEVELS) {
+      expect([level, photoTheme('light', uniform(DARK), level)]).toEqual([level, 'dark']);
+      expect([level, photoTheme('dark', uniform(BRIGHT), level)]).toEqual([level, 'light']);
+    }
+  });
+
+  /** Yopiq darajalarda daraja hech narsani o'zgartirmaydi - faqat yorqinlik hal qiladi. */
+  it("Yo'q va Kam da ko'rinish faqat yorqinlikka bog'liq", () => {
+    for (const preferred of ['light', 'dark'] as const) {
+      for (const level of ['none', 'solid'] as const) {
+        for (const { name, photo } of SWEEP) {
+          expect([name, photoTheme(preferred, photo, level)]).toEqual([name, photoTheme(preferred, photo)]);
+        }
+      }
+    }
   });
 
   /** Ro'yxat pastda turadi: tepasi och, pasti to'q rasmda yozuv oq. */

@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
+import { useListFrost } from '../../../shared/ui/ListFrost';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
@@ -451,6 +452,8 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   // Virtualizatsiyalangan ro'yxat uchun bitta qatorni chizadi (FlatList renderItem).
   // Balans HAR VALYUTA bo'yicha alohida — kursda aralashtirmaymiz.
   const lastIndex = sortedContacts.length - 1;
+  // Karta ortidagi yagona muzli shisha (qatorlar orasida chok qolmasin).
+  const listFrost = useListFrost(sortedContacts.length, FAB_CLEARANCE);
   const renderContact = useCallback<ListRenderItem<Contact>>(
     ({ item, index }) => {
       const totals = totalsByContact[item.id];
@@ -647,6 +650,8 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       <FlatList
         style={styles.scroll}
         contentContainerStyle={styles.listCard}
+        ListHeaderComponent={listFrost.ListHeaderComponent}
+        onContentSizeChange={listFrost.onContentSizeChange}
         data={sortedContacts}
         renderItem={renderContact}
         keyExtractor={keyExtractor}
@@ -881,8 +886,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
     // shisha o'zi quyuqlashadi va matn o'qiladigan bo'lib qoladi.
     rowSlice: {
       backgroundColor: glass.surface.backgroundColor,
-      // Fon rasmi ustida qator ham muzli shisha - karta bilan bir xil.
-      ...glass.frost,
+      // Muzlatish qatorda EMAS - butun karta ortida bitta qatlam
+      // (useListFrost): har qator alohida muzlatsa, chegaralarda chok qolardi.
       marginHorizontal: spacing.md,
     },
     rowFirst: {

@@ -12,6 +12,17 @@ export interface ColorTokens {
   surfaceMuted: string;
   textPrimary: string;
   textSecondary: string;
+  /**
+   * Fon RASMI ustidagi kulrang matn - textSecondary dan bir pog'ona
+   * kontrastliroq. ThemeProvider rasm qo'yilganda textSecondary o'rniga
+   * shuni beradi.
+   *
+   * Sabab: shaffof darajalarda ("O'rta", "Ko'p") matn ortida ixtiyoriy
+   * fotosurat turadi va oddiy kulrang to'yingan rangda (pushti, qizil)
+   * 3:1 dan pastga tushardi. Ilovaning o'z bezakli fonida esa eski,
+   * yumshoqroq tus qoladi.
+   */
+  textSecondaryOnPhoto: string;
   textOnPrimary: string;
   textOnSecondary: string;
   // primary fon USTIDAGI yumshoq overlay (badge/chip) — textOnPrimary bilan uyg'un.
@@ -124,6 +135,7 @@ export const lightColors: ColorTokens = {
   // nuqtada (yashil to'lqin + barg ustma-ust) 4.23 gacha tushardi, ya'ni
   // AA chegarasidan (4.5) past. Bir oz quyuqlashtirildi: 5.55.
   textSecondary: '#4A5A78',
+  textSecondaryOnPhoto: '#3B4A66',
   textOnPrimary: '#FFFFFF',
   textOnSecondary: '#FFFFFF',
   onPrimarySoft: 'rgba(255, 255, 255, 0.22)',
@@ -178,6 +190,7 @@ export const darkColors: ColorTokens = {
   surfaceMuted: 'rgba(148, 170, 200, 0.10)',
   textPrimary: '#E6ECF6',
   textSecondary: '#93A3BC',
+  textSecondaryOnPhoto: '#B4C0D4',
   textOnPrimary: '#06240F',
   textOnSecondary: '#3A2A06',
   onPrimarySoft: 'rgba(5, 40, 20, 0.22)',

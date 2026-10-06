@@ -78,7 +78,8 @@ const WITHOUT_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
  * (web'da backdrop-filter - glass.ts).
  *
  *   Yo'q  - to'liq yopiq karta;
- *   Kam   - ozgina ko'rinadi (0.85);
+ *   Kam   - ozgina ko'rinadi (0.8). Ilgari 0.85 edi: to'q rasmda to'q
+ *           karta bilan "Yo'q" dan deyarli farq qilmasdi;
  *   O'rta - yarim shaffof shisha (0.5);
  *   Ko'p  - TO'LIQ SHAFFOF (0): tus yo'q, faqat muzlatish. Foydalanuvchi
  *           talabi. Ilgari "Ko'p" 0.78 edi va to'rt daraja deyarli bir xil
@@ -95,7 +96,7 @@ const WITHOUT_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
  */
 const WITH_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
   none: OPAQUE,
-  solid: { surface: 0.85, strong: 0.9, muted: 0.8 },
+  solid: { surface: 0.8, strong: 0.86, muted: 0.8 },
   medium: { surface: 0.5, strong: 0.58, muted: 0.5 },
   clear: { surface: 0, strong: 0, muted: 0.22 },
 };
@@ -103,7 +104,7 @@ const WITH_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
 /** Qorong'ida - xuddi shu zinapoya, to'q muzli shisha. */
 const WITH_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
   none: OPAQUE,
-  solid: { surface: 0.85, strong: 0.9, muted: 0.85 },
+  solid: { surface: 0.8, strong: 0.86, muted: 0.85 },
   medium: { surface: 0.5, strong: 0.58, muted: 0.6 },
   clear: { surface: 0, strong: 0, muted: 0.4 },
 };
@@ -119,9 +120,34 @@ const WITH_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
  * QANDAY rasmda o'qiladigan eng shaffof qiymatda qoladi (test qulflaydi).
  */
 const NO_FROST_FLOOR: Record<'light' | 'dark', Partial<Record<TransparencyLevel, number>>> = {
-  light: { medium: 0.82, clear: 0.7 },
-  dark: { medium: 0.85, clear: 0.78 },
+  // O'qilish uchun eng kami: yorug' 0.59, qorong'i 0.68 (qora/oq rasm,
+  // textSecondaryOnPhoto bilan). "O'rta" undan biroz yuqori - zinapoya
+  // telefonda ham Kam > O'rta > Ko'p tartibida qoladi.
+  light: { medium: 0.7, clear: 0.62 },
+  dark: { medium: 0.76, clear: 0.7 },
 };
+
+/**
+ * Rasm ustidagi MUZLATISH retsepti (web, backdrop-filter).
+ *
+ * glass.ts uni CSS'ga aylantiradi, photoTone esa o'qilish hisobida AYNAN
+ * shuni modellaydi - ikkalasi bitta manbadan o'qiydi, aks holda test bir
+ * narsani, ekran boshqasini ko'rsatardi.
+ *
+ * Yorqinlik tuzatishi TUS emas (rang qo'shmaydi), shuning uchun "Ko'p"
+ * baribir to'liq shaffof: to'q ko'rinishda ortdagi rasmni qoraytiradi (oq
+ * yozuv uchun), yorug'ida biroz oqartiradi (to'q yozuv uchun) - Apple'ning
+ * "vibrancy" si kabi.
+ *
+ * Qiymatlar - rasm rangini eng KAM o'zgartiradigan, lekin "Ko'p" HAR
+ * rangli rasmda o'qiladigan nuqta (photoTone testi kulrang shkala va
+ * rang aylanasini tekshiradi; yorug' 1.05 dan, qorong'i 0.72 dan
+ * yumshoqroq bo'lsa o'qilmaydigan rang chiqadi). Ilgari 140% / 1.1 / 0.85
+ * edi: och qum rasmi sariq-krem tusga kirardi, to'yingan pushti ustida
+ * esa kulrang yozuv 3:1 dan pastga tushardi.
+ */
+export const FROST_SATURATE = 1.2;
+export const FROST_BRIGHTNESS: Record<'light' | 'dark', number> = { light: 1.08, dark: 0.72 };
 
 /** Noma'lum daraja standartga tushadi - eski ilova yangisini yuborsa ham. */
 export const findTransparency = (id: string | null | undefined): TransparencyLevel =>

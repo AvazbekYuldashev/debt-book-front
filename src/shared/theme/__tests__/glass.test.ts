@@ -2,7 +2,7 @@ import { makeGlass } from '../glass';
 import { darkColors, lightColors } from '../colors';
 import { makeShadows } from '../elevation';
 import { ACCENTS } from '../accent';
-import { TRANSPARENCY_LEVELS } from '../transparency';
+import { FROST_BRIGHTNESS, FROST_SATURATE, TRANSPARENCY_LEVELS } from '../transparency';
 import { contrastRatio, luminance, mix, parseColor, type Rgb } from '../photoTone';
 
 const themes = [
@@ -107,6 +107,23 @@ describe('muzli shisha', () => {
       expect(frostOf(glass.pane as Record<string, unknown>)).toMatch(/blur/);
       expect(frostOf(glass.flush as Record<string, unknown>)).toMatch(/blur/);
       expect(frostOf(glass.frost as Record<string, unknown>)).toMatch(/blur/);
+    });
+  });
+
+  /**
+   * CSS aynan photoTone modellagan retsept: o'qilish testi boshqa
+   * qiymatni tekshirib, ekranda boshqasi chizilmasin.
+   */
+  it("muzlatish CSS'i o'qilish modeli bilan bir xil", () => {
+    withPlatform('web', () => {
+      const shadowsDark = makeShadows(darkColors.shadow);
+      const light = frostOf(makeGlass(lightColors, shadowsLight, true, 'clear', false).surface as Record<string, unknown>);
+      const dark = frostOf(makeGlass(darkColors, shadowsDark, true, 'clear', true).surface as Record<string, unknown>);
+      const saturate = `saturate(${Math.round(FROST_SATURATE * 100)}%)`;
+      expect(light).toContain(saturate);
+      expect(dark).toContain(saturate);
+      expect(light).toContain(`brightness(${FROST_BRIGHTNESS.light})`);
+      expect(dark).toContain(`brightness(${FROST_BRIGHTNESS.dark})`);
     });
   });
 
