@@ -92,19 +92,42 @@ describe('glassAlpha', () => {
    * bildirishnoma kartasi kabi ko'rinadi va matnga fon beradi.
    * (Har qanday rasmda o'qilishi photoTone testida tekshiriladi.)
    */
-  it("rasm ustida eng shaffof daraja ham matnga fon beradi", () => {
+  it("Ko'p - to'liq shaffof (muzlatish bor joyda)", () => {
     for (const isDark of [false, true]) {
-      expect(glassAlpha('clear', true, isDark).surface).toBeGreaterThanOrEqual(0.6);
+      expect(glassAlpha('clear', true, isDark).surface).toBe(0);
+      expect(glassAlpha('clear', true, isDark).strong).toBe(0);
+      // Ichki bo'lak shaffof karta ichida yo'qolmasin.
+      expect(glassAlpha('clear', true, isDark).muted).toBeGreaterThan(0);
     }
   });
 
   /**
-   * Yorug' mavzuda "O'rta" loyqa oraliqda TURMAYDI: 0.5 atrofidagi oq
-   * to'q rasm ustida kulrang "soya" bo'lib ko'rinardi. U toza kartaga
-   * yaqin bo'lishi shart.
+   * Muzlatishsiz (telefon) O'rta va Ko'p tusli qoladi; har qanday rasmda
+   * o'qilishi photoTone testida qulflangan. Yopiqroq darajalarga chegara
+   * tegmaydi.
    */
-  it("yorug' mavzuda O'rta toza karta", () => {
-    expect(glassAlpha('medium', true, false).surface).toBeGreaterThanOrEqual(0.8);
+  it("muzlatishsiz O'rta va Ko'p tusli, qolganlari o'zgarmaydi", () => {
+    for (const isDark of [false, true]) {
+      expect(glassAlpha('clear', true, isDark, false).surface).toBeGreaterThan(0.5);
+      expect(glassAlpha('medium', true, isDark, false).surface).toBeGreaterThan(
+        glassAlpha('clear', true, isDark, false).surface,
+      );
+      expect(glassAlpha('solid', true, isDark, false)).toEqual(glassAlpha('solid', true, isDark));
+      expect(glassAlpha('none', true, isDark, false)).toEqual(glassAlpha('none', true, isDark));
+    }
+  });
+
+  /**
+   * Darajalar bir-biridan ANIQ farq qiladi: ilgari 1 / 0.92 / 0.85 / 0.78
+   * edi va to'rttasi deyarli bir xil to'q karta bo'lib ko'rinardi.
+   */
+  it("rasm ustida darajalar orasida aniq farq", () => {
+    for (const isDark of [false, true]) {
+      const steps = TRANSPARENCY_LEVELS.map(({ id }) => glassAlpha(id, true, isDark).surface);
+      for (let i = 1; i < steps.length; i += 1) {
+        expect(steps[i - 1] - steps[i]).toBeGreaterThanOrEqual(0.15);
+      }
+    }
   });
 
   /**

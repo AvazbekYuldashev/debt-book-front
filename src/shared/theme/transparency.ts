@@ -43,7 +43,10 @@ const OPAQUE: AlphaSet = { surface: 1, strong: 1, muted: 1 };
  */
 const WITHOUT_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
   none: OPAQUE,
-  clear: { surface: 0.18, strong: 0.3, muted: 0.12 },
+  // "Ko'p" - to'liq shaffof: karta faqat chegarasi va soyasi bilan ajraladi.
+  // Ichki bo'lak (chip, klavisha) ozgina tusda qoladi - aks holda u
+  // shaffof karta ichida butunlay yo'qolardi.
+  clear: { surface: 0, strong: 0, muted: 0.12 },
   medium: { surface: 0.28, strong: 0.44, muted: 0.2 },
   solid: { surface: 0.55, strong: 0.7, muted: 0.4 },
 };
@@ -61,37 +64,63 @@ const WITHOUT_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
  */
 const WITHOUT_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
   none: OPAQUE,
-  clear: { surface: 0.18, strong: 0.3, muted: 0.55 },
+  clear: { surface: 0, strong: 0, muted: 0.55 },
   medium: { surface: 0.28, strong: 0.44, muted: 0.65 },
   solid: { surface: 0.55, strong: 0.7, muted: 0.8 },
 };
 
 /**
  * FOTOSURAT ustida: Samsung (One UI) papka va bildirishnomalari kabi
- * MUZLI SHISHA.
+ * MUZLI SHISHA - darajalar orasida ANIQ farq bilan.
  *
  * Shaffoflik faqat elementlarga tegishli: fon rasmi "Xiralik" bo'yicha
  * keskin ham qolishi mumkin, sirt esa ortidagi rasmni o'zi xiralashtiradi
- * (web'da backdrop-filter - glass.ts). Rasmning detallari matnga xalaqit
- * bermaydi, faqat ranglari o'tib turadi.
+ * (web'da backdrop-filter - glass.ts).
  *
- * Har darajada, har ikki mavzuda, HAR QANDAY rasmda asosiy matn 4.5:1,
- * kulrang matn 3:1 dan o'tadi - blur'siz ham (telefonda backdrop-filter
- * yo'q). Test buni qop-qora va oppoq rasmda qulflaydi.
+ *   Yo'q  - to'liq yopiq karta;
+ *   Kam   - ozgina ko'rinadi (0.85);
+ *   O'rta - yarim shaffof shisha (0.5);
+ *   Ko'p  - TO'LIQ SHAFFOF (0): tus yo'q, faqat muzlatish. Foydalanuvchi
+ *           talabi. Ilgari "Ko'p" 0.78 edi va to'rt daraja deyarli bir xil
+ *           to'q karta bo'lib ko'rinardi.
+ *
+ * O'QILISH: "Yo'q" va "Kam" har qanday rasmda (muzlatishsiz ham) matnni
+ * o'qitadi. "O'rta" va "Ko'p" da matn rasmning o'zi ustida turadi -
+ * uni ko'rinish (photoTheme: to'q rasmda oq yozuv, och rasmda to'q) va
+ * muzlatishning yorqinlik tuzatishi o'qitadi. O'rtacha kulrang rasmda
+ * kontrast pastroq - to'liq shaffoflikning tabiiy narxi.
+ *
+ * Ichki bo'lak (muted: chip, klavisha) "Ko'p" da ham ozgina tusda: aks
+ * holda u shaffof karta ichida butunlay yo'qolardi.
  */
 const WITH_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
   none: OPAQUE,
-  solid: { surface: 0.92, strong: 0.95, muted: 0.88 },
-  medium: { surface: 0.82, strong: 0.88, muted: 0.76 },
-  clear: { surface: 0.7, strong: 0.78, muted: 0.62 },
+  solid: { surface: 0.85, strong: 0.9, muted: 0.8 },
+  medium: { surface: 0.5, strong: 0.58, muted: 0.5 },
+  clear: { surface: 0, strong: 0, muted: 0.22 },
 };
 
-/** Qorong'ida - Samsung tez sozlamalar plitalari kabi to'q muzli shisha. */
+/** Qorong'ida - xuddi shu zinapoya, to'q muzli shisha. */
 const WITH_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
   none: OPAQUE,
-  solid: { surface: 0.92, strong: 0.95, muted: 0.88 },
-  medium: { surface: 0.85, strong: 0.9, muted: 0.8 },
-  clear: { surface: 0.78, strong: 0.84, muted: 0.7 },
+  solid: { surface: 0.85, strong: 0.9, muted: 0.85 },
+  medium: { surface: 0.5, strong: 0.58, muted: 0.6 },
+  clear: { surface: 0, strong: 0, muted: 0.4 },
+};
+
+/**
+ * Muzlatish YO'Q joyda (telefon: backdrop-filter yo'q) rasm ustidagi
+ * sirtning eng past tusi.
+ *
+ * Telefonda ikkala himoya ham yo'q: sirt ortini muzlata olmaydi va rasm
+ * o'lchanmagani uchun ko'rinish (oq/to'q yozuv) rasmga moslashmaydi.
+ * To'liq shaffof karta u yerda keskin rasm ustida matnni yerdi - masalan
+ * tungi rejim + och rasm. Shu sababli telefonda "O'rta" va "Ko'p" HAR
+ * QANDAY rasmda o'qiladigan eng shaffof qiymatda qoladi (test qulflaydi).
+ */
+const NO_FROST_FLOOR: Record<'light' | 'dark', Partial<Record<TransparencyLevel, number>>> = {
+  light: { medium: 0.82, clear: 0.7 },
+  dark: { medium: 0.85, clear: 0.78 },
 };
 
 /** Noma'lum daraja standartga tushadi - eski ilova yangisini yuborsa ham. */
@@ -100,13 +129,25 @@ export const findTransparency = (id: string | null | undefined): TransparencyLev
     ? (id as TransparencyLevel)
     : DEFAULT_TRANSPARENCY;
 
+/**
+ * @param frosted sirt ortidagi rasmni xiralashtira oladimi (web: ha,
+ *   telefon: yo'q). Faqat fon rasmi ustida ahamiyatli.
+ */
 export const glassAlpha = (
   level: TransparencyLevel,
   onPhoto: boolean,
   isDark = false,
+  frosted = true,
 ): AlphaSet => {
   if (!onPhoto) return (isDark ? WITHOUT_PHOTO_DARK : WITHOUT_PHOTO_LIGHT)[level];
-  return (isDark ? WITH_PHOTO_DARK : WITH_PHOTO_LIGHT)[level];
+  const set = (isDark ? WITH_PHOTO_DARK : WITH_PHOTO_LIGHT)[level];
+  const floor = frosted ? undefined : NO_FROST_FLOOR[isDark ? 'dark' : 'light'][level];
+  if (floor === undefined) return set;
+  return {
+    surface: Math.max(set.surface, floor),
+    strong: Math.max(set.strong, floor),
+    muted: Math.max(set.muted, floor),
+  };
 };
 
 /**
