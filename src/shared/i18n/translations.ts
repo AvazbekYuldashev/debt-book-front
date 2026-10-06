@@ -227,6 +227,8 @@ const uz: Dict = {
   'glass.clear': 'Koʻp',
   'glass.medium': 'Oʻrta',
   'glass.solid': 'Kam',
+  'glass.adapted':
+    "Matn fon rasmida o'qilishi uchun mavzu rasmga moslashdi. Tanlangan mavzuni ko'rish uchun shaffoflikni kamaytiring.",
   'accent.title': 'Ilova rangi',
   'accent.hint': "Tanlangan rang barcha ekranlarda qo'llanadi.",
   'accent.saveFailed': "Rangni saqlab bo'lmadi - keyinroq urinib ko'ring.",
@@ -895,6 +897,8 @@ const ru: Dict = {
   'glass.clear': 'Высокая',
   'glass.medium': 'Средняя',
   'glass.solid': 'Низкая',
+  'glass.adapted':
+    'Чтобы текст читался на фоновом фото, тема подстроена под изображение. Чтобы вернуть выбранную тему, уменьшите прозрачность.',
   'accent.title': 'Цвет приложения',
   'accent.hint': 'Выбранный цвет применяется на всех экранах.',
   'accent.saveFailed': 'Не удалось сохранить цвет — попробуйте позже.',
@@ -1559,6 +1563,8 @@ const en: Dict = {
   'glass.clear': 'High',
   'glass.medium': 'Medium',
   'glass.solid': 'Low',
+  'glass.adapted':
+    'The theme has been matched to your background photo so text stays readable. Lower the transparency to see your chosen theme.',
   'accent.title': 'App colour',
   'accent.hint': 'The chosen colour is used across every screen.',
   'accent.saveFailed': 'Could not save the colour - try again later.',

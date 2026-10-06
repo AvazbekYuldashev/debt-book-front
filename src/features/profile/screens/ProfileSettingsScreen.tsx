@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import SettingsGroup from '../../../shared/ui/SettingsGroup';
@@ -131,6 +131,9 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
               isLast={index === TRANSPARENCY_LEVELS.length - 1}
             />
           ))}
+          {/* Mavzu tanlovida "Yorug'" belgilangan-u ekran qorong'i bo'lsa,
+              bu xato bo'lib ko'rinardi. Sababi shu yerda aytiladi. */}
+          {theme.photoAdapted ? <Text style={styles.note}>{t('glass.adapted')}</Text> : null}
         </SettingsGroup>
 
         {/* Fon rasmi guruh qolipiga tushmaydi: unda namuna, yuklash
@@ -164,7 +167,7 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
   );
 };
 
-const createStyles = ({ spacing }: ThemeValue) =>
+const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -176,6 +179,13 @@ const createStyles = ({ spacing }: ThemeValue) =>
     },
     block: {
       padding: spacing.md,
+    },
+    note: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.sm,
     },
   });
 

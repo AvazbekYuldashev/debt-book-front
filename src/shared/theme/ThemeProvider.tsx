@@ -7,12 +7,15 @@ import { makeGlass, GlassTokens } from './glass';
 import { useBackground } from './BackgroundProvider';
 import { useAccent } from './AccentProvider';
 import { useTransparency } from './TransparencyProvider';
+import { samplePhotoColor } from './photoColor';
+import { readableTheme, type Rgb } from './photoTone';
 import { applyAccent } from './accent';
 import { loadAppFonts } from './fonts';
 import { iconSize } from './iconSizes';
 import { radius, spacing } from './spacing';
 import { typography } from './typography';
 import { storage } from '../lib/storage';
+import { buildAttachUrl } from '../lib/attachUrl';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 type ActiveTheme = 'light' | 'dark';
@@ -26,6 +29,11 @@ function isThemeMode(value: unknown): value is ThemeMode {
 export interface ThemeValue {
   mode: ThemeMode;
   activeTheme: ActiveTheme;
+  /**
+   * Ko'rsatilayotgan mavzu tanlangandan farq qiladi: fon rasmi ustida
+   * tanlangan mavzuning matni o'qilmagani uchun almashtirilgan.
+   */
+  photoAdapted: boolean;
   colors: ColorTokens;
   spacing: typeof spacing;
   radius: typeof radius;
@@ -48,12 +56,51 @@ function resolveActiveTheme(mode: ThemeMode, scheme: ColorSchemeName | null | un
   return mode;
 }
 
+/**
+ * Fon rasmining o'rtacha rangi. Rasm yo'q yoki o'lchab bo'lmasa - null.
+ *
+ * Natija qaysi rasmga tegishli ekani ham saqlanadi: rasm almashganda
+ * yangisi o'lchanguncha ESKI rasmning rangi bilan qaror qilinmasin.
+ */
+function usePhotoColor(imageId: string): Rgb | null {
+  const url = imageId ? buildAttachUrl(imageId) : '';
+  const [sample, setSample] = useState<{ url: string; color: Rgb } | null>(null);
+
+  useEffect(() => {
+    if (!url) return undefined;
+    let alive = true;
+    samplePhotoColor(url).then((color) => {
+      if (alive) setSample(color ? { url, color } : null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [url]);
+
+  return sample && sample.url === url ? sample.color : null;
+}
+
 export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mode, setMode] = useState<ThemeMode>('system');
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const systemScheme = useColorScheme();
-  const activeTheme = resolveActiveTheme(mode, systemScheme);
+  const { imageId, dim } = useBackground();
+  // Shaffoflik darajasi foydalanuvchi sozlamasi: to'g'ri qiymat fonga
+  // bog'liq va uni dastur bila olmaydi.
+  const { level } = useTransparency();
+  const photoColor = usePhotoColor(imageId);
+  /**
+   * Ko'rsatiladigan mavzu - odatda foydalanuvchi tanlagani.
+   *
+   * ISTISNO: fon rasmi ustida shaffof sirtda matn rasmning o'zida turadi.
+   * Yorug' mavzudagi to'q matn to'q rasmda (yoki aksincha) o'qilmay
+   * qolsa, matni o'qiladigan mavzu ko'rsatiladi. Tanlovning o'zi
+   * (`mode`) o'zgarmaydi: rasm yoki shaffoflik almashsa, u qaytadi.
+   */
+  const preferredTheme = resolveActiveTheme(mode, systemScheme);
+  const activeTheme =
+    imageId && photoColor ? readableTheme(preferredTheme, photoColor, dim, level) : preferredTheme;
   /**
    * Mavzu palitrasi + foydalanuvchi tanlagan ASOSIY RANG.
    *
@@ -126,10 +173,6 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    * ishlaydi. Shu sababli BackgroundProvider daraxtda bu provayderdan
    * TASHQARIDA turadi - u mavzuga bog'liq emas, mavzu esa unga bog'liq.
    */
-  const { imageId } = useBackground();
-  // Shaffoflik darajasi foydalanuvchi sozlamasi: to'g'ri qiymat fonga
-  // bog'liq va uni dastur bila olmaydi.
-  const { level } = useTransparency();
   const glass = useMemo(
     () => makeGlass(colors, shadows, imageId.length > 0, level, activeTheme === 'dark'),
     [colors, shadows, imageId, level, activeTheme],
@@ -138,6 +181,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const value = useMemo<ThemeValue>(() => ({
     mode,
     activeTheme,
+    photoAdapted: activeTheme !== preferredTheme,
     colors,
     spacing,
     radius,
@@ -148,7 +192,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     fontsLoaded,
     setMode: applyMode,
     toggleTheme,
-  }), [mode, activeTheme, colors, shadows, glass, toggleTheme, applyMode, fontsLoaded]);
+  }), [mode, activeTheme, preferredTheme, colors, shadows, glass, toggleTheme, applyMode, fontsLoaded]);
 
   // Saqlangan mavzu o'qilmaguncha render qilmaymiz — light->dark "miltillash"ning oldini oladi.
   if (!hydrated) {
