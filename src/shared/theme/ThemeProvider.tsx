@@ -36,14 +36,6 @@ export interface ThemeValue {
    * (yoki och) bo'lgani uchun yozuvlar fonga qarama-qarshi rangda.
    */
   photoAdapted: boolean;
-  /**
-   * Fon rasmi ustidagi "Xiralik" pardasining rangi - TANLANGAN rejimdan.
-   *
-   * Ko'rinish fonga qarab almashsa ham parda o'zgarmaydi: qaror shu parda
-   * bilan hisoblanadi. Aks holda xiralikni oshirish avval rasmni
-   * qoraytirib, keyin to'satdan oq pardali ko'rinishga sakrardi.
-   */
-  veilColor: string;
   colors: ColorTokens;
   spacing: typeof spacing;
   radius: typeof radius;
@@ -117,7 +109,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const systemScheme = useColorScheme();
-  const { imageId, dim, fit } = useBackground();
+  const { imageId, fit } = useBackground();
   const photo = usePhotoSample(imageId, fit);
   /**
    * Ko'rsatiladigan ko'rinish - odatda foydalanuvchi tanlagani.
@@ -128,7 +120,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    * o'zgarmaydi: rasm olib tashlansa yoki almashsa, u qaytadi.
    */
   const preferredTheme = resolveActiveTheme(mode, systemScheme);
-  const activeTheme = imageId && photo ? photoTheme(preferredTheme, photo, dim) : preferredTheme;
+  const activeTheme = imageId && photo ? photoTheme(preferredTheme, photo) : preferredTheme;
   /**
    * Mavzu palitrasi + foydalanuvchi tanlagan ASOSIY RANG.
    *
@@ -213,7 +205,6 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     mode,
     activeTheme,
     photoAdapted: activeTheme !== preferredTheme,
-    veilColor: (preferredTheme === 'dark' ? darkColors : lightColors).background,
     colors,
     spacing,
     radius,
