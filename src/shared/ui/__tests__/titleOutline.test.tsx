@@ -7,12 +7,12 @@ import { AppThemeProvider } from '../../theme';
 import { LanguageProvider } from '../../i18n';
 
 /**
- * Sarlavhalarda KONTUR bo'lishi kerak.
+ * Fon ustidagi sarlavhalar O'Z SIRTIDA turadi.
  *
- * U matnni har qanday fondan ajratib turadi - bezakli naqsh bo'ladimi,
- * foydalanuvchi qo'ygan fotosuratmi. Bu yerda wiring tekshiriladi:
- * yordamchi funksiyaning o'zi alohida sinaladi, bu test esa uslub
- * haqiqatan matnga YETIB BORGANINI qulflaydi.
+ * Ilgari ekran sarlavhasi kontur (matn soyasi) bilan himoyalangan edi.
+ * Sarlavhaning o'zi yuqori parda ostida o'qilardi, lekin kulrang izoh
+ * parda so'nayotgan joyda turadi va to'q fon rasmida yorug' mavzuda
+ * ko'rinmay qolardi. Endi ikkalasi ham bo'lim sarlavhalari kabi sirtda.
  */
 const show = (node: React.ReactElement) =>
   render(
@@ -26,21 +26,33 @@ const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 20
 const styleOf = (node: { props: Record<string, any> }) =>
   StyleSheet.flatten(node.props.style) as Record<string, unknown>;
 
-describe('sarlavha konturi', () => {
-  it('ekran sarlavhasida kontur bor', async () => {
+/** Matnni o'rab turgan birinchi FONLI ota - oraliq tugunlar bo'lishi mumkin. */
+const surfaceOf = (node: any): Record<string, unknown> => {
+  let current = node?.parent;
+  while (current) {
+    const style = StyleSheet.flatten(current.props?.style) as Record<string, unknown> | undefined;
+    if (style?.backgroundColor) return style;
+    current = current.parent;
+  }
+  return {};
+};
+
+describe('sarlavhalar sirtda', () => {
+  it('ekran sarlavhasi oz sirtida turadi', async () => {
     show(<ScreenHeader title="Sozlamalar" onBack={() => {}} />);
     await settle();
 
-    const style = styleOf(screen.getByText('Sozlamalar'));
-    expect(style.textShadowColor).toBe('#FFFFFF');
-    expect(style.textShadowRadius).toBeGreaterThan(0);
+    const title = screen.getByText('Sozlamalar');
+    expect(styleOf(title).textShadowColor).toBeUndefined();
+    expect(surfaceOf(title).backgroundColor).toBeTruthy();
+    expect(surfaceOf(title).borderRadius).toBeTruthy();
   });
 
-  it('ekran izohida ham kontur bor', async () => {
+  it('ekran izohi ham sirtda turadi', async () => {
     show(<ScreenHeader title="Profil" subtitle="Hisob va ilova" onBack={() => {}} />);
     await settle();
 
-    expect(styleOf(screen.getByText('Hisob va ilova')).textShadowColor).toBe('#FFFFFF');
+    expect(surfaceOf(screen.getByText('Hisob va ilova')).backgroundColor).toBeTruthy();
   });
 
   /**

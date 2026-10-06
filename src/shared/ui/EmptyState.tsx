@@ -13,6 +13,13 @@ interface EmptyStateProps {
   actionLabel?: string;
   actionIcon?: keyof typeof Ionicons.glyphMap;
   onAction?: () => void;
+  /**
+   * O'z kartasida chizilsin. Bo'sh holat ko'pincha kartadan TASHQARIDA,
+   * to'g'ridan-to'g'ri fonda turadi - fon rasmi qo'yilganda sarlavha va
+   * izoh unga qo'shilib ketardi. Allaqachon karta ichida turgan joylarda
+   * (masalan, Qarzlar ro'yxatining emptyCard'i) kerak emas.
+   */
+  card?: boolean;
 }
 
 /**
@@ -27,13 +34,14 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   actionLabel,
   actionIcon = 'add',
   onAction,
+  card = false,
 }) => {
   const theme = useAppTheme();
   const { colors, iconSize } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, card && styles.card]}>
       <View style={styles.iconOuter}>
         <View style={styles.iconInner}>
           <Ionicons name={icon} size={iconSize.xl} color={colors.primary} />
@@ -64,6 +72,11 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       alignItems: 'center',
       paddingVertical: spacing.xl,
       paddingHorizontal: spacing.lg,
+    },
+    card: {
+      ...glass.surface,
+      borderRadius: radius.xxl,
+      marginHorizontal: spacing.md,
     },
     // Ikki qavatli doira — "yumshoq nur" ta'siri, og'ir soyasiz.
     iconOuter: {
