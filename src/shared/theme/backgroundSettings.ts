@@ -140,6 +140,25 @@ export function serializeBackground(settings: BackgroundSettings): string {
   });
 }
 
+/**
+ * Xiralikning HAQIQIY blur qismi: har 0.1 parda uchun 4px.
+ *
+ * Ilgari "Xiralik" faqat rang pardasi edi - rasm keskin qolardi va
+ * shaffof sirt ostida uning mayda detallari (tosh yoriqlari, barglar)
+ * matn bilan aralashib ketardi. Android (One UI) va iOS buni rasmni
+ * xiralashtirib hal qiladi: rasm ko'rinadi, lekin detallari matnga
+ * xalaqit bermaydi.
+ *
+ * Alohida sozlama emas: odam "xiralik" deganda aynan shuni kutadi.
+ * "Yo'q" - rasm o'z holicha, "Kuchli" - One UI ilovalar ro'yxatidagidek.
+ */
+export const BLUR_PER_DIM = 40;
+
+/** Fon rasmining blur radiusi, piksel. */
+export function photoBlur(dim: unknown): number {
+  return Math.round(clampDim(dim) * BLUR_PER_DIM);
+}
+
 /** Fon rasmi tanlanganmi (bo'sh id = yo'q). */
 export function hasBackgroundImage(settings: BackgroundSettings): boolean {
   return settings.imageId.trim().length > 0;

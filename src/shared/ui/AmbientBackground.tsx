@@ -14,6 +14,7 @@ import Svg, {
 import { useAppTheme } from '../theme';
 import { useBackground } from '../theme/BackgroundProvider';
 import { buildAttachUrl } from '../lib/attachUrl';
+import { photoBlur } from '../theme/backgroundSettings';
 import { PHOTO_SCRIM_END, PHOTO_SCRIM_TOP } from '../theme/photoTone';
 
 // ============================================================
@@ -156,22 +157,29 @@ const AmbientBackground: React.FC = () => {
   // Rasm tanlangan bo'lsa bezakli SVG chizilmaydi: ikkalasi ustma-ust
   // tushsa kompozitsiya ham, rasm ham buziladi.
   //
-  // Ustidagi parda foydalanuvchi IXTIYORIDA (nolgacha tushadi): rasmni
-  // o'z holicha ko'rish ham haqli talab. Parda rangi mavzudan olinadi,
-  // shuning uchun qorong'i mavzuda rasm qoraytiriladi, yorug'ida
-  // oqartiriladi.
+  // Ustidagi parda va blur foydalanuvchi IXTIYORIDA (nolgacha tushadi):
+  // rasmni o'z holicha ko'rish ham haqli talab. Parda rangi mavzudan
+  // olinadi, shuning uchun qorong'i mavzuda rasm qoraytiriladi,
+  // yorug'ida oqartiriladi.
   if (imageId) {
+    // Xiralik rasmni HAQIQATAN xiralashtiradi (Android/iOS dagidek), parda
+    // esa ustidan tortiladi. Blur'li rasm chetlari xiralashib, ostidagi
+    // fon rangi "nur" bo'lib chiqmasin deb rasm ekrandan biroz kattaroq
+    // chiziladi, ortiqchasi esa kesiladi.
+    const blur = photoBlur(dim);
+    const bleed = blur * 2;
     return (
       <View
-        style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}
+        style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, overflow: 'hidden' }]}
         pointerEvents="none"
         onLayout={handleLayout}
       >
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
           <Image
             source={{ uri: buildAttachUrl(imageId) }}
-            style={StyleSheet.absoluteFill}
+            style={{ position: 'absolute', top: -bleed, left: -bleed, right: -bleed, bottom: -bleed }}
             resizeMode={fit}
+            blurRadius={blur > 0 ? blur : undefined}
             accessibilityIgnoresInvertColors
           />
           {dim > 0 ? (

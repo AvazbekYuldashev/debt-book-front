@@ -8,6 +8,7 @@ import {
   MIN_DIM,
   parseBackground,
   serializeBackground,
+  photoBlur,
 } from '../backgroundSettings';
 
 describe('parseBackground', () => {
@@ -153,5 +154,26 @@ describe('backgroundKey', () => {
 
   it('bir hisob uchun kalit barqaror', () => {
     expect(backgroundKey('a')).toBe(backgroundKey('a'));
+  });
+});
+
+/**
+ * "Xiralik" rasmni HAQIQATAN xiralashtiradi (Android/iOS dagidek), parda
+ * bilan birga o'sadi. "Yo'q" - rasm o'z holicha.
+ */
+describe('photoBlur', () => {
+  it("xiralik yo'q bo'lsa blur ham yo'q", () => {
+    expect(photoBlur(0)).toBe(0);
+  });
+
+  it('xiralik bilan birga osadi', () => {
+    expect(photoBlur(0.15)).toBeGreaterThan(0);
+    expect(photoBlur(0.4)).toBeGreaterThan(photoBlur(0.15));
+    expect(photoBlur(0.7)).toBeGreaterThan(photoBlur(0.4));
+  });
+
+  /** Buzuq qiymat standart xiralikka tushadi - clampDim bilan bir xil. */
+  it('notogri qiymatda standart', () => {
+    expect(photoBlur('abc')).toBe(photoBlur(0.15));
   });
 });
