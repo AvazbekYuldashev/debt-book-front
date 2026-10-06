@@ -42,8 +42,19 @@ export interface PhotoSample {
 
 export type ThemeName = 'light' | 'dark';
 
-/** Katakda matn o'qiladi deyilishi uchun kontrast - WCAG AA (oddiy matn). */
+/** Asosiy matn uchun kontrast - WCAG AA (oddiy matn). */
 export const MIN_TEXT_CONTRAST = 4.5;
+
+/**
+ * Ikkinchi darajali (kulrang) matn uchun kontrast - WCAG ning eng past
+ * chegarasi (3:1).
+ *
+ * NEGA ALOHIDA: faqat asosiy matnga qaralganda yorug' mavzu "O'rta"
+ * shaffoflikda to'q rasm ustida o'tib ketardi (6.3), lekin kulrang
+ * yorliqlar - "Kam / O'rta / Kuchli", "Moslash", telefon raqamlari -
+ * sut rangli sirtda 2.6 gacha tushib, ko'rinmay qolardi.
+ */
+export const MIN_SECONDARY_CONTRAST = 3;
 
 /**
  * Tanlangan mavzu ekranning shuncha qismida o'qilsa - saqlanadi.
@@ -120,6 +131,8 @@ const solid = (value: string): Rgb => {
 /**
  * Mavzu matni ekranning qancha qismida o'qiladi (0..1).
  *
+ * Katak o'qiladi = asosiy VA kulrang matn ikkalasi ham o'qiladi.
+ *
  * Har katakda matn ORTIDA ko'z ko'radigan rang yig'iladi: mavzu foni ->
  * rasm -> parda -> yuqori parda -> sirt. Parda, yuqori parda va sirt
  * rangi mavzudan, ya'ni bir xil rasm ikki mavzuda turlicha chiqadi:
@@ -137,6 +150,7 @@ export const readableShare = (
   const background = solid(palette.background);
   const tint = solid(palette.glassSurfaceOnPhoto);
   const text = solid(palette.textPrimary);
+  const secondary = solid(palette.textSecondary);
   const { surface } = glassAlpha(level, true, theme === 'dark');
 
   let readable = 0;
@@ -146,7 +160,12 @@ export const readableShare = (
     const veiled = mix(background, photo, dim);
     const scrimmed = mix(background, veiled, scrimAt(y));
     const backdrop = mix(tint, scrimmed, surface);
-    if (contrastRatio(text, backdrop) >= MIN_TEXT_CONTRAST) readable += 1;
+    if (
+      contrastRatio(text, backdrop) >= MIN_TEXT_CONTRAST &&
+      contrastRatio(secondary, backdrop) >= MIN_SECONDARY_CONTRAST
+    ) {
+      readable += 1;
+    }
   });
   return readable / sample.cells.length;
 };
@@ -159,8 +178,9 @@ export const readableShare = (
  * joyda o'qilsagina, almashtiriladi - aks holda tanlovni bekorga buzgan
  * bo'lardik.
  *
- * Amalda bu deyarli faqat "Ko'p" shaffoflikda ishlaydi: "O'rta" va "Kam"
- * da sirt o'zi matnga yetarli fon beradi.
+ * To'q rasmda yorug' mavzu "Ko'p" va "O'rta" da almashadi: sirt kulrang
+ * matnga yetarli fon bermaydi. "Kam" da sirt deyarli to'liq oq karta va
+ * yorug' mavzu o'z holicha qoladi.
  */
 export const readableTheme = (
   preferred: ThemeName,

@@ -10,6 +10,7 @@ import { useBackground } from '../../../shared/theme/BackgroundProvider';
 import { photoBlur, type BackgroundFit } from '../../../shared/theme/backgroundSettings';
 import { buildAttachUrl } from '../../../shared/lib/attachUrl';
 import { useI18n } from '../../../shared/i18n';
+import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
 
 /**
  * Xiralik darajalari.
@@ -145,7 +146,11 @@ const BackgroundPicker: React.FC = () => {
                 { backgroundColor: theme.colors.background, opacity: dim },
               ]}
             />
-            <Text style={styles.previewText}>{t('background.title')}</Text>
+            {/* Ilovada matn doim sirt ustida turadi - namunada ham shunday.
+                Yalang'och matn yorug' mavzuda to'q rasm ustida ko'rinmasdi. */}
+            <SurfaceLabel style={styles.previewLabel} textStyle={styles.previewText}>
+              {t('background.title')}
+            </SurfaceLabel>
           </>
         ) : (
           <View style={styles.empty}>
@@ -264,6 +269,9 @@ const createStyles = ({ colors, radius, spacing, typography }: ThemeValue) =>
       backgroundColor: colors.surfaceMuted,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    previewLabel: {
+      alignSelf: 'center',
     },
     previewText: {
       ...typography.bodySmall,
