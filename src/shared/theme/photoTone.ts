@@ -2,22 +2,16 @@ import { darkColors, lightColors, type ColorTokens } from './colors';
 import { glassAlpha, type TransparencyLevel } from './transparency';
 
 /**
- * Fon rasmi ustida qaysi mavzuning matni O'QILADI.
+ * Fon rasmi ustida matn O'QILADIMI - sirtlar shaffofligining qoidasi.
  *
- * MUAMMO: "Ko'p" shaffoflikda sirt deyarli yo'q (alfa 0.08) va matn
- * to'g'ridan-to'g'ri rasm ustida turadi. Yorug' mavzuda matn to'q - to'q
- * rasm ustida u butunlay yo'qolardi. Sirtni qalinlashtirish yechim emas:
- * oq qatlam to'q rasmni sut rangli tumanga aylantiradi (bu allaqachon
- * sinab ko'rilgan va rad etilgan).
+ * Shaffoflik jadvallari (transparency.ts) shu hisob bilan tekshiriladi:
+ * har darajada, har ikki mavzuda, HAR QANDAY rasmda (qop-qora ham, oppoq
+ * ham) asosiy va kulrang matn o'qilishi shart. Shu sababli ilova mavzuni
+ * hech qachon o'zi almashtirmaydi - yorug' rejim to'q fonda ham yorug'
+ * qoladi (Samsung'dagidek), web va telefonda natija bir xil.
  *
- * YECHIM: shaffof sirtda matn rangi mavzudan emas, RASMDAN kelishi kerak.
- * Rasm ekranda ko'rinadigan holida kataklarga bo'lib o'lchanadi, har
- * katakka ko'z ko'radigan qatlamlar (parda, yuqori parda, sirt) qo'yiladi
- * va matn qayerda o'qilishi sanaladi.
- *
- * NEGA O'RTACHA RANG EMAS: yuqorisi och, pasti to'q rasmning o'rtachasi
- * "o'rtacha" chiqadi va yorug' mavzu o'tib ketardi - ro'yxat esa aynan
- * to'q pastki qismda turadi va u yerda kontrast 2.7 edi.
+ * Har katakka ko'z ko'radigan qatlamlar qo'yiladi: mavzu foni -> rasm ->
+ * parda -> yuqori parda -> sirt.
  *
  * Bu sof funksiyalar: React'siz sinaladi.
  */
@@ -54,14 +48,6 @@ export const MIN_TEXT_CONTRAST = 4.5;
  * gacha tushib, ko'rinmay qolishi mumkin.
  */
 export const MIN_SECONDARY_CONTRAST = 3;
-
-/**
- * Tanlangan mavzu ekranning shuncha qismida o'qilsa - saqlanadi.
- *
- * To'liq (1.0) talab qilinmaydi: rasmda doim bir-ikki keskin dog' bo'ladi
- * va ular uchun foydalanuvchi tanlovini buzish noto'g'ri bo'lardi.
- */
-export const KEEP_THEME_SHARE = 0.8;
 
 /**
  * Yuqori parda: sarlavhalar to'g'ridan-to'g'ri rasm ustida turadi, shuning
@@ -167,29 +153,4 @@ export const readableShare = (
     }
   });
   return readable / sample.cells.length;
-};
-
-/**
- * Rasm ustida qaysi mavzu ko'rsatiladi.
- *
- * Foydalanuvchi tanlovi USTUN: uning mavzusi ekranning katta qismida
- * o'qilsa, o'zgarmaydi. Faqat o'qilmasa, va boshqa mavzu haqiqatan ko'proq
- * joyda o'qilsagina, almashtiriladi - aks holda tanlovni bekorga buzgan
- * bo'lardik.
- *
- * Amalda bu faqat "Ko'p" shaffoflikda ishlaydi: u yerda sirt matnga fon
- * bermaydi. "O'rta" va "Kam" da yorug' mavzuning sirti toza oq karta va
- * har qanday rasmda o'qiladi.
- */
-export const readableTheme = (
-  preferred: ThemeName,
-  sample: PhotoSample,
-  dim: number,
-  level: TransparencyLevel,
-): ThemeName => {
-  const own = readableShare(sample, preferred, dim, level);
-  if (own >= KEEP_THEME_SHARE) return preferred;
-
-  const other: ThemeName = preferred === 'dark' ? 'light' : 'dark';
-  return readableShare(sample, other, dim, level) > own ? other : preferred;
 };

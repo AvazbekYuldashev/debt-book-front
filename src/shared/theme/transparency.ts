@@ -37,36 +37,32 @@ const WITHOUT_PHOTO: Record<TransparencyLevel, AlphaSet> = {
 };
 
 /**
- * FOTOSURAT ustida mavzular TENG EMAS.
+ * FOTOSURAT ustida: Samsung (One UI) bildirishnoma kartalari kabi.
  *
- * Yorug' mavzuda sirt OQ, qorong'ida esa to'q ko'k-kulrang. To'q rasm
- * ustida oq rangning O'RTA alfasi sut rangli tuman beradi - rasm ham
- * ko'rinmaydi, karta ham toza emas. To'q tus esa rasmning o'ziga
- * qo'shilib ketadi va o'rta alfada ham tabiiy chiqadi.
+ * Fon rasmi DOIM xiralashtiriladi (backgroundSettings.PHOTO_BLUR). Shu
+ * sababli yarim shaffof sirt endi "sut rangli tuman" emas, MUZLI SHISHA
+ * bo'lib ko'rinadi: ostidagi rasmning detallari yo'q, faqat ranglari bor.
+ * Tuman keskin rasm ustida paydo bo'lardi - blur uni yo'qotdi.
  *
- * Shu sababli yorug' mavzuda o'sha "loyqa" oraliqdan QOCHILADI: "Ko'p"
- * deyarli nolga tushadi (rasm o'z holicha ko'rinadi), "O'rta" va "Kam"
- * esa toza oq kartaga chiqadi.
+ * Har darajada mavzu matni HAR QANDAY rasmda o'qiladi, ya'ni mavzu
+ * almashmaydi: yorug' rejim to'q fonda ham yorug' qoladi - Samsung'dagidek.
+ * Ilgari "Ko'p" 0.08 edi, matn rasmning o'zida turardi va ilova to'q
+ * rasmda tungi ko'rinishga o'tib ketardi - bu kutilmagan "farq" edi.
  *
- * "O'rta" ilgari 0.5 edi - aynan loyqa oraliqning o'rtasi: to'q rasm
- * ustida karta kulrang "soya" bo'lib ko'rinardi, kulrang yozuvlar esa
- * unda yo'qolardi. Endi u toza karta (0.84), rasm esa uning ostidan
- * ozgina sezilib turadi - "Kam" dan farqi shu.
- *
- * "Ko'p" da sirt matnga fon bermaydi va yorug' mavzudagi to'q matn to'q
- * rasm ustida qolardi. Buni sirt emas, MAVZU hal qiladi: rasm o'lchanadi
- * va matn o'qilmasa, o'qiladigan mavzu ko'rsatiladi (photoTone.ts).
+ * Eng past chegaralar o'lchangan (qop-qora / oppoq rasmda ham kulrang
+ * matn 3:1 dan, asosiy matn 4.5:1 dan o'tishi kerak). Test shuni qulflaydi.
  */
 const WITH_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
-  clear: { surface: 0.08, strong: 0.14, muted: 0.06 },
+  clear: { surface: 0.7, strong: 0.78, muted: 0.62 },
   medium: { surface: 0.84, strong: 0.9, muted: 0.78 },
   solid: { surface: 0.96, strong: 0.98, muted: 0.94 },
 };
 
+/** Qorong'ida - Samsung tez sozlamalar plitalari kabi to'q muzli shisha. */
 const WITH_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
-  clear: { surface: 0.08, strong: 0.14, muted: 0.06 },
-  medium: { surface: 0.45, strong: 0.6, muted: 0.38 },
-  solid: { surface: 0.85, strong: 0.92, muted: 0.8 },
+  clear: { surface: 0.78, strong: 0.84, muted: 0.7 },
+  medium: { surface: 0.86, strong: 0.9, muted: 0.8 },
+  solid: { surface: 0.94, strong: 0.96, muted: 0.9 },
 };
 
 /** Noma'lum daraja standartga tushadi - eski ilova yangisini yuborsa ham. */

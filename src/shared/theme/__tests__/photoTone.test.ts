@@ -1,14 +1,13 @@
 import {
-  KEEP_THEME_SHARE,
   PHOTO_SCRIM_END,
   contrastRatio,
   parseColor,
   readableShare,
-  readableTheme,
   scrimAt,
   type PhotoSample,
   type Rgb,
 } from '../photoTone';
+import { TRANSPARENCY_LEVELS } from '../transparency';
 
 const ROWS = 24;
 const COLS = 12;
@@ -66,58 +65,30 @@ describe('scrimAt', () => {
 });
 
 /**
- * "Ko'p" shaffoflikda sirt matnga fon bermaydi - matn rasmning o'zida
- * turadi. Shu sababli matn rangi mavzudan emas, RASMDAN kelishi kerak.
+ * Har darajada, har ikki mavzuda, HAR QANDAY rasmda matn o'qiladi -
+ * Samsung bildirishnoma kartalari kabi. Shu sababli ilova mavzuni hech
+ * qachon o'zi almashtirmaydi: yorug' rejim to'q fonda ham yorug' qoladi.
  */
-describe('readableTheme', () => {
-  it("yorug' mavzuda to'q rasm ustida to'q matn deyarli hech qayerda o'qilmaydi", () => {
-    // Faqat yuqori parda ostidagi tasma o'qiladi.
-    expect(readableShare(uniform(DARK), 'light', 0, 'clear')).toBeLessThan(0.4);
-    expect(readableShare(uniform(DARK), 'dark', 0, 'clear')).toBe(1);
-  });
+describe('shaffoflik jadvallari', () => {
+  const PHOTOS: Record<string, PhotoSample> = {
+    "qop-qora": uniform({ r: 0, g: 0, b: 0 }),
+    oppoq: uniform({ r: 255, g: 255, b: 255 }),
+    "to'q tosh": uniform(DARK),
+    och: uniform(BRIGHT),
+    "tepasi och, pasti to'q": split(BRIGHT_TOP, DARK_BOTTOM, 0.4),
+  };
 
-  it("yorug' mavzu + to'q rasm + Ko'p -> qorong'i mavzu", () => {
-    expect(readableTheme('light', uniform(DARK), 0, 'clear')).toBe('dark');
-    expect(readableTheme('light', uniform(DARK), 0.15, 'clear')).toBe('dark');
-  });
-
-  /**
-   * O'rtacha rang bu rasmda ALDAYDI: standart pardada (0.15) o'rtachaga
-   * yorug' mavzu o'tib ketardi, ro'yxat esa to'q pastki qismda turadi.
-   */
-  it("tepasi och, pasti to'q rasmda ham almashadi", () => {
-    const photo = split(BRIGHT_TOP, DARK_BOTTOM, 0.4);
-    expect(readableShare(photo, 'light', 0.15, 'clear')).toBeLessThan(KEEP_THEME_SHARE);
-    expect(readableTheme('light', photo, 0.15, 'clear')).toBe('dark');
-  });
-
-  it("qorong'i mavzu + och rasm + Ko'p -> yorug' mavzu", () => {
-    expect(readableTheme('dark', uniform(BRIGHT), 0, 'clear')).toBe('light');
-  });
-
-  /** Tanlov ustun: mavzu o'qilsa, tegilmaydi. */
-  it('mos rasmda foydalanuvchi tanlovi qoladi', () => {
-    expect(readableTheme('light', uniform(BRIGHT), 0, 'clear')).toBe('light');
-    expect(readableTheme('dark', uniform(DARK), 0, 'clear')).toBe('dark');
-  });
-
-  /**
-   * "O'rta" va "Kam" da yorug' mavzuning sirti toza oq karta: hatto qop-
-   * qora rasmda ham asosiy va kulrang matn hamma joyda o'qiladi, mavzu
-   * esa o'zgarmaydi.
-   */
-  it("O'rta va Kam da yorug' mavzu har qanday rasmda o'qiladi", () => {
-    const black = uniform({ r: 0, g: 0, b: 0 });
-    for (const level of ['medium', 'solid'] as const) {
-      expect(readableShare(black, 'light', 0, level)).toBe(1);
-      expect(readableTheme('light', uniform(DARK), 0, level)).toBe('light');
+  for (const theme of ['light', 'dark'] as const) {
+    for (const { id: level } of TRANSPARENCY_LEVELS) {
+      it(`${theme} / ${level}: hamma rasmda hamma joyda o'qiladi`, () => {
+        for (const [name, photo] of Object.entries(PHOTOS)) {
+          for (const dim of [0, 0.15, 0.4, 0.7]) {
+            expect([name, dim, readableShare(photo, theme, dim, level)]).toEqual([name, dim, 1]);
+          }
+        }
+      });
     }
-  });
-
-  /** Kuchli parda rasmni o'zi oqartiradi - almashtirish shart emas. */
-  it("kuchli pardada yorug' mavzu qoladi", () => {
-    expect(readableTheme('light', uniform(DARK), 0.7, 'clear')).toBe('light');
-  });
+  }
 
   /** Rasm qoplamagan katakda (shaffof PNG) mavzu foni ko'rinadi. */
   it("shaffof katak mavzu foni sifatida o'qiladi", () => {
