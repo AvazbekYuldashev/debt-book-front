@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import SettingsGroup from '../../../shared/ui/SettingsGroup';
@@ -102,6 +102,13 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
               isLast={index === THEME_MODES.length - 1}
             />
           ))}
+          {/* "Yorug'" belgilangan-u ekran to'q bo'lsa, bu xato bo'lib
+              ko'rinardi. Sababi shu yerda aytiladi. */}
+          {theme.photoAdapted ? (
+            <Text style={styles.note}>
+              {t(theme.activeTheme === 'dark' ? 'profile.themePhotoDark' : 'profile.themePhotoLight')}
+            </Text>
+          ) : null}
         </SettingsGroup>
 
         {/* Rang mavzudan KEYIN: avval yorug'/qorong'i tanlanadi, keyin
@@ -164,7 +171,7 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
   );
 };
 
-const createStyles = ({ spacing }: ThemeValue) =>
+const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -176,6 +183,13 @@ const createStyles = ({ spacing }: ThemeValue) =>
     },
     block: {
       padding: spacing.md,
+    },
+    note: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.sm,
     },
   });
 

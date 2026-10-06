@@ -2,13 +2,17 @@ import { darkColors, lightColors, type ColorTokens } from './colors';
 import { glassAlpha, type TransparencyLevel } from './transparency';
 
 /**
- * Fon rasmi ustida matn O'QILADIMI - sirtlar shaffofligining qoidasi.
+ * Fon rasmi ustidagi matn: qaysi rangda va o'qiladimi.
  *
- * Shaffoflik jadvallari (transparency.ts) shu hisob bilan tekshiriladi:
- * har darajada, har ikki mavzuda, HAR QANDAY rasmda (qop-qora ham, oppoq
- * ham) asosiy va kulrang matn o'qilishi shart. Shu sababli ilova mavzuni
- * hech qachon o'zi almashtirmaydi - yorug' rejim to'q fonda ham yorug'
- * qoladi (Samsung'dagidek), web va telefonda natija bir xil.
+ * 1. MATN RANGI FONGA ERGASHADI (photoTheme): yorug' rejimda fon rasmi
+ *    to'q bo'lsa, yozuvlar OQ chiqadi (sirtlar to'q muzli shisha) - va
+ *    aksincha. Foydalanuvchi talabi: to'q fonda to'q yozuv bo'lmasin.
+ *
+ * 2. O'QILISH QOIDASI (readableShare): shaffoflik jadvallari
+ *    (transparency.ts) shu hisob bilan tekshiriladi - har darajada, har
+ *    ikki mavzuda, HAR QANDAY rasmda asosiy va kulrang matn o'qilishi
+ *    shart. Shu sababli rasmni o'lchab bo'lmaganda ham (telefon) matn
+ *    baribir o'qiladi, faqat rangi mavzudan qoladi.
  *
  * Har katakka ko'z ko'radigan qatlamlar qo'yiladi: mavzu foni -> rasm ->
  * parda -> yuqori parda -> sirt.
@@ -153,4 +157,52 @@ export const readableShare = (
     }
   });
   return readable / sample.cells.length;
+};
+
+/** Yorug' rejim fon shundan to'qroq bo'lsa - qorong'i (oq yozuvli) ko'rinishga o'tadi. */
+export const DARK_PHOTO_LUMINANCE = 0.18;
+/** Qorong'i rejim fon shundan ochroq bo'lsa - yorug' (to'q yozuvli) ko'rinishga o'tadi. */
+export const BRIGHT_PHOTO_LUMINANCE = 0.45;
+
+/**
+ * Fonning yorqinligi (0..1) - ekranda ko'rinadigan holida: rasm va parda.
+ *
+ * MEDIANA, o'rtacha emas: to'q rasmdagi bir nechta yorqin dog' yoki tasma
+ * (neon chiziq, chiroq) o'rtachani ko'tarib, butun fonni "och" deb
+ * ko'rsatardi.
+ *
+ * Faqat yuqori pardadan PASTDAGI qism: sarlavhalar tepada o'z pardasi va
+ * sirtida turadi, kartalar va ro'yxat esa pastda - matn rangi o'sha joyga
+ * mos bo'lishi kerak.
+ */
+export const photoLuminance = (sample: PhotoSample, theme: ThemeName, dim: number): number => {
+  const background = solid(PALETTES[theme].background);
+  const values: number[] = [];
+  const all: number[] = [];
+  sample.cells.forEach((cell, index) => {
+    const y = (Math.floor(index / sample.cols) + 0.5) / sample.rows;
+    const seen = luminance(mix(background, mix(cell, background, cell.a), dim));
+    all.push(seen);
+    if (y >= PHOTO_SCRIM_END) values.push(seen);
+  });
+  const pool = (values.length ? values : all).sort((a, b) => a - b);
+  if (pool.length === 0) return luminance(background);
+  const mid = Math.floor(pool.length / 2);
+  return pool.length % 2 ? pool[mid] : (pool[mid - 1] + pool[mid]) / 2;
+};
+
+/**
+ * Fon rasmi ustida qaysi ko'rinish: matn rangi fonga qarama-qarshi.
+ *
+ * Tanlangan rejim faqat fon "o'rtacha" bo'lganda hal qiladi: to'q fonda
+ * yorug' rejim oq yozuvli, och fonda qorong'i rejim to'q yozuvli
+ * ko'rinishga o'tadi. Tanlovning o'zi o'zgarmaydi - rasm almashsa, u
+ * qaytadi.
+ */
+export const photoTheme = (preferred: ThemeName, sample: PhotoSample, dim: number): ThemeName => {
+  if (sample.cells.length === 0) return preferred;
+  const seen = photoLuminance(sample, preferred, dim);
+  if (preferred === 'light' && seen < DARK_PHOTO_LUMINANCE) return 'dark';
+  if (preferred === 'dark' && seen > BRIGHT_PHOTO_LUMINANCE) return 'light';
+  return preferred;
 };
