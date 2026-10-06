@@ -6,7 +6,6 @@ import { BackgroundProvider, useBackground } from '../BackgroundProvider';
 import { TransparencyProvider, useTransparency } from '../TransparencyProvider';
 import type { TransparencyLevel } from '../transparency';
 import type { PhotoSample } from '../photoTone';
-import { lightColors } from '../colors';
 
 const mockSample = jest.fn<Promise<PhotoSample | null>, [string, string, number]>();
 jest.mock('../photoColor', () => ({
@@ -23,7 +22,7 @@ const DARK_PHOTO = photo(58, 68, 84);
 const BRIGHT_PHOTO = photo(236, 234, 228);
 
 const Probe: React.FC<{ level: TransparencyLevel; image: boolean }> = ({ level, image }) => {
-  const { activeTheme, mode, setMode, photoAdapted, veilColor } = useAppTheme();
+  const { activeTheme, mode, setMode, photoAdapted } = useAppTheme();
   const { setImage } = useBackground();
   const { setLevel } = useTransparency();
 
@@ -36,12 +35,7 @@ const Probe: React.FC<{ level: TransparencyLevel; image: boolean }> = ({ level, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <>
-      <Text testID="theme">{`${activeTheme}|${mode}${photoAdapted ? '|adapted' : ''}`}</Text>
-      <Text testID="veil">{veilColor}</Text>
-    </>
-  );
+  return <Text testID="theme">{`${activeTheme}|${mode}${photoAdapted ? '|adapted' : ''}`}</Text>;
 };
 
 const show = (level: TransparencyLevel, image = true) =>
@@ -75,8 +69,6 @@ describe('AppThemeProvider - fon rasmi ustida', () => {
     await settle();
 
     expect(screen.getByTestId('theme').props.children).toBe('dark|light|adapted');
-    // Parda tanlangan (yorug') rejim rangida qoladi - qaror shu bilan qilingan.
-    expect(screen.getByTestId('veil').props.children).toBe(lightColors.background);
     expect(mockSample).toHaveBeenCalledWith(
       expect.stringContaining('/attach/open/photo-1'),
       'cover',

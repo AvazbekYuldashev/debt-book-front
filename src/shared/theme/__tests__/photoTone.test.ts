@@ -108,30 +108,26 @@ describe('shaffoflik jadvallari', () => {
  */
 describe('photoTheme', () => {
   it("yorug' rejim + to'q fon -> oq yozuv", () => {
-    expect(photoTheme('light', uniform(DARK), 0)).toBe('dark');
-    expect(photoTheme('light', uniform({ r: 0, g: 0, b: 0 }), 0.15)).toBe('dark');
+    expect(photoTheme('light', uniform(DARK))).toBe('dark');
+    expect(photoTheme('light', uniform({ r: 0, g: 0, b: 0 }))).toBe('dark');
   });
 
   it("yorug' rejim + och fon -> o'z holicha", () => {
-    expect(photoTheme('light', uniform(BRIGHT), 0)).toBe('light');
+    expect(photoTheme('light', uniform(BRIGHT))).toBe('light');
   });
 
   /** O'rtacha fonda tanlov hal qiladi - har kulrangda sakramaydi. */
   it("o'rtacha fonda tanlangan rejim qoladi", () => {
     const mid = uniform({ r: 128, g: 128, b: 128 });
-    expect(photoTheme('light', mid, 0)).toBe('light');
-    expect(photoTheme('dark', mid, 0)).toBe('dark');
+    expect(photoTheme('light', mid)).toBe('light');
+    expect(photoTheme('dark', mid)).toBe('dark');
   });
 
   it("qorong'i rejim + och fon -> to'q yozuv", () => {
-    expect(photoTheme('dark', uniform(BRIGHT), 0)).toBe('light');
-    expect(photoTheme('dark', uniform(DARK), 0)).toBe('dark');
+    expect(photoTheme('dark', uniform(BRIGHT))).toBe('light');
+    expect(photoTheme('dark', uniform(DARK))).toBe('dark');
   });
 
-  /** Kuchli parda to'q rasmni o'zi oqartiradi - fon endi to'q emas. */
-  it("kuchli oq parda to'q rasmni och qiladi", () => {
-    expect(photoTheme('light', uniform(DARK), 0.7)).toBe('light');
-  });
 
   /**
    * Mediana: to'q rasmdagi yorqin tasma va nuqtalar (skrinshotdagi neon
@@ -145,11 +141,11 @@ describe('photoTheme', () => {
         i % COLS < 3 ? { r: 235, g: 40, b: 180, a: 1 } : { r: 40, g: 40, b: 44, a: 1 },
       ),
     };
-    expect(photoTheme('light', neon, 0)).toBe('dark');
+    expect(photoTheme('light', neon)).toBe('dark');
   });
 
   /** Ro'yxat pastda turadi: tepasi och, pasti to'q rasmda yozuv oq. */
   it("tepasi och, pasti to'q rasmda pastki qism hal qiladi", () => {
-    expect(photoTheme('light', split(BRIGHT_TOP, DARK_BOTTOM, 0.4), 0)).toBe('dark');
+    expect(photoTheme('light', split(BRIGHT_TOP, DARK_BOTTOM, 0.4))).toBe('dark');
   });
 });

@@ -165,7 +165,13 @@ export const DARK_PHOTO_LUMINANCE = 0.18;
 export const BRIGHT_PHOTO_LUMINANCE = 0.45;
 
 /**
- * Fonning yorqinligi (0..1) - ekranda ko'rinadigan holida: rasm va parda.
+ * Fon RASMINING yorqinligi (0..1) - "Xiralik" pardasisiz.
+ *
+ * NEGA PARDASIZ: parda joriy ko'rinish rangida chiziladi (to'q
+ * ko'rinishda rasmni qoraytiradi, yorug'ida oqartiradi). Qaror pardaga
+ * bog'liq bo'lsa, xiralikni o'zgartirish butun ilovani yorug'dan to'qqa
+ * sakratardi. Endi ko'rinishni faqat rasm tanlaydi, xiralik esa rasmni
+ * shu ko'rinish foniga "cho'ktiradi" - hech qachon sakramaydi.
  *
  * MEDIANA, o'rtacha emas: to'q rasmdagi bir nechta yorqin dog' yoki tasma
  * (neon chiziq, chiroq) o'rtachani ko'tarib, butun fonni "och" deb
@@ -175,33 +181,34 @@ export const BRIGHT_PHOTO_LUMINANCE = 0.45;
  * sirtida turadi, kartalar va ro'yxat esa pastda - matn rangi o'sha joyga
  * mos bo'lishi kerak.
  */
-export const photoLuminance = (sample: PhotoSample, theme: ThemeName, dim: number): number => {
+export const photoLuminance = (sample: PhotoSample, theme: ThemeName): number => {
+  // Shaffof (PNG) kataklar ostida ilovaning foni ko'rinadi.
   const background = solid(PALETTES[theme].background);
-  const values: number[] = [];
+  const below: number[] = [];
   const all: number[] = [];
   sample.cells.forEach((cell, index) => {
     const y = (Math.floor(index / sample.cols) + 0.5) / sample.rows;
-    const seen = luminance(mix(background, mix(cell, background, cell.a), dim));
+    const seen = luminance(mix(cell, background, cell.a));
     all.push(seen);
-    if (y >= PHOTO_SCRIM_END) values.push(seen);
+    if (y >= PHOTO_SCRIM_END) below.push(seen);
   });
-  const pool = (values.length ? values : all).sort((a, b) => a - b);
+  const pool = (below.length ? below : all).sort((a, b) => a - b);
   if (pool.length === 0) return luminance(background);
   const mid = Math.floor(pool.length / 2);
   return pool.length % 2 ? pool[mid] : (pool[mid - 1] + pool[mid]) / 2;
 };
 
 /**
- * Fon rasmi ustida qaysi ko'rinish: matn rangi fonga qarama-qarshi.
+ * Fon rasmi ustida qaysi ko'rinish: matn rangi rasmga qarama-qarshi.
  *
- * Tanlangan rejim faqat fon "o'rtacha" bo'lganda hal qiladi: to'q fonda
- * yorug' rejim oq yozuvli, och fonda qorong'i rejim to'q yozuvli
+ * Tanlangan rejim faqat rasm "o'rtacha" bo'lganda hal qiladi: to'q rasmda
+ * yorug' rejim oq yozuvli, och rasmda qorong'i rejim to'q yozuvli
  * ko'rinishga o'tadi. Tanlovning o'zi o'zgarmaydi - rasm almashsa, u
  * qaytadi.
  */
-export const photoTheme = (preferred: ThemeName, sample: PhotoSample, dim: number): ThemeName => {
+export const photoTheme = (preferred: ThemeName, sample: PhotoSample): ThemeName => {
   if (sample.cells.length === 0) return preferred;
-  const seen = photoLuminance(sample, preferred, dim);
+  const seen = photoLuminance(sample, preferred);
   if (preferred === 'light' && seen < DARK_PHOTO_LUMINANCE) return 'dark';
   if (preferred === 'dark' && seen > BRIGHT_PHOTO_LUMINANCE) return 'light';
   return preferred;
