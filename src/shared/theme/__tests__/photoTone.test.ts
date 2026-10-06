@@ -67,11 +67,48 @@ describe('shaffoflik jadvallari', () => {
     "tepasi och, pasti to'q": split(BRIGHT_TOP, DARK_BOTTOM, 0.4),
   };
 
+  /** "Yo'q" va "Kam": sirtning o'zi matnga fon - HAR QANDAY rasmda. */
   for (const theme of ['light', 'dark'] as const) {
-    for (const { id: level } of TRANSPARENCY_LEVELS) {
+    for (const level of ['none', 'solid'] as const) {
       it(`${theme} / ${level}: hamma rasmda hamma joyda o'qiladi`, () => {
         for (const [name, photo] of Object.entries(PHOTOS)) {
           expect([name, readableShare(photo, theme, level)]).toEqual([name, 1]);
+        }
+      });
+    }
+  }
+
+  /**
+   * "O'rta" va "Ko'p": matn rasmning o'zi ustida - uni KO'RINISH o'qitadi
+   * (to'q rasmda oq yozuv, och rasmda to'q). Ko'rinishni photoTheme
+   * tanlaydi; foydalanuvchi qaysi rejimni tanlagan bo'lmasin.
+   */
+  const TONED: Record<string, PhotoSample> = {
+    "qop-qora": PHOTOS["qop-qora"],
+    oppoq: PHOTOS.oppoq,
+    "to'q tosh": PHOTOS["to'q tosh"],
+    och: PHOTOS.och,
+  };
+  for (const preferred of ['light', 'dark'] as const) {
+    for (const level of ['medium', 'clear'] as const) {
+      it(`${preferred} rejim / ${level}: ko'rinish rasmga mos va o'qiladi`, () => {
+        for (const [name, photo] of Object.entries(TONED)) {
+          const look = photoTheme(preferred, photo);
+          expect([name, look, readableShare(photo, look, level)]).toEqual([name, look, 1]);
+        }
+      });
+    }
+  }
+
+  /**
+   * Telefonda muzlatish ham, ko'rinishning rasmga moslashuvi ham yo'q -
+   * u yerda HAR daraja HAR QANDAY rasmda o'qilishi shart.
+   */
+  for (const theme of ['light', 'dark'] as const) {
+    for (const { id: level } of TRANSPARENCY_LEVELS) {
+      it(`telefon: ${theme} / ${level}: hamma rasmda o'qiladi`, () => {
+        for (const [name, photo] of Object.entries(PHOTOS)) {
+          expect([name, readableShare(photo, theme, level, false)]).toEqual([name, 1]);
         }
       });
     }

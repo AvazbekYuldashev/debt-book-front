@@ -97,7 +97,29 @@ const backdrop = (amount: number): ViewStyle =>
  * ortidagi rasmni o'zi xiralashtiradi: rasmning ranglari o'tadi, mayda
  * detallari (yoriqlar, nuqtalar) matnga aralashmaydi.
  */
-const FROST_BLUR = 18;
+const FROST_BLUR = 20;
+
+/**
+ * Web'da sirt ortidagi rasmni muzlata olamiz; telefonda - yo'q.
+ * Chaqiruv paytida o'qiladi (modul yuklanganda emas): testlar web yo'lini
+ * ham tekshira olsin.
+ */
+const canFrost = () => Platform.OS === 'web';
+
+/**
+ * Rasm ustidagi muzlatish: blur + yengil yorqinlik tuzatishi.
+ *
+ * "Ko'p" da sirt TO'LIQ shaffof - tus yo'q, matn rasmning o'zi ustida.
+ * Yorqinlik tuzatishi tus emas (rang qo'shmaydi): to'q ko'rinishda ortdagi
+ * rasmni biroz qoraytiradi (oq yozuv uchun), yorug'ida biroz oqartiradi
+ * (to'q yozuv uchun) - Apple'ning "vibrancy" si kabi.
+ */
+const photoFrost = (amount: number, isDark: boolean): ViewStyle =>
+  canFrost()
+    ? ({
+        backdropFilter: `blur(${amount}px) saturate(140%) brightness(${isDark ? 0.85 : 1.1})`,
+      } as ViewStyle)
+    : {};
 
 /**
  * @param onPhoto foydalanuvchi fon RASMI qo'yilganmi.
@@ -117,7 +139,7 @@ export const makeGlass = (
 ): GlassTokens => {
   // TUS mavzudan, ALFA sozlamadan. Shu sababli shaffoflikni o'zgartirish
   // sirtning rangini emas, faqat qalinligini o'zgartiradi.
-  const alpha = glassAlpha(level, onPhoto, isDark);
+  const alpha = glassAlpha(level, onPhoto, isDark, canFrost());
   const surfaceColor = reAlpha(
     onPhoto ? colors.glassSurfaceOnPhoto : colors.glassSurface, alpha.surface);
   const strongColor = reAlpha(
@@ -129,7 +151,7 @@ export const makeGlass = (
   // fon mayda detalsiz - u yerda blur ko'zga ko'rinmaydi, scroll'dagi
   // narxi esa qolardi (backdrop har kadrda qayta hisoblanadi). To'liq
   // yopiq ("Yo'q") sirt ortini baribir ko'rsatmaydi.
-  const frost = onPhoto && alpha.surface < 1 ? backdrop(FROST_BLUR) : {};
+  const frost = onPhoto && alpha.surface < 1 ? photoFrost(FROST_BLUR, isDark) : {};
 
   return {
   surface: {
@@ -145,7 +167,9 @@ export const makeGlass = (
     backgroundColor: strongColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
-    ...backdrop(24),
+    // Rasm ustida - boshqa sirtlar bilan bir xil muzlatish (yorqinlik
+    // tuzatishi bilan): "Ko'p" da bu karta ham to'liq shaffof.
+    ...(onPhoto && alpha.strong < 1 ? photoFrost(24, isDark) : backdrop(24)),
     ...shadows.raised,
   },
   // Soyasiz: bu sirt ALLAQACHON shisha karta ichida turadi, ikkinchi soya

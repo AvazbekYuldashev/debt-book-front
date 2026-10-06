@@ -124,6 +124,8 @@ export const readableShare = (
   sample: PhotoSample,
   theme: ThemeName,
   level: TransparencyLevel,
+  /** Sirt ortini muzlata oladimi (web: ha, telefon: yo'q - glassAlpha). */
+  frosted = true,
 ): number => {
   if (sample.cells.length === 0) return 1;
 
@@ -132,7 +134,7 @@ export const readableShare = (
   const tint = solid(palette.glassSurfaceOnPhoto);
   const text = solid(palette.textPrimary);
   const secondary = solid(palette.textSecondary);
-  const { surface } = glassAlpha(level, true, theme === 'dark');
+  const { surface } = glassAlpha(level, true, theme === 'dark', frosted);
 
   let readable = 0;
   sample.cells.forEach((cell) => {
