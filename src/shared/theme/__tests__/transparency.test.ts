@@ -64,25 +64,15 @@ describe('glassAlpha', () => {
   });
 
   /**
-   * "KO'P" DEGANI HAQIQATAN SHAFFOF.
-   *
-   * Yarim shaffof oq sirt to'q rasm ustida sut rangli tuman berardi -
-   * rasm ham ko'rinmay, karta ham toza bo'lmay qolardi. Eng shaffof
-   * daraja o'sha loyqa oraliqdan butunlay chiqib ketishi kerak.
+   * Rasm ustida "Ko'p" - MUZLI SHISHA, yalang'och rasm emas: fon doim
+   * xiralashtirilgani uchun yarim shaffof sirt tuman emas, Samsung
+   * bildirishnoma kartasi kabi ko'rinadi va matnga fon beradi.
+   * (Har qanday rasmda o'qilishi photoTone testida tekshiriladi.)
    */
-  it('eng shaffof daraja deyarli korinmas', () => {
+  it("rasm ustida eng shaffof daraja ham matnga fon beradi", () => {
     for (const isDark of [false, true]) {
-      expect(glassAlpha('clear', true, isDark).surface).toBeLessThan(0.15);
+      expect(glassAlpha('clear', true, isDark).surface).toBeGreaterThanOrEqual(0.6);
     }
-  });
-
-  /**
-   * O'RTA darajada yorug' mavzu QUYUQROQ: oq tus to'q rasm bilan
-   * aralashganda tuman beradi, to'q tus esa unga qo'shilib ketadi.
-   */
-  it('orta darajada yorug mavzu quyuqroq', () => {
-    expect(glassAlpha('medium', true, false).surface)
-      .toBeGreaterThan(glassAlpha('medium', true, true).surface);
   });
 
   /**

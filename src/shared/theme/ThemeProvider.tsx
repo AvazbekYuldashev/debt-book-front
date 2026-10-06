@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Appearance, ColorSchemeName, useColorScheme, useWindowDimensions } from 'react-native';
+import { Appearance, ColorSchemeName, useColorScheme } from 'react-native';
 import { ColorTokens, darkColors, lightColors } from './colors';
 import { applyAutofillStyle } from './applyAutofillStyle';
 import { makeShadows, ShadowTokens } from './elevation';
@@ -7,17 +7,12 @@ import { makeGlass, GlassTokens } from './glass';
 import { useBackground } from './BackgroundProvider';
 import { useAccent } from './AccentProvider';
 import { useTransparency } from './TransparencyProvider';
-import { samplePhoto } from './photoColor';
-import { readableTheme, type PhotoSample } from './photoTone';
-import type { BackgroundFit } from './backgroundSettings';
-import { APP_COLUMN_WIDTH } from './layout';
 import { applyAccent } from './accent';
 import { loadAppFonts } from './fonts';
 import { iconSize } from './iconSizes';
 import { radius, spacing } from './spacing';
 import { typography } from './typography';
 import { storage } from '../lib/storage';
-import { buildAttachUrl } from '../lib/attachUrl';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 type ActiveTheme = 'light' | 'dark';
@@ -31,11 +26,6 @@ function isThemeMode(value: unknown): value is ThemeMode {
 export interface ThemeValue {
   mode: ThemeMode;
   activeTheme: ActiveTheme;
-  /**
-   * Ko'rsatilayotgan mavzu tanlangandan farq qiladi: fon rasmi ustida
-   * tanlangan mavzuning matni o'qilmagani uchun almashtirilgan.
-   */
-  photoAdapted: boolean;
   colors: ColorTokens;
   spacing: typeof spacing;
   radius: typeof radius;
@@ -58,60 +48,12 @@ function resolveActiveTheme(mode: ThemeMode, scheme: ColorSchemeName | null | un
   return mode;
 }
 
-/**
- * Fon rasmining ekranda ko'rinadigan qismi, kataklarga bo'lingan.
- * Rasm yo'q yoki o'lchab bo'lmasa - null.
- *
- * Natija qaysi o'lchovga tegishli ekani ham saqlanadi: rasm almashganda
- * yangisi o'lchanguncha ESKI rasm bilan qaror qilinmasin.
- */
-function usePhotoSample(imageId: string, fit: BackgroundFit): PhotoSample | null {
-  // Ekran nisbati: web'da ilova 560px ustunga yig'iladi, rasm esa shu
-  // ustunni to'ldiradi. Mayda o'zgarishlarda qayta o'lchanmasin deb
-  // yaxlitlanadi.
-  const screen = useWindowDimensions();
-  const width = Math.min(screen.width, APP_COLUMN_WIDTH);
-  const aspect = screen.height > 0 ? Math.round((width / screen.height) * 20) / 20 : 0;
-
-  const url = imageId ? buildAttachUrl(imageId) : '';
-  const key = `${url}|${fit}|${aspect}`;
-  const [sample, setSample] = useState<{ key: string; value: PhotoSample } | null>(null);
-
-  useEffect(() => {
-    if (!url) return undefined;
-    let alive = true;
-    samplePhoto(url, fit, aspect).then((value) => {
-      if (alive) setSample(value ? { key, value } : null);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [url, fit, aspect, key]);
-
-  return sample && sample.key === key ? sample.value : null;
-}
-
 export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mode, setMode] = useState<ThemeMode>('system');
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const systemScheme = useColorScheme();
-  const { imageId, dim, fit } = useBackground();
-  // Shaffoflik darajasi foydalanuvchi sozlamasi: to'g'ri qiymat fonga
-  // bog'liq va uni dastur bila olmaydi.
-  const { level } = useTransparency();
-  const photo = usePhotoSample(imageId, fit);
-  /**
-   * Ko'rsatiladigan mavzu - odatda foydalanuvchi tanlagani.
-   *
-   * ISTISNO: fon rasmi ustida shaffof sirtda matn rasmning o'zida turadi.
-   * Yorug' mavzudagi to'q matn to'q rasmda (yoki aksincha) o'qilmay
-   * qolsa, matni o'qiladigan mavzu ko'rsatiladi. Tanlovning o'zi
-   * (`mode`) o'zgarmaydi: rasm yoki shaffoflik almashsa, u qaytadi.
-   */
-  const preferredTheme = resolveActiveTheme(mode, systemScheme);
-  const activeTheme =
-    imageId && photo ? readableTheme(preferredTheme, photo, dim, level) : preferredTheme;
+  const activeTheme = resolveActiveTheme(mode, systemScheme);
   /**
    * Mavzu palitrasi + foydalanuvchi tanlagan ASOSIY RANG.
    *
@@ -184,6 +126,10 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    * ishlaydi. Shu sababli BackgroundProvider daraxtda bu provayderdan
    * TASHQARIDA turadi - u mavzuga bog'liq emas, mavzu esa unga bog'liq.
    */
+  const { imageId } = useBackground();
+  // Shaffoflik darajasi foydalanuvchi sozlamasi: to'g'ri qiymat fonga
+  // bog'liq va uni dastur bila olmaydi.
+  const { level } = useTransparency();
   const glass = useMemo(
     () => makeGlass(colors, shadows, imageId.length > 0, level, activeTheme === 'dark'),
     [colors, shadows, imageId, level, activeTheme],
@@ -192,7 +138,6 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const value = useMemo<ThemeValue>(() => ({
     mode,
     activeTheme,
-    photoAdapted: activeTheme !== preferredTheme,
     colors,
     spacing,
     radius,
@@ -203,7 +148,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     fontsLoaded,
     setMode: applyMode,
     toggleTheme,
-  }), [mode, activeTheme, preferredTheme, colors, shadows, glass, toggleTheme, applyMode, fontsLoaded]);
+  }), [mode, activeTheme, colors, shadows, glass, toggleTheme, applyMode, fontsLoaded]);
 
   // Saqlangan mavzu o'qilmaguncha render qilmaymiz — light->dark "miltillash"ning oldini oladi.
   if (!hydrated) {
