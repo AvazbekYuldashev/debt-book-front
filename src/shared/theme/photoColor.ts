@@ -12,3 +12,12 @@ export function samplePhoto(
 ): Promise<PhotoSample | null> {
   return Promise.resolve(null);
 }
+
+/** Native'da saqlangan o'lchov ham yo'q. */
+export function peekPhoto(
+  _url: string,
+  _fit: BackgroundFit,
+  _viewAspect: number,
+): PhotoSample | null {
+  return null;
+}

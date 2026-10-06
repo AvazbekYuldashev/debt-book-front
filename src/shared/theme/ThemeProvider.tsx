@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Appearance, ColorSchemeName, useColorScheme, useWindowDimensions } from 'react-native';
+import { Appearance, ColorSchemeName, Dimensions, useColorScheme } from 'react-native';
 import { ColorTokens, darkColors, lightColors } from './colors';
 import { applyAutofillStyle } from './applyAutofillStyle';
 import { makeShadows, ShadowTokens } from './elevation';
@@ -7,7 +7,7 @@ import { makeGlass, GlassTokens } from './glass';
 import { useBackground } from './BackgroundProvider';
 import { useAccent } from './AccentProvider';
 import { useTransparency } from './TransparencyProvider';
-import { samplePhoto } from './photoColor';
+import { peekPhoto, samplePhoto } from './photoColor';
 import { photoTheme, type PhotoSample } from './photoTone';
 import type { BackgroundFit } from './backgroundSettings';
 import { APP_COLUMN_WIDTH } from './layout';
@@ -36,6 +36,14 @@ export interface ThemeValue {
    * (yoki och) bo'lgani uchun yozuvlar fonga qarama-qarshi rangda.
    */
   photoAdapted: boolean;
+  /**
+   * Fon rasmi ustidagi "Xiralik" pardasining rangi - TANLANGAN rejimdan.
+   *
+   * Ko'rinish fonga qarab almashsa ham parda o'zgarmaydi: qaror shu parda
+   * bilan hisoblanadi. Aks holda xiralikni oshirish avval rasmni
+   * qoraytirib, keyin to'satdan oq pardali ko'rinishga sakrardi.
+   */
+  veilColor: string;
   colors: ColorTokens;
   spacing: typeof spacing;
   radius: typeof radius;
@@ -61,34 +69,47 @@ function resolveActiveTheme(mode: ThemeMode, scheme: ColorSchemeName | null | un
 /**
  * Fon rasmining ekranda ko'rinadigan qismi, kataklarga bo'lingan.
  * Rasm yo'q yoki o'lchab bo'lmasa (telefonda) - null.
- *
- * Natija qaysi o'lchovga tegishli ekani ham saqlanadi: rasm almashganda
- * yangisi o'lchanguncha ESKI rasm bilan qaror qilinmasin.
  */
 function usePhotoSample(imageId: string, fit: BackgroundFit): PhotoSample | null {
-  // Ekran nisbati: web'da ilova 560px ustunga yig'iladi, rasm esa shu
-  // ustunni to'ldiradi. Mayda o'zgarishlarda qayta o'lchanmasin deb
-  // yaxlitlanadi.
-  const screen = useWindowDimensions();
-  const width = Math.min(screen.width, APP_COLUMN_WIDTH);
-  const aspect = screen.height > 0 ? Math.round((width / screen.height) * 20) / 20 : 0;
+  /**
+   * Ekran nisbati QURILMA ekranidan, oynadan emas.
+   *
+   * Web'da oyna o'lchami klaviatura ochilganda, manzil satri yashirinsa
+   * yoki oyna cho'zilsa o'zgaradi - fon rasmi esa joyidan qimirlamaydi.
+   * Oynaga bog'lansa, har safar boshqa kesim o'lchanib, mavzu yozish
+   * paytida sakrab ketardi. Ilova 560px ustunga yig'iladi.
+   */
+  const [aspect] = useState(() => {
+    const screen = Dimensions.get('screen');
+    const width = Math.min(screen.width, APP_COLUMN_WIDTH);
+    return screen.height > 0 ? Math.round((width / screen.height) * 20) / 20 : 0;
+  });
 
   const url = imageId ? buildAttachUrl(imageId) : '';
-  const key = `${url}|${fit}|${aspect}`;
-  const [sample, setSample] = useState<{ key: string; value: PhotoSample } | null>(null);
+  const key = `${url}|${fit}`;
+  const [sample, setSample] = useState<{ url: string; key: string; value: PhotoSample } | null>(null);
 
   useEffect(() => {
     if (!url) return undefined;
     let alive = true;
     samplePhoto(url, fit, aspect).then((value) => {
-      if (alive) setSample(value ? { key, value } : null);
+      // Muvaffaqiyatsiz o'lchov oldingi natijani O'CHIRMAYDI: tarmoq bir
+      // lahza uzilgani uchun ko'rinish sakramasin.
+      if (alive && value) setSample({ url, key, value });
     });
     return () => {
       alive = false;
     };
   }, [url, fit, aspect, key]);
 
-  return sample && sample.key === key ? sample.value : null;
+  if (!url) return null;
+  if (sample && sample.key === key) return sample.value;
+  // Saqlangan tayyor natija - birinchi chizishdanoq to'g'ri ko'rinish.
+  const saved = peekPhoto(url, fit, aspect);
+  if (saved) return saved;
+  // Shu rasmning eski o'lchovi (masalan "Moslash" o'zgardi): yangisi
+  // kelguncha u bilan qolamiz - tanlangan rejimga sakrab qaytmaymiz.
+  return sample && sample.url === url ? sample.value : null;
 }
 
 export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -192,6 +213,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     mode,
     activeTheme,
     photoAdapted: activeTheme !== preferredTheme,
+    veilColor: (preferredTheme === 'dark' ? darkColors : lightColors).background,
     colors,
     spacing,
     radius,
