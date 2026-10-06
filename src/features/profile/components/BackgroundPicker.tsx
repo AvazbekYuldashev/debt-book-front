@@ -7,7 +7,7 @@ import { updateProfileBackground } from '../api/profile';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useBackground } from '../../../shared/theme/BackgroundProvider';
-import type { BackgroundFit } from '../../../shared/theme/backgroundSettings';
+import { photoBlur, type BackgroundFit } from '../../../shared/theme/backgroundSettings';
 import { buildAttachUrl } from '../../../shared/lib/attachUrl';
 import { useI18n } from '../../../shared/i18n';
 
@@ -31,6 +31,12 @@ const FIT_OPTIONS: { value: BackgroundFit; icon: keyof typeof Ionicons.glyphMap;
 ];
 
 /**
+ * Namuna ekrandan ancha kichik: bir xil piksel blur unda ancha kuchli
+ * ko'rinardi. Shu sababli blur namuna o'lchamiga moslab kichraytiriladi.
+ */
+const PREVIEW_BLUR_SCALE = 0.4;
+
+/**
  * Fon rasmini tanlash va moslash.
  *
  * Rasm serverga yuklanadi (profil fotosi bilan bir xil yo'l), qurilmada esa
@@ -48,6 +54,7 @@ const BackgroundPicker: React.FC = () => {
 
   const token = profile?.jwt;
   const hasImage = imageId.length > 0;
+  const previewBlur = Math.round(photoBlur(dim) * PREVIEW_BLUR_SCALE);
 
   /**
    * Sozlamani HISOBGA saqlaydi.
@@ -113,15 +120,23 @@ const BackgroundPicker: React.FC = () => {
       <Text style={styles.title}>{t('background.title')}</Text>
       <Text style={styles.hint}>{t('background.hint')}</Text>
 
-      {/* Ko'rinish namunasi: xiralik pardasi ham shu yerda qo'llanadi, shuning
-          uchun odam tanlashdan oldin matn o'qilishini ko'ra oladi. */}
+      {/* Ko'rinish namunasi: xiralik (blur va parda) ham shu yerda
+          qo'llanadi, shuning uchun odam tanlashdan oldin matn o'qilishini
+          ko'ra oladi. */}
       <View style={styles.preview}>
         {hasImage ? (
           <>
             <Image
               source={{ uri: buildAttachUrl(imageId) }}
-              style={StyleSheet.absoluteFill}
+              style={{
+                position: 'absolute',
+                top: -previewBlur * 2,
+                left: -previewBlur * 2,
+                right: -previewBlur * 2,
+                bottom: -previewBlur * 2,
+              }}
               resizeMode={fit}
+              blurRadius={previewBlur > 0 ? previewBlur : undefined}
               accessibilityIgnoresInvertColors
             />
             <View
