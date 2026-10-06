@@ -101,10 +101,22 @@ describe('readableTheme', () => {
     expect(readableTheme('dark', uniform(DARK), 0, 'clear')).toBe('dark');
   });
 
-  /** "O'rta" va "Kam" da sirtning o'zi matnga fon beradi. */
-  it("qalin sirtda yorug' mavzu to'q rasmda ham qoladi", () => {
-    expect(readableTheme('light', uniform(DARK), 0, 'medium')).toBe('light');
+  /**
+   * "O'rta" da oq sirt to'q rasm ustida kulrang bo'lib qoladi: asosiy matn
+   * o'qiladi, kulrang yorliqlar esa yo'qolardi (skrinshot: Sozlamalar).
+   */
+  it("O'rta + to'q rasm -> qorong'i mavzu (kulrang matn uchun)", () => {
+    expect(readableTheme('light', uniform(DARK), 0, 'medium')).toBe('dark');
+  });
+
+  /** "Kam" da sirt deyarli to'liq oq karta - yorug' mavzu qoladi. */
+  it("Kam da yorug' mavzu to'q rasmda ham qoladi", () => {
     expect(readableTheme('light', uniform(DARK), 0, 'solid')).toBe('light');
+  });
+
+  /** O'rtacha yorqin rasmda "O'rta" da yorug' mavzu o'qiladi va qoladi. */
+  it("o'rtacha rasmda O'rta da yorug' mavzu qoladi", () => {
+    expect(readableTheme('light', uniform({ r: 140, g: 140, b: 140 }), 0, 'medium')).toBe('light');
   });
 
   /** Kuchli parda rasmni o'zi oqartiradi - almashtirish shart emas. */

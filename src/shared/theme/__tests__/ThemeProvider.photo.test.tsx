@@ -73,8 +73,9 @@ describe('AppThemeProvider - fon rasmi ustida', () => {
     );
   });
 
-  it("O'rta darajada yorug' mavzu qoladi", async () => {
-    show('medium');
+  /** "Kam" da sirt deyarli to'liq oq karta - almashtirish shart emas. */
+  it("Kam darajada yorug' mavzu qoladi", async () => {
+    show('solid');
     await settle();
 
     expect(screen.getByTestId('theme').props.children).toBe('light|light');
