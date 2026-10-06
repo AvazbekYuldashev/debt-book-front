@@ -129,7 +129,15 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
         >
           <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </Pressable>
-        <Text style={styles.title}>{t('notifications.title')}</Text>
+        {/* Sarlavha o'z sirtida - boshqa ekranlardagi kabi: fon rasmi
+            keskin bo'lishi mumkin, ostida parda yo'q. */}
+        <View style={styles.titleArea}>
+          <View style={styles.titlePill}>
+            <Text style={styles.title} numberOfLines={1}>
+              {t('notifications.title')}
+            </Text>
+          </View>
+        </View>
         {/* Test tugmasi: qurilma bildirishnomasi yo'lini bir bosishda tekshiradi. */}
         <Pressable
           style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
@@ -281,9 +289,20 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     pressed: {
       opacity: 0.6,
     },
+    titleArea: {
+      flex: 1,
+      minWidth: 0,
+      alignItems: 'center',
+    },
+    titlePill: {
+      maxWidth: '100%',
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.lg,
+      ...glass.surface,
+    },
     title: {
       ...typography.heading2,
-      flex: 1,
       fontSize: 20,
       textAlign: 'center',
       color: colors.textPrimary,

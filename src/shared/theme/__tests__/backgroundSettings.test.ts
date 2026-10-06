@@ -8,7 +8,7 @@ import {
   MIN_DIM,
   parseBackground,
   serializeBackground,
-  PHOTO_BLUR,
+  photoBlur,
 } from '../backgroundSettings';
 
 describe('parseBackground', () => {
@@ -158,11 +158,22 @@ describe('backgroundKey', () => {
 });
 
 /**
- * Fon rasmi DOIM bir xil xiralashadi (One UI dagidek): "Xiralik" faqat
- * pardani boshqaradi, rasmning ko'rinishi esa sozlamaga qarab sakramaydi.
+ * "Xiralik" = fon rasmining blur'i. "Yo'q" - rasm ASL holida, xiralik
+ * oshgani sayin blur ham oshadi.
  */
-describe('PHOTO_BLUR', () => {
-  it('doimiy va sezilarli', () => {
-    expect(PHOTO_BLUR).toBeGreaterThanOrEqual(16);
+describe('photoBlur', () => {
+  it("Yo'q - rasm asl holida", () => {
+    expect(photoBlur(0)).toBe(0);
+  });
+
+  it('xiralik bilan birga osadi', () => {
+    expect(photoBlur(0.15)).toBeGreaterThan(0);
+    expect(photoBlur(0.4)).toBeGreaterThan(photoBlur(0.15));
+    expect(photoBlur(0.7)).toBeGreaterThan(photoBlur(0.4));
+  });
+
+  /** Buzuq qiymat standart xiralikka tushadi - clampDim bilan bir xil. */
+  it('notogri qiymatda standart', () => {
+    expect(photoBlur('abc')).toBe(photoBlur(0.15));
   });
 });

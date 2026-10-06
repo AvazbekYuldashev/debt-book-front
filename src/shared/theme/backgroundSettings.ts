@@ -26,7 +26,8 @@ export interface BackgroundSettings {
   imageId: string;
   fit: BackgroundFit;
   /**
-   * Xiralashtirish kuchi, 0..1. Rasm ustidagi mavzu rangli parda.
+   * Xiralik (blur) kuchi, 0..1 - photoBlur() uni pikselga aylantiradi.
+   * Nomi tarixiy: ilgari bu rasm ustidagi rang pardasining qalinligi edi.
    *
    * NOLGA TUSHIRISH MUMKIN. Avval eng past qiymat 0.25 edi - "matn
    * o'qilsin" degan niyat bilan. Amalda esa matn deyarli hamma joyda
@@ -141,24 +142,25 @@ export function serializeBackground(settings: BackgroundSettings): string {
 }
 
 /**
- * Fon rasmi DOIM xiralashtiriladi - Android (One UI) dagidek.
+ * "Xiralik" = fon rasmining BLUR'i, boshqa hech narsa.
  *
- * Shaffof sirt ostida keskin rasmning mayda detallari (tosh yoriqlari,
- * barglar) matn bilan aralashib ketardi. One UI buni orqa fonni
- * xiralashtirib hal qiladi: rasmning ranglari ko'rinadi, detallari esa
- * matnga xalaqit bermaydi.
+ * Foydalanuvchi talabi: "Yo'q" - rasm ASL holida (blur ham, rang pardasi
+ * ham yo'q); xiralik qancha oshsa, rasm shuncha xiralashadi. Ilgari bu
+ * sozlama rasm ustiga mavzu rangli parda tortardi va u to'q rasmni sut
+ * rangli tumanga aylantirardi - endi parda umuman yo'q.
  *
- * NEGA DOIMIY: ilgari blur "Xiralik" darajasiga bog'liq edi va "Yo'q"
- * tanlanganda umuman yo'qolardi - bir xil ilova turli sozlamada butunlay
- * boshqacha ko'rinardi. Endi blur hamma joyda bir xil, "Xiralik" esa
- * faqat pardaning qalinligini boshqaradi.
+ * Elementlarning o'qilishi xiralikka BOG'LIQ EMAS: uni "Shaffoflik"
+ * (muzli shisha sirtlar) ta'minlaydi. Shu sababli rasmni keskin qoldirish
+ * ham xavfsiz.
  *
- * Fon rasmi butun ekranni qoplaydi va sirtlar ostida faqat u turadi,
- * shuning uchun rasmning o'zini xiralashtirish har sirtga alohida
- * `backdrop-filter` berish bilan bir xil natija beradi - lekin scroll
- * paytida qayta hisoblanmaydi va Android/iOS da ham ishlaydi.
+ * Har 0.1 uchun 4px: Kam (0.15) ~6px, O'rta (0.4) ~16px, Kuchli (0.7) ~28px.
  */
-export const PHOTO_BLUR = 24;
+export const BLUR_PER_DIM = 40;
+
+/** Fon rasmining blur radiusi, piksel. 0 = rasm asl holida. */
+export function photoBlur(dim: unknown): number {
+  return Math.round(clampDim(dim) * BLUR_PER_DIM);
+}
 
 /** Fon rasmi tanlanganmi (bo'sh id = yo'q). */
 export function hasBackgroundImage(settings: BackgroundSettings): boolean {

@@ -881,6 +881,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
     // shisha o'zi quyuqlashadi va matn o'qiladigan bo'lib qoladi.
     rowSlice: {
       backgroundColor: glass.surface.backgroundColor,
+      // Fon rasmi ustida qator ham muzli shisha - karta bilan bir xil.
+      ...glass.frost,
       marginHorizontal: spacing.md,
     },
     rowFirst: {

@@ -380,6 +380,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
       // Sirt MAVZUDAN olinadi, xom tokendan emas: fon rasmi qo'yilganda
       // shisha o'zi quyuqlashadi.
       backgroundColor: glass.surface.backgroundColor,
+      // Fon rasmi ustida qator ham muzli shisha - karta bilan bir xil.
+      ...glass.frost,
       marginHorizontal: spacing.md,
     },
     rowFirst: {
