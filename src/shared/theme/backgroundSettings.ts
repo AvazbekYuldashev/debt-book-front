@@ -141,23 +141,24 @@ export function serializeBackground(settings: BackgroundSettings): string {
 }
 
 /**
- * Xiralikning HAQIQIY blur qismi: har 0.1 parda uchun 4px.
+ * Fon rasmi DOIM xiralashtiriladi - Android (One UI) dagidek.
  *
- * Ilgari "Xiralik" faqat rang pardasi edi - rasm keskin qolardi va
- * shaffof sirt ostida uning mayda detallari (tosh yoriqlari, barglar)
- * matn bilan aralashib ketardi. Android (One UI) va iOS buni rasmni
- * xiralashtirib hal qiladi: rasm ko'rinadi, lekin detallari matnga
- * xalaqit bermaydi.
+ * Shaffof sirt ostida keskin rasmning mayda detallari (tosh yoriqlari,
+ * barglar) matn bilan aralashib ketardi. One UI buni orqa fonni
+ * xiralashtirib hal qiladi: rasmning ranglari ko'rinadi, detallari esa
+ * matnga xalaqit bermaydi.
  *
- * Alohida sozlama emas: odam "xiralik" deganda aynan shuni kutadi.
- * "Yo'q" - rasm o'z holicha, "Kuchli" - One UI ilovalar ro'yxatidagidek.
+ * NEGA DOIMIY: ilgari blur "Xiralik" darajasiga bog'liq edi va "Yo'q"
+ * tanlanganda umuman yo'qolardi - bir xil ilova turli sozlamada butunlay
+ * boshqacha ko'rinardi. Endi blur hamma joyda bir xil, "Xiralik" esa
+ * faqat pardaning qalinligini boshqaradi.
+ *
+ * Fon rasmi butun ekranni qoplaydi va sirtlar ostida faqat u turadi,
+ * shuning uchun rasmning o'zini xiralashtirish har sirtga alohida
+ * `backdrop-filter` berish bilan bir xil natija beradi - lekin scroll
+ * paytida qayta hisoblanmaydi va Android/iOS da ham ishlaydi.
  */
-export const BLUR_PER_DIM = 40;
-
-/** Fon rasmining blur radiusi, piksel. */
-export function photoBlur(dim: unknown): number {
-  return Math.round(clampDim(dim) * BLUR_PER_DIM);
-}
+export const PHOTO_BLUR = 24;
 
 /** Fon rasmi tanlanganmi (bo'sh id = yo'q). */
 export function hasBackgroundImage(settings: BackgroundSettings): boolean {
