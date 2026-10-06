@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, act } from '@testing-library/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppThemeProvider } from '../../../../shared/theme';
 import { LanguageProvider } from '../../../../shared/i18n';
 import { AuthContext } from '../../../auth/context/AuthContext';
@@ -71,9 +72,11 @@ const settle = () =>
     await new Promise((r) => setTimeout(r, 20));
   });
 
-afterEach(() => {
+afterEach(async () => {
   activeQueryClients.forEach((client) => client.clear());
   activeQueryClients.length = 0;
+  // Tanlangan mavzu/til saqlanadi - keyingi test standart holatdan boshlansin.
+  await AsyncStorage.clear();
 });
 
 describe("ProfileSettingsScreen — Huquqiy hujjatlar bo'limi", () => {
@@ -98,5 +101,40 @@ describe("ProfileSettingsScreen — Huquqiy hujjatlar bo'limi", () => {
 
     fireEvent.press(screen.getByText('Maxfiylik siyosati'));
     expect(navigate).toHaveBeenCalledWith(ROUTES.PRIVACY_POLICY);
+  });
+});
+
+/**
+ * Tanlov guruhlari (til, mavzu, rang, shaffoflik) - RADIO: bittasi
+ * belgilangan, qolganlari belgisiz va strelkasiz. Hujjat bandlari esa
+ * sahifa ochadi - ular tugma. Ikkisi bir xil ko'rinmasligi kerak.
+ */
+describe('ProfileSettingsScreen — tanlov va navigatsiya qatorlari', () => {
+  it('mavzu bandlari radio, tanlangani belgilangan', async () => {
+    renderSettings();
+    await settle();
+
+    // Saqlangan rejim yo'q - standart "Tizim".
+    expect(screen.getByRole('radio', { name: 'Tizim', checked: true })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Tungi', checked: false })).toBeTruthy();
+  });
+
+  it('band bosilganda belgi unga o\'tadi', async () => {
+    renderSettings();
+    await settle();
+
+    fireEvent.press(screen.getByRole('radio', { name: 'Tungi' }));
+    await settle();
+
+    expect(screen.getByRole('radio', { name: 'Tungi', checked: true })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Tizim', checked: false })).toBeTruthy();
+  });
+
+  it('hujjat bandlari radio emas, tugma', async () => {
+    renderSettings();
+    await settle();
+
+    expect(screen.getByRole('button', { name: 'Ommaviy oferta' })).toBeTruthy();
+    expect(screen.queryByRole('radio', { name: 'Ommaviy oferta' })).toBeNull();
   });
 });

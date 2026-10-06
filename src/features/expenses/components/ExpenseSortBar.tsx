@@ -100,8 +100,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xxs + 2,
       borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.border,
       ...glass.pane,
     },
     chipActive: {
@@ -127,7 +125,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       paddingHorizontal: spacing.sm,
       paddingVertical: spacing.xxs + 2,
       borderRadius: radius.pill,
-      backgroundColor: colors.surfaceMuted,
+      // Qo'shni chiplar kabi shisha: surfaceMuted deyarli shaffof va
+      // to'g'ridan-to'g'ri fon rasmida yozuv rasmga qo'shilib ketardi.
+      ...glass.pane,
     },
     resetText: {
       ...typography.caption,

@@ -19,9 +19,17 @@ import { DEFAULT_TRANSPARENCY, glassAlpha, reAlpha, type TransparencyLevel } fro
 export interface GlassTokens {
   /** Odatiy karta/blok. Blur YO'Q — pastdagi izohga qarang. */
   surface: ViewStyle;
-  /** Ko'tarilgan STATIK sirt: modal, summary karta. Bu yerda blur bor. */
+  /**
+   * Ko'tarilgan STATIK sirt: modal, summary karta. Bu yerda blur bor.
+   * Qorong'ida TUSI `surface` nikidan och (to'q fonda och yoki teng
+   * chiqadi) - to'q bo'lsa "teshik" ko'rinadi.
+   */
   raised: ViewStyle;
-  /** Ichki bo'lak: klavisha, chip, ajratilgan maydon. Soyasiz, blursiz. */
+  /**
+   * Ichki bo'lak: klavisha, chip, ajratilgan maydon. Soyasiz, blursiz.
+   * Ota-sirtdan bir pog'ona ko'tarilgan; qorong'ida HAR darajada to'q
+   * qoladi (alfani jadval almashtiradi, tus esa to'q chip).
+   */
   muted: ViewStyle;
   /**
    * `surface` ning SOYASIZ varianti.

@@ -3,12 +3,11 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
+import { VOICE_BUTTON_SIZE } from '../../../shared/ui/fabLayout';
 import { useI18n } from '../../../shared/i18n';
 import { useVoiceInput } from '../model/useVoiceInput';
 import { useVoiceAction } from '../model/VoiceActionProvider';
 import VoiceNoticeModal from './VoiceNoticeModal';
-
-export const VOICE_BUTTON_SIZE = 58;
 
 /**
  * Pastki panelning o'rtasidagi ovozli buyruq tugmasi.
@@ -47,6 +46,9 @@ const VoiceTabButton: React.FC = () => {
   // Brauzerda yozib bo'lmasa `visible` yolg'on bo'ladi; tugma baribir
   // turadi va bosilganda sababini aytadi.
   const ready = Boolean(action) && voice.visible;
+  const disabled = working || !ready;
+  // O'chiq doira NEYTRAL sirtda - unda oq glif ko'rinmay qolardi.
+  const glyphColor = ready ? colors.textOnPrimary : colors.textSecondary;
 
   return (
     <View style={styles.wrap} pointerEvents="box-none">
@@ -64,25 +66,25 @@ const VoiceTabButton: React.FC = () => {
          */
         onPressIn={voice.start}
         onPressOut={voice.stop}
-        disabled={working || !ready}
+        disabled={disabled}
         accessibilityRole="button"
-        accessibilityState={{ disabled: !ready, busy: working }}
+        // Ekran o'quvchiga ham `disabled` prop bilan AYNAN bir xil holat
+        // aytilsin: ishlov paytida tugma bosilmaydi.
+        accessibilityState={{ disabled, busy: working }}
         accessibilityLabel={recording ? t('voice.stop') : t('voice.speak')}
+        // Tartib muhim: yozuv paytida barmoq baribir bosib turadi - qizil
+        // "pressed" rangidan keyin qo'yiladi, aks holda yashilga qaytardi.
         style={({ pressed }) => [
           styles.button,
-          recording && styles.recording,
           pressed && styles.pressed,
+          recording && styles.recording,
           !ready && styles.off,
         ]}
       >
         {working ? (
-          <ActivityIndicator color={colors.textOnPrimary} />
+          <ActivityIndicator color={glyphColor} />
         ) : (
-          <Ionicons
-            name={recording ? 'stop' : 'mic'}
-            size={26}
-            color={colors.textOnPrimary}
-          />
+          <Ionicons name={recording ? 'stop' : 'mic'} size={26} color={glyphColor} />
         )}
       </Pressable>
 
@@ -119,11 +121,31 @@ const createStyles = ({ colors, shadows }: ThemeValue) =>
       backgroundColor: colors.danger,
       shadowColor: colors.danger,
     },
+    /**
+     * Bosilgan holat RANG bilan, shaffoflik bilan emas: doira panel
+     * chizig'ini kesib o'tadi va har qanday `opacity` ortidagi rasm bilan
+     * panelni ikki xil tusda ko'rsatib, o'rtada chok qoldirardi.
+     */
     pressed: {
-      opacity: 0.85,
+      backgroundColor: colors.primaryPressed,
     },
+    /**
+     * O'CHIQ holat - SHAFFOF EMAS, neytral sirt.
+     *
+     * Ilgari butun doiraga `opacity: 0.4` berilardi: ortidan fon rasmi va
+     * panel chizig'i ko'rinib, tugma ikki tusli "singan" dog'ga aylanardi,
+     * oq glif esa 1.8:1 da o'qilmasdi. Shaffoflik "Yo'q" bo'lsa ham u
+     * yagona shaffof element bo'lib qolardi.
+     *
+     * Endi u kartalar bilan bir xil to'liq sirt: hamma narsani yopadi,
+     * glif textSecondary (o'qiladi, lekin "faol emas" deb ko'rinadi),
+     * yashil nur esa yo'q - nur "bos meni" deydi.
+     */
     off: {
-      opacity: 0.4,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: colors.shadow,
     },
   });
 

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
+import { VOICE_BUTTON_CLEARANCE } from '../../../shared/ui/fabLayout';
 import PressableScale from '../../../shared/ui/PressableScale';
 import SectionHeader from '../../../shared/ui/SectionHeader';
 import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
@@ -437,12 +438,14 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     },
     // Ikki asosiy amal — ekranning eng pastida, bosh barmoq yetadigan joyda.
     // Ustki "qattiq" chegara olib tashlandi: ajratishni soya va bo'shliq beradi.
+    // Pastki bo'shliq ovoz doirasidan: u paneldan 29px chiqadi va 16px
+    // bilan tugmalarning ichki burchaklarini yopib qo'yardi.
     bottomActions: {
       flexDirection: 'row',
       gap: spacing.sm,
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
-      paddingBottom: spacing.md,
+      paddingBottom: VOICE_BUTTON_CLEARANCE,
     },
     // Ikkala tugma qatorni TENG ikkiga bo'ladi. `flex` animatsiya
     // konteyneriga beriladi — tugmaning o'ziga berilsa, uni o'rab turgan
@@ -479,11 +482,12 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     giveBtn: {
       backgroundColor: colors.positive,
     },
-    // Sirt SurfaceLabel'dan; bu yerda faqat joylashuv - o'rtada.
+    // Sirt SurfaceLabel'dan; bu yerda faqat joylashuv - o'rtada, ovoz
+    // doirasidan yuqorida (tugmalar qatori bilan bir xil sabab).
     readOnlyNote: {
       alignSelf: 'center',
       marginTop: spacing.md,
-      marginBottom: spacing.md,
+      marginBottom: VOICE_BUTTON_CLEARANCE,
       marginHorizontal: spacing.md,
     },
     readOnlyText: {

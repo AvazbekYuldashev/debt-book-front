@@ -149,9 +149,12 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
 
 const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
   StyleSheet.create({
+    // Yuqori chekinish ScreenHeader va GapMemberBalanceHeader bilan bir
+    // xil: ekrandan ekranga o'tganda orqaga tugmasi sakramasin va
+    // status bar chetiga qadalib qolmasin.
     wrap: {
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.xxs,
+      paddingTop: spacing.md,
     },
     topBar: {
       marginBottom: spacing.xs,

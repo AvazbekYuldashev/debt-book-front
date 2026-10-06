@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet } from 'react-native';
+import { Animated, Easing, Platform, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
@@ -7,6 +7,9 @@ import type { ThemeValue } from '../theme/ThemeProvider';
 const PULSE_MS = 1000;
 /** Cheksiz emas, chekli takror: web'da doimiy rAF batareyani yeydi. */
 const PULSE_ITERATIONS = 4;
+// Web'da native driver yo'q (PressableScale bilan bir xil qoida): `true`
+// berilsa RNW har safar ogohlantirib, baribir JS'da animatsiya qiladi.
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 interface FloatingActionButtonProps {
   onPress: () => void;
@@ -44,13 +47,13 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
           toValue: 1.1,
           duration: PULSE_MS,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(scale, {
           toValue: 1,
           duration: PULSE_MS,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]),
       { iterations: PULSE_ITERATIONS }
@@ -74,14 +77,20 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
         ]}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
+        accessibilityState={{ disabled }}
       >
-        <Ionicons name={iconName} size={30} color={colors.textOnPrimary} />
+        <Ionicons
+          name={iconName}
+          size={30}
+          // O'chiq tugma neytral sirtda - oq glif unda ko'rinmasdi.
+          color={disabled ? colors.textSecondary : colors.textOnPrimary}
+        />
       </Pressable>
     </Animated.View>
   );
 };
 
-const createStyles = ({ colors, spacing, radius }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, shadows }: ThemeValue) =>
   StyleSheet.create({
     wrap: {
       position: 'absolute',
@@ -101,12 +110,23 @@ const createStyles = ({ colors, spacing, radius }: ThemeValue) =>
       shadowRadius: 14,
       elevation: 10,
     },
+    // Bosilish RANG bilan (Button bilan bir xil): yarim shaffof tugma
+    // ortidagi fon rasmini ko'rsatib, xira dog'ga aylanardi.
     pressed: {
-      opacity: 0.9,
+      backgroundColor: colors.primaryPressed,
       transform: [{ scale: 0.96 }],
     },
+    /**
+     * O'chiq holat - ovoz tugmasining o'chiq holati bilan BIR XIL retsept:
+     * to'liq neytral sirt, chegara, neytral soya. `opacity` fon rasmi
+     * ustida tugmani "singan" shaffof dog'ga aylantirardi, yashil nur
+     * esa bosib bo'lmaydigan tugmani faol qilib ko'rsatardi.
+     */
     disabled: {
-      opacity: 0.5,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...shadows.floating,
     },
   });
 

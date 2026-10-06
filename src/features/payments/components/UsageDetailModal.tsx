@@ -121,22 +121,26 @@ const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ command, onClose })
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
+    // Boshqa dialoglar bilan bitta retsept: qoraytirish + xiralashtirish.
+    // Faqat overlay rangi ortdagi ro'yxat summalarini o'qiladigan qoldirib,
+    // diqqatni bo'lardi.
     backdrop: {
       flex: 1,
-      backgroundColor: colors.overlay,
+      ...glass.scrim,
       alignItems: 'center',
       justifyContent: 'center',
       padding: spacing.lg,
     },
+    // glass.modal - QAT'IY yopiq sirt (native'da blur yo'q): raqamlar har
+    // qanday fon ustida o'qiladi. Chegara va soya ham tokendan.
     card: {
       width: '100%',
       maxWidth: 380,
-      backgroundColor: colors.surface,
+      ...glass.modal,
       borderRadius: radius.lg,
       padding: spacing.lg,
-      ...shadows.card,
     },
     titleRow: {
       flexDirection: 'row',

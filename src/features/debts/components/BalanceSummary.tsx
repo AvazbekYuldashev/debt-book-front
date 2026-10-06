@@ -134,14 +134,17 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
         </Text>
       </View>
 
+      {/* Yuklanish va nol qiymat NEYTRAL kulrangda — ContactRow va
+          ContactBalanceHeader'dagi "yopiq hisob" qoidasi bilan bir xil: qizil
+          "0" ochiq qarzdek o'qiladi. Kategoriyani rangli ikonka bildiradi. */}
       {loading && entries.length === 0 ? (
         // Balanslar hali yuklanmagan — "0" ko'rsatib chalg'itmaymiz.
-        <Text style={[styles.value, styles.valueIdle, { color }]} numberOfLines={1}>
+        <Text style={[styles.value, styles.valueIdle]} numberOfLines={1}>
           …
         </Text>
       ) : entries.length === 0 ? (
         <Text
-          style={[styles.value, styles.valueIdle, { color, fontSize: valueFont }]}
+          style={[styles.value, styles.valueIdle, { fontSize: valueFont }]}
           numberOfLines={1}
         >
           {formatMoney(0, DEFAULT_CURRENCY)}
@@ -274,6 +277,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     valueIdle: {
       paddingVertical: spacing.xxs / 2,
+      color: colors.textSecondary,
     },
     // Ikki katak orasidagi vertikal ajratgich — juda nozik, "qattiq" border emas.
     divider: {

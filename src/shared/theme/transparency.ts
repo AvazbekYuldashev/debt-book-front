@@ -41,11 +41,29 @@ const OPAQUE: AlphaSet = { surface: 1, strong: 1, muted: 1 };
  * emas: to'q yoki shovqinli rasm ustida o'sha qiymat matnni yeb
  * qo'yadi. Shu sababli har daraja uchun ikki jadval.
  */
-const WITHOUT_PHOTO: Record<TransparencyLevel, AlphaSet> = {
+const WITHOUT_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
   none: OPAQUE,
   clear: { surface: 0.18, strong: 0.3, muted: 0.12 },
   medium: { surface: 0.28, strong: 0.44, muted: 0.2 },
   solid: { surface: 0.55, strong: 0.7, muted: 0.4 },
+};
+
+/**
+ * Rasmsiz QORONG'I: surface/strong yorug' bilan bir xil, muted ATAYIN
+ * qalinroq.
+ *
+ * Qorong'i muted tusi endi TO'Q chip (colors.ts glassMuted) - kartadan
+ * bir pog'ona och. Yorug'dagi kabi 0.12-0.4 da u to'q fon ustida deyarli
+ * ko'rinmasdi: ichki bo'lak (klavisha, chip) ota-kartadan ajralmasdi.
+ * Ilgari bu yerda och slate turardi va past alfa "ko'tarish" berardi;
+ * endi o'sha ko'tarishni to'q rgb yuqori alfada beradi - natija "Ko'p"
+ * da avvalgisiga deyarli teng, "Kam" da esa sut rangli emas.
+ */
+const WITHOUT_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
+  none: OPAQUE,
+  clear: { surface: 0.18, strong: 0.3, muted: 0.55 },
+  medium: { surface: 0.28, strong: 0.44, muted: 0.65 },
+  solid: { surface: 0.55, strong: 0.7, muted: 0.8 },
 };
 
 /**
@@ -87,7 +105,7 @@ export const glassAlpha = (
   onPhoto: boolean,
   isDark = false,
 ): AlphaSet => {
-  if (!onPhoto) return WITHOUT_PHOTO[level];
+  if (!onPhoto) return (isDark ? WITHOUT_PHOTO_DARK : WITHOUT_PHOTO_LIGHT)[level];
   return (isDark ? WITH_PHOTO_DARK : WITH_PHOTO_LIGHT)[level];
 };
 

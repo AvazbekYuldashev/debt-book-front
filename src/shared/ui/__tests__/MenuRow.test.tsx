@@ -44,6 +44,18 @@ describe('MenuRow', () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
+  /**
+   * Web: klaviatura halqasi qatorning TASHQARISIDA. Qator padding'li
+   * karta ichida turadi (kesilmaydi), ikonka va strelka esa uning
+   * chetiga taqalgan - ichki halqa ularni kesib o'tardi.
+   */
+  it('fokus halqasi ichkariga olinmaydi', async () => {
+    show(<MenuRow label="Kontaktlar" icon="people-outline" onPress={() => {}} />);
+    await settle();
+
+    expect(screen.getByRole('button', { name: 'Kontaktlar' }).props.dataSet).toBeUndefined();
+  });
+
   /** O'ng chetga kalit yoki belgi qo'yish mumkin - o'shanda strelka yo'q. */
   it('ong chetdagi qism strelka ornini egallaydi', async () => {
     show(

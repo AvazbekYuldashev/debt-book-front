@@ -15,3 +15,26 @@
  * kamayardi.
  */
 export const FAB_CLEARANCE = 96;
+
+/**
+ * Pastki panel o'rtasidagi ko'tarilgan ovoz tugmasi (doira) diametri.
+ *
+ * Shu yerda, feature ichida emas: panel chizig'idan qancha chiqishini
+ * shared ekranlar ham bilishi kerak, shared kod esa feature'ni import
+ * qilmasligi shart.
+ */
+export const VOICE_BUTTON_SIZE = 58;
+
+/**
+ * Ovoz doirasi ustida qoldiriladigan bo'shliq.
+ *
+ * Doira panel chizig'idan yarmi (29px) bilan YUQORIGA chiqib turadi.
+ * Tab ekranidagi har qanday AYLANMAYDIGAN, pastga qadalgan kontent
+ * (Oldim/Berdim qatori, izoh) shu bo'shliqdan yuqorida turishi SHART:
+ * aks holda doira tugmalarning pastki burchaklarini yopib qo'yardi.
+ * +8 - doira bilan tugma bir-biriga tegib turmasin.
+ *
+ * FAB_CLEARANCE bu ishni QILMAYDI: u faqat o'ng chekkadagi "+" uchun va
+ * aylanadigan ro'yxat OXIRIGA beriladi.
+ */
+export const VOICE_BUTTON_CLEARANCE = VOICE_BUTTON_SIZE / 2 + 8;

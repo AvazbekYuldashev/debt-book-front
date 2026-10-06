@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
+import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import { useAppTheme } from '../../../shared/theme';
@@ -288,7 +289,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     listContent: {
       paddingHorizontal: spacing.md,
-      paddingBottom: spacing.lg,
+      // Oxirgi xarajat "+" tugmasi ostida qolmasin.
+      paddingBottom: FAB_CLEARANCE,
     },
     emptyLabel: {
       alignSelf: 'center',

@@ -124,7 +124,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...modalCardLayout,
       // QUYUQ, shisha emas: bu to'sadigan oyna va ortidagi ekran ko'rinib
       // tursa, foydalanuvchi undan foydalanmoqchi bo'lib urinaveradi.
-      backgroundColor: colors.surface,
+      // glass.modal aynan shunday yopiq sirt - chegara va soyasi bilan.
+      ...glass.modal,
       borderRadius: radius.xl,
       padding: spacing.md,
       gap: spacing.xs,

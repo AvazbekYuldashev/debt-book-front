@@ -6,6 +6,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import type { DeviceContact } from '../../../shared/lib/deviceContacts';
+import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 
 interface DeviceContactRowProps {
   contact: DeviceContact;
@@ -34,8 +35,12 @@ const DeviceContactRow: React.FC<DeviceContactRowProps> = ({ contact, checked, a
       onPress={handlePress}
       disabled={disabled}
       accessibilityRole="checkbox"
-      accessibilityState={{ checked, disabled }}
+      // aria-checked: react-native-web accessibilityState'ni o'qimaydi
+      // (SettingsRow bilan bir xil). O'chiqlikni `disabled` o'zi beradi.
+      aria-checked={checked}
       accessibilityLabel={contact.name}
+      // To'liq enli qator ro'yxat ichida - halqa qo'shni qatorlarga chiqmasin.
+      dataSet={FOCUS_INSET}
     >
       <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
         {checked ? <Ionicons name="checkmark" size={14} color={colors.textOnPrimary} /> : null}

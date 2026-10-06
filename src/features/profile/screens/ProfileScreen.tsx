@@ -208,7 +208,9 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
           <View style={styles.headRow}>
             <View style={styles.stat}>
               <Text style={styles.statValue}>{userStats?.registeredUsers ?? '—'}</Text>
-              <Text style={styles.statLabel}>{t('stats.registered')}</Text>
+              <Text style={styles.statLabel} numberOfLines={3}>
+                {t('stats.registered')}
+              </Text>
             </View>
 
             <ProfileAvatar
@@ -227,7 +229,9 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
 
             <View style={styles.stat}>
               <Text style={styles.statValue}>{userStats?.pendingUsers ?? '—'}</Text>
-              <Text style={styles.statLabel}>{t('stats.pending')}</Text>
+              <Text style={styles.statLabel} numberOfLines={3}>
+                {t('stats.pending')}
+              </Text>
             </View>
           </View>
 
@@ -285,20 +289,6 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
           ))}
         </Card>
 
-        <View style={styles.bottomRow}>
-          <View style={styles.bottomCell}>
-            <Button title={t('profile.logout')} variant="outline" onPress={handleLogout} />
-          </View>
-          <View style={styles.bottomCell}>
-            <Button
-              title={t('profile.deleteProfile')}
-              variant="secondary"
-              onPress={handleDelete}
-              loading={loadingKey === 'delete'}
-            />
-          </View>
-        </View>
-
         {/* To'lovlar: ovozli buyruqlar uchun sarf va hisobni to'ldirish.
             "Dastur haqida" dan YUQORIDA, chunki bu pul masalasi va unga
             kamdan-kam emas, muntazam qaraladi. */}
@@ -311,7 +301,7 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
           />
         </Card>
 
-        {/* Eng pastda: kundalik ish emas, kamdan-kam ochiladi. */}
+        {/* Kartalarning eng pastida: kundalik ish emas, kamdan-kam ochiladi. */}
         <Card style={styles.card}>
           <LegalMenuRow
             label={t('about.title')}
@@ -320,6 +310,25 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
             onPress={() => navigation.navigate(ROUTES.ABOUT_APP)}
           />
         </Card>
+
+        {/* Eng pastda - sessiya va QAYTARIB BO'LMAYDIGAN amal. Ilgari ular
+            sahifa o'rtasida, muntazam bosiladigan "To'lovlar" qatorining
+            tepasida turardi: adashib bosish oson edi. O'chirish xavf
+            rangida - "Chiqish" bilan bir xil yashil kiyimda u xavfsiz
+            amaldek ko'rinardi. */}
+        <View style={styles.bottomRow}>
+          <View style={styles.bottomCell}>
+            <Button title={t('profile.logout')} variant="outline" onPress={handleLogout} />
+          </View>
+          <View style={styles.bottomCell}>
+            <Button
+              title={t('profile.deleteProfile')}
+              variant="danger"
+              onPress={handleDelete}
+              loading={loadingKey === 'delete'}
+            />
+          </View>
+        </View>
       </ScrollView>
 
       <ProfilePhotoModal
@@ -333,7 +342,7 @@ const ProfileScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navigation
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -383,34 +392,65 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
     },
     content: {
       paddingHorizontal: spacing.md,
+      // Kamida 40: ko'tarilgan mikrofon tugmasi panel ustidan ~29px chiqib
+      // turadi - oxirgi (Chiqish/O'chirish) tugmalar uning ostida qolmasin.
       paddingBottom: spacing.xxl,
       gap: spacing.sm,
     },
+    // Yonlari 12: ustunlar markazlangan matn, yon chekinish ko'zga
+    // tashlanmaydi - har 4px esa yorliqqa joy (360dp telefonda ham uz
+    // yorliqlari 3 qatorga sig'adi).
+    //
+    // `padding` KALITI ataylab: Card uni inline beradi. Web'da faqat
+    // paddingHorizontal yozilsa, RNW inline `padding` ni klassdan ustun
+    // qo'yadi va o'zgarish ko'rinmasdi. Bir xil kalit uni bekor qiladi,
+    // paddingVertical esa uzun shakl sifatida ustiga yoziladi.
     headCard: {
-      padding: 16,
+      padding: spacing.sm,
+      paddingVertical: spacing.md,
       marginBottom: 12,
     },
+    /**
+     * Ustunlar TEPADAN tekislanadi.
+     *
+     * Ilgari har ustun o'z balandligini avatarga nisbatan markazlardi:
+     * yorliq 2 va 3 qatorga bo'linganda ikki son 8px farq bilan "suzib"
+     * turardi. Endi ikkala son bir chiziqda, yorliqlar bir balandlikdan
+     * boshlanadi - yorliq necha qator bo'lishidan qat'i nazar.
+     */
     headRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'space-between',
-      gap: spacing.sm,
+      gap: spacing.xs,
     },
+    /**
+     * Eng uzun (3 qatorli) ustun avatar (84px) bo'yiga markazlangan:
+     * 4 + son 28 + 2 + yorliq 3x16 = 82. Qisqaroq yorliqda pastda bo'sh
+     * joy qoladi, son esa joyidan qimirlamaydi.
+     */
     stat: {
       flex: 1,
       minWidth: 0,
       alignItems: 'center',
+      paddingTop: spacing.xxs,
       gap: 2,
     },
     statValue: {
       ...typography.heading2,
       fontSize: 20,
+      lineHeight: 28,
       color: colors.textPrimary,
       fontVariant: ['tabular-nums'],
     },
+    // 10px telefonda o'qilmasdi. 12px, 3 qator: eng uzun uz yorlig'i
+    // 360dp ekranda ham 3 qatorga sig'adi. Harf oralig'i 0 - Inter 12px da
+    // usiz ham ochiq o'qiladi, tor ustunda esa har piksel kerak.
     statLabel: {
       ...typography.caption,
-      fontSize: 10,
+      fontSize: 12,
+      lineHeight: 16,
+      letterSpacing: 0,
       color: colors.textSecondary,
       textAlign: 'center',
     },
@@ -435,6 +475,13 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
       flexDirection: 'row',
       gap: spacing.xs,
     },
+    /**
+     * Plitkalar to'g'ridan-to'g'ri FON ustida turadi - karta ichida emas.
+     * Shuning uchun qo'shni kartalar bilan bitta retsept (glass.surface):
+     * rasmda muzli, "Shaffoflik" ga bo'ysunadi, karta soyasi bilan.
+     * glass.muted esa karta ICHIDAGI chip uchun - blursiz va soyasiz, rasm
+     * detallari yozuv ortidan keskin ko'rinib turardi.
+     */
     action: {
       flex: 1,
       alignItems: 'center',
@@ -442,9 +489,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.xs,
       borderRadius: radius.lg,
-      borderWidth: 1,
-      borderColor: colors.outline,
-      ...glass.muted,
+      ...glass.surface,
     },
     actionPressed: {
       opacity: 0.6,

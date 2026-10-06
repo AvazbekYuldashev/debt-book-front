@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Appearance, ColorSchemeName, Dimensions, useColorScheme } from 'react-native';
 import { ColorTokens, darkColors, lightColors } from './colors';
-import { applyAutofillStyle } from './applyAutofillStyle';
+import { applyWebTheme } from './applyWebTheme';
 import { makeShadows, ShadowTokens } from './elevation';
 import { makeGlass, GlassTokens } from './glass';
 import { useBackground } from './BackgroundProvider';
@@ -136,9 +136,14 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return applyAccent(base, accent, activeTheme === 'dark');
   }, [activeTheme, accent]);
 
-  // Web'da brauzer autofill fonini joriy theme'ga moslaymiz (native'da noop).
+  /**
+   * Web'da brauzer o'zi chizadigan qismlar - autofill foni, fokus halqasi,
+   * manzil satri va sahifa foni - KO'RSATILAYOTGAN ko'rinishga moslanadi.
+   * `colors` asosiy rang va fon rasmiga allaqachon moslangan: tanlangan
+   * rejim bo'yicha bo'yalsa, to'q ilova ustida och panel qolardi. Native'da noop.
+   */
   useEffect(() => {
-    applyAutofillStyle(colors);
+    applyWebTheme(colors);
   }, [colors]);
 
   // Saqlangan mavzu rejimini yuklash (yangilanganda tiklanib qolmasligi uchun).

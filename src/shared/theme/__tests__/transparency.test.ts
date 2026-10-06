@@ -51,18 +51,23 @@ describe('glassAlpha', () => {
     expect(medium).toBeLessThan(solid);
   });
 
-  /** Har jadvalda darajalar tartibda: ko'p -> o'rta -> kam -> yo'q. */
+  /**
+   * Har jadvalda va har sirtda darajalar tartibda: ko'p -> o'rta -> kam
+   * -> yo'q. "Kam" hech qachon "Ko'p" dan shaffofroq emas.
+   */
   it('har jadvalda darajalar tartibda', () => {
     for (const onPhoto of [false, true]) {
       for (const isDark of [false, true]) {
-        const clear = glassAlpha('clear', onPhoto, isDark).surface;
-        const medium = glassAlpha('medium', onPhoto, isDark).surface;
-        const solid = glassAlpha('solid', onPhoto, isDark).surface;
-        const none = glassAlpha('none', onPhoto, isDark).surface;
+        for (const key of ['surface', 'strong', 'muted'] as const) {
+          const clear = glassAlpha('clear', onPhoto, isDark)[key];
+          const medium = glassAlpha('medium', onPhoto, isDark)[key];
+          const solid = glassAlpha('solid', onPhoto, isDark)[key];
+          const none = glassAlpha('none', onPhoto, isDark)[key];
 
-        expect(clear).toBeLessThan(medium);
-        expect(medium).toBeLessThan(solid);
-        expect(solid).toBeLessThan(none);
+          expect(clear).toBeLessThan(medium);
+          expect(medium).toBeLessThan(solid);
+          expect(solid).toBeLessThan(none);
+        }
       }
     }
   });
@@ -102,11 +107,27 @@ describe('glassAlpha', () => {
     expect(glassAlpha('medium', true, false).surface).toBeGreaterThanOrEqual(0.8);
   });
 
-  /** Rasmsiz esa ikki mavzu bir xil - u yerda fon past kontrastli. */
+  /**
+   * Rasmsiz esa karta va ko'tarilgan sirt ikki mavzuda bir xil - u yerda
+   * fon past kontrastli.
+   *
+   * muted ATAYIN farq qiladi: qorong'i muted tusi TO'Q chip (alfa
+   * ko'tarishni beradi), yorug'niki esa oq lift (past alfada yetarli).
+   * Qorong'i muted o'qilishi glass.test'da qulflangan.
+   */
   it('rasmsiz mavzular teng', () => {
     for (const item of TRANSPARENCY_LEVELS) {
-      expect(glassAlpha(item.id, false, false))
-        .toEqual(glassAlpha(item.id, false, true));
+      const light = glassAlpha(item.id, false, false);
+      const dark = glassAlpha(item.id, false, true);
+      expect(dark.surface).toBe(light.surface);
+      expect(dark.strong).toBe(light.strong);
+    }
+  });
+
+  /** Qorong'i muted "Ko'p" da ham ota-kartadan ajraladi - to'q tus yuqori alfa talab qiladi. */
+  it("rasmsiz qorong'i muted yorug'dan qalinroq", () => {
+    for (const id of ['clear', 'medium', 'solid'] as const) {
+      expect(glassAlpha(id, false, true).muted).toBeGreaterThan(glassAlpha(id, false, false).muted);
     }
   });
 });

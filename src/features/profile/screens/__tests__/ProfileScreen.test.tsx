@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, act } from '@testing-library/react-native';
@@ -89,5 +90,32 @@ describe('ProfileScreen — boshqa ekranlarga yo\'l', () => {
 
     fireEvent.press(screen.getByText('Sozlamalar'));
     expect(navigate).toHaveBeenCalledWith(ROUTES.PROFILE_SETTINGS);
+  });
+});
+
+describe('ProfileScreen — sessiya va xavfli amal', () => {
+  /**
+   * Chiqish va profilni o'chirish ENG OXIRIDA: ular ilgari muntazam
+   * bosiladigan "To'lovlar" qatorining tepasida turardi va adashib
+   * bosish oson edi.
+   */
+  it('chiqish va o\'chirish barcha kartalardan keyin turadi', async () => {
+    renderProfile();
+    await settle();
+
+    const order = screen
+      .getAllByText(/^(To'lovlar|Dastur haqida|Chiqish|Profilni o'chirish)$/)
+      .map((node) => node.props.children);
+    expect(order).toEqual(["To'lovlar", 'Dastur haqida', 'Chiqish', "Profilni o'chirish"]);
+  });
+
+  /** Qaytarib bo'lmaydigan amal "Chiqish" bilan bir xil yashil kiymasin. */
+  it('o\'chirish tugmasi chiqishdan boshqa rangda', async () => {
+    renderProfile();
+    await settle();
+
+    const colorOf = (label: string) =>
+      StyleSheet.flatten(screen.getByText(label).props.style).color;
+    expect(colorOf("Profilni o'chirish")).not.toBe(colorOf('Chiqish'));
   });
 });

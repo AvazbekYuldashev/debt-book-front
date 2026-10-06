@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
+import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import StatusBanner from '../../../shared/ui/StatusBanner';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -245,7 +246,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...glass.pane,
       borderRadius: radius.xl,
       marginHorizontal: spacing.md,
-      marginBottom: spacing.md,
+      // Karta oxirgi a'zo ostida tugaydi, oxirgi a'zo esa "+" tugmasi
+      // ostida qolmasin - bo'shliq kartadan TASHQARIDA.
+      marginBottom: FAB_CLEARANCE,
       overflow: 'hidden',
     },
     skeleton: {

@@ -50,7 +50,7 @@ describe('BackgroundPicker', () => {
     renderPicker();
     await settle();
 
-    expect(screen.getByText("Fon rasmi qo‘yilmagan")).toBeTruthy();
+    expect(screen.getByText("Fon rasmi qo'yilmagan")).toBeTruthy();
     expect(screen.getByText('Rasm tanlash')).toBeTruthy();
     // Moslash va xiralik rasmsiz ma'nosiz — ko'rinmasligi kerak.
     expect(screen.queryByText('Moslash')).toBeNull();
@@ -84,7 +84,7 @@ describe('BackgroundPicker', () => {
     fireEvent.press(screen.getByText('Olib tashlash'));
     await settle();
 
-    expect(screen.getByText("Fon rasmi qo‘yilmagan")).toBeTruthy();
+    expect(screen.getByText("Fon rasmi qo'yilmagan")).toBeTruthy();
     expect(screen.queryByText('Moslash')).toBeNull();
   });
 
@@ -96,8 +96,8 @@ describe('BackgroundPicker', () => {
     fireEvent.press(screen.getByText('Rasm tanlash'));
     await settle();
 
-    expect(screen.queryByText('Rasmni yuklab bo‘lmadi')).toBeNull();
-    expect(screen.getByText("Fon rasmi qo‘yilmagan")).toBeTruthy();
+    expect(screen.queryByText("Rasmni yuklab bo'lmadi")).toBeNull();
+    expect(screen.getByText("Fon rasmi qo'yilmagan")).toBeTruthy();
   });
 
   it('yuklash xatosi foydalanuvchiga aytiladi', async () => {
@@ -108,7 +108,7 @@ describe('BackgroundPicker', () => {
     fireEvent.press(screen.getByText('Rasm tanlash'));
     await settle();
 
-    expect(screen.getByText('Rasmni yuklab bo‘lmadi')).toBeTruthy();
+    expect(screen.getByText("Rasmni yuklab bo'lmadi")).toBeTruthy();
   });
 
   it('kutilmagan xatoda ham ilova yiqilmaydi', async () => {
@@ -119,7 +119,7 @@ describe('BackgroundPicker', () => {
     fireEvent.press(screen.getByText('Rasm tanlash'));
     await settle();
 
-    expect(screen.getByText('Rasmni yuklab bo‘lmadi')).toBeTruthy();
+    expect(screen.getByText("Rasmni yuklab bo'lmadi")).toBeTruthy();
     // Tugma yana bosiladigan holatga qaytdi (busy o'chdi).
     expect(screen.getByText('Rasm tanlash')).toBeTruthy();
   });
@@ -133,8 +133,8 @@ describe('BackgroundPicker', () => {
     await settle();
 
     // Ikkala variant ham bor; sig'dirishga o'tkazamiz.
-    fireEvent.press(screen.getByText('Sig‘dirish'));
+    fireEvent.press(screen.getByText("Sig'dirish"));
     await settle();
-    expect(screen.getByText('Sig‘dirish')).toBeTruthy();
+    expect(screen.getByText("Sig'dirish")).toBeTruthy();
   });
 });

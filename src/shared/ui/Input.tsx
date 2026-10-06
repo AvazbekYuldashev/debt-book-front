@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useAppTheme } from '../theme';
 import { useI18n } from '../i18n';
+import { FOCUS_SELF } from './focusRing';
 import VoiceMicButton, { VoiceMicButtonProps } from '../../features/voice/components/VoiceMicButton';
 
 export type InputVariant = 'primary' | 'secondary' | 'outline';
@@ -39,6 +40,8 @@ const Input: React.FC<InputProps> = ({
   secureTextEntry,
   value,
   voice,
+  onFocus,
+  onBlur,
   ...props
 }) => {
   const { colors, spacing, typography } = useAppTheme();
@@ -51,14 +54,20 @@ const Input: React.FC<InputProps> = ({
   const borderColor = error ? colors.danger : isFocused ? colors.primary : 'transparent';
   const hasPasswordToggle = Boolean(secureTextEntry);
 
+  /**
+   * Chaqiruvchining onFocus/onBlur'i propsdan AJRATIB olinadi va shu yerdan
+   * chaqiriladi. Ilgari ular `{...props}` ichida qolib, TextInput'ga
+   * keyinroq yoyilardi va bizning handlerni almashtirardi: isFocused hech
+   * qachon true bo'lmas, maydon fokus chegarasini yo'qotardi.
+   */
   const handleFocus: TextInputProps['onFocus'] = (event) => {
     setIsFocused(true);
-    props.onFocus?.(event);
+    onFocus?.(event);
   };
 
   const handleBlur: TextInputProps['onBlur'] = (event) => {
     setIsFocused(false);
-    props.onBlur?.(event);
+    onBlur?.(event);
   };
 
   return (
@@ -86,6 +95,8 @@ const Input: React.FC<InputProps> = ({
             style,
           ]}
           placeholderTextColor={colors.textSecondary}
+          // Fokusni o'z chegarasi (primary) ko'rsatadi - web halqasi ortiqcha.
+          dataSet={FOCUS_SELF}
           onFocus={handleFocus}
           onBlur={handleBlur}
           secureTextEntry={hasPasswordToggle ? !isPasswordVisible : undefined}

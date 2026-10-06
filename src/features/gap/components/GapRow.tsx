@@ -8,6 +8,7 @@ import GapAmountStack from './GapAmountStack';
 import { GapResponseDTO, netByUnit,
   splitNet, unitOf } from '../types/gap';
 import { formatGapAmount } from '../model/gapFormat';
+import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 
 interface GapRowProps {
   item: GapResponseDTO;
@@ -48,6 +49,8 @@ const GapRow: React.FC<GapRowProps> = ({ item, isLast = false, expanded = false,
       ]}
       accessibilityRole="button"
       accessibilityLabel={item.name}
+      // To'liq enli qator yumaloq karta ichida - halqa ichkariga chiziladi.
+      dataSet={FOCUS_INSET}
     >
       <View style={styles.main}>
         <Text style={styles.name} numberOfLines={1}>

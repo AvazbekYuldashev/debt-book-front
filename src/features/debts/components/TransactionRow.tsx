@@ -7,6 +7,7 @@ import { formatMoney } from '../../../shared/lib/money';
 import { normalizeCurrency } from '../../../shared/lib/currency';
 import { splitLegacyCalcNote } from '../../../shared/lib/calcNote';
 import { formatDateShort, MappedTransaction } from '../model/transactionMapping';
+import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 
 interface TransactionRowProps {
   tx: MappedTransaction;
@@ -39,6 +40,8 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, onPress }) 
       style={({ pressed }) => [styles.row, !isLast && styles.rowBorder, pressed && styles.rowPressed]}
       accessibilityRole="button"
       accessibilityLabel={`${tx.label}: ${formatMoney(tx.amount, currency)}`}
+      // To'liq enli qator yumaloq karta ichida - halqa ichkariga chiziladi.
+      dataSet={FOCUS_INSET}
     >
       <View style={[styles.iconWrap, { backgroundColor: isCredit ? colors.primarySoft : colors.dangerMuted }]}>
         <Ionicons
