@@ -142,7 +142,7 @@ const BackgroundPicker: React.FC = () => {
             <View
               style={[
                 StyleSheet.absoluteFill,
-                { backgroundColor: theme.colors.background, opacity: dim },
+                { backgroundColor: theme.veilColor, opacity: dim },
               ]}
             />
             {/* Ilovada matn doim sirt ustida turadi - namunada ham shunday.

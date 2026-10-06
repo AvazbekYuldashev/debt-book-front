@@ -124,7 +124,7 @@ Sprig.displayName = 'Sprig';
 const SCRIM_END = PHOTO_SCRIM_END;
 
 const AmbientBackground: React.FC = () => {
-  const { colors, activeTheme } = useAppTheme();
+  const { colors, activeTheme, veilColor } = useAppTheme();
   const { imageId, fit, dim } = useBackground();
   const fade = useRef(new Animated.Value(0)).current;
 
@@ -158,8 +158,10 @@ const AmbientBackground: React.FC = () => {
   // tushsa kompozitsiya ham, rasm ham buziladi.
   //
   // Rasm doim xiralashtiriladi, ustidagi parda esa foydalanuvchi
-  // IXTIYORIDA (nolgacha tushadi). Parda rangi mavzudan olinadi, shuning
-  // uchun qorong'i mavzuda rasm qoraytiriladi, yorug'ida oqartiriladi.
+  // IXTIYORIDA (nolgacha tushadi). Parda rangi TANLANGAN rejimdan (veilColor):
+  // qorong'i rejimda rasm qoraytiriladi, yorug'ida oqartiriladi - ko'rinish
+  // fonga qarab almashsa ham. Yuqori parda esa joriy ko'rinish rangida:
+  // u sarlavha yozuvini o'qitadi.
   if (imageId) {
     // Rasm DOIM xiralashtiriladi (Android One UI dagidek), parda esa
     // ustidan tortiladi. Blur'li rasm chetlari xiralashib, ostidagi fon
@@ -182,7 +184,7 @@ const AmbientBackground: React.FC = () => {
           />
           {dim > 0 ? (
             <View
-              style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, opacity: dim }]}
+              style={[StyleSheet.absoluteFill, { backgroundColor: veilColor, opacity: dim }]}
             />
           ) : null}
 

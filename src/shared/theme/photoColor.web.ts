@@ -20,6 +20,58 @@ const SUB = 4;
 /** Bir rasm bir marta o'lchanadi: mavzu har o'zgarganda qayta yuklanmaydi. */
 const cache = new Map<string, Promise<PhotoSample | null>>();
 
+/** Tayyor natijalar - render paytida SINXRON o'qish uchun. */
+const resolved = new Map<string, PhotoSample>();
+
+/**
+ * Oxirgi o'lchov brauzerda saqlanadi.
+ *
+ * Aks holda har sahifa yangilanganda rasm qayta yuklanib o'lchanguncha
+ * ilova tanlangan rejimda (masalan yorug') chizilib, keyin to'q
+ * ko'rinishga "sakrardi". Faqat bitta - joriy rasm saqlanadi: fon kam
+ * almashadi, eski yozuvlar to'planib qolmasin.
+ */
+const STORAGE_KEY = 'debt-book.photo-sample';
+
+const keyOf = (url: string, fit: BackgroundFit, viewAspect: number) =>
+  `${url}|${fit}|${viewAspect.toFixed(2)}`;
+
+const persist = (key: string, sample: PhotoSample) => {
+  try {
+    const cells = sample.cells.map((c) => [Math.round(c.r), Math.round(c.g), Math.round(c.b), +c.a.toFixed(2)]);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ key, rows: sample.rows, cols: sample.cols, cells }));
+  } catch {
+    // Saqlab bo'lmasa (maxfiy rejim, to'la xotira) - faqat keyingi
+    // yuklanishda bir lahzalik sakrash bo'ladi.
+  }
+};
+
+/**
+ * Shu rasm uchun TAYYOR natija bo'lsa - darhol (sinxron) qaytaradi.
+ * Mavzu birinchi chizishdanoq to'g'ri bo'lishi uchun kerak.
+ */
+export function peekPhoto(url: string, fit: BackgroundFit, viewAspect: number): PhotoSample | null {
+  if (!url || typeof window === 'undefined') return null;
+  const key = keyOf(url, fit, viewAspect);
+  const hit = resolved.get(key);
+  if (hit) return hit;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as { key: string; rows: number; cols: number; cells: number[][] };
+    if (saved.key !== key || !Array.isArray(saved.cells)) return null;
+    const sample: PhotoSample = {
+      rows: saved.rows,
+      cols: saved.cols,
+      cells: saved.cells.map(([r, g, b, a]) => ({ r, g, b, a })),
+    };
+    resolved.set(key, sample);
+    return sample;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Rasmning EKRANDA KO'RINADIGAN qismi.
  *
@@ -113,14 +165,19 @@ export function samplePhoto(
   if (!url || typeof window === 'undefined' || typeof document === 'undefined') {
     return Promise.resolve(null);
   }
-  const key = `${url}|${fit}|${viewAspect.toFixed(2)}`;
+  const key = keyOf(url, fit, viewAspect);
   const hit = cache.get(key);
   if (hit) return hit;
 
   const job = measure(url, fit, viewAspect);
   cache.set(key, job);
   void job.then((sample) => {
-    if (!sample) cache.delete(key);
+    if (!sample) {
+      cache.delete(key);
+      return;
+    }
+    resolved.set(key, sample);
+    persist(key, sample);
   });
   return job;
 }
