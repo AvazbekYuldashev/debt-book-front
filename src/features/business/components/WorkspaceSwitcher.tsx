@@ -15,7 +15,6 @@ import type { MainTabNavigation } from '../../../app/navigation/types';
 import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
-import { titleOutline } from '../../../shared/theme/textOutline';
 import UserAvatar from '../../../shared/ui/UserAvatar';
 import InitialsAvatar from '../../../shared/ui/InitialsAvatar';
 import { buildAttachUrl, normalizeAttachUrl } from '../../../shared/lib/attachUrl';
@@ -194,7 +193,7 @@ const WorkspaceSwitcher: React.FC = () => {
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, activeTheme }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     wrapper: {
       paddingHorizontal: spacing.md,
@@ -203,7 +202,10 @@ const createStyles = ({ colors, spacing, radius, typography, activeTheme }: Them
       // Shaffof: ekran ostidagi ambient fon ko'rinib tursin.
       backgroundColor: 'transparent',
     },
-    // Fonsiz, soyasiz: bu navigatsiya emas, kontekst ko'rsatkichi.
+    // O'z sirtida, soyasiz: bu navigatsiya emas, kontekst ko'rsatkichi.
+    // Ilgari fonsiz edi va to'q fon rasmida nom, rol belgisi va strelka
+    // yorug' mavzuda ko'rinmay qolardi - ayniqsa ScreenHeader ostida, yuqori
+    // parda allaqachon so'nib bo'lgan joyda.
     trigger: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -212,7 +214,10 @@ const createStyles = ({ colors, spacing, radius, typography, activeTheme }: Them
       maxWidth: '100%',
       minHeight: 36,
       borderRadius: radius.pill,
-      paddingRight: spacing.xs,
+      paddingLeft: spacing.xxs,
+      paddingRight: spacing.sm,
+      paddingVertical: spacing.xxs,
+      ...glass.pane,
     },
     triggerPersonal: {},
     triggerBusiness: {},
@@ -241,8 +246,6 @@ const createStyles = ({ colors, spacing, radius, typography, activeTheme }: Them
     // ikkinchi darajali kulrang emas: bu foydalanuvchi ALMASHTIRA oladigan
     // kontekst, o'qilishi kerak.
     label: {
-      // Kontur: matn har qanday fonda chetlari bilan ajraladi.
-      ...titleOutline(activeTheme === 'dark'),
       ...typography.body,
       fontSize: 17,
       lineHeight: 22,

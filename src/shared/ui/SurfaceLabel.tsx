@@ -7,6 +7,12 @@ export interface SurfaceLabelProps {
   children: string;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  /**
+   * Ko'p qatorli izoh/xato xabari uchun: matn qirqilmaydi, shakl esa
+   * "pill" emas, yumaloq burchakli blok (uzun matnda pill cho'zilib,
+   * kapsulaga o'xshab qolardi).
+   */
+  multiline?: boolean;
 }
 
 /**
@@ -24,13 +30,13 @@ export interface SurfaceLabelProps {
  * Kenglik MAZMUNGA qarab (`alignSelf: flex-start`): butun qator bo'ylab
  * cho'zilsa, u yorliq emas, bo'sh panel bo'lib ko'rinardi.
  */
-const SurfaceLabel: React.FC<SurfaceLabelProps> = ({ children, style, textStyle }) => {
+const SurfaceLabel: React.FC<SurfaceLabelProps> = ({ children, style, textStyle, multiline = false }) => {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
-    <View style={[styles.pill, style]}>
-      <Text style={[styles.text, textStyle]} numberOfLines={1}>
+    <View style={[styles.pill, multiline && styles.block, style]}>
+      <Text style={[styles.text, textStyle]} numberOfLines={multiline ? undefined : 1}>
         {children}
       </Text>
     </View>
@@ -45,6 +51,11 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       paddingHorizontal: spacing.sm,
       borderRadius: radius.pill,
       ...glass.surface,
+    },
+    block: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.md,
     },
     text: {
       ...typography.label,

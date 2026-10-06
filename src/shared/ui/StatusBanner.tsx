@@ -45,10 +45,14 @@ const StatusBanner: React.FC<StatusBannerProps> = ({ tone, message, actionLabel,
     info: { fg: colors.info, text: colors.info, bg: colors.infoSoft },
   };
   const { fg, text, bg } = palette[tone];
+  // "warning" foni surfaceMuted - yorug' mavzuda u 5% shaffof, ya'ni fon
+  // rasmi ustida banner amalda fonsiz qolardi. Shisha sirt rasm ustida
+  // muzli kartaga aylanadi, rasmsiz esa avvalgidek yengil qoladi.
+  const surface = tone === 'warning' ? theme.glass.pane : { backgroundColor: bg };
 
   return (
     <EntranceView duration={200} fromY={-8}>
-      <View style={[styles.banner, { backgroundColor: bg }]} accessibilityRole="alert">
+      <View style={[styles.banner, surface]} accessibilityRole="alert">
         <Ionicons name={ICON_BY_TONE[tone]} size={iconSize.md} color={fg} />
         <Text style={[styles.message, { color: text }]} numberOfLines={3}>
           {message}
