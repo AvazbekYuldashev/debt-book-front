@@ -1,7 +1,14 @@
 import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 import type { ColorTokens } from './colors';
 import type { ShadowTokens } from './elevation';
-import { DEFAULT_TRANSPARENCY, glassAlpha, reAlpha, type TransparencyLevel } from './transparency';
+import {
+  DEFAULT_TRANSPARENCY,
+  FROST_BRIGHTNESS,
+  FROST_SATURATE,
+  glassAlpha,
+  reAlpha,
+  type TransparencyLevel,
+} from './transparency';
 
 // ============================================================
 //  "Shisha" sirtlar — ilovaning ikkinchi imzo qatlami.
@@ -117,7 +124,9 @@ const canFrost = () => Platform.OS === 'web';
 const photoFrost = (amount: number, isDark: boolean): ViewStyle =>
   canFrost()
     ? ({
-        backdropFilter: `blur(${amount}px) saturate(140%) brightness(${isDark ? 0.85 : 1.1})`,
+        backdropFilter: `blur(${amount}px) saturate(${Math.round(FROST_SATURATE * 100)}%) brightness(${
+          FROST_BRIGHTNESS[isDark ? 'dark' : 'light']
+        })`,
       } as ViewStyle)
     : {};
 

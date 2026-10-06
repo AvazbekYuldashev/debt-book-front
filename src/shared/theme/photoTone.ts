@@ -1,5 +1,5 @@
 import { darkColors, lightColors, type ColorTokens } from './colors';
-import { glassAlpha, type TransparencyLevel } from './transparency';
+import { FROST_BRIGHTNESS, FROST_SATURATE, glassAlpha, type TransparencyLevel } from './transparency';
 
 /**
  * Fon rasmi ustidagi matn: qaysi rangda va o'qiladimi.
@@ -15,7 +15,7 @@ import { glassAlpha, type TransparencyLevel } from './transparency';
  *    baribir o'qiladi, faqat rangi mavzudan qoladi.
  *
  * Har katakka ko'z ko'radigan qatlamlar qo'yiladi: mavzu foni -> rasm ->
- * parda -> yuqori parda -> sirt.
+ * muzlatish -> sirt.
  *
  * Bu sof funksiyalar: React'siz sinaladi.
  */
@@ -111,14 +111,34 @@ const solid = (value: string): Rgb => {
   return parsed ? { r: parsed.r, g: parsed.g, b: parsed.b } : { r: 0, g: 0, b: 0 };
 };
 
+const clamp255 = (value: number) => Math.min(255, Math.max(0, value));
+
+/**
+ * Muzlatish rasm rangiga nima qiladi - CSS `saturate()` va `brightness()`
+ * aynan shunday hisoblaydi (Filter Effects matritsasi, sRGB qiymatlarda,
+ * har bosqichdan keyin 0..255 ga qirqiladi).
+ *
+ * Blur bu yerda yo'q: u rangni emas, DETALni yo'qotadi - kataklar
+ * allaqachon o'rtacha rang.
+ */
+const frostColor = ({ r, g, b }: Rgb, theme: ThemeName): Rgb => {
+  const s = FROST_SATURATE;
+  const k = FROST_BRIGHTNESS[theme];
+  const sr = clamp255((0.213 + 0.787 * s) * r + (0.715 - 0.715 * s) * g + (0.072 - 0.072 * s) * b);
+  const sg = clamp255((0.213 - 0.213 * s) * r + (0.715 + 0.285 * s) * g + (0.072 - 0.072 * s) * b);
+  const sb = clamp255((0.213 - 0.213 * s) * r + (0.715 - 0.715 * s) * g + (0.072 + 0.928 * s) * b);
+  return { r: clamp255(sr * k), g: clamp255(sg * k), b: clamp255(sb * k) };
+};
+
 /**
  * Mavzu matni ekranning qancha qismida o'qiladi (0..1).
  *
- * Katak o'qiladi = asosiy VA kulrang matn ikkalasi ham o'qiladi.
+ * Katak o'qiladi = asosiy VA kulrang matn ikkalasi ham o'qiladi. Kulrang
+ * - rasm ustidagi varianti (textSecondaryOnPhoto): ekranda aynan u turadi.
  *
  * Har katakda matn ORTIDA ko'z ko'radigan rang: mavzu foni -> rasm ->
- * sirt. Muzlatish (blur) hisobga OLINMAYDI: u faqat web'da bor va rangni
- * emas, detalni yo'qotadi - jadvallar blur'siz ham o'tishi shart.
+ * muzlatish (faqat web) -> sirt tusi. Muzlatishning blur'i hisobga
+ * olinmaydi (faqat detalni yo'qotadi), rangga ta'siri esa olinadi.
  */
 export const readableShare = (
   sample: PhotoSample,
@@ -133,13 +153,16 @@ export const readableShare = (
   const background = solid(palette.background);
   const tint = solid(palette.glassSurfaceOnPhoto);
   const text = solid(palette.textPrimary);
-  const secondary = solid(palette.textSecondary);
+  const secondary = solid(palette.textSecondaryOnPhoto);
   const { surface } = glassAlpha(level, true, theme === 'dark', frosted);
+  // To'liq yopiq sirt ortini ko'rsatmaydi - u yerda muzlatish ham yo'q (glass.ts).
+  const frost = frosted && surface < 1;
 
   let readable = 0;
   sample.cells.forEach((cell) => {
     const photo = mix(cell, background, cell.a);
-    const backdrop = mix(tint, photo, surface);
+    const behind = frost ? frostColor(photo, theme) : photo;
+    const backdrop = mix(tint, behind, surface);
     if (
       contrastRatio(text, backdrop) >= MIN_TEXT_CONTRAST &&
       contrastRatio(secondary, backdrop) >= MIN_SECONDARY_CONTRAST
@@ -189,15 +212,34 @@ export const photoLuminance = (sample: PhotoSample, theme: ThemeName): number =>
 /**
  * Fon rasmi ustida qaysi ko'rinish: matn rangi rasmga qarama-qarshi.
  *
- * Tanlangan rejim faqat rasm "o'rtacha" bo'lganda hal qiladi: to'q rasmda
- * yorug' rejim oq yozuvli, och rasmda qorong'i rejim to'q yozuvli
- * ko'rinishga o'tadi. Tanlovning o'zi o'zgarmaydi - rasm almashsa, u
+ * 1. YORQINLIK: tanlangan rejim faqat rasm "o'rtacha" bo'lganda hal
+ *    qiladi - to'q rasmda yorug' rejim oq yozuvli, och rasmda qorong'i
+ *    rejim to'q yozuvli ko'rinishga o'tadi.
+ *
+ * 2. SHAFFOFLIK (`level` berilsa): shaffof darajada matn rasmning o'zi
+ *    ustida turadi va o'rtacha rasmda (kulrang, to'yingan pushti) 1-qadam
+ *    tanlagan ko'rinish o'qilmay qolishi mumkin. Shunda ikkinchi ko'rinish
+ *    ANIQ ko'proq joyda o'qilsagina unga o'tiladi. Yopiq darajalarda
+ *    ("Yo'q", "Kam") ikkala ko'rinish ham hamma joyda o'qiladi (test
+ *    qulflaydi) - u yerda bu qadam hech narsani o'zgartirmaydi.
+ *
+ * Tanlovning o'zi o'zgarmaydi - rasm almashsa yoki olib tashlansa, u
  * qaytadi.
  */
-export const photoTheme = (preferred: ThemeName, sample: PhotoSample): ThemeName => {
+export const photoTheme = (
+  preferred: ThemeName,
+  sample: PhotoSample,
+  level?: TransparencyLevel,
+): ThemeName => {
   if (sample.cells.length === 0) return preferred;
   const seen = photoLuminance(sample, preferred);
-  if (preferred === 'light' && seen < DARK_PHOTO_LUMINANCE) return 'dark';
-  if (preferred === 'dark' && seen > BRIGHT_PHOTO_LUMINANCE) return 'light';
-  return preferred;
+  let look = preferred;
+  if (preferred === 'light' && seen < DARK_PHOTO_LUMINANCE) look = 'dark';
+  if (preferred === 'dark' && seen > BRIGHT_PHOTO_LUMINANCE) look = 'light';
+  if (level === undefined) return look;
+
+  const share = readableShare(sample, look, level);
+  if (share === 1) return look;
+  const other: ThemeName = look === 'light' ? 'dark' : 'light';
+  return readableShare(sample, other, level) > share ? other : look;
 };

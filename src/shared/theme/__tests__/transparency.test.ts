@@ -118,6 +118,21 @@ describe('glassAlpha', () => {
   });
 
   /**
+   * Telefonda ham zinapoya tartibda: chegara "O'rta" ni "Kam" dan
+   * qalinroq qilib qo'ymasligi kerak (ilgari muted'da shunday edi).
+   */
+  it('muzlatishsiz ham darajalar tartibda', () => {
+    for (const isDark of [false, true]) {
+      for (const key of ['surface', 'strong', 'muted'] as const) {
+        const steps = TRANSPARENCY_LEVELS.map(({ id }) => glassAlpha(id, true, isDark, false)[key]);
+        for (let i = 1; i < steps.length; i += 1) {
+          expect(steps[i]).toBeLessThan(steps[i - 1]);
+        }
+      }
+    }
+  });
+
+  /**
    * Darajalar bir-biridan ANIQ farq qiladi: ilgari 1 / 0.92 / 0.85 / 0.78
    * edi va to'rttasi deyarli bir xil to'q karta bo'lib ko'rinardi.
    */

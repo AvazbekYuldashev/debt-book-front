@@ -13,6 +13,7 @@ import { useI18n } from '../../../shared/i18n';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
+import { useListFrost } from '../../../shared/ui/ListFrost';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import SectionHeader from '../../../shared/ui/SectionHeader';
@@ -207,6 +208,8 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
   );
 
   const keyExtractor = useCallback((item: GapResponseDTO) => item.id, []);
+  // Karta ortidagi yagona muzli shisha (qatorlar orasida chok qolmasin).
+  const listFrost = useListFrost(items.length, FAB_CLEARANCE);
 
   return (
     <View style={styles.container}>
@@ -247,6 +250,8 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
       <FlatList
         style={styles.list}
         contentContainerStyle={styles.listCard}
+        ListHeaderComponent={listFrost.ListHeaderComponent}
+        onContentSizeChange={listFrost.onContentSizeChange}
         data={items}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
@@ -380,8 +385,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
       // Sirt MAVZUDAN olinadi, xom tokendan emas: fon rasmi qo'yilganda
       // shisha o'zi quyuqlashadi.
       backgroundColor: glass.surface.backgroundColor,
-      // Fon rasmi ustida qator ham muzli shisha - karta bilan bir xil.
-      ...glass.frost,
+      // Muzlatish qatorda EMAS - butun karta ortida bitta qatlam
+      // (useListFrost): har qator alohida muzlatsa, chegaralarda chok qolardi.
       marginHorizontal: spacing.md,
     },
     rowFirst: {
