@@ -14,6 +14,7 @@ import Svg, {
 import { useAppTheme } from '../theme';
 import { useBackground } from '../theme/BackgroundProvider';
 import { buildAttachUrl } from '../lib/attachUrl';
+import { PHOTO_SCRIM_END, PHOTO_SCRIM_TOP } from '../theme/photoTone';
 
 // ============================================================
 //  Ilova "imzo" foni: yengil ko'k-yashil gradient, yumshoq tepaliklar
@@ -115,8 +116,11 @@ Sprig.displayName = 'Sprig';
  * O'lchangan: sarlavha, uning izohi va bo'lim sarlavhasi ekranning
  * yuqori chorak-uchdan birida turadi. 0.38 ularni qoplaydi va
  * ro'yxatning birinchi kartasiga yetib bormaydi.
+ *
+ * Qiymat mavzu qatlamida (photoTone.ts): matn o'qilishini hisoblaganda
+ * parda ham hisobga olinadi va ikkalasi bir xil bo'lishi shart.
  */
-const SCRIM_END = 0.38;
+const SCRIM_END = PHOTO_SCRIM_END;
 
 const AmbientBackground: React.FC = () => {
   const { colors, activeTheme } = useAppTheme();
@@ -195,7 +199,7 @@ const AmbientBackground: React.FC = () => {
             >
               <Defs>
                 <LinearGradient id="photoScrim" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor={colors.background} stopOpacity={0.88} />
+                  <Stop offset="0" stopColor={colors.background} stopOpacity={PHOTO_SCRIM_TOP} />
                   <Stop offset={String(SCRIM_END)} stopColor={colors.background} stopOpacity={0} />
                 </LinearGradient>
               </Defs>

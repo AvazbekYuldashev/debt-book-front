@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Appearance, ColorSchemeName, useColorScheme } from 'react-native';
+import { Appearance, ColorSchemeName, useColorScheme, useWindowDimensions } from 'react-native';
 import { ColorTokens, darkColors, lightColors } from './colors';
 import { applyAutofillStyle } from './applyAutofillStyle';
 import { makeShadows, ShadowTokens } from './elevation';
@@ -7,8 +7,10 @@ import { makeGlass, GlassTokens } from './glass';
 import { useBackground } from './BackgroundProvider';
 import { useAccent } from './AccentProvider';
 import { useTransparency } from './TransparencyProvider';
-import { samplePhotoColor } from './photoColor';
-import { readableTheme, type Rgb } from './photoTone';
+import { samplePhoto } from './photoColor';
+import { readableTheme, type PhotoSample } from './photoTone';
+import type { BackgroundFit } from './backgroundSettings';
+import { APP_COLUMN_WIDTH } from './layout';
 import { applyAccent } from './accent';
 import { loadAppFonts } from './fonts';
 import { iconSize } from './iconSizes';
@@ -57,27 +59,36 @@ function resolveActiveTheme(mode: ThemeMode, scheme: ColorSchemeName | null | un
 }
 
 /**
- * Fon rasmining o'rtacha rangi. Rasm yo'q yoki o'lchab bo'lmasa - null.
+ * Fon rasmining ekranda ko'rinadigan qismi, kataklarga bo'lingan.
+ * Rasm yo'q yoki o'lchab bo'lmasa - null.
  *
- * Natija qaysi rasmga tegishli ekani ham saqlanadi: rasm almashganda
- * yangisi o'lchanguncha ESKI rasmning rangi bilan qaror qilinmasin.
+ * Natija qaysi o'lchovga tegishli ekani ham saqlanadi: rasm almashganda
+ * yangisi o'lchanguncha ESKI rasm bilan qaror qilinmasin.
  */
-function usePhotoColor(imageId: string): Rgb | null {
+function usePhotoSample(imageId: string, fit: BackgroundFit): PhotoSample | null {
+  // Ekran nisbati: web'da ilova 560px ustunga yig'iladi, rasm esa shu
+  // ustunni to'ldiradi. Mayda o'zgarishlarda qayta o'lchanmasin deb
+  // yaxlitlanadi.
+  const screen = useWindowDimensions();
+  const width = Math.min(screen.width, APP_COLUMN_WIDTH);
+  const aspect = screen.height > 0 ? Math.round((width / screen.height) * 20) / 20 : 0;
+
   const url = imageId ? buildAttachUrl(imageId) : '';
-  const [sample, setSample] = useState<{ url: string; color: Rgb } | null>(null);
+  const key = `${url}|${fit}|${aspect}`;
+  const [sample, setSample] = useState<{ key: string; value: PhotoSample } | null>(null);
 
   useEffect(() => {
     if (!url) return undefined;
     let alive = true;
-    samplePhotoColor(url).then((color) => {
-      if (alive) setSample(color ? { url, color } : null);
+    samplePhoto(url, fit, aspect).then((value) => {
+      if (alive) setSample(value ? { key, value } : null);
     });
     return () => {
       alive = false;
     };
-  }, [url]);
+  }, [url, fit, aspect, key]);
 
-  return sample && sample.url === url ? sample.color : null;
+  return sample && sample.key === key ? sample.value : null;
 }
 
 export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -85,11 +96,11 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const systemScheme = useColorScheme();
-  const { imageId, dim } = useBackground();
+  const { imageId, dim, fit } = useBackground();
   // Shaffoflik darajasi foydalanuvchi sozlamasi: to'g'ri qiymat fonga
   // bog'liq va uni dastur bila olmaydi.
   const { level } = useTransparency();
-  const photoColor = usePhotoColor(imageId);
+  const photo = usePhotoSample(imageId, fit);
   /**
    * Ko'rsatiladigan mavzu - odatda foydalanuvchi tanlagani.
    *
@@ -100,7 +111,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    */
   const preferredTheme = resolveActiveTheme(mode, systemScheme);
   const activeTheme =
-    imageId && photoColor ? readableTheme(preferredTheme, photoColor, dim, level) : preferredTheme;
+    imageId && photo ? readableTheme(preferredTheme, photo, dim, level) : preferredTheme;
   /**
    * Mavzu palitrasi + foydalanuvchi tanlagan ASOSIY RANG.
    *
