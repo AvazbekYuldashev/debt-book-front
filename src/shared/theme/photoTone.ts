@@ -54,13 +54,11 @@ export const MIN_TEXT_CONTRAST = 4.5;
 export const MIN_SECONDARY_CONTRAST = 3;
 
 /**
- * Yuqori parda: sarlavhalar to'g'ridan-to'g'ri rasm ustida turadi, shuning
- * uchun ekran tepasida mavzu rangli parda bor va pastga qarab so'nadi.
- * AmbientBackground shu qiymatlar bilan chizadi - hisob ham xuddi shunday.
+ * Kontent (kartalar, ro'yxat) qayerdan boshlanadi - ekran balandligiga
+ * nisbatan. Tepada sarlavhalar turadi va ular o'z sirtida; matn rangi
+ * esa kontent turgan joydagi rasmga mos bo'lishi kerak.
  */
-export const PHOTO_SCRIM_TOP = 0.88;
-/** Parda qayerda tugaydi (ekran balandligiga nisbatan). */
-export const PHOTO_SCRIM_END = 0.38;
+export const CONTENT_TOP = 0.38;
 
 const HEX = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i;
 const RGBA = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i;
@@ -106,10 +104,6 @@ export const contrastRatio = (a: Rgb, b: Rgb): number => {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 };
 
-/** Yuqori pardaning qalinligi ekran balandligining `y` (0..1) nuqtasida. */
-export const scrimAt = (y: number): number =>
-  y >= PHOTO_SCRIM_END ? 0 : PHOTO_SCRIM_TOP * (1 - y / PHOTO_SCRIM_END);
-
 const PALETTES: Record<ThemeName, ColorTokens> = { light: lightColors, dark: darkColors };
 
 const solid = (value: string): Rgb => {
@@ -122,15 +116,13 @@ const solid = (value: string): Rgb => {
  *
  * Katak o'qiladi = asosiy VA kulrang matn ikkalasi ham o'qiladi.
  *
- * Har katakda matn ORTIDA ko'z ko'radigan rang yig'iladi: mavzu foni ->
- * rasm -> parda -> yuqori parda -> sirt. Parda, yuqori parda va sirt
- * rangi mavzudan, ya'ni bir xil rasm ikki mavzuda turlicha chiqadi:
- * yorug'da oqartiriladi, qorong'ida qoraytiriladi.
+ * Har katakda matn ORTIDA ko'z ko'radigan rang: mavzu foni -> rasm ->
+ * sirt. Muzlatish (blur) hisobga OLINMAYDI: u faqat web'da bor va rangni
+ * emas, detalni yo'qotadi - jadvallar blur'siz ham o'tishi shart.
  */
 export const readableShare = (
   sample: PhotoSample,
   theme: ThemeName,
-  dim: number,
   level: TransparencyLevel,
 ): number => {
   if (sample.cells.length === 0) return 1;
@@ -143,12 +135,9 @@ export const readableShare = (
   const { surface } = glassAlpha(level, true, theme === 'dark');
 
   let readable = 0;
-  sample.cells.forEach((cell, index) => {
-    const y = (Math.floor(index / sample.cols) + 0.5) / sample.rows;
+  sample.cells.forEach((cell) => {
     const photo = mix(cell, background, cell.a);
-    const veiled = mix(background, photo, dim);
-    const scrimmed = mix(background, veiled, scrimAt(y));
-    const backdrop = mix(tint, scrimmed, surface);
+    const backdrop = mix(tint, photo, surface);
     if (
       contrastRatio(text, backdrop) >= MIN_TEXT_CONTRAST &&
       contrastRatio(secondary, backdrop) >= MIN_SECONDARY_CONTRAST
@@ -165,19 +154,16 @@ export const DARK_PHOTO_LUMINANCE = 0.18;
 export const BRIGHT_PHOTO_LUMINANCE = 0.45;
 
 /**
- * Fon RASMINING yorqinligi (0..1) - "Xiralik" pardasisiz.
+ * Fon RASMINING yorqinligi (0..1).
  *
- * NEGA PARDASIZ: parda joriy ko'rinish rangida chiziladi (to'q
- * ko'rinishda rasmni qoraytiradi, yorug'ida oqartiradi). Qaror pardaga
- * bog'liq bo'lsa, xiralikni o'zgartirish butun ilovani yorug'dan to'qqa
- * sakratardi. Endi ko'rinishni faqat rasm tanlaydi, xiralik esa rasmni
- * shu ko'rinish foniga "cho'ktiradi" - hech qachon sakramaydi.
+ * Xiralik (blur) rasmning rangini emas, faqat detalini o'zgartiradi -
+ * shu sababli ko'rinish xiralikka qarab hech qachon sakramaydi.
  *
  * MEDIANA, o'rtacha emas: to'q rasmdagi bir nechta yorqin dog' yoki tasma
  * (neon chiziq, chiroq) o'rtachani ko'tarib, butun fonni "och" deb
  * ko'rsatardi.
  *
- * Faqat yuqori pardadan PASTDAGI qism: sarlavhalar tepada o'z pardasi va
+ * Faqat kontent qismi (CONTENT_TOP dan pastda): sarlavhalar tepada o'z
  * sirtida turadi, kartalar va ro'yxat esa pastda - matn rangi o'sha joyga
  * mos bo'lishi kerak.
  */
@@ -190,7 +176,7 @@ export const photoLuminance = (sample: PhotoSample, theme: ThemeName): number =>
     const y = (Math.floor(index / sample.cols) + 0.5) / sample.rows;
     const seen = luminance(mix(cell, background, cell.a));
     all.push(seen);
-    if (y >= PHOTO_SCRIM_END) below.push(seen);
+    if (y >= CONTENT_TOP) below.push(seen);
   });
   const pool = (below.length ? below : all).sort((a, b) => a - b);
   if (pool.length === 0) return luminance(background);

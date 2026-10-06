@@ -51,16 +51,34 @@ describe('glassAlpha', () => {
     expect(medium).toBeLessThan(solid);
   });
 
-  /** Har jadvalda darajalar tartibda: ko'p -> o'rta -> kam. */
+  /** Har jadvalda darajalar tartibda: ko'p -> o'rta -> kam -> yo'q. */
   it('har jadvalda darajalar tartibda', () => {
-    for (const isDark of [false, true]) {
-      const clear = glassAlpha('clear', true, isDark).surface;
-      const medium = glassAlpha('medium', true, isDark).surface;
-      const solid = glassAlpha('solid', true, isDark).surface;
+    for (const onPhoto of [false, true]) {
+      for (const isDark of [false, true]) {
+        const clear = glassAlpha('clear', onPhoto, isDark).surface;
+        const medium = glassAlpha('medium', onPhoto, isDark).surface;
+        const solid = glassAlpha('solid', onPhoto, isDark).surface;
+        const none = glassAlpha('none', onPhoto, isDark).surface;
 
-      expect(clear).toBeLessThan(medium);
-      expect(medium).toBeLessThan(solid);
+        expect(clear).toBeLessThan(medium);
+        expect(medium).toBeLessThan(solid);
+        expect(solid).toBeLessThan(none);
+      }
     }
+  });
+
+  /** "Yo'q" - shaffoflik umuman yo'q: karta fonni to'liq yopadi. */
+  it("Yo'q darajasi to'liq yopiq", () => {
+    for (const onPhoto of [false, true]) {
+      for (const isDark of [false, true]) {
+        expect(glassAlpha('none', onPhoto, isDark)).toEqual({ surface: 1, strong: 1, muted: 1 });
+      }
+    }
+  });
+
+  /** Sozlamada tartib "Xiralik" bilan bir xil: Yo'q -> Kam -> O'rta -> Ko'p. */
+  it('sozlama tartibi xiralik bilan bir xil', () => {
+    expect(TRANSPARENCY_LEVELS.map((item) => item.id)).toEqual(['none', 'solid', 'medium', 'clear']);
   });
 
   /**

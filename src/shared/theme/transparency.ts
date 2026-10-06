@@ -6,12 +6,20 @@
  * yoki kontrastli rasmda esa o'sha qiymat matnni o'qib bo'lmas qiladi.
  * Shuning uchun tanlov foydalanuvchida.
  */
-export type TransparencyLevel = 'clear' | 'medium' | 'solid';
+export type TransparencyLevel = 'none' | 'solid' | 'medium' | 'clear';
 
+/**
+ * Tartib "Xiralik" bilan bir xil - Yo'q -> Kam -> O'rta -> Ko'p: ikki
+ * qo'shni sozlama teskari tartibda tursa, odam adashardi.
+ *
+ * "Yo'q" - shaffoflik umuman yo'q: kartalar fonni to'liq yopadi, rasm
+ * faqat ular ORASIDA ko'rinadi.
+ */
 export const TRANSPARENCY_LEVELS: { id: TransparencyLevel; labelKey: string }[] = [
-  { id: 'clear', labelKey: 'glass.clear' },
-  { id: 'medium', labelKey: 'glass.medium' },
+  { id: 'none', labelKey: 'glass.none' },
   { id: 'solid', labelKey: 'glass.solid' },
+  { id: 'medium', labelKey: 'glass.medium' },
+  { id: 'clear', labelKey: 'glass.clear' },
 ];
 
 export const DEFAULT_TRANSPARENCY: TransparencyLevel = 'medium';
@@ -22,6 +30,9 @@ interface AlphaSet {
   muted: number;
 }
 
+/** "Yo'q": shaffoflik yo'q - sirt to'liq yopiq. */
+const OPAQUE: AlphaSet = { surface: 1, strong: 1, muted: 1 };
+
 /**
  * Shaffoflik ikki holatda butunlay boshqacha bo'lishi kerak.
  *
@@ -31,38 +42,38 @@ interface AlphaSet {
  * qo'yadi. Shu sababli har daraja uchun ikki jadval.
  */
 const WITHOUT_PHOTO: Record<TransparencyLevel, AlphaSet> = {
+  none: OPAQUE,
   clear: { surface: 0.18, strong: 0.3, muted: 0.12 },
   medium: { surface: 0.28, strong: 0.44, muted: 0.2 },
   solid: { surface: 0.55, strong: 0.7, muted: 0.4 },
 };
 
 /**
- * FOTOSURAT ustida: Samsung (One UI) bildirishnoma kartalari kabi.
+ * FOTOSURAT ustida: Samsung (One UI) papka va bildirishnomalari kabi
+ * MUZLI SHISHA.
  *
- * Fon rasmi DOIM xiralashtiriladi (backgroundSettings.PHOTO_BLUR). Shu
- * sababli yarim shaffof sirt endi "sut rangli tuman" emas, MUZLI SHISHA
- * bo'lib ko'rinadi: ostidagi rasmning detallari yo'q, faqat ranglari bor.
- * Tuman keskin rasm ustida paydo bo'lardi - blur uni yo'qotdi.
+ * Shaffoflik faqat elementlarga tegishli: fon rasmi "Xiralik" bo'yicha
+ * keskin ham qolishi mumkin, sirt esa ortidagi rasmni o'zi xiralashtiradi
+ * (web'da backdrop-filter - glass.ts). Rasmning detallari matnga xalaqit
+ * bermaydi, faqat ranglari o'tib turadi.
  *
- * Har darajada mavzu matni HAR QANDAY rasmda o'qiladi, ya'ni mavzu
- * almashmaydi: yorug' rejim to'q fonda ham yorug' qoladi - Samsung'dagidek.
- * Ilgari "Ko'p" 0.08 edi, matn rasmning o'zida turardi va ilova to'q
- * rasmda tungi ko'rinishga o'tib ketardi - bu kutilmagan "farq" edi.
- *
- * Eng past chegaralar o'lchangan (qop-qora / oppoq rasmda ham kulrang
- * matn 3:1 dan, asosiy matn 4.5:1 dan o'tishi kerak). Test shuni qulflaydi.
+ * Har darajada, har ikki mavzuda, HAR QANDAY rasmda asosiy matn 4.5:1,
+ * kulrang matn 3:1 dan o'tadi - blur'siz ham (telefonda backdrop-filter
+ * yo'q). Test buni qop-qora va oppoq rasmda qulflaydi.
  */
 const WITH_PHOTO_LIGHT: Record<TransparencyLevel, AlphaSet> = {
+  none: OPAQUE,
+  solid: { surface: 0.92, strong: 0.95, muted: 0.88 },
+  medium: { surface: 0.82, strong: 0.88, muted: 0.76 },
   clear: { surface: 0.7, strong: 0.78, muted: 0.62 },
-  medium: { surface: 0.84, strong: 0.9, muted: 0.78 },
-  solid: { surface: 0.96, strong: 0.98, muted: 0.94 },
 };
 
 /** Qorong'ida - Samsung tez sozlamalar plitalari kabi to'q muzli shisha. */
 const WITH_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
+  none: OPAQUE,
+  solid: { surface: 0.92, strong: 0.95, muted: 0.88 },
+  medium: { surface: 0.85, strong: 0.9, muted: 0.8 },
   clear: { surface: 0.78, strong: 0.84, muted: 0.7 },
-  medium: { surface: 0.86, strong: 0.9, muted: 0.8 },
-  solid: { surface: 0.94, strong: 0.96, muted: 0.9 },
 };
 
 /** Noma'lum daraja standartga tushadi - eski ilova yangisini yuborsa ham. */

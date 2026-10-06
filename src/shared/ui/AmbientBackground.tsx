@@ -14,8 +14,7 @@ import Svg, {
 import { useAppTheme } from '../theme';
 import { useBackground } from '../theme/BackgroundProvider';
 import { buildAttachUrl } from '../lib/attachUrl';
-import { PHOTO_BLUR } from '../theme/backgroundSettings';
-import { PHOTO_SCRIM_END, PHOTO_SCRIM_TOP } from '../theme/photoTone';
+import { photoBlur } from '../theme/backgroundSettings';
 
 // ============================================================
 //  Ilova "imzo" foni: yengil ko'k-yashil gradient, yumshoq tepaliklar
@@ -111,17 +110,6 @@ Sprig.displayName = 'Sprig';
  * to'ldirish sifatida qo'yiladi; ekran konteyneri fonini `transparent`
  * qilish kifoya.
  */
-/**
- * Yuqori parda qayerda tugaydi (ekran balandligiga nisbatan).
- *
- * O'lchangan: sarlavha, uning izohi va bo'lim sarlavhasi ekranning
- * yuqori chorak-uchdan birida turadi. 0.38 ularni qoplaydi va
- * ro'yxatning birinchi kartasiga yetib bormaydi.
- *
- * Qiymat mavzu qatlamida (photoTone.ts): matn o'qilishini hisoblaganda
- * parda ham hisobga olinadi va ikkalasi bir xil bo'lishi shart.
- */
-const SCRIM_END = PHOTO_SCRIM_END;
 
 const AmbientBackground: React.FC = () => {
   const { colors, activeTheme } = useAppTheme();
@@ -157,17 +145,17 @@ const AmbientBackground: React.FC = () => {
   // Rasm tanlangan bo'lsa bezakli SVG chizilmaydi: ikkalasi ustma-ust
   // tushsa kompozitsiya ham, rasm ham buziladi.
   //
-  // Rasm doim xiralashtiriladi, ustidagi parda esa foydalanuvchi
-  // IXTIYORIDA (nolgacha tushadi). Parda JORIY ko'rinish rangida: to'q
-  // ko'rinishda rasm qoraytiriladi, yorug'ida oqartiriladi - ya'ni rasm
-  // shu ko'rinish foniga cho'kadi. Oq parda to'q ko'rinish ostida loyqa
-  // kulrang "tuman" berardi.
+  // "Xiralik" = rasmning BLUR'i va boshqa hech narsa: "Yo'q" da rasm ASL
+  // holida. Ilgari ustiga mavzu rangli parda va yuqorida yana bir parda
+  // tortilardi - to'q rasm sut rangli tumanga aylanardi. Endi elementlar
+  // o'qilishini rasm emas, ularning o'z muzli shishasi ta'minlaydi
+  // (glass.ts), tepadagi sarlavhalar ham o'z sirtida.
   if (imageId) {
-    // Rasm DOIM xiralashtiriladi (Android One UI dagidek), parda esa
-    // ustidan tortiladi. Blur'li rasm chetlari xiralashib, ostidagi fon
-    // rangi "nur" bo'lib chiqmasin deb rasm ekrandan biroz kattaroq
-    // chiziladi, ortiqchasi esa kesiladi.
-    const bleed = PHOTO_BLUR * 2;
+    const blur = photoBlur(dim);
+    // Blur'li rasm chetlari xiralashib, ostidagi fon rangi "nur" bo'lib
+    // chiqmasin deb rasm ekrandan biroz kattaroq chiziladi, ortiqchasi esa
+    // kesiladi. Blur'siz bunga hojat yo'q.
+    const bleed = blur * 2;
     return (
       <View
         style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, overflow: 'hidden' }]}
@@ -179,41 +167,9 @@ const AmbientBackground: React.FC = () => {
             source={{ uri: buildAttachUrl(imageId) }}
             style={{ position: 'absolute', top: -bleed, left: -bleed, right: -bleed, bottom: -bleed }}
             resizeMode={fit}
-            blurRadius={PHOTO_BLUR}
+            blurRadius={blur > 0 ? blur : undefined}
             accessibilityIgnoresInvertColors
           />
-          {dim > 0 ? (
-            <View
-              style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, opacity: dim }]}
-            />
-          ) : null}
-
-          {/*
-            YUQORI PARDA — matn o'qilishining kafolati.
-            Ekran sarlavhasi va uning izohi KARTADAN TASHQARIDA, ya'ni
-            to'g'ridan-to'g'ri rasm ustida turadi. Parda nolga tushirilsa,
-            yorug' mavzudagi to'q matn to'q rasmda butunlay yo'qolardi.
-            Umumiy pardani majburlash esa rasmni yana oqartirib qo'yardi.
-            Shuning uchun parda FAQAT yuqori tasmada va pastga qarab
-            so'nadi: sarlavha o'qiladi, rasmning qolgan qismi toza qoladi.
-            Bu foydalanuvchi sozlamasi EMAS - uni o'chirib qo'yish matnni
-            o'qib bo'lmas qilardi.
-          */}
-          {size.width > 0 ? (
-            <Svg
-              width={size.width}
-              height={size.height}
-              style={StyleSheet.absoluteFill}
-            >
-              <Defs>
-                <LinearGradient id="photoScrim" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor={colors.background} stopOpacity={PHOTO_SCRIM_TOP} />
-                  <Stop offset={String(SCRIM_END)} stopColor={colors.background} stopOpacity={0} />
-                </LinearGradient>
-              </Defs>
-              <Rect x={0} y={0} width={size.width} height={size.height} fill="url(#photoScrim)" />
-            </Svg>
-          ) : null}
         </Animated.View>
       </View>
     );

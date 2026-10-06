@@ -1,10 +1,8 @@
 import {
-  PHOTO_SCRIM_END,
   contrastRatio,
   parseColor,
   photoTheme,
   readableShare,
-  scrimAt,
   type PhotoSample,
   type Rgb,
 } from '../photoTone';
@@ -55,20 +53,10 @@ describe('contrastRatio', () => {
   });
 });
 
-/** Yuqori parda sarlavhalarni o'qitadi va pastga qarab so'nadi. */
-describe('scrimAt', () => {
-  it('tepada eng qalin, chegaradan keyin yoq', () => {
-    expect(scrimAt(0)).toBeGreaterThan(0.8);
-    expect(scrimAt(PHOTO_SCRIM_END / 2)).toBeLessThan(scrimAt(0));
-    expect(scrimAt(PHOTO_SCRIM_END)).toBe(0);
-    expect(scrimAt(0.9)).toBe(0);
-  });
-});
-
 /**
- * Har darajada, har ikki mavzuda, HAR QANDAY rasmda matn o'qiladi -
- * Samsung bildirishnoma kartalari kabi. Shu sababli ilova mavzuni hech
- * qachon o'zi almashtirmaydi: yorug' rejim to'q fonda ham yorug' qoladi.
+ * Har darajada, har ikki mavzuda, HAR QANDAY rasmda (u keskin ham
+ * bo'lishi mumkin - "Xiralik: Yo'q") sirt ichidagi matn o'qiladi -
+ * muzlatishsiz ham (telefonda backdrop-filter yo'q).
  */
 describe('shaffoflik jadvallari', () => {
   const PHOTOS: Record<string, PhotoSample> = {
@@ -83,9 +71,7 @@ describe('shaffoflik jadvallari', () => {
     for (const { id: level } of TRANSPARENCY_LEVELS) {
       it(`${theme} / ${level}: hamma rasmda hamma joyda o'qiladi`, () => {
         for (const [name, photo] of Object.entries(PHOTOS)) {
-          for (const dim of [0, 0.15, 0.4, 0.7]) {
-            expect([name, dim, readableShare(photo, theme, dim, level)]).toEqual([name, dim, 1]);
-          }
+          expect([name, readableShare(photo, theme, level)]).toEqual([name, 1]);
         }
       });
     }
@@ -98,7 +84,7 @@ describe('shaffoflik jadvallari', () => {
       cols: 1,
       cells: [{ r: 0, g: 0, b: 0, a: 0 }],
     };
-    expect(readableShare(empty, 'light', 0, 'clear')).toBe(1);
+    expect(readableShare(empty, 'light', 'clear')).toBe(1);
   });
 });
 

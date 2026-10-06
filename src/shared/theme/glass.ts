@@ -56,6 +56,13 @@ export interface GlassTokens {
   modal: ViewStyle;
   /** Modal ortidagi qatlam: qoraytirish + xiralashtirish. */
   scrim: ViewStyle;
+  /**
+   * Faqat "muzlatish" - ortdagi rasmni xiralashtirish (web, fon rasmi
+   * ustida). surface/pane/flush'da allaqachon bor; sirt rangini to'liq
+   * token o'rniga faqat `backgroundColor` orqali oladigan joylar (ro'yxat
+   * qatorlari) uchun alohida beriladi.
+   */
+  frost: ViewStyle;
 }
 
 /**
@@ -74,6 +81,15 @@ const backdrop = (amount: number): ViewStyle =>
   Platform.OS === 'web'
     ? ({ backdropFilter: `blur(${amount}px) saturate(150%)` } as ViewStyle)
     : {};
+
+/**
+ * Fon rasmi ustidagi muzli shisha kuchi.
+ *
+ * Fon rasmi "Xiralik: Yo'q" da KESKIN qoladi - Samsung'dagidek. Sirt esa
+ * ortidagi rasmni o'zi xiralashtiradi: rasmning ranglari o'tadi, mayda
+ * detallari (yoriqlar, nuqtalar) matnga aralashmaydi.
+ */
+const FROST_BLUR = 18;
 
 /**
  * @param onPhoto foydalanuvchi fon RASMI qo'yilganmi.
@@ -101,16 +117,18 @@ export const makeGlass = (
   const mutedColor = reAlpha(
     onPhoto ? colors.glassMutedOnPhoto : colors.glassMuted, alpha.muted);
 
+  // Muzlatish FAQAT fon rasmi ustida va sirt shaffof bo'lganda. Bezakli
+  // fon mayda detalsiz - u yerda blur ko'zga ko'rinmaydi, scroll'dagi
+  // narxi esa qolardi (backdrop har kadrda qayta hisoblanadi). To'liq
+  // yopiq ("Yo'q") sirt ortini baribir ko'rsatmaydi.
+  const frost = onPhoto && alpha.surface < 1 ? backdrop(FROST_BLUR) : {};
+
   return {
-  // Blur ATAYIN yo'q. Bu sirt ro'yxat konteyneri va odatiy karta sifatida
-  // ishlatiladi, ya'ni SCROLL paytida siljiydi — har kadrda backdrop qayta
-  // hisoblanardi va web'da aynan shu "qotish"ning asosiy sababi bo'lardi.
-  // Ambient fon mayda detalsiz bo'lgani uchun shaffoflikning o'zi kerakli
-  // "xira shisha" taassurotini beradi.
   surface: {
     backgroundColor: surfaceColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
+    ...frost,
     ...shadows.card,
   },
   // Bu sirtlar STATIK va sanoqli (modal, summary) — haqiqiy blur shu yerda
@@ -135,9 +153,11 @@ export const makeGlass = (
     backgroundColor: surfaceColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
+    ...frost,
   },
   flush: {
     backgroundColor: surfaceColor,
+    ...frost,
   },
   // Dialog sirti: blur mavjud bo'lmagan platformalarda ham matn o'qilishi
   // SHART, shuning uchun shaffoflik yo'q.
@@ -153,5 +173,6 @@ export const makeGlass = (
     backgroundColor: colors.overlay,
     ...backdrop(12),
   },
+  frost,
   };
 };

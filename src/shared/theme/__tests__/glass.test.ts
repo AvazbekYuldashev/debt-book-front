@@ -77,3 +77,40 @@ describe('makeGlass — fon rasmi ustida', () => {
     expect(rasmda.modal.backgroundColor).toBe(oddiy.modal.backgroundColor);
   });
 });
+
+/**
+ * "Shaffoflik" elementlarni MUZLI SHISHAGA aylantiradi: fon rasmi keskin
+ * bo'lsa ham sirt ortidagi rasmni o'zi xiralashtiradi (web). To'liq yopiq
+ * sirtda va bezakli fonda bunga hojat yo'q - scroll'dagi narxi qolardi.
+ */
+describe('muzli shisha', () => {
+  const withPlatform = (os: string, run: () => void) => {
+    const { Platform } = require('react-native');
+    const original = Platform.OS;
+    Platform.OS = os;
+    try {
+      run();
+    } finally {
+      Platform.OS = original;
+    }
+  };
+  const frostOf = (style: Record<string, unknown>) => style.backdropFilter as string | undefined;
+  const shadowsLight = makeShadows(lightColors.shadow);
+
+  it('rasm ustida shaffof sirt ortini xiralashtiradi', () => {
+    withPlatform('web', () => {
+      const glass = makeGlass(lightColors, shadowsLight, true, 'clear');
+      expect(frostOf(glass.surface as Record<string, unknown>)).toMatch(/blur/);
+      expect(frostOf(glass.pane as Record<string, unknown>)).toMatch(/blur/);
+      expect(frostOf(glass.flush as Record<string, unknown>)).toMatch(/blur/);
+      expect(frostOf(glass.frost as Record<string, unknown>)).toMatch(/blur/);
+    });
+  });
+
+  it("Yo'q darajasida va rasmsiz muzlatish yo'q", () => {
+    withPlatform('web', () => {
+      expect(frostOf(makeGlass(lightColors, shadowsLight, true, 'none').surface as Record<string, unknown>)).toBeUndefined();
+      expect(frostOf(makeGlass(lightColors, shadowsLight, false, 'clear').surface as Record<string, unknown>)).toBeUndefined();
+    });
+  });
+});
