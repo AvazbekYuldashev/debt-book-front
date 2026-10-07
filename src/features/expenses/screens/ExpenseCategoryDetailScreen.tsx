@@ -23,6 +23,8 @@ import { ROUTES } from '../../../app/navigation/routes';
 import ExpenseRow from '../components/ExpenseRow';
 import ExpenseFormModal from '../components/ExpenseFormModal';
 import { markVoiceTarget } from '../../voice/api/voice';
+import type { VoiceIntent } from '../../voice/api/voice';
+import { useRegisterVoiceAction } from '../../voice/model/VoiceActionProvider';
 
 type Props = ExpensesScreenProps<typeof ROUTES.EXPENSE_CATEGORY_DETAIL>;
 
@@ -53,6 +55,42 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
     setExpenseModalVisible(true);
     navigation.setParams({ voice: undefined });
   }, [route.params.voice, navigation]);
+
+  /**
+   * KATEGORIYA ICHIDA gapirish.
+   *
+   * Bu yerda kategoriyani aytish SHART EMAS: odam allaqachon o'sha
+   * kategoriyani ochib turibdi, "nonga 20 ming" deyish kifoya. Aytilgan
+   * kategoriya nomi ataylab E'TIBORGA OLINMAYDI - ochiq turgan ekran
+   * aniqroq niyat: odam shu yerga xarajat qo'shgani kirgan.
+   *
+   * Forma to'ldirilib ochiladi, o'zi yozilmaydi - tanish xato qilishi
+   * mumkin, pul yozuvini qaytarish esa qiyin.
+   */
+  const handleVoiceResult = useCallback(
+    (intent: VoiceIntent) => {
+      const amount = typeof intent.amount === 'number' ? intent.amount : 0;
+      if (!intent.understood || amount <= 0) {
+        setError(t('voice.notUnderstood'));
+        return;
+      }
+      setError('');
+      setVoicePrefill({
+        amount,
+        description: intent.text?.trim() ?? '',
+        calcNote: intent.calcNote ?? null,
+        commandId: intent.commandId,
+      });
+      setExpenseModalVisible(true);
+    },
+    [t],
+  );
+
+  const voiceAction = useMemo(
+    () => ({ kind: 'EXPENSE' as const, onResult: handleVoiceResult }),
+    [handleVoiceResult],
+  );
+  useRegisterVoiceAction(voiceAction);
 
   const closeExpenseForm = useCallback(() => {
     setExpenseModalVisible(false);

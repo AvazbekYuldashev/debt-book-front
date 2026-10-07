@@ -107,9 +107,12 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
 
   const unit: GapUnit = useMemo(
     () => ({
-      code: group?.unitCode ?? unitCode,
-      label: group?.unitLabel ?? unitLabel,
-      type: group?.unitType ?? unitType,
+      // Kassa hali yuklanmagan va parametr ham berilmagan bo'lishi
+      // mumkin (strelka orqali kirilganda) - bo'sh qiymat beriladi,
+      // so'rov kelishi bilan haqiqiysi o'rnini oladi.
+      code: group?.unitCode ?? unitCode ?? '',
+      label: group?.unitLabel ?? unitLabel ?? '',
+      type: group?.unitType ?? unitType ?? 'MONEY',
     }),
     [group, unitCode, unitLabel, unitType]
   );
@@ -154,7 +157,7 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
       {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
       <AmbientBackground />
       <ScreenHeader
-        title={group?.name ?? name}
+        title={group?.name ?? name ?? ''}
         subtitle={t('gap.memberCount', { count: String(members.length) })}
         onBack={navigation.goBack}
       />

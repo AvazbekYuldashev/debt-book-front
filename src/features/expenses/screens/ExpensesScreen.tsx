@@ -40,7 +40,17 @@ import QuickFilterModal, { QuickFilterKey } from '../components/QuickFilterModal
 import ExpenseSortBar, { ExpenseSortKey, SortDir } from '../components/ExpenseSortBar';
 import { useRegisterVoiceAction } from '../../voice/model/VoiceActionProvider';
 import { resolveExpenseCommand } from '../../voice/model/resolveExpenseCommand';
+import type { ExpenseCommand } from '../../voice/model/resolveExpenseCommand';
+import ExpenseVoiceResultModal from '../../voice/components/ExpenseVoiceResultModal';
 import type { VoiceIntent } from '../../voice/api/voice';
+
+/** Formaga tushadigan qism - buyruqning qaysi turi bo'lishidan qat'i nazar. */
+type ExpenseSpoken = {
+  amount: number;
+  description: string;
+  calcNote: string | null;
+  commandId?: string;
+};
 
 type CategoryMode = 'create' | 'edit';
 
@@ -60,6 +70,10 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
   const [deletingCategory, setDeletingCategory] = useState<string>('');
   const [pinningCategoryId, setPinningCategoryId] = useState<string>('');
   const [error, setError] = useState('');
+
+  /** Ovoz O'ZI hal qila olmagan buyruq - tanlov oynasi uchun. */
+  const [voiceCommand, setVoiceCommand] = useState<ExpenseCommand | null>(null);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
 
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [categoryMode, setCategoryMode] = useState<CategoryMode>('create');
@@ -351,6 +365,27 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
     [fromDate, endDate, navigation]
   );
 
+  /** Kategoriya ANIQ bo'lgach: o'sha ekranni to'ldirilgan forma bilan ochadi. */
+  const openWithVoice = useCallback(
+    (categoryId: string, categoryName: string, spoken: ExpenseSpoken) => {
+      setVoiceCommand(null);
+      const dateRange = resolveDateRange(fromDate, endDate);
+      navigation.navigate(ROUTES.EXPENSE_CATEGORY_DETAIL, {
+        id: categoryId,
+        name: categoryName,
+        fromDate: dateRange.ok ? dateRange.fromDate : undefined,
+        endDate: dateRange.ok ? dateRange.endDate : undefined,
+        voice: {
+          amount: spoken.amount,
+          description: spoken.description,
+          calcNote: spoken.calcNote,
+          commandId: spoken.commandId,
+        },
+      });
+    },
+    [fromDate, endDate, navigation],
+  );
+
   /**
    * OVOZDAN XARAJAT.
    *
@@ -366,32 +401,27 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
     (intent: VoiceIntent) => {
       const command = resolveExpenseCommand(intent, categories);
 
-      if (command.kind === 'NOT_UNDERSTOOD') {
-        setError(t('voice.notUnderstood'));
-        return;
-      }
-      if (command.kind === 'PICK_CATEGORY') {
-        setError(t('expenses.voicePickCategory', { amount: String(command.amount) }));
+      setError('');
+
+      /**
+       * Kategoriya topilmagan bo'lsa TANLOV OYNASI chiqadi, xabar emas.
+       *
+       * Ilgari bu yerda shunchaki "qaysi kategoriyaga?" degan yozuv
+       * chiqardi va odam summani qaytadan qo'lda kiritishga majbur
+       * bo'lardi - ya'ni ovozning foydasi yo'qolardi. Endi aytilgan summa
+       * saqlanib turadi va kategoriya tanlangach formaga tushadi.
+       */
+      if (command.kind !== 'OPEN_CATEGORY') {
+        setVoiceTranscript(intent.transcript ?? intent.text ?? '');
+        setVoiceCommand(command);
         return;
       }
 
-      setError('');
-      const dateRange = resolveDateRange(fromDate, endDate);
-      navigation.navigate(ROUTES.EXPENSE_CATEGORY_DETAIL, {
-        id: command.categoryId,
-        name: command.categoryName,
-        fromDate: dateRange.ok ? dateRange.fromDate : undefined,
-        endDate: dateRange.ok ? dateRange.endDate : undefined,
-        voice: {
-          amount: command.amount,
-          description: command.description,
-          calcNote: command.calcNote,
-          commandId: command.commandId,
-        },
-      });
+      openWithVoice(command.categoryId, command.categoryName, command);
     },
-    [categories, fromDate, endDate, navigation, t],
+    [categories, openWithVoice],
   );
+
 
   /**
    * Ovoz tugmasi pastki panelda - bu ekrandan tashqarida. Natijani esa
@@ -661,6 +691,19 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         error=""
         onClose={closePhotoView}
         onImageError={closePhotoView}
+      />
+
+      {/* Ovoz O'ZI hal qila olmaganda: eshitilgani ko'rsatiladi va
+          kategoriyani odam tanlaydi. Aytilgan summa yo'qolmaydi. */}
+      <ExpenseVoiceResultModal
+        command={voiceCommand}
+        transcript={voiceTranscript}
+        categories={categories}
+        onPickCategory={(category) => {
+          if (voiceCommand?.kind !== 'PICK_CATEGORY') return;
+          openWithVoice(category.id, category.name, voiceCommand);
+        }}
+        onClose={() => setVoiceCommand(null)}
       />
     </View>
   );

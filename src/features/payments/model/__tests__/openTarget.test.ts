@@ -32,13 +32,14 @@ describe('openTarget', () => {
   });
 
   /**
-   * Gap kassasining tafsilot ekrani oltita parametr talab qiladi; ularni
-   * havolada saqlash havolani eskiradigan nusxaga aylantirardi, shuning
-   * uchun bo'limning o'zi ochiladi.
+   * Gap kassasi ANIQ ochiladi, faqat belgisi bilan: nomi, birligi va
+   * tashkilotchi ekanini ekran id bo'yicha o'zi yuklaydi. Ularni havolada
+   * saqlasak, kassa nomi o'zgarganda strelka eski nomni ochib berardi.
    */
-  it('gap bolimni ochadi', () => {
+  it('gap kassani ochadi', () => {
     expect(openTarget({ type: 'GAP', id: 'g1', label: 'Sinfdoshlar' })).toEqual({
-      kind: 'GAP_LIST',
+      kind: 'GAP_DETAIL',
+      id: 'g1',
     });
   });
 

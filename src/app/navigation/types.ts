@@ -105,11 +105,17 @@ export type GapStackParamList = {
   [ROUTES.GAP_LIST]: undefined;
   [ROUTES.GAP_DETAIL]: {
     id: string;
-    name: string;
-    unitCode: string;
-    unitLabel: string;
-    unitType: 'MONEY' | 'GOODS';
-    organizer: boolean;
+    /**
+     * Qolganlari IXTIYORIY: ekran kassani id bo'yicha o'zi yuklaydi va
+     * hamma joyda `group?.X ?? param` qiladi. Ro'yxatdan kirilganda ular
+     * beriladi - so'rov kelgunicha sarlavha bo'sh turmasligi uchun.
+     * Tashqaridan (ovoz tarixidagi strelka) faqat `id` yetarli.
+     */
+    name?: string;
+    unitCode?: string;
+    unitLabel?: string;
+    unitType?: 'MONEY' | 'GOODS';
+    organizer?: boolean;
   };
   [ROUTES.GAP_MEMBER]: {
     memberId: string;

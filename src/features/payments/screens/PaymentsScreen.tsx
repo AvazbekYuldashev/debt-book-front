@@ -188,8 +188,12 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
             params: { id: open.id, name: open.name },
           });
           return;
-        case 'GAP_LIST':
-          tabNavigation.navigate(ROUTES.GAP, { screen: ROUTES.GAP_LIST });
+        case 'GAP_DETAIL':
+          // Faqat belgisi: qolganini ekran o'zi yuklaydi.
+          tabNavigation.navigate(ROUTES.GAP, {
+            screen: ROUTES.GAP_DETAIL,
+            params: { id: open.id },
+          });
       }
     },
     [tabNavigation],

@@ -14,12 +14,14 @@ export type OpenCommand =
   | { kind: 'CONTACT'; id: string }
   | { kind: 'EXPENSE_CATEGORY'; id: string; name: string }
   /**
-   * Gap kassasining tafsilot ekrani OLTITA parametr talab qiladi
-   * (birlik turi, o'lchov nomi, tashkilotchimi...). Ularni havolada
-   * saqlash havolani yozuvning eskiradigan nusxasiga aylantirardi,
-   * shuning uchun bo'limning o'zi ochiladi.
+   * Gap kassasi.
+   *
+   * Faqat BELGISI uzatiladi: ekran nomi, birligi va tashkilotchi
+   * ekanini id bo'yicha o'zi yuklaydi. Ularni havolada saqlasak, havola
+   * yozuvning eskiradigan nusxasiga aylanardi - kassa nomi o'zgarsa
+   * strelka eski nomni ochib berardi.
    */
-  | { kind: 'GAP_LIST' }
+  | { kind: 'GAP_DETAIL'; id: string }
   | null;
 
 export const openTarget = (target: VoiceCommand['target']): OpenCommand => {
@@ -31,7 +33,7 @@ export const openTarget = (target: VoiceCommand['target']): OpenCommand => {
     case 'EXPENSE':
       return { kind: 'EXPENSE_CATEGORY', id: target.id, name: target.label ?? '' };
     case 'GAP':
-      return { kind: 'GAP_LIST' };
+      return { kind: 'GAP_DETAIL', id: target.id };
     default:
       return null;
   }
