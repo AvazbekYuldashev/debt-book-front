@@ -482,6 +482,9 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       );
     },
     [
+      // Qator tusi mavzudan: ko'rinish almashsa (fon rasmi o'lchandi,
+      // shaffoflik o'zgardi) qatorlar eski tusda qolmasin.
+      styles,
       totalsByContact,
       unreadByPhone,
       totalsLoading,
@@ -651,7 +654,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         style={styles.scroll}
         contentContainerStyle={styles.listCard}
         ListHeaderComponent={listFrost.ListHeaderComponent}
-        onContentSizeChange={listFrost.onContentSizeChange}
+        ListHeaderComponentStyle={listFrost.ListHeaderComponentStyle}
         data={sortedContacts}
         renderItem={renderContact}
         keyExtractor={keyExtractor}

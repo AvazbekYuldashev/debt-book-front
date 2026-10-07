@@ -121,33 +121,38 @@ const WITH_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
  */
 const NO_FROST_FLOOR: Record<'light' | 'dark', Partial<Record<TransparencyLevel, number>>> = {
   // O'qilish uchun eng kami: yorug' 0.59, qorong'i 0.68 (qora/oq rasm,
-  // textSecondaryOnPhoto bilan). "O'rta" undan biroz yuqori - zinapoya
-  // telefonda ham Kam > O'rta > Ko'p tartibida qoladi.
-  light: { medium: 0.7, clear: 0.62 },
-  dark: { medium: 0.76, clear: 0.7 },
+  // textSecondaryOnPhoto bilan). Undan yuqorida zinapoya teng qadamli
+  // (~0.1): ilgari qorong'ida Kam 0.8 / O'rta 0.76 edi va telefonda bu
+  // ikki daraja bir xil ko'rinardi.
+  light: { solid: 0.86, medium: 0.74, clear: 0.62 },
+  dark: { solid: 0.9, medium: 0.8, clear: 0.7 },
 };
 
 /**
- * Rasm ustidagi MUZLATISH retsepti (web, backdrop-filter).
+ * Rasm ustidagi MUZLATISH retsepti (web, backdrop-filter): blur ->
+ * to'yinganlik -> yorqinlik -> OQ XIRALIK.
  *
- * glass.ts uni CSS'ga aylantiradi, photoTone esa o'qilish hisobida AYNAN
- * shuni modellaydi - ikkalasi bitta manbadan o'qiydi, aks holda test bir
- * narsani, ekran boshqasini ko'rsatardi.
+ * glass.ts uni CSS'ga va sirt rangiga aylantiradi, photoTone esa o'qilish
+ * hisobida AYNAN shuni modellaydi - ikkalasi bitta manbadan o'qiydi, aks
+ * holda test bir narsani, ekran boshqasini ko'rsatardi.
  *
- * Yorqinlik tuzatishi TUS emas (rang qo'shmaydi), shuning uchun "Ko'p"
- * baribir to'liq shaffof: to'q ko'rinishda ortdagi rasmni qoraytiradi (oq
- * yozuv uchun), yorug'ida biroz oqartiradi (to'q yozuv uchun) - Apple'ning
- * "vibrancy" si kabi.
+ * OQ XIRALIK (rgba 255,255,255): muzli shishaning o'zi - Samsung/iOS
+ * panellari kabi sirt ortidagi rasm oqish, "sovuq oyna" bo'lib ko'rinadi.
+ * Foydalanuvchi talabi. U daraja tusining USTIDA turadi, shuning uchun har
+ * shaffof darajada bir xil seziladi; "Yo'q" da (yopiq karta) yo'q.
+ * Faqat muzlatish bor joyda: blur'siz (telefon) oq qatlam keskin rasm
+ * ustidagi sut rangli parda bo'lardi.
  *
- * Qiymatlar - rasm rangini eng KAM o'zgartiradigan, lekin "Ko'p" HAR
- * rangli rasmda o'qiladigan nuqta (photoTone testi kulrang shkala va
- * rang aylanasini tekshiradi; yorug' 1.05 dan, qorong'i 0.72 dan
- * yumshoqroq bo'lsa o'qilmaydigan rang chiqadi). Ilgari 140% / 1.1 / 0.85
- * edi: och qum rasmi sariq-krem tusga kirardi, to'yingan pushti ustida
- * esa kulrang yozuv 3:1 dan pastga tushardi.
+ * Yorqinlik tuzatishi: to'q ko'rinishda ortdagi rasmni qoraytiradi (oq
+ * yozuv uchun - oq xiralik shuni qisman qaytaradi), yorug'ida biroz
+ * oqartiradi (to'q yozuv uchun) - Apple'ning "vibrancy" si kabi.
+ *
+ * Qiymatlar photoTone testi bilan tanlangan: kulrang shkala va zich rang
+ * aylanasining HAR rangida, har darajada matn o'qiladi.
  */
 export const FROST_SATURATE = 1.2;
-export const FROST_BRIGHTNESS: Record<'light' | 'dark', number> = { light: 1.08, dark: 0.72 };
+export const FROST_BRIGHTNESS: Record<'light' | 'dark', number> = { light: 1.08, dark: 0.64 };
+export const FROST_HAZE: Record<'light' | 'dark', number> = { light: 0.25, dark: 0.14 };
 
 /** Noma'lum daraja standartga tushadi - eski ilova yangisini yuborsa ham. */
 export const findTransparency = (id: string | null | undefined): TransparencyLevel =>
@@ -174,6 +179,28 @@ export const glassAlpha = (
     strong: Math.max(set.strong, floor),
     muted: Math.max(set.muted, floor),
   };
+};
+
+/**
+ * Sirt rangi: daraja tusi (`rgba` ning rgb'si, `alpha` qalinlikda), uning
+ * USTIDA oq xiralik (`haze`) - ikkalasi BITTA rgba ga yig'iladi.
+ *
+ * Ekran ikki qatlamni shunday aralashtiradi:
+ *   natija = haze*oq + (1-haze)*(alpha*tus + (1-alpha)*ort)
+ * ya'ni bitta qatlam: qalinligi haze + (1-haze)*alpha, rangi esa oq va
+ * tusning shu ulushlardagi o'rtachasi. Bitta rang - bitta View: qo'shimcha
+ * qatlam ham, telefon/web farqi ham yo'q.
+ *
+ * Mos kelmagan satr reAlpha kabi o'z holicha qaytadi.
+ */
+export const withHaze = (rgba: string, alpha: number, haze: number): string => {
+  if (haze <= 0) return reAlpha(rgba, alpha);
+  const match = /^rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*[\d.]+\s*\)$/.exec(rgba);
+  if (!match) return rgba;
+  const total = haze + (1 - haze) * alpha;
+  const tintShare = ((1 - haze) * alpha) / total;
+  const channel = (value: string) => Math.round(255 * (1 - tintShare) + Number(value) * tintShare);
+  return `rgba(${channel(match[1])}, ${channel(match[2])}, ${channel(match[3])}, ${+total.toFixed(3)})`;
 };
 
 /**

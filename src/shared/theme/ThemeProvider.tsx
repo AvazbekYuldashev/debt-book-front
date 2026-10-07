@@ -8,7 +8,7 @@ import { useBackground } from './BackgroundProvider';
 import { useAccent } from './AccentProvider';
 import { useTransparency } from './TransparencyProvider';
 import { peekPhoto, samplePhoto } from './photoColor';
-import { photoTheme, type PhotoSample } from './photoTone';
+import { photoTheme, photoThemeReason, type PhotoSample } from './photoTone';
 import type { BackgroundFit } from './backgroundSettings';
 import { APP_COLUMN_WIDTH } from './layout';
 import { applyAccent } from './accent';
@@ -36,6 +36,12 @@ export interface ThemeValue {
    * (yoki och) bo'lgani uchun yozuvlar fonga qarama-qarshi rangda.
    */
   photoAdapted: boolean;
+  /**
+   * Nima sababli farq qiladi: rasmning yorqinligi ('photo') yoki shaffof
+   * sirtda matn rasmning o'zi ustida turgani ('glass'). Sozlamalardagi
+   * izoh to'g'ri sababni aytishi uchun. null - farq yo'q.
+   */
+  photoAdaptedBy: 'photo' | 'glass' | null;
   colors: ColorTokens;
   spacing: typeof spacing;
   radius: typeof radius;
@@ -124,8 +130,14 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // bog'liq va uni dastur bila olmaydi. Ko'rinish ham unga bog'liq:
   // shaffof sirtda matn rasmning o'zi ustida turadi.
   const { level } = useTransparency();
-  const activeTheme = useMemo(
-    () => (imageId && photo ? photoTheme(preferredTheme, photo, level) : preferredTheme),
+  const { activeTheme, photoAdaptedBy } = useMemo(
+    () =>
+      imageId && photo
+        ? {
+            activeTheme: photoTheme(preferredTheme, photo, level),
+            photoAdaptedBy: photoThemeReason(preferredTheme, photo, level),
+          }
+        : { activeTheme: preferredTheme, photoAdaptedBy: null },
     [imageId, photo, preferredTheme, level],
   );
   const hasPhoto = imageId.length > 0;
@@ -218,6 +230,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     mode,
     activeTheme,
     photoAdapted: activeTheme !== preferredTheme,
+    photoAdaptedBy,
     colors,
     spacing,
     radius,
@@ -228,7 +241,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     fontsLoaded,
     setMode: applyMode,
     toggleTheme,
-  }), [mode, activeTheme, preferredTheme, colors, shadows, glass, toggleTheme, applyMode, fontsLoaded]);
+  }), [mode, activeTheme, preferredTheme, photoAdaptedBy, colors, shadows, glass, toggleTheme, applyMode, fontsLoaded]);
 
   // Saqlangan mavzu o'qilmaguncha render qilmaymiz — light->dark "miltillash"ning oldini oladi.
   if (!hydrated) {

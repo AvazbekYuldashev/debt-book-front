@@ -21,29 +21,40 @@ const photo = (r: number, g: number, b: number): PhotoSample => ({
 const DARK_PHOTO = photo(58, 68, 84);
 const BRIGHT_PHOTO = photo(236, 234, 228);
 
-const Probe: React.FC<{ level: TransparencyLevel; image: boolean }> = ({ level, image }) => {
-  const { activeTheme, mode, setMode, photoAdapted } = useAppTheme();
+const MID_PHOTO = photo(150, 150, 150);
+
+const Probe: React.FC<{ level: TransparencyLevel; image: boolean; preferred: 'light' | 'dark' }> = ({
+  level,
+  image,
+  preferred,
+}) => {
+  const { activeTheme, mode, setMode, photoAdapted, photoAdaptedBy } = useAppTheme();
   const { setImage } = useBackground();
   const { setLevel } = useTransparency();
 
   // Bir marta: `setImage` har sozlama o'zgarishida yangi havola bo'ladi
   // va bog'liqlik ro'yxatida cheksiz tsikl yasardi.
   useEffect(() => {
-    setMode('light');
+    setMode(preferred);
     setLevel(level);
     if (image) setImage('photo-1');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <Text testID="theme">{`${activeTheme}|${mode}${photoAdapted ? '|adapted' : ''}`}</Text>;
+  return (
+    <>
+      <Text testID="theme">{`${activeTheme}|${mode}${photoAdapted ? '|adapted' : ''}`}</Text>
+      <Text testID="reason">{String(photoAdaptedBy)}</Text>
+    </>
+  );
 };
 
-const show = (level: TransparencyLevel, image = true) =>
+const show = (level: TransparencyLevel, image = true, preferred: 'light' | 'dark' = 'light') =>
   render(
     <BackgroundProvider>
       <TransparencyProvider>
         <AppThemeProvider>
-          <Probe level={level} image={image} />
+          <Probe level={level} image={image} preferred={preferred} />
         </AppThemeProvider>
       </TransparencyProvider>
     </BackgroundProvider>,
@@ -98,6 +109,35 @@ describe('AppThemeProvider - fon rasmi ustida', () => {
 
     expect(screen.getByTestId('theme').props.children).toBe('light|light');
     expect(mockSample).not.toHaveBeenCalled();
+  });
+
+  /** Sozlamalardagi izoh to'g'ri sababni aytishi uchun - rasmning yorqinligi. */
+  it("to'q rasmda sabab - rasm", async () => {
+    show('clear');
+    await settle();
+
+    expect(screen.getByTestId('reason').props.children).toBe('photo');
+  });
+
+  /**
+   * Qorong'i rejim + o'rtacha kulrang rasm: "O'rta" da tanlov saqlanadi,
+   * to'liq shaffof "Ko'p" da esa yozuv to'q - sabab SHAFFOFLIK, rasm
+   * "och" emas.
+   */
+  it("o'rtacha rasmda O'rta da tanlov saqlanadi", async () => {
+    mockSample.mockResolvedValue(MID_PHOTO);
+    show('medium', true, 'dark');
+    await settle();
+    expect(screen.getByTestId('theme').props.children).toBe('dark|dark');
+    expect(screen.getByTestId('reason').props.children).toBe('null');
+  });
+
+  it("o'rtacha rasmda Ko'p da yozuv to'q, sabab shaffoflik", async () => {
+    mockSample.mockResolvedValue(MID_PHOTO);
+    show('clear', true, 'dark');
+    await settle();
+    expect(screen.getByTestId('theme').props.children).toBe('light|dark|adapted');
+    expect(screen.getByTestId('reason').props.children).toBe('glass');
   });
 
   /** Tarmoq uzilsa: oldingi natija o'chmaydi, yangisi bo'lmasa - tanlov. */

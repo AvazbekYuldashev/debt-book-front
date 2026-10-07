@@ -103,10 +103,15 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
             />
           ))}
           {/* "Yorug'" belgilangan-u ekran to'q bo'lsa, bu xato bo'lib
-              ko'rinardi. Sababi shu yerda aytiladi. */}
+              ko'rinardi. Sababi shu yerda aytiladi - rasmning yorqinligi
+              yoki shaffof kartalar (matn rasmning o'zi ustida). */}
           {theme.photoAdapted ? (
             <Text style={styles.note}>
-              {t(theme.activeTheme === 'dark' ? 'profile.themePhotoDark' : 'profile.themePhotoLight')}
+              {t(
+                theme.photoAdaptedBy === 'glass'
+                  ? theme.activeTheme === 'dark' ? 'profile.themeGlassDark' : 'profile.themeGlassLight'
+                  : theme.activeTheme === 'dark' ? 'profile.themePhotoDark' : 'profile.themePhotoLight',
+              )}
             </Text>
           ) : null}
         </SettingsGroup>

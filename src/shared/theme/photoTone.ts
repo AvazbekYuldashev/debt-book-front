@@ -1,5 +1,13 @@
 import { darkColors, lightColors, type ColorTokens } from './colors';
-import { FROST_BRIGHTNESS, FROST_SATURATE, glassAlpha, type TransparencyLevel } from './transparency';
+import {
+  FROST_BRIGHTNESS,
+  FROST_HAZE,
+  FROST_SATURATE,
+  TRANSPARENCY_LEVELS,
+  glassAlpha,
+  withHaze,
+  type TransparencyLevel,
+} from './transparency';
 
 /**
  * Fon rasmi ustidagi matn: qaysi rangda va o'qiladimi.
@@ -137,7 +145,8 @@ const frostColor = ({ r, g, b }: Rgb, theme: ThemeName): Rgb => {
  * - rasm ustidagi varianti (textSecondaryOnPhoto): ekranda aynan u turadi.
  *
  * Har katakda matn ORTIDA ko'z ko'radigan rang: mavzu foni -> rasm ->
- * muzlatish (faqat web) -> sirt tusi. Muzlatishning blur'i hisobga
+ * muzlatish (faqat web) -> sirt tusi + oq xiralik. Sirt rangini glass.ts
+ * bilan BIR XIL funksiya (withHaze) yasaydi. Muzlatishning blur'i hisobga
  * olinmaydi (faqat detalni yo'qotadi), rangga ta'siri esa olinadi.
  */
 export const readableShare = (
@@ -151,18 +160,20 @@ export const readableShare = (
 
   const palette = PALETTES[theme];
   const background = solid(palette.background);
-  const tint = solid(palette.glassSurfaceOnPhoto);
   const text = solid(palette.textPrimary);
   const secondary = solid(palette.textSecondaryOnPhoto);
   const { surface } = glassAlpha(level, true, theme === 'dark', frosted);
   // To'liq yopiq sirt ortini ko'rsatmaydi - u yerda muzlatish ham yo'q (glass.ts).
   const frost = frosted && surface < 1;
+  const layer = parseColor(withHaze(palette.glassSurfaceOnPhoto, surface, frost ? FROST_HAZE[theme] : 0));
+  const tint = layer ? { r: layer.r, g: layer.g, b: layer.b } : solid(palette.glassSurfaceOnPhoto);
+  const tintAlpha = layer ? layer.a : surface;
 
   let readable = 0;
   sample.cells.forEach((cell) => {
     const photo = mix(cell, background, cell.a);
     const behind = frost ? frostColor(photo, theme) : photo;
-    const backdrop = mix(tint, behind, surface);
+    const backdrop = mix(tint, behind, tintAlpha);
     if (
       contrastRatio(text, backdrop) >= MIN_TEXT_CONTRAST &&
       contrastRatio(secondary, backdrop) >= MIN_SECONDARY_CONTRAST
@@ -171,6 +182,20 @@ export const readableShare = (
     }
   });
   return readable / sample.cells.length;
+};
+
+/**
+ * Rasmning KONTENT qismi (CONTENT_TOP dan pastda): kartalar va ro'yxat
+ * shu yerda turadi. Yorqinlik ham, o'qilish taqqoslovi ham AYNAN shu
+ * kataklarga qaraydi - aks holda tepadagi osmon pastdagi to'q yer ustidagi
+ * ro'yxat rangini hal qilib qo'yardi. Juda kichik to'rda (pastda katak
+ * qolmasa) butun rasm.
+ */
+const contentOf = (sample: PhotoSample): PhotoSample => {
+  const cells = sample.cells.filter(
+    (_cell, index) => (Math.floor(index / sample.cols) + 0.5) / sample.rows >= CONTENT_TOP,
+  );
+  return cells.length ? { rows: cells.length / sample.cols, cols: sample.cols, cells } : sample;
 };
 
 /** Yorug' rejim fon shundan to'qroq bo'lsa - qorong'i (oq yozuvli) ko'rinishga o'tadi. */
@@ -195,33 +220,46 @@ export const BRIGHT_PHOTO_LUMINANCE = 0.45;
 export const photoLuminance = (sample: PhotoSample, theme: ThemeName): number => {
   // Shaffof (PNG) kataklar ostida ilovaning foni ko'rinadi.
   const background = solid(PALETTES[theme].background);
-  const below: number[] = [];
-  const all: number[] = [];
-  sample.cells.forEach((cell, index) => {
-    const y = (Math.floor(index / sample.cols) + 0.5) / sample.rows;
-    const seen = luminance(mix(cell, background, cell.a));
-    all.push(seen);
-    if (y >= CONTENT_TOP) below.push(seen);
-  });
-  const pool = (below.length ? below : all).sort((a, b) => a - b);
+  const pool = contentOf(sample)
+    .cells.map((cell) => luminance(mix(cell, background, cell.a)))
+    .sort((a, b) => a - b);
   if (pool.length === 0) return luminance(background);
   const mid = Math.floor(pool.length / 2);
   return pool.length % 2 ? pool[mid] : (pool[mid - 1] + pool[mid]) / 2;
 };
+
+/** Yorqinlik bo'yicha ko'rinish (photoTheme 1-qadami). */
+const luminanceLook = (preferred: ThemeName, sample: PhotoSample): ThemeName => {
+  const seen = photoLuminance(sample, preferred);
+  if (preferred === 'light' && seen < DARK_PHOTO_LUMINANCE) return 'dark';
+  if (preferred === 'dark' && seen > BRIGHT_PHOTO_LUMINANCE) return 'light';
+  return preferred;
+};
+
+/**
+ * Shaffoflik sababli ko'rinish almashadimi - FAQAT aniq yutuqda:
+ * tanlangan ko'rinish kontentning sezilarli qismida o'qilmaydi VA ikkinchisi
+ * anchagina ko'proq joyda o'qiladi. Bitta yorqin dog' (chiroq, oy) yoki
+ * qora logotip butun ilovani ag'darib yubormasin.
+ */
+const SWITCH_BELOW = 0.85;
+const SWITCH_MARGIN = 0.1;
 
 /**
  * Fon rasmi ustida qaysi ko'rinish: matn rangi rasmga qarama-qarshi.
  *
  * 1. YORQINLIK: tanlangan rejim faqat rasm "o'rtacha" bo'lganda hal
  *    qiladi - to'q rasmda yorug' rejim oq yozuvli, och rasmda qorong'i
- *    rejim to'q yozuvli ko'rinishga o'tadi.
+ *    rejim to'q yozuvli ko'rinishga o'tadi. Bu qaror QAT'IY: yorug' rejim
+ *    + to'q rasm har darajada oq yozuv.
  *
- * 2. SHAFFOFLIK (`level` berilsa): shaffof darajada matn rasmning o'zi
- *    ustida turadi va o'rtacha rasmda (kulrang, to'yingan pushti) 1-qadam
- *    tanlagan ko'rinish o'qilmay qolishi mumkin. Shunda ikkinchi ko'rinish
- *    ANIQ ko'proq joyda o'qilsagina unga o'tiladi. Yopiq darajalarda
- *    ("Yo'q", "Kam") ikkala ko'rinish ham hamma joyda o'qiladi (test
- *    qulflaydi) - u yerda bu qadam hech narsani o'zgartirmaydi.
+ * 2. SHAFFOFLIK (`level` berilsa, faqat 1-qadam tanlovni o'zgartirmagan
+ *    o'rtacha rasmda): shaffof darajada matn rasmning o'zi ustida turadi va
+ *    tanlangan ko'rinish o'qilmay qolishi mumkin. Unda ikkinchi ko'rinishga
+ *    o'tiladi - agar u kontentda ANIQ ko'proq o'qilsa (SWITCH_*) va bu shu
+ *    darajada ham, undan SHAFFOFROQ barcha darajalarda ham to'g'ri bo'lsa.
+ *    Natija: Yo'q -> Ko'p bo'ylab ko'rinish ko'pi bilan BIR marta
+ *    almashadi, hech qachon ortga qaytmaydi.
  *
  * Tanlovning o'zi o'zgarmaydi - rasm almashsa yoki olib tashlansa, u
  * qaytadi.
@@ -232,14 +270,31 @@ export const photoTheme = (
   level?: TransparencyLevel,
 ): ThemeName => {
   if (sample.cells.length === 0) return preferred;
-  const seen = photoLuminance(sample, preferred);
-  let look = preferred;
-  if (preferred === 'light' && seen < DARK_PHOTO_LUMINANCE) look = 'dark';
-  if (preferred === 'dark' && seen > BRIGHT_PHOTO_LUMINANCE) look = 'light';
-  if (level === undefined) return look;
+  const look = luminanceLook(preferred, sample);
+  if (level === undefined || look !== preferred) return look;
 
-  const share = readableShare(sample, look, level);
-  if (share === 1) return look;
+  const content = contentOf(sample);
   const other: ThemeName = look === 'light' ? 'dark' : 'light';
-  return readableShare(sample, other, level) > share ? other : look;
+  const switches = (id: TransparencyLevel) => {
+    const own = readableShare(content, look, id);
+    return own < SWITCH_BELOW && readableShare(content, other, id) >= own + SWITCH_MARGIN;
+  };
+  const from = TRANSPARENCY_LEVELS.findIndex((item) => item.id === level);
+  const clearer = TRANSPARENCY_LEVELS.slice(Math.max(0, from)).map((item) => item.id);
+  return clearer.every(switches) ? other : look;
+};
+
+/**
+ * Ko'rinish NIMA sababli tanlangan rejimdan farq qiladi: rasmning
+ * yorqinligi ('photo') yoki shaffoflik ('glass'). Sozlamalardagi izoh
+ * to'g'ri sababni aytishi uchun. null - farq yo'q.
+ */
+export const photoThemeReason = (
+  preferred: ThemeName,
+  sample: PhotoSample,
+  level: TransparencyLevel,
+): 'photo' | 'glass' | null => {
+  if (sample.cells.length === 0) return null;
+  if (luminanceLook(preferred, sample) !== preferred) return 'photo';
+  return photoTheme(preferred, sample, level) !== preferred ? 'glass' : null;
 };

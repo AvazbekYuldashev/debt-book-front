@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useAppTheme } from '../theme';
 
 /**
@@ -12,50 +12,59 @@ import { useAppTheme } from '../theme';
  * chiqadi: har qator o'z yorug'-to'q gradienti bilan, oralarida keskin
  * chok. Shaffof darajalarda ("O'rta", "Ko'p") bu yaqqol ko'rinardi.
  *
- * YECHIM: muzlatish butun karta ortida bitta qatlam - u ro'yxat
+ * YECHIM: muzlatish butun karta ortida bitta qatlam. U ro'yxat
  * sarlavhasida (nol balandlikda) turadi, shuning uchun qatorlardan OLDIN
- * chiziladi va ular bilan birga aylanadi. Qatorlar faqat o'z tusini
- * (yarim shaffof rang) beradi. Balandlik - kontent o'lchamidan pastki
- * bo'shliqni ayirib.
+ * chiziladi va ular bilan birga aylanadi. Qatorlar faqat o'z rangini
+ * (tus + oq xiralik) beradi.
+ *
+ * O'LCHAM CSS'DAN, o'lchovsiz: sarlavha o'rami va langar `static`, shuning
+ * uchun qatlamning `absolute` asosi - kontent konteynerining o'zi
+ * (padding'i bilan). `top: 0` birinchi qator tepasi, `bottom: bottomInset`
+ * esa oxirgi qator pasti. Qatlam qatorlar bilan BIR joylashuv o'tishida
+ * hisoblanadi: qidiruv natijasi o'zgarganda kech qolmaydi, ekran
+ * yashirilib qaytganda (display:none) yo'qolmaydi, aylantirishda ekran
+ * qayta chizilmaydi.
  *
  * Muzlatish yo'q joyda (telefon, rasmsiz fon, "Yo'q" darajasi) hech narsa
  * chizilmaydi.
  *
  * @param rowCount qatorlar soni - bo'sh ro'yxatda o'z kartasi bor.
  * @param bottomInset kontent konteynerining pastki bo'shlig'i (FAB uchun).
+ * @returns FlatList'ga yoyiladigan ikki prop.
  */
 export function useListFrost(rowCount: number, bottomInset: number) {
   const { glass, radius, spacing } = useAppTheme();
-  const [contentHeight, setContentHeight] = useState(0);
-
-  const onContentSizeChange = useCallback((_width: number, height: number) => {
-    setContentHeight(height);
-  }, []);
-
-  const height = Math.max(0, contentHeight - bottomInset);
-  const active = rowCount > 0 && height > 0 && Object.keys(glass.frost).length > 0;
-
-  const layer: ViewStyle = {
-    left: spacing.md,
-    right: spacing.md,
-    height,
-    borderRadius: radius.xxl,
-  };
+  const active = rowCount > 0 && Object.keys(glass.frost).length > 0;
 
   const ListHeaderComponent = active ? (
     <View style={styles.anchor} pointerEvents="none">
-      <View style={[styles.layer, glass.frost, layer]} />
+      <View
+        style={[
+          styles.layer,
+          glass.frost,
+          {
+            left: spacing.md,
+            right: spacing.md,
+            bottom: bottomInset,
+            borderRadius: radius.xxl,
+          },
+        ]}
+      />
     </View>
   ) : null;
 
-  return { ListHeaderComponent, onContentSizeChange };
+  return { ListHeaderComponent, ListHeaderComponentStyle: active ? styles.static : undefined };
 }
 
 const styles = StyleSheet.create({
+  // Sarlavha o'rami: joylashuvga asos bo'lmasin - asos kontent konteyneri.
+  static: {
+    position: 'static',
+  },
   // Nol balandlik: qatorlar avvalgidek kontentning eng tepasidan boshlanadi.
   anchor: {
+    position: 'static',
     height: 0,
-    overflow: 'visible',
   },
   layer: {
     position: 'absolute',
