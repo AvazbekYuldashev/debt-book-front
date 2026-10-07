@@ -355,7 +355,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
       {/* Balans sahifalardan tashqarida: u butun ekranning bosh raqami
           va qaysi sahifada turgandan qat'i nazar kerak. */}
       <Card style={styles.balanceCard}>
-        <Text style={styles.cardTitle}>{t('payments.balance')}</Text>
+        <Text style={[styles.cardTitle, styles.centered]}>{t('payments.balance')}</Text>
         <Text style={styles.balance}>{formatSum(account?.balance ?? 0)}</Text>
 
         <View style={styles.totals}>
@@ -403,6 +403,17 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.label,
       color: colors.textSecondary,
       marginBottom: spacing.sm,
+    },
+    /**
+     * Balans kartasi O'QNING O'RTASIDA: ostidagi "To'ldirilgan" va
+     * "Sarflangan" ustunlari allaqachon markazda va bosh raqam chekkada
+     * qolsa, karta qiyshiq ko'rinardi.
+     *
+     * Alohida uslub: `cardTitle` ovozli xarajat kartasida ham ishlatiladi,
+     * u yerda esa sarlavha chapda - ro'yxatning boshlanish chizig'ida.
+     */
+    centered: {
+      textAlign: 'center',
     },
     totals: {
       flexDirection: 'row',
@@ -509,6 +520,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.display,
       color: colors.textPrimary,
       marginBottom: spacing.sm,
+      textAlign: 'center',
     },
     amounts: {
       flexDirection: 'row',
