@@ -16,7 +16,17 @@ export type DebtsStackParamList = {
     * `voice` — ovozli buyruqdan kelgan boshlang'ich qiymatlar. Ixtiyoriy:
     * kontakt odatdagidek ro'yxatdan ham ochiladi.
     */
-  [ROUTES.CONTACT_DETAIL]: { id: string; voice?: VoiceCommandPrefill };
+  [ROUTES.CONTACT_DETAIL]: {
+    id: string;
+    voice?: VoiceCommandPrefill;
+    /**
+     * Qaysi sahifa ochilsin: narxnoma yoki tarix.
+     *
+     * Ovoz tarixidagi strelka TARIXNI so'raydi - odam aynan o'sha yozuvni
+     * ko'rgani keladi. Berilmasa odatdagidek birinchi sahifa ochiladi.
+     */
+    tab?: 'products' | 'history';
+  };
   [ROUTES.NOTIFICATIONS]: undefined;
 };
 

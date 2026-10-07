@@ -29,6 +29,16 @@ interface SwipePagerProps {
   style?: StyleProp<ViewStyle>;
   /** Sahifa almashganda — masalan ikkinchi sahifa ma'lumotini kech yuklash uchun. */
   onPageChange?: (index: number) => void;
+  /**
+   * Qaysi sahifa ochiq holda kelsin.
+   *
+   * Ekranga TASHQARIDAN kirilganda kerak: ovoz tarixidagi strelka
+   * kontaktga olib boradi va o'sha yerda TARIX ochilishi kerak - odam
+   * aynan o'sha yozuvni ko'rgani keladi, narxnomani emas.
+   *
+   * Faqat birinchi chizishda qo'llanadi: keyin sahifani odam boshqaradi.
+   */
+  initialPage?: number;
 }
 
 /**
@@ -52,12 +62,15 @@ interface SwipePagerProps {
  * ayni paytda "qaysi sahifadaman / yana nima bor" ko'rsatkichi ham — aks holda
  * ikkinchi sahifa borligi umuman bilinmasdi.
  */
-const SwipePager: React.FC<SwipePagerProps> = ({ pages, style, onPageChange }) => {
+const SwipePager: React.FC<SwipePagerProps> = ({ pages, style, onPageChange, initialPage = 0 }) => {
   const theme = useAppTheme();
   const { colors, iconSize } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const scrollRef = useRef<ScrollView>(null);
-  const [index, setIndex] = useState(0);
+  // Chegaradan tashqaridagi qiymat birinchi sahifaga tushadi.
+  const [index, setIndex] = useState(() =>
+    initialPage > 0 && initialPage < pages.length ? initialPage : 0,
+  );
   const { width: windowWidth } = useWindowDimensions();
   const pageWidth = Math.min(windowWidth, APP_COLUMN_WIDTH);
 
@@ -112,6 +125,21 @@ const SwipePager: React.FC<SwipePagerProps> = ({ pages, style, onPageChange }) =
   useEffect(() => {
     onPageChange?.(index);
   }, [index, onPageChange]);
+
+  /**
+   * Boshlang'ich sahifaga SURIB qo'yish.
+   *
+   * Holatning o'zi yetarli emas: ScrollView baribir chapdan boshlanadi.
+   * Kengligi ma'lum bo'lgach bir marta suriladi, `animated: false` -
+   * ekran ochilishida sirpanish ko'rinishi kerak emas, sahifa shundayligicha
+   * turgandek bo'lsin.
+   */
+  const jumped = useRef(false);
+  useEffect(() => {
+    if (jumped.current || index === 0 || pageWidth <= 0) return;
+    jumped.current = true;
+    scrollRef.current?.scrollTo({ x: index * pageWidth, y: 0, animated: false });
+  }, [index, pageWidth]);
 
   return (
     <View style={[styles.wrap, style]}>

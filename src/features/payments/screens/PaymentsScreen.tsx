@@ -178,7 +178,8 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
         case 'CONTACT':
           tabNavigation.navigate(ROUTES.DEBTS, {
             screen: ROUTES.CONTACT_DETAIL,
-            params: { id: open.id },
+            // TARIX sahifasi: odam narxnomani emas, o'sha yozuvni ko'rgani keladi.
+            params: { id: open.id, tab: 'history' as const },
           });
           return;
         case 'EXPENSE_CATEGORY':
@@ -357,26 +358,19 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
             ))}
           </View>
 
+          {/* IKKI XIZMAT, BITTA QATOR.
+              Ustunlardagi summa allaqachon ikkalasini qo'shib ko'rsatadi,
+              shuning uchun bu yerda faqat TARIFLAR turadi: nimaga qarab
+              sanalgani. Ilgari ikki qator edi va ular bir xil narsani
+              ikki marta aytayotgandek ko'rinardi. */}
           {summary ? (
-            <>
-              <Text style={styles.rate}>
-                {t('payments.rate', { rate: formatSum(summary.ratePerMinute) })}
-              </Text>
-              {/* Tushunish narxi ustunlardagi summaga ALLAQACHON kirgan.
-                  Bu qator faqat "shundan qanchasi modelga ketdi" deydi. */}
-              <Text style={styles.rate}>
-                {t('payments.tokens', {
-                  model: summary.modelLabel ?? '',
-                  today: formatSum(summary.modelToday ?? 0),
-                  total: formatSum(summary.modelTotal ?? 0),
-                })}
-              </Text>
-              {summary.usdRate ? (
-                <Text style={styles.rate}>
-                  {t('payments.usdRate', { rate: formatSum(summary.usdRate) })}
-                </Text>
-              ) : null}
-            </>
+            <Text style={styles.rate}>
+              {t('payments.tariffs', {
+                voice: formatSum(summary.ratePerMinute),
+                model: summary.modelLabel ?? '',
+                usd: summary.usdRate ? formatSum(summary.usdRate) : '—',
+              })}
+            </Text>
           ) : null}
         </Card>
       }

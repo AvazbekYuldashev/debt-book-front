@@ -370,7 +370,10 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
       <EntranceView delay={90} duration={320} fromY={14} style={styles.listWrap}>
         {showCatalog ? (
-          <SwipePager pages={pages} />
+          <SwipePager
+            pages={pages}
+            initialPage={route.params.tab === 'history' ? pages.length - 1 : 0}
+          />
         ) : (
           renderHistory()
         )}

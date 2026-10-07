@@ -10,7 +10,7 @@ import type { VoiceCommand } from './voiceCommand';
  * o'tish tablar aro bo'ladi (bildirishnoma qo'ng'irog'i ham shunday).
  */
 export type OpenCommand =
-  /** Tranzaksiyaning O'Z ekrani yo'q: u kontakt tarixining bir qatori. */
+  /** Tranzaksiyaning O'Z ekrani yo'q: u kontakt TARIXINING bir qatori. */
   | { kind: 'CONTACT'; id: string }
   | { kind: 'EXPENSE_CATEGORY'; id: string; name: string }
   /**
