@@ -3,8 +3,14 @@ import { useIsFocused } from '@react-navigation/native';
 import type { VoiceIntent } from '../api/voice';
 
 export interface VoiceAction {
-  /** Qaysi bo'lim gapiryapti. Gap kassada ism boshqa ro'yxatdan qidiriladi. */
-  kind: 'TRANSACTION' | 'GAP';
+  /**
+   * Qaysi bo'lim gapiryapti.
+   *
+   * Server shunga qarab gapni boshqacha o'qiydi: GAP da ism kassa
+   * a'zolari orasidan, TRANSACTION da kontaktlardan qidiriladi, EXPENSE
+   * da esa ism umuman kerak emas - summa va kategoriya yetarli.
+   */
+  kind: 'TRANSACTION' | 'GAP' | 'EXPENSE';
   accountType?: string;
   token?: string;
   onResult: (intent: VoiceIntent) => void;

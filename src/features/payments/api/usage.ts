@@ -23,20 +23,34 @@ export interface VoiceUsage {
  * "ko'p sarflayapmanmi" degan savolga javob chiqmaydi.
  */
 export interface VoiceUsageSummary {
+  /** Tanish (STT) narxi - audio daqiqasiga. */
   today: number;
   thisMonth: number;
   total: number;
+  /** Nechta ovoz aytilgani: pul yolg'iz turganda ma'nosi yarim. */
   countToday: number;
+  countThisMonth: number;
   countTotal: number;
   ratePerMinute: number;
   /**
-   * Gapni tushunishga ketgan tokenlar.
+   * Gapni TUSHUNISHGA ketgan tokenlarning so'mdagi narxi.
    *
-   * Summadan ALOHIDA, chunki boshqa o'lchov: tanish daqiqasiga, model
-   * tokenga to'lanadi. Bitta raqamga qo'shsak ikki xil narsa aralashardi.
+   * Serverda hisoblanadi: model tarifi (dollarda, 1 million tokenga) va
+   * Markaziy bankning jonli dollar kursi. Ilovada hisoblanmaydi - aks
+   * holda eski o'rnatilgan nusxalar eskirgan raqam ko'rsatardi.
+   *
+   * NULL - tarif yoki kurs yo'q, ya'ni "hisoblab bo'lmadi". Nol bilan
+   * adashtirmaslik kerak: nol "bepul" degani.
    */
+  modelToday: number | null;
+  modelThisMonth: number | null;
+  modelTotal: number | null;
+  /** Tokenlar soni - tarif to'g'riligini tekshirish uchun. */
   tokensToday: number;
   tokensTotal: number;
+  /** Qaysi model tarifi qo'llandi ("Claude Opus 5") va dollar kursi. */
+  modelLabel?: string | null;
+  usdRate?: number | null;
 }
 
 interface Paged<T> {

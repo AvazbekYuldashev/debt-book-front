@@ -38,6 +38,9 @@ import CategoryFormModal from '../components/CategoryFormModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import QuickFilterModal, { QuickFilterKey } from '../components/QuickFilterModal';
 import ExpenseSortBar, { ExpenseSortKey, SortDir } from '../components/ExpenseSortBar';
+import { useRegisterVoiceAction } from '../../voice/model/VoiceActionProvider';
+import { resolveExpenseCommand } from '../../voice/model/resolveExpenseCommand';
+import type { VoiceIntent } from '../../voice/api/voice';
 
 type CategoryMode = 'create' | 'edit';
 
@@ -347,6 +350,58 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
     },
     [fromDate, endDate, navigation]
   );
+
+  /**
+   * OVOZDAN XARAJAT.
+   *
+   * Server summani, izohni va kategoriyani topib beradi. Bu yerda faqat
+   * hal qilinadi: kategoriya ro'yxatda bormi. Bor bo'lsa shu kategoriya
+   * ochiladi va forma to'lgan holda chiqadi - odam tasdiqlaydi, xolos.
+   *
+   * Topilmasa YOZILMAYDI va o'ziga o'xshagan kategoriya TAXMIN
+   * qilinmaydi: noto'g'ri kategoriyaga pul yozilgandan ko'ra so'ragan
+   * yaxshi. Ro'yxat ekranda turibdi - odam o'zi bosadi.
+   */
+  const handleVoiceResult = useCallback(
+    (intent: VoiceIntent) => {
+      const command = resolveExpenseCommand(intent, categories);
+
+      if (command.kind === 'NOT_UNDERSTOOD') {
+        setError(t('voice.notUnderstood'));
+        return;
+      }
+      if (command.kind === 'PICK_CATEGORY') {
+        setError(t('expenses.voicePickCategory', { amount: String(command.amount) }));
+        return;
+      }
+
+      setError('');
+      const dateRange = resolveDateRange(fromDate, endDate);
+      navigation.navigate(ROUTES.EXPENSE_CATEGORY_DETAIL, {
+        id: command.categoryId,
+        name: command.categoryName,
+        fromDate: dateRange.ok ? dateRange.fromDate : undefined,
+        endDate: dateRange.ok ? dateRange.endDate : undefined,
+        voice: {
+          amount: command.amount,
+          description: command.description,
+          calcNote: command.calcNote,
+        },
+      });
+    },
+    [categories, fromDate, endDate, navigation, t],
+  );
+
+  /**
+   * Ovoz tugmasi pastki panelda - bu ekrandan tashqarida. Natijani esa
+   * shu ekran qayta ishlaydi (kategoriya o'z ro'yxatidan topiladi),
+   * shuning uchun ishlovchi fokusdalik paytida e'lon qilinadi.
+   */
+  const voiceAction = useMemo(
+    () => ({ kind: 'EXPENSE' as const, onResult: handleVoiceResult }),
+    [handleVoiceResult],
+  );
+  useRegisterVoiceAction(voiceAction);
 
   const toggleCategoryActions = useCallback(
     (id: string) => setExpandedCategoryActionsId((prev) => (prev === id ? null : id)),

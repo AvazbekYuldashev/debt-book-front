@@ -27,6 +27,7 @@ import {
   type VoiceUsageSummary,
 } from '../api/usage';
 import { formatDuration, formatSum, formatWhen } from '../model/formatUsage';
+import { isPartial, periodSpend } from '../model/spend';
 import {
   createClickLink,
   fetchPaymentHistory,
@@ -235,6 +236,30 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     />
   );
 
+  /**
+   * Uch davr bir qolipda: nomi, ovozlar soni va TO'LIQ sarfi.
+   *
+   * Ro'yxat sifatida - uchta deyarli bir xil blokni qo'lda yozish
+   * ularning bir-biridan ajrab ketishiga olib kelardi.
+   */
+  const periods = [
+    {
+      labelKey: 'payments.today',
+      count: summary?.countToday ?? 0,
+      spend: periodSpend(summary?.today ?? 0, summary?.modelToday),
+    },
+    {
+      labelKey: 'payments.thisMonth',
+      count: summary?.countThisMonth ?? 0,
+      spend: periodSpend(summary?.thisMonth ?? 0, summary?.modelThisMonth),
+    },
+    {
+      labelKey: 'payments.allTime',
+      count: summary?.countTotal ?? 0,
+      spend: periodSpend(summary?.total ?? 0, summary?.modelTotal),
+    },
+  ];
+
   const renderVoicePage = () => (
     <FlatList
       data={voice}
@@ -249,20 +274,22 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
 
           {/* Jami UCH DAVRDA: yolg'iz umumiy raqam o'sib boraveradi va
               undan "ko'p sarflayapmanmi" degan savolga javob chiqmaydi -
-              taqqoslash uchun yaqin davr kerak. */}
+              taqqoslash uchun yaqin davr kerak.
+
+              Har ustunda SONI ham bor: 900 so'm ko'p yoki kamligi necha
+              marta gapirilganiga bog'liq. Pul esa TO'LIQ - tanish va
+              tushunish qo'shilgan, chunki foydalanuvchi uchun bitta ovoz
+              bitta xarajat. */}
           <View style={styles.totals}>
-            <View style={styles.total}>
-              <Text style={styles.totalValue}>{formatSum(summary?.today ?? 0)}</Text>
-              <Text style={styles.totalLabel}>{t('payments.today')}</Text>
-            </View>
-            <View style={styles.total}>
-              <Text style={styles.totalValue}>{formatSum(summary?.thisMonth ?? 0)}</Text>
-              <Text style={styles.totalLabel}>{t('payments.thisMonth')}</Text>
-            </View>
-            <View style={styles.total}>
-              <Text style={styles.totalValue}>{formatSum(summary?.total ?? 0)}</Text>
-              <Text style={styles.totalLabel}>{t('payments.allTime')}</Text>
-            </View>
+            {periods.map((item) => (
+              <View key={item.labelKey} style={styles.total}>
+                <Text style={styles.totalValue}>{formatSum(item.spend)}</Text>
+                <Text style={styles.totalCount}>
+                  {t('payments.voiceCount', { count: String(item.count) })}
+                </Text>
+                <Text style={styles.totalLabel}>{t(item.labelKey)}</Text>
+              </View>
+            ))}
           </View>
 
           {summary ? (
@@ -270,12 +297,23 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
               <Text style={styles.rate}>
                 {t('payments.rate', { rate: formatSum(summary.ratePerMinute) })}
               </Text>
+              {/* Tushunish narxi ALOHIDA qatorda: ustunlardagi summaga
+                  allaqachon kirgan, bu yerda esa qaysi qismi ekani va
+                  qaysi model tarifida sanalgani ko'rinadi. */}
               <Text style={styles.rate}>
-                {t('payments.tokens', {
-                  today: String(summary.tokensToday),
-                  total: String(summary.tokensTotal),
-                })}
+                {isPartial(summary.modelTotal)
+                  ? t('payments.tokensOff')
+                  : t('payments.tokens', {
+                      model: summary.modelLabel ?? '',
+                      today: formatSum(summary.modelToday ?? 0),
+                      total: formatSum(summary.modelTotal ?? 0),
+                    })}
               </Text>
+              {summary.usdRate ? (
+                <Text style={styles.rate}>
+                  {t('payments.usdRate', { rate: formatSum(summary.usdRate) })}
+                </Text>
+              ) : null}
             </>
           ) : null}
         </Card>
@@ -431,6 +469,12 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.heading3,
       color: colors.textPrimary,
       textAlign: 'center',
+    },
+    /** Soni raqamdan KICHIK, nomdan katta: u ikkisi orasidagi izoh. */
+    totalCount: {
+      ...typography.caption,
+      color: colors.textPrimary,
+      marginTop: spacing.xxs,
     },
     totalLabel: {
       ...typography.caption,

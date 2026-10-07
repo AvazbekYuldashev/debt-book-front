@@ -19,6 +19,12 @@ interface ExpenseFormModalProps {
   submitting: boolean;
   onClose: () => void;
   onSubmit: (amount: number, description: string, calcNote: string | null) => Promise<boolean>;
+  /**
+   * Ovozdan kelgan to'ldirma: forma bo'sh emas, aytilgan summa va izoh
+   * bilan ochiladi. Odam ko'rib tasdiqlaydi - to'g'ridan-to'g'ri YOZILMAYDI,
+   * chunki tanish xato qilishi mumkin va pul yozuvini qaytarish qiyin.
+   */
+  prefill?: { amount: number; description?: string; calcNote?: string | null } | null;
 }
 
 // Kiritilgan summani "12 331 323" ko'rinishida (har 3 raqamda bo'sh joy) formatlaydi.
@@ -35,6 +41,7 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
   submitting,
   onClose,
   onSubmit,
+  prefill,
 }) => {
   const theme = useAppTheme();
   const keyboardInset = useKeyboardInset();
@@ -48,13 +55,15 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
   const [description, setDescription] = useState('');
   const [localError, setLocalError] = useState('');
 
+  // Ochilganda tozalanadi; to'ldirma bo'lsa uning o'rniga yoziladi.
   useEffect(() => {
     if (!visible) return;
-    setAmount('');
-    setCalcExpression('');
-    setDescription('');
+    setAmount(prefill ? formatAmountInput(String(Math.round(prefill.amount))) : '');
+    setCalcExpression(prefill?.calcNote ?? '');
+    setDescription(prefill?.description ?? '');
     setLocalError('');
-  }, [visible]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, prefill?.amount, prefill?.description, prefill?.calcNote]);
 
   const handleSubmit = useCallback(async () => {
     const normalizedAmount = Number(amount.replace(/\s/g, '').replace(',', '.'));

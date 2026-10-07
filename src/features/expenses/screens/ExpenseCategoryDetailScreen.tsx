@@ -38,6 +38,26 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
   const fromDate = route.params.fromDate ?? '';
   const endDate = route.params.endDate ?? '';
 
+  /**
+   * Ovozdan kelgan to'ldirma - ekran ochilishi bilan forma ko'tariladi.
+   *
+   * Nusxa olinadi va `route.params` dan TOZALANADI: aks holda ortga qaytib
+   * qayta kirilganda o'sha summa yana chiqib, odam ikkinchi marta yozib
+   * yuborardi.
+   */
+  const [voicePrefill, setVoicePrefill] = useState(route.params.voice ?? null);
+  useEffect(() => {
+    if (!route.params.voice) return;
+    setVoicePrefill(route.params.voice);
+    setExpenseModalVisible(true);
+    navigation.setParams({ voice: undefined });
+  }, [route.params.voice, navigation]);
+
+  const closeExpenseForm = useCallback(() => {
+    setExpenseModalVisible(false);
+    setVoicePrefill(null);
+  }, []);
+
   const [expenses, setExpenses] = useState<ExpenseResponseDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -238,8 +258,9 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
         visible={expenseModalVisible}
         categoryName={categoryName}
         submitting={savingExpense}
-        onClose={() => setExpenseModalVisible(false)}
+        onClose={closeExpenseForm}
         onSubmit={submitExpense}
+        prefill={voicePrefill}
       />
     </View>
   );
