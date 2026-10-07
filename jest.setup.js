@@ -40,3 +40,11 @@ jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(async () => ({ canceled: true })),
   MediaTypeOptions: { Images: 'Images' },
 }));
+
+// `navigator` Node 21+ da global, CI'dagi Node 18 da esa YO'Q: ovoz
+// testlari unga `mediaDevices` qo'yadi va "defineProperty called on
+// non-object" bilan yiqilardi. Node 21+ dagidek bo'sh obyekt beramiz;
+// bor bo'lsa (lokal Node 22) tegilmaydi - ikkala muhit bir xil.
+if (typeof globalThis.navigator === 'undefined') {
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, writable: true, value: {} });
+}
