@@ -4,9 +4,11 @@ import type { ShadowTokens } from './elevation';
 import {
   DEFAULT_TRANSPARENCY,
   FROST_BRIGHTNESS,
+  FROST_HAZE,
   FROST_SATURATE,
   glassAlpha,
   reAlpha,
+  withHaze,
   type TransparencyLevel,
 } from './transparency';
 
@@ -149,18 +151,26 @@ export const makeGlass = (
   // TUS mavzudan, ALFA sozlamadan. Shu sababli shaffoflikni o'zgartirish
   // sirtning rangini emas, faqat qalinligini o'zgartiradi.
   const alpha = glassAlpha(level, onPhoto, isDark, canFrost());
-  const surfaceColor = reAlpha(
-    onPhoto ? colors.glassSurfaceOnPhoto : colors.glassSurface, alpha.surface);
-  const strongColor = reAlpha(
-    onPhoto ? colors.glassSurfaceStrongOnPhoto : colors.glassSurfaceStrong, alpha.strong);
-  const mutedColor = reAlpha(
-    onPhoto ? colors.glassMutedOnPhoto : colors.glassMuted, alpha.muted);
 
   // Muzlatish FAQAT fon rasmi ustida va sirt shaffof bo'lganda. Bezakli
   // fon mayda detalsiz - u yerda blur ko'zga ko'rinmaydi, scroll'dagi
   // narxi esa qolardi (backdrop har kadrda qayta hisoblanadi). To'liq
   // yopiq ("Yo'q") sirt ortini baribir ko'rsatmaydi.
-  const frost = onPhoto && alpha.surface < 1 ? photoFrost(FROST_BLUR, isDark) : {};
+  const frosts = onPhoto && canFrost() && alpha.surface < 1;
+  const strongFrosts = onPhoto && canFrost() && alpha.strong < 1;
+  const frost = frosts ? photoFrost(FROST_BLUR, isDark) : {};
+
+  // Muzlatilgan sirtda tus ustida OQ XIRALIK (transparency.ts FROST_HAZE):
+  // muzli shisha oqish ko'rinadi. Ichki bo'lak (muted) ota-karta ichida -
+  // xiralik u yerda allaqachon bor.
+  const haze = FROST_HAZE[isDark ? 'dark' : 'light'];
+  const surfaceColor = withHaze(
+    onPhoto ? colors.glassSurfaceOnPhoto : colors.glassSurface, alpha.surface, frosts ? haze : 0);
+  const strongColor = withHaze(
+    onPhoto ? colors.glassSurfaceStrongOnPhoto : colors.glassSurfaceStrong, alpha.strong,
+    strongFrosts ? haze : 0);
+  const mutedColor = reAlpha(
+    onPhoto ? colors.glassMutedOnPhoto : colors.glassMuted, alpha.muted);
 
   return {
   surface: {
@@ -178,7 +188,7 @@ export const makeGlass = (
     borderColor: colors.glassBorder,
     // Rasm ustida - boshqa sirtlar bilan bir xil muzlatish (yorqinlik
     // tuzatishi bilan): "Ko'p" da bu karta ham to'liq shaffof.
-    ...(onPhoto && alpha.strong < 1 ? photoFrost(24, isDark) : backdrop(24)),
+    ...(strongFrosts ? photoFrost(24, isDark) : backdrop(24)),
     ...shadows.raised,
   },
   // Soyasiz: bu sirt ALLAQACHON shisha karta ichida turadi, ikkinchi soya

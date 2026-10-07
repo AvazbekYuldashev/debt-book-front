@@ -2,6 +2,7 @@ import {
   contrastRatio,
   parseColor,
   photoTheme,
+  photoThemeReason,
   readableShare,
   type PhotoSample,
   type Rgb,
@@ -56,12 +57,14 @@ const hsv = (h: number, sat: number, val: number): Rgb => {
  * uchun.
  */
 const SWEEP: { name: string; photo: PhotoSample }[] = [];
-for (let v = 0; v <= 255; v += 15) {
+for (let v = 0; v <= 255; v += 5) {
   SWEEP.push({ name: `kulrang ${v}`, photo: { rows: 4, cols: 1, cells: Array(4).fill({ r: v, g: v, b: v, a: 1 }) } });
 }
-for (let h = 0; h < 360; h += 30) {
-  for (const sat of [0.4, 0.7, 1]) {
-    for (const val of [0.3, 0.55, 0.8, 1]) {
+// Zich: to'yingan och pushti (232,40,232) kabi tor "chuqurliklar" siyrak
+// to'rdan sirg'alib o'tardi.
+for (let h = 0; h < 360; h += 10) {
+  for (const sat of [0.4, 0.7, 0.85, 1]) {
+    for (const val of [0.3, 0.45, 0.6, 0.75, 0.9, 1]) {
       const color = hsv(h, sat, val);
       SWEEP.push({ name: `hsv(${h}, ${sat}, ${val})`, photo: { rows: 4, cols: 1, cells: Array(4).fill({ ...color, a: 1 }) } });
     }
@@ -238,16 +241,15 @@ describe('photoTheme', () => {
   /**
    * Shaffoflik darajasi hisobga olinadi: yopiq sirtda ikkala ko'rinish
    * ham o'qiladi - tanlov saqlanadi. To'liq shaffof "Ko'p" da esa matn
-   * rasmning o'zi ustida: o'rtacha kulrangda oq yozuv o'qiladi, to'q
-   * emas.
+   * rasmning o'zi ustida: qorong'i rejim + o'rtacha kulrangda oq yozuv
+   * o'qilmaydi, to'q yozuv o'qiladi.
    */
   it("o'rtacha fonda tanlov saqlanadi, Ko'p da yozuv rasmga ergashadi", () => {
-    const mid = uniform(MID_GRAY);
+    const mid = uniform({ r: 150, g: 150, b: 150 });
     for (const level of ['none', 'solid', 'medium'] as const) {
-      expect([level, photoTheme('light', mid, level)]).toEqual([level, 'light']);
+      expect([level, photoTheme('dark', mid, level)]).toEqual([level, 'dark']);
     }
-    expect(photoTheme('light', mid, 'clear')).toBe('dark');
-    expect(photoTheme('light', uniform(MAGENTA), 'clear')).toBe('dark');
+    expect(photoTheme('dark', mid, 'clear')).toBe('light');
   });
 
   /** Foydalanuvchi talabi: yorug' rejim + to'q fon - HAR darajada oq yozuv. */
@@ -267,6 +269,76 @@ describe('photoTheme', () => {
         }
       }
     }
+  });
+
+  /**
+   * Aralash rasmlar: yorqinlik aniq qaror qilgan joyda shaffoflik uni
+   * AG'DARMAYDI - na tepadagi osmon, na bitta yorqin/qora dog' sababli.
+   */
+  it("aralash rasmda yorqinlik qarori har darajada saqlanadi", () => {
+    const withCell = (base: Rgb, odd: Rgb): PhotoSample => {
+      const photo = uniform(base);
+      photo.cells[200] = { ...odd, a: 1 };
+      return photo;
+    };
+    const cases: [string, PhotoSample, 'light' | 'dark', 'light' | 'dark'][] = [
+      // Osmon ekranning yarmidan ko'pi, ro'yxat esa to'q yer ustida.
+      ["och osmon, to'q yer", split({ r: 200, g: 215, b: 235 }, { r: 35, g: 40, b: 30 }, 0.55), 'light', 'dark'],
+      ["test osmoni, to'q yer", split(BRIGHT_TOP, DARK_BOTTOM, 0.6), 'light', 'dark'],
+      // Xira rasm + chiroq/oy.
+      ['xira + chiroq', withCell({ r: 80, g: 80, b: 80 }, { r: 255, g: 255, b: 255 }), 'light', 'dark'],
+      // Och rasm + qora logotip.
+      ['och + logotip', withCell({ r: 225, g: 225, b: 225 }, { r: 0, g: 0, b: 0 }), 'light', 'light'],
+      ['och + logotip', withCell({ r: 225, g: 225, b: 225 }, { r: 0, g: 0, b: 0 }), 'dark', 'light'],
+    ];
+    for (const [name, photo, preferred, expected] of cases) {
+      for (const level of LEVELS) {
+        expect([name, preferred, level, photoTheme(preferred, photo, level)]).toEqual([name, preferred, level, expected]);
+      }
+    }
+  });
+
+  /**
+   * Yo'q -> Ko'p bo'ylab ko'rinish ko'pi bilan BIR marta almashadi va
+   * hech qachon ortga qaytmaydi: aks holda darajani bosib o'tganda butun
+   * ilova och-to'q bo'lib "miltillardi". Ikki rangli ustun va qator
+   * rasmlarning to'liq to'plami.
+   */
+  it("daraja oshgan sari ko'rinish ortga qaytmaydi", () => {
+    const COLORS: Rgb[] = [];
+    for (const v of [0, 60, 110, 150, 190, 235]) COLORS.push({ r: v, g: v, b: v });
+    COLORS.push({ r: 93, g: 9, b: 9 }, { r: 168, g: 201, b: 200 }, MAGENTA, { r: 40, g: 90, b: 200 }, { r: 230, g: 200, b: 60 });
+    const columns = (left: Rgb, right: Rgb, count: number): PhotoSample => ({
+      rows: ROWS,
+      cols: COLS,
+      cells: Array.from({ length: ROWS * COLS }, (_, i) => ({ ...(i % COLS < count ? left : right), a: 1 })),
+    });
+    const bad: string[] = [];
+    for (const a of COLORS) {
+      for (const b of COLORS) {
+        if (a === b) continue;
+        for (const count of [3, 6, 9]) {
+          for (const [kind, photo] of [['ustun', columns(a, b, count)], ['qator', split(a, b, count / 12)]] as const) {
+            for (const preferred of ['light', 'dark'] as const) {
+              const looks = LEVELS.map((level) => photoTheme(preferred, photo, level));
+              const changes = looks.filter((look, i) => i > 0 && look !== looks[i - 1]).length;
+              if (changes > 1) bad.push(`${kind} ${JSON.stringify(a)}/${JSON.stringify(b)} ${count} ${preferred}: ${looks.join(',')}`);
+            }
+          }
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  }, 30000);
+
+  /** Sozlamalardagi izoh to'g'ri sababni aytadi. */
+  it("ko'rinish sababi: rasm yoki shaffoflik", () => {
+    expect(photoThemeReason('light', uniform(DARK), 'none')).toBe('photo');
+    expect(photoThemeReason('light', uniform(DARK), 'clear')).toBe('photo');
+    expect(photoThemeReason('light', uniform(BRIGHT), 'clear')).toBeNull();
+    const mid = uniform({ r: 150, g: 150, b: 150 });
+    expect(photoThemeReason('dark', mid, 'medium')).toBeNull();
+    expect(photoThemeReason('dark', mid, 'clear')).toBe('glass');
   });
 
   /** Ro'yxat pastda turadi: tepasi och, pasti to'q rasmda yozuv oq. */

@@ -4,6 +4,7 @@ import {
   findTransparency,
   glassAlpha,
   reAlpha,
+  withHaze,
 } from '../transparency';
 import { makeGlass } from '../glass';
 import { lightColors } from '../colors';
@@ -37,6 +38,40 @@ describe('reAlpha', () => {
   /** Buzuq token butun ekranni yo'qotib yubormasligi kerak. */
   it('mos kelmagan satr oz holicha qaytadi', () => {
     expect(reAlpha('#FFFFFF', 0.5)).toBe('#FFFFFF');
+  });
+});
+
+/**
+ * Tus + uning ustidagi oq xiralik BITTA rgba ga yig'iladi - ekranda ikki
+ * qatlam qanday aralashsa, xuddi shunday.
+ */
+describe('withHaze', () => {
+  const over = (rgba: string, below: number[]) => {
+    const m = /rgba\((\d+), (\d+), (\d+), ([\d.]+)\)/.exec(rgba)!;
+    const a = Number(m[4]);
+    return [1, 2, 3].map((i, k) => Number(m[i]) * a + below[k] * (1 - a));
+  };
+
+  it('ikki qatlamni aniq takrorlaydi', () => {
+    const tint = [22, 32, 50];
+    for (const alpha of [0, 0.3, 0.8]) {
+      for (const haze of [0.14, 0.25]) {
+        for (const below of [[0, 0, 0], [255, 255, 255], [200, 30, 160]]) {
+          const twoLayers = below.map((b, k) => haze * 255 + (1 - haze) * (alpha * tint[k] + (1 - alpha) * b));
+          over(withHaze('rgba(22, 32, 50, 0.9)', alpha, haze), below).forEach((v, k) => {
+            expect(Math.abs(v - twoLayers[k])).toBeLessThan(1);
+          });
+        }
+      }
+    }
+  });
+
+  it("xiraliksiz - faqat alfa (reAlpha)", () => {
+    expect(withHaze('rgba(22, 32, 50, 0.9)', 0.4, 0)).toBe(reAlpha('rgba(22, 32, 50, 0.9)', 0.4));
+  });
+
+  it("to'liq shaffof sirtda - sof oq xiralik", () => {
+    expect(withHaze('rgba(22, 32, 50, 0.9)', 0, 0.14)).toBe('rgba(255, 255, 255, 0.14)');
   });
 });
 
@@ -102,17 +137,18 @@ describe('glassAlpha', () => {
   });
 
   /**
-   * Muzlatishsiz (telefon) O'rta va Ko'p tusli qoladi; har qanday rasmda
-   * o'qilishi photoTone testida qulflangan. Yopiqroq darajalarga chegara
-   * tegmaydi.
+   * Muzlatishsiz (telefon) shaffof darajalar tusli qoladi; har qanday
+   * rasmda o'qilishi photoTone testida qulflangan. Chegara faqat
+   * qalinlashtiradi, hech qachon yupqalashtirmaydi; "Yo'q" tegilmaydi.
    */
-  it("muzlatishsiz O'rta va Ko'p tusli, qolganlari o'zgarmaydi", () => {
+  it("muzlatishsiz darajalar tusli, chegara faqat qalinlashtiradi", () => {
     for (const isDark of [false, true]) {
       expect(glassAlpha('clear', true, isDark, false).surface).toBeGreaterThan(0.5);
-      expect(glassAlpha('medium', true, isDark, false).surface).toBeGreaterThan(
-        glassAlpha('clear', true, isDark, false).surface,
-      );
-      expect(glassAlpha('solid', true, isDark, false)).toEqual(glassAlpha('solid', true, isDark));
+      for (const { id } of TRANSPARENCY_LEVELS) {
+        for (const key of ['surface', 'strong', 'muted'] as const) {
+          expect(glassAlpha(id, true, isDark, false)[key]).toBeGreaterThanOrEqual(glassAlpha(id, true, isDark)[key]);
+        }
+      }
       expect(glassAlpha('none', true, isDark, false)).toEqual(glassAlpha('none', true, isDark));
     }
   });
@@ -127,6 +163,13 @@ describe('glassAlpha', () => {
         const steps = TRANSPARENCY_LEVELS.map(({ id }) => glassAlpha(id, true, isDark, false)[key]);
         for (let i = 1; i < steps.length; i += 1) {
           expect(steps[i]).toBeLessThan(steps[i - 1]);
+        }
+        // Qadamlar KO'ZGA ko'rinadigan: ilgari qorong'ida Kam 0.8 / O'rta
+        // 0.76 edi va telefonda ikkisi bir xil chiqardi.
+        if (key === 'surface') {
+          for (let i = 1; i < steps.length; i += 1) {
+            expect(steps[i - 1] - steps[i]).toBeGreaterThanOrEqual(0.08);
+          }
         }
       }
     }

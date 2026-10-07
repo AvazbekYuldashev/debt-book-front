@@ -2,7 +2,15 @@ import { makeGlass } from '../glass';
 import { darkColors, lightColors } from '../colors';
 import { makeShadows } from '../elevation';
 import { ACCENTS } from '../accent';
-import { FROST_BRIGHTNESS, FROST_SATURATE, TRANSPARENCY_LEVELS } from '../transparency';
+import {
+  FROST_BRIGHTNESS,
+  FROST_HAZE,
+  FROST_SATURATE,
+  TRANSPARENCY_LEVELS,
+  glassAlpha,
+  reAlpha,
+  withHaze,
+} from '../transparency';
 import { contrastRatio, luminance, mix, parseColor, type Rgb } from '../photoTone';
 
 const themes = [
@@ -124,6 +132,31 @@ describe('muzli shisha', () => {
       expect(dark).toContain(saturate);
       expect(light).toContain(`brightness(${FROST_BRIGHTNESS.light})`);
       expect(dark).toContain(`brightness(${FROST_BRIGHTNESS.dark})`);
+    });
+  });
+
+  /**
+   * OQ XIRALIK (foydalanuvchi talabi, rgba 255,255,255): muzlatilgan sirt
+   * oqish shisha. "Ko'p" da sirt rangi sof oq xiralik; telefonda (blur
+   * yo'q), "Yo'q" da va rasmsiz fonda xiralik qo'shilmaydi.
+   */
+  it("muzlatilgan sirtda oq xiralik, boshqa joyda yo'q", () => {
+    const shadowsDark = makeShadows(darkColors.shadow);
+    withPlatform('web', () => {
+      expect(makeGlass(darkColors, shadowsDark, true, 'clear', true).surface.backgroundColor)
+        .toBe(`rgba(255, 255, 255, ${FROST_HAZE.dark})`);
+      expect(makeGlass(lightColors, shadowsLight, true, 'clear', false).surface.backgroundColor)
+        .toBe(`rgba(255, 255, 255, ${FROST_HAZE.light})`);
+      expect(makeGlass(darkColors, shadowsDark, true, 'medium', true).surface.backgroundColor)
+        .toBe(withHaze(darkColors.glassSurfaceOnPhoto, glassAlpha('medium', true, true).surface, FROST_HAZE.dark));
+      expect(makeGlass(darkColors, shadowsDark, true, 'none', true).surface.backgroundColor)
+        .toBe(reAlpha(darkColors.glassSurfaceOnPhoto, 1));
+      expect(makeGlass(darkColors, shadowsDark, false, 'clear', true).surface.backgroundColor)
+        .toBe(reAlpha(darkColors.glassSurface, glassAlpha('clear', false, true).surface));
+    });
+    withPlatform('android', () => {
+      expect(makeGlass(darkColors, shadowsDark, true, 'clear', true).surface.backgroundColor)
+        .toBe(reAlpha(darkColors.glassSurfaceOnPhoto, glassAlpha('clear', true, true, false).surface));
     });
   });
 
