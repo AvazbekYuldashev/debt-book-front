@@ -360,11 +360,15 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
 
         <View style={styles.totals}>
           <View style={styles.total}>
-            <Text style={styles.totalValue}>{formatSum(account?.toppedUp ?? 0)}</Text>
+            <Text style={[styles.totalValue, styles.toppedUp]}>
+              {formatSum(account?.toppedUp ?? 0)}
+            </Text>
             <Text style={styles.totalLabel}>{t('payments.toppedUp')}</Text>
           </View>
           <View style={styles.total}>
-            <Text style={styles.totalValue}>{formatSum(account?.spent ?? 0)}</Text>
+            <Text style={[styles.totalValue, styles.spent]}>
+              {formatSum(account?.spent ?? 0)}
+            </Text>
             <Text style={styles.totalLabel}>{t('payments.spent')}</Text>
           </View>
         </View>
@@ -432,6 +436,24 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.caption,
       color: colors.textSecondary,
       marginTop: spacing.xxs,
+    },
+    /**
+     * Kelgan pul YASHIL, ketgani QIZIL - ro'yxatlardagi haq/qarz bilan bir
+     * xil til. Raqamning o'zi ikkovida ham musbat yoziladi, shuning uchun
+     * yo'nalishni faqat rang ko'rsatadi.
+     *
+     * Bu ranglar ILOVA RANGIGA ERGASHMAYDI (accent.ts moliyaviy ranglarga
+     * tegmaydi): iliq rang tanlanganda to'lov bilan xarajat deyarli bir xil
+     * tusda ko'rinardi.
+     *
+     * Faqat BALANS kartasida: ovozli xarajat kartasida uch ustun ham bir xil
+     * ma'noda (sarflangan), u yerda rang farq bermaydi.
+     */
+    toppedUp: {
+      color: colors.positive,
+    },
+    spent: {
+      color: colors.negative,
     },
     rate: {
       ...typography.caption,
