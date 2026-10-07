@@ -17,7 +17,7 @@ import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { confirmAction } from '../../../shared/lib/confirm';
 import { useI18n } from '../../../shared/i18n';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import type { ProductsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
@@ -242,7 +242,11 @@ const ProductsScreen: React.FC<Props> = () => {
   // fon rasmi ustida qolib, to'q rasmda o'qilmasdi. EmptyState'ning `card`i
   // emas: u yana marginHorizontal qo'shadi, kontent esa allaqachon
   // chekinishli - karta qidiruv maydoni va ro'yxatdan torroq chiqardi.
-  const inCard = (node: React.ReactNode) => <View style={styles.emptyCard}>{node}</View>;
+  const inCard = (node: React.ReactNode) => (
+    <View style={styles.emptyCard}>
+      <NestedGlass>{node}</NestedGlass>
+    </View>
+  );
 
   const renderBody = () => {
     if (!isBusiness) {

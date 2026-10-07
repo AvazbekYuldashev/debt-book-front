@@ -9,6 +9,7 @@ import {
   glassAlpha,
   reAlpha,
   withHaze,
+  type PhotoFloors,
   type TransparencyLevel,
 } from './transparency';
 
@@ -141,26 +142,44 @@ const photoFrost = (amount: number, isDark: boolean): ViewStyle =>
  * pardaga aylanardi. Rasm bor bo'lsa sirtlar deyarli to'ldiriladi va
  * rasm ular ORASIDA o'z holicha ko'rinadi.
  */
+export interface GlassOptions {
+  /** O'lchangan fon rasmi uchun eng kam tus (photoTone.photoFloor). */
+  floors?: PhotoFloors;
+  /**
+   * Boshqa sirt ICHIDAGI bo'laklar uchun (NestedGlass): tus va alfa xuddi
+   * shunday, lekin muzlatish ham, oq xiralik ham YO'Q.
+   *
+   * Sabab: backdrop-filter ichma-ich bo'lsa, ichkisi rasmni emas, ota
+   * sirtning O'Z bo'yog'ini qayta muzlatadi va ustiga yana xiralik
+   * qo'shadi - dialog ichidagi "Bekor qilish" tugmasi va chiplar kulrang
+   * plitaga, karta ichidagi tugma oqish dog'ga aylanardi (yozuvi 2:1 gacha
+   * tushardi).
+   */
+  nested?: boolean;
+}
+
 export const makeGlass = (
   colors: ColorTokens,
   shadows: ShadowTokens,
   onPhoto = false,
   level: TransparencyLevel = DEFAULT_TRANSPARENCY,
   isDark = false,
+  { floors, nested = false }: GlassOptions = {},
 ): GlassTokens => {
   // TUS mavzudan, ALFA sozlamadan. Shu sababli shaffoflikni o'zgartirish
   // sirtning rangini emas, faqat qalinligini o'zgartiradi.
-  const alpha = glassAlpha(level, onPhoto, isDark, canFrost());
+  const alpha = glassAlpha(level, onPhoto, isDark, canFrost(), floors);
 
   // Muzlatish FAQAT fon rasmi ustida va sirt shaffof bo'lganda. Bezakli
   // fon mayda detalsiz - u yerda blur ko'zga ko'rinmaydi, scroll'dagi
   // narxi esa qolardi (backdrop har kadrda qayta hisoblanadi). To'liq
-  // yopiq ("Yo'q") sirt ortini baribir ko'rsatmaydi.
-  const frosts = onPhoto && canFrost() && alpha.surface < 1;
-  const strongFrosts = onPhoto && canFrost() && alpha.strong < 1;
+  // yopiq ("Yo'q") sirt ortini baribir ko'rsatmaydi. Ichki bo'lak
+  // (nested) ortida rasm emas, ota sirt turadi.
+  const frosts = !nested && onPhoto && canFrost() && alpha.surface < 1;
+  const strongFrosts = !nested && onPhoto && canFrost() && alpha.strong < 1;
   const frost = frosts ? photoFrost(FROST_BLUR, isDark) : {};
 
-  // Muzlatilgan sirtda tus ustida OQ XIRALIK (transparency.ts FROST_HAZE):
+  // Muzlatilgan sirtda tus OSTIDA OQ XIRALIK (transparency.ts FROST_HAZE, withHaze):
   // muzli shisha oqish ko'rinadi. Ichki bo'lak (muted) ota-karta ichida -
   // xiralik u yerda allaqachon bor.
   const haze = FROST_HAZE[isDark ? 'dark' : 'light'];
@@ -188,7 +207,7 @@ export const makeGlass = (
     borderColor: colors.glassBorder,
     // Rasm ustida - boshqa sirtlar bilan bir xil muzlatish (yorqinlik
     // tuzatishi bilan): "Ko'p" da bu karta ham to'liq shaffof.
-    ...(strongFrosts ? photoFrost(24, isDark) : backdrop(24)),
+    ...(strongFrosts ? photoFrost(24, isDark) : nested ? {} : backdrop(24)),
     ...shadows.raised,
   },
   // Soyasiz: bu sirt ALLAQACHON shisha karta ichida turadi, ikkinchi soya

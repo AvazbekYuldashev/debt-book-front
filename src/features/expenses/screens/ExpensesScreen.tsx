@@ -10,7 +10,7 @@ import SectionHeader from '../../../shared/ui/SectionHeader';
 import StatusBanner from '../../../shared/ui/StatusBanner';
 import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
@@ -524,36 +524,38 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         ) : null}
 
         <View style={styles.listCard}>
-          {/* Skeleton faqat BIRINCHI yuklashda: mavjud kategoriyalar fon
-              yangilanishida kulrang chiziqlarga almashmaydi. */}
-          {loading && sortedCategories.length === 0 ? (
-            <SkeletonContactList count={5} />
-          ) : sortedCategories.length === 0 ? (
-            <EmptyState
-              icon="pricetags-outline"
-              title={t('expenses.noCategories')}
-              description={allowCategoryManage ? t('expenses.emptyHint') : undefined}
-            />
-          ) : (
-            sortedCategories.map((item, index) => (
-              <CategoryRow
-                key={item.id}
-                category={item}
-                sum={categorySums[item.id] ?? 0}
-                isLast={index === sortedCategories.length - 1}
-                allowManage={allowCategoryManage}
-                expanded={expandedCategoryActionsId === item.id}
-                pinning={pinningCategoryId === item.id}
-                deleting={deletingCategory === item.id}
-                onOpen={handleOpenCategory}
-                onToggleExpand={toggleCategoryActions}
-                onTogglePin={pinFromRow}
-                onEdit={editFromRow}
-                onRequestDelete={deleteFromRow}
-                onViewPhoto={viewCategoryPhoto}
+          <NestedGlass>
+            {/* Skeleton faqat BIRINCHI yuklashda: mavjud kategoriyalar fon
+                yangilanishida kulrang chiziqlarga almashmaydi. */}
+            {loading && sortedCategories.length === 0 ? (
+              <SkeletonContactList count={5} />
+            ) : sortedCategories.length === 0 ? (
+              <EmptyState
+                icon="pricetags-outline"
+                title={t('expenses.noCategories')}
+                description={allowCategoryManage ? t('expenses.emptyHint') : undefined}
               />
-            ))
-          )}
+            ) : (
+              sortedCategories.map((item, index) => (
+                <CategoryRow
+                  key={item.id}
+                  category={item}
+                  sum={categorySums[item.id] ?? 0}
+                  isLast={index === sortedCategories.length - 1}
+                  allowManage={allowCategoryManage}
+                  expanded={expandedCategoryActionsId === item.id}
+                  pinning={pinningCategoryId === item.id}
+                  deleting={deletingCategory === item.id}
+                  onOpen={handleOpenCategory}
+                  onToggleExpand={toggleCategoryActions}
+                  onTogglePin={pinFromRow}
+                  onEdit={editFromRow}
+                  onRequestDelete={deleteFromRow}
+                  onViewPhoto={viewCategoryPhoto}
+                />
+              ))
+            )}
+          </NestedGlass>
         </View>
       </ScrollView>
 

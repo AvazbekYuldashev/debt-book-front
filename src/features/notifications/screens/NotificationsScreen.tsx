@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { FlatList, type ListRenderItem, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import type { DebtsScreenProps } from '../../../app/navigation/types';
@@ -195,33 +195,35 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
         })}
       </View>
 
-      <FlatList
-        style={styles.scroll}
-        contentContainerStyle={styles.listCard}
-        data={items}
-        renderItem={renderNotification}
-        keyExtractor={keyExtractor}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={12}
-        windowSize={11}
-        refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />
-        }
-        ListEmptyComponent={
-          // Skeleton faqat BIRINCHI yuklashda: mavjud ro'yxat fon
-          // yangilanishida kulrang chiziqlarga almashmaydi.
-          isLoading ? (
-            <SkeletonContactList count={5} />
-          ) : (
-            <EmptyState
-              icon="notifications-outline"
-              // Bo'sh holat bo'limga qarab: "bildirishnoma yo'q" deyish
-              // qo'shni bo'limda xabar turgan paytda chalg'ituvchi bo'lardi.
-              title={showRead ? t('notifications.emptyRead') : t('notifications.empty')}
-            />
-          )
-        }
-      />
+      <NestedGlass>
+        <FlatList
+          style={styles.scroll}
+          contentContainerStyle={styles.listCard}
+          data={items}
+          renderItem={renderNotification}
+          keyExtractor={keyExtractor}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={12}
+          windowSize={11}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />
+          }
+          ListEmptyComponent={
+            // Skeleton faqat BIRINCHI yuklashda: mavjud ro'yxat fon
+            // yangilanishida kulrang chiziqlarga almashmaydi.
+            isLoading ? (
+              <SkeletonContactList count={5} />
+            ) : (
+              <EmptyState
+                icon="notifications-outline"
+                // Bo'sh holat bo'limga qarab: "bildirishnoma yo'q" deyish
+                // qo'shni bo'limda xabar turgan paytda chalg'ituvchi bo'lardi.
+                title={showRead ? t('notifications.emptyRead') : t('notifications.empty')}
+              />
+            )
+          }
+        />
+      </NestedGlass>
     </View>
   );
 };

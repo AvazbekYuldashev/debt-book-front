@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
@@ -247,40 +247,42 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
         </View>
       </EntranceView>
 
-      <FlatList
-        style={styles.list}
-        contentContainerStyle={styles.listCard}
-        ListHeaderComponent={listFrost.ListHeaderComponent}
-        ListHeaderComponentStyle={listFrost.ListHeaderComponentStyle}
-        data={items}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={12}
-        windowSize={11}
-        refreshControl={
-          <RefreshControl
-            refreshing={listQuery.isFetching && !isBusy}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyCard}>
-          {/* Skeleton faqat BIRINCHI yuklashda: mavjud ro'yxat fon
-              yangilanishida kulrang chiziqlarga almashmaydi. */}
-          {isBusy ? (
-            <SkeletonContactList count={4} />
-          ) : (
-            <EmptyState
-              icon="people-outline"
-              title={t('gap.empty')}
-              description={t('gap.emptyHint')}
+      <NestedGlass>
+        <FlatList
+          style={styles.list}
+          contentContainerStyle={styles.listCard}
+          ListHeaderComponent={listFrost.ListHeaderComponent}
+          ListHeaderComponentStyle={listFrost.ListHeaderComponentStyle}
+          data={items}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={12}
+          windowSize={11}
+          refreshControl={
+            <RefreshControl
+              refreshing={listQuery.isFetching && !isBusy}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
             />
-          )}
-          </View>
-        }
-      />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyCard}>
+            {/* Skeleton faqat BIRINCHI yuklashda: mavjud ro'yxat fon
+                yangilanishida kulrang chiziqlarga almashmaydi. */}
+            {isBusy ? (
+              <SkeletonContactList count={4} />
+            ) : (
+              <EmptyState
+                icon="people-outline"
+                title={t('gap.empty')}
+                description={t('gap.emptyHint')}
+              />
+            )}
+            </View>
+          }
+        />
+      </NestedGlass>
 
       {/* Yangi gap to'yona. Tugma barcha ekranlar bilan bitta komponentdan. */}
       <FloatingActionButton

@@ -1,5 +1,6 @@
 import React, { memo, useMemo } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Modal from '../../../shared/ui/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import SkeletonShimmer from '../../../shared/ui/SkeletonShimmer';
 import { BusinessDTO } from '../types/business';

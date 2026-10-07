@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { useAppTheme } from '../theme';
+import { NestedGlass, useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 
 export interface SettingsGroupProps {
@@ -35,7 +35,9 @@ const SettingsGroup: React.FC<SettingsGroupProps> = ({ title, children, style })
           <Text style={styles.title}>{title}</Text>
         </View>
       ) : null}
-      <View style={styles.panel}>{children}</View>
+      <View style={styles.panel}>
+        <NestedGlass>{children}</NestedGlass>
+      </View>
     </View>
   );
 };

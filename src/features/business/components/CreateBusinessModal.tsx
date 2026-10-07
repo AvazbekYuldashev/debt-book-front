@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import Modal from '../../../shared/ui/AppModal';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { AuthContext } from '../../auth/context/AuthContext';

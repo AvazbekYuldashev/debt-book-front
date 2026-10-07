@@ -28,7 +28,7 @@ import { ContactsContext, type Contact } from '../context/ContactsContext';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import { useContactBalances } from '../hooks/useContactBalances';
 import { useNotifications } from '../../notifications/hooks/useNotifications';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { DebtsNavigation } from '../../../app/navigation/types';
@@ -650,43 +650,45 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           render qilinadi. Avval ScrollView + .map() barcha kontaktni bir vaqtda
           DOM'ga chiqarardi (katta ro'yxatda "qotish"). Karta ko'rinishi
           contentContainerStyle orqali saqlanadi. */}
-      <FlatList
-        style={styles.scroll}
-        contentContainerStyle={styles.listCard}
-        ListHeaderComponent={listFrost.ListHeaderComponent}
-        ListHeaderComponentStyle={listFrost.ListHeaderComponentStyle}
-        data={sortedContacts}
-        renderItem={renderContact}
-        keyExtractor={keyExtractor}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={12}
-        windowSize={11}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyCard}>
-          {showSkeleton ? (
-            <SkeletonContactList count={6} />
-          ) : hasActiveQuery ? (
-            // Qidiruvning bo'sh natijasi — "hali kontakt yo'q" dan BOSHQA holat.
-            <EmptyState
-              icon="search-outline"
-              title={t('debts.noSearchResults')}
-              description={t('debts.min3letters')}
-            />
-          ) : (
-            <EmptyState
-              icon="people-outline"
-              title={t('debts.emptyAccount')}
-              description={t('debts.emptyDescription')}
-              actionLabel={canEdit ? t('debts.addNew') : undefined}
-              onAction={canEdit ? openCreate : undefined}
-            />
-          )}
-          </View>
-        }
-      />
+      <NestedGlass>
+        <FlatList
+          style={styles.scroll}
+          contentContainerStyle={styles.listCard}
+          ListHeaderComponent={listFrost.ListHeaderComponent}
+          ListHeaderComponentStyle={listFrost.ListHeaderComponentStyle}
+          data={sortedContacts}
+          renderItem={renderContact}
+          keyExtractor={keyExtractor}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={12}
+          windowSize={11}
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyCard}>
+            {showSkeleton ? (
+              <SkeletonContactList count={6} />
+            ) : hasActiveQuery ? (
+              // Qidiruvning bo'sh natijasi — "hali kontakt yo'q" dan BOSHQA holat.
+              <EmptyState
+                icon="search-outline"
+                title={t('debts.noSearchResults')}
+                description={t('debts.min3letters')}
+              />
+            ) : (
+              <EmptyState
+                icon="people-outline"
+                title={t('debts.emptyAccount')}
+                description={t('debts.emptyDescription')}
+                actionLabel={canEdit ? t('debts.addNew') : undefined}
+                onAction={canEdit ? openCreate : undefined}
+              />
+            )}
+            </View>
+          }
+        />
+      </NestedGlass>
 
       {canEdit ? (
         <FloatingActionButton

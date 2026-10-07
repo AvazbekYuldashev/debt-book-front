@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FlatList, type ListRenderItem, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import type { GapScreenProps } from '../../../app/navigation/types';
@@ -200,30 +200,32 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         onBack={navigation.goBack}
       />
 
-      <FlatList
-        style={styles.list}
-        contentContainerStyle={styles.listCard}
-        data={detailQuery.isLoading ? [] : items}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={14}
-        windowSize={11}
-        refreshControl={
-          <RefreshControl
-            refreshing={detailQuery.isFetching && !detailQuery.isLoading}
-            onRefresh={detailQuery.refetch}
-            tintColor={colors.primary}
-          />
-        }
-        ListEmptyComponent={
-          detailQuery.isLoading ? (
-            <SkeletonCardList count={4} containerStyle={styles.skeleton} />
-          ) : (
-            <Text style={styles.emptyText}>{t('gap.noTransfers')}</Text>
-          )
-        }
-      />
+      <NestedGlass>
+        <FlatList
+          style={styles.list}
+          contentContainerStyle={styles.listCard}
+          data={detailQuery.isLoading ? [] : items}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={14}
+          windowSize={11}
+          refreshControl={
+            <RefreshControl
+              refreshing={detailQuery.isFetching && !detailQuery.isLoading}
+              onRefresh={detailQuery.refetch}
+              tintColor={colors.primary}
+            />
+          }
+          ListEmptyComponent={
+            detailQuery.isLoading ? (
+              <SkeletonCardList count={4} containerStyle={styles.skeleton} />
+            ) : (
+              <Text style={styles.emptyText}>{t('gap.noTransfers')}</Text>
+            )
+          }
+        />
+      </NestedGlass>
 
       {/* Xato fonda emas, o'z sirtida: to'q fon rasmida ham o'qiladi. */}
       {actionError ? <StatusBanner tone="error" message={actionError} /> : null}

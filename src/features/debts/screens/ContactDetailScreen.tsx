@@ -20,7 +20,7 @@ import { useMoney } from '../hooks/useMoney';
 import { useNotifications, useMarkNotificationRead } from '../../notifications/hooks/useNotifications';
 import { useAccountContext } from '../../../shared/hooks/useAccountContext';
 import { normalizePhone } from '../../../shared/lib/phone';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import type { DebtsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
@@ -275,38 +275,40 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   }
 
   const renderHistory = () => (
-    <FlatList
-      contentContainerStyle={styles.listCard}
-      data={mappedHistory}
-      renderItem={renderTransaction}
-      keyExtractor={keyExtractor}
-      showsVerticalScrollIndicator={false}
-      initialNumToRender={14}
-      windowSize={11}
-      refreshControl={
-        <RefreshControl
-          refreshing={loading}
-          onRefresh={loadScreenData}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
-          progressBackgroundColor={colors.surface}
-        />
-      }
-      ListEmptyComponent={
-        // Skeleton faqat BIRINCHI yuklashda: tarix allaqachon ekranda
-        // bo'lsa, modal yopilgandan keyingi fon yangilanishi uni
-        // kulrang chiziqlarga almashtirmaydi.
-        loading && mappedHistory.length === 0 ? (
-          <SkeletonContactList count={5} />
-        ) : (
-          <EmptyState
-            icon="swap-horizontal-outline"
-            title={t('debts.emptyAccount')}
-            description={allowWrite ? t('contact.emptyHint') : undefined}
+    <NestedGlass>
+      <FlatList
+        contentContainerStyle={styles.listCard}
+        data={mappedHistory}
+        renderItem={renderTransaction}
+        keyExtractor={keyExtractor}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={14}
+        windowSize={11}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={loadScreenData}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
           />
-        )
-      }
-    />
+        }
+        ListEmptyComponent={
+          // Skeleton faqat BIRINCHI yuklashda: tarix allaqachon ekranda
+          // bo'lsa, modal yopilgandan keyingi fon yangilanishi uni
+          // kulrang chiziqlarga almashtirmaydi.
+          loading && mappedHistory.length === 0 ? (
+            <SkeletonContactList count={5} />
+          ) : (
+            <EmptyState
+              icon="swap-horizontal-outline"
+              title={t('debts.emptyAccount')}
+              description={allowWrite ? t('contact.emptyHint') : undefined}
+            />
+          )
+        }
+      />
+    </NestedGlass>
   );
 
   const pages: SwipePage[] = [
