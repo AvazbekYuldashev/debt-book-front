@@ -85,12 +85,18 @@ describe('PaymentsScreen', () => {
     expect(screen.getByText("9 912,93 so'm")).toBeTruthy();
   });
 
-  /** Bitta gapirish - bitta qator, garchi ichida ikkita xizmat bo'lsa ham. */
+  /**
+   * Bitta gapirish - bitta qator, garchi ichida ikkita xizmat bo'lsa ham.
+   *
+   * Qatorda TOKEN SONI yo'q: "737 token" dan odamga hech narsa chiqmaydi.
+   * Narx esa o'ng tomonda, tanish va tushunish qo'shilgan holda.
+   */
   it('ovoz sahifasida buyruq bitta qatorda turadi', async () => {
     show();
     await settle();
 
-    expect(screen.getByText('9 soniya · Gapni tushunish - 737 token')).toBeTruthy();
+    expect(screen.getByText('9 soniya')).toBeTruthy();
+    expect(screen.queryByText(/token/)).toBeNull();
   });
 
   /**

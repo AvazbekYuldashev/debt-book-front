@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, render, screen } from '@testing-library/react-native';
 import UsageDetailModal from '../UsageDetailModal';
+import type { ModelPricing } from '../../model/spend';
 import { AppThemeProvider } from '../../../../shared/theme';
 import { LanguageProvider } from '../../../../shared/i18n';
 import type { VoiceUsage } from '../../api/usage';
@@ -48,11 +49,11 @@ const command: VoiceCommand = {
   cost: 69.3,
 };
 
-const show = (value: VoiceCommand | null) =>
+const show = (value: VoiceCommand | null, pricing: ModelPricing | null = null) =>
   render(
     <AppThemeProvider>
       <LanguageProvider>
-        <UsageDetailModal command={value} onClose={() => {}} />
+        <UsageDetailModal command={value} onClose={() => {}} pricing={pricing} />
       </LanguageProvider>
     </AppThemeProvider>,
   );
@@ -70,9 +71,28 @@ describe('UsageDetailModal', () => {
 
     expect(screen.getByText('9 soniya')).toBeTruthy();
     expect(screen.getByText('132 KB')).toBeTruthy();
-    expect(screen.getByText('690')).toBeTruthy();
-    expect(screen.getByText('47')).toBeTruthy();
-    expect(screen.getByText('737')).toBeTruthy();
+  });
+
+  /**
+   * TOKEN SONI EMAS, NARX. "690 token" dan odamga hech narsa chiqmaydi;
+   * tarif va kurs berilganda esa kirish va chiqish so'mda ko'rinadi.
+   *
+   * 690 x $5 / 1M x 12 000 = 41,40 so'm
+   *  47 x $25 / 1M x 12 000 = 14,10 so'm
+   */
+  it('token soni emas, somdagi narxi korsatiladi', async () => {
+    show(command, {
+      inputPerMillion: 5,
+      outputPerMillion: 25,
+      usdRate: 12000,
+      label: 'Claude Opus 5',
+    });
+    await settle();
+
+    expect(screen.queryByText('690')).toBeNull();
+    expect(screen.getByText("41,40 so'm")).toBeTruthy();
+    expect(screen.getByText("14,10 so'm")).toBeTruthy();
+    expect(screen.getByText('Claude Opus 5')).toBeTruthy();
   });
 
   /**

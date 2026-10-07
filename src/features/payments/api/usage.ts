@@ -33,24 +33,29 @@ export interface VoiceUsageSummary {
   countTotal: number;
   ratePerMinute: number;
   /**
-   * Gapni TUSHUNISHGA ketgan tokenlarning so'mdagi narxi.
+   * Yuqoridagi summaning TUSHUNISHGA ketgan ulushi.
    *
-   * Serverda hisoblanadi: model tarifi (dollarda, 1 million tokenga) va
-   * Markaziy bankning jonli dollar kursi. Ilovada hisoblanmaydi - aks
-   * holda eski o'rnatilgan nusxalar eskirgan raqam ko'rsatardi.
-   *
-   * NULL - tarif yoki kurs yo'q, ya'ni "hisoblab bo'lmadi". Nol bilan
-   * adashtirmaslik kerak: nol "bepul" degani.
+   * Qo'shimcha EMAS, ichidagi qism: narx yozilganda so'mga aylantirilib
+   * saqlanadi, shuning uchun `today`/`thisMonth`/`total` allaqachon
+   * ikkala xarajatni ham qamrab oladi. Qo'shsak ikki marta sanalardi.
    */
-  modelToday: number | null;
-  modelThisMonth: number | null;
-  modelTotal: number | null;
+  modelToday: number;
+  modelThisMonth: number;
+  modelTotal: number;
   /** Tokenlar soni - tarif to'g'riligini tekshirish uchun. */
   tokensToday: number;
   tokensTotal: number;
   /** Qaysi model tarifi qo'llandi ("Claude Opus 5") va dollar kursi. */
   modelLabel?: string | null;
   usdRate?: number | null;
+  /**
+   * Tarifning o'zi - 1 million token uchun DOLLARDA.
+   *
+   * Bitta ovoz tafsilotida kirish va chiqish narxi alohida ko'rsatiladi:
+   * qatorda faqat umumiy narx saqlanadi, uni ajratish uchun tarif kerak.
+   */
+  modelInputPerMillion?: number | null;
+  modelOutputPerMillion?: number | null;
 }
 
 interface Paged<T> {

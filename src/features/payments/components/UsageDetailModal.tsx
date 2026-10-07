@@ -7,10 +7,19 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import type { VoiceCommand } from '../model/voiceCommand';
 import { formatDuration, formatSum, formatWhen } from '../model/formatUsage';
+import { commandCost, tokenCost, type ModelPricing } from '../model/spend';
 
 export interface UsageDetailModalProps {
   command: VoiceCommand | null;
   onClose: () => void;
+  /**
+   * Model tarifi va dollar kursi - serverdan.
+   *
+   * Qatorda tushunishning faqat UMUMIY narxi saqlanadi; kirish va
+   * chiqishni alohida ko'rsatish uchun tarif kerak. Yo'q bo'lsa (eski
+   * server) faqat umumiy narx ko'rsatiladi.
+   */
+  pricing?: ModelPricing | null;
 }
 
 /** Baytni o'qiladigan ko'rinishga: "81 KB". */
@@ -32,7 +41,7 @@ const formatCount = (value: number): string =>
  * esa tokenga. Qaysi biri qimmatga tushayotganini bilish uchun ularni
  * alohida ko'rsatish kerak.
  */
-const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ command, onClose }) => {
+const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ command, onClose, pricing }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
@@ -41,7 +50,9 @@ const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ command, onClose })
   if (!command) return null;
 
   const { stt, model } = command;
-  const tokens = model ? model.promptTokens + model.completionTokens : 0;
+
+  // Narx MODAL ham, ro'yxat qatori ham bir joydan o'qiydi.
+  const { model: modelCost, total: totalCost } = commandCost(command, pricing);
 
   return (
     <Modal transparent visible animationType="fade" onRequestClose={onClose}>
@@ -88,29 +99,47 @@ const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ command, onClose })
                 <Text style={styles.partTitle}>{t('usage.modelTitle')}</Text>
                 {/* Tarif sozlanmaganda nol emas, izoh - "bepul" degan
                     taassurot qolmasligi uchun. */}
+                {/* Narx nol bo'lsa "0 so'm" EMAS: u "bepul" degan
+                    taassurot qoldirardi. Nol - tarif yoki kurs yo'qligi,
+                    ya'ni hisoblab bo'lmagani. */}
                 <Text style={styles.partCost}>
-                  {model.cost === 0 ? t('usage.rateUnknown') : formatSum(model.cost)}
+                  {modelCost > 0 ? formatSum(modelCost) : t('usage.rateUnknown')}
                 </Text>
               </View>
 
+              {/* NARX, token soni emas: "1 214 token" dan odamga hech
+                  narsa chiqmaydi, "14 so'm" dan esa chiqadi. Tarif
+                  bo'lmasa (eski server) faqat umumiy narx qoladi. */}
+              {pricing ? (
+                <>
+                  <View style={styles.row}>
+                    <Text style={styles.rowLabel}>{t('usage.inputCost')}</Text>
+                    <Text style={styles.rowValue}>
+                      {formatSum(
+                        tokenCost(model.promptTokens, pricing.inputPerMillion, pricing.usdRate),
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.row}>
+                    <Text style={styles.rowLabel}>{t('usage.outputCost')}</Text>
+                    <Text style={styles.rowValue}>
+                      {formatSum(
+                        tokenCost(model.completionTokens, pricing.outputPerMillion, pricing.usdRate),
+                      )}
+                    </Text>
+                  </View>
+                </>
+              ) : null}
               <View style={styles.row}>
-                <Text style={styles.rowLabel}>{t('usage.inputTokens')}</Text>
-                <Text style={styles.rowValue}>{formatCount(model.promptTokens)}</Text>
-              </View>
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>{t('usage.outputTokens')}</Text>
-                <Text style={styles.rowValue}>{formatCount(model.completionTokens)}</Text>
-              </View>
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>{t('usage.totalTokens')}</Text>
-                <Text style={styles.rowValue}>{formatCount(tokens)}</Text>
+                <Text style={styles.rowLabel}>{t('usage.rate')}</Text>
+                <Text style={styles.rowValue}>{pricing?.label ?? '—'}</Text>
               </View>
             </View>
           ) : null}
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>{t('usage.cost')}</Text>
-            <Text style={styles.totalValue}>{formatSum(command.cost)}</Text>
+            <Text style={styles.totalValue}>{formatSum(totalCost)}</Text>
           </View>
 
           <Pressable style={styles.close} onPress={onClose} accessibilityRole="button">

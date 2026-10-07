@@ -1,31 +1,24 @@
-import { isPartial, periodSpend, perVoice } from '../spend';
+import { modelShare, perVoice } from '../spend';
 
 /**
- * Bitta ovoz IKKI marta pul yeydi: audioni tanish (daqiqaga) va gapni
- * tushunish (tokenga). Ekranda ular qo'shiladi - foydalanuvchi uchun bu
- * bitta amal.
+ * Bitta ovoz IKKI marta pul yeydi: audioni tanish (daqiqaga to'lanadi) va
+ * gapni tushunish (tokenga). Ikkalasi ham bitta ustunda, SO'MDA saqlanadi,
+ * shuning uchun serverdan kelgan summa ALLAQACHON to'liq - bu yerda
+ * qo'shish yo'q, faqat ulushni ajratish.
  */
-describe('periodSpend', () => {
-  it('tanish va tushunish qoshiladi', () => {
-    expect(periodSpend(100, 20)).toBe(120);
+describe('modelShare', () => {
+  it('ulush foizini beradi', () => {
+    expect(modelShare(1000, 250)).toBe(0.25);
   });
 
-  /**
-   * Tushunish narxi NULL bo'lishi mumkin: tarif sozlanmagan yoki Markaziy
-   * bank kursi kelmagan. Unda butun karta nolga tushib ketmasligi kerak -
-   * tanish narxi o'zi baribir ma'lum.
-   */
-  it('tushunish narxi yoq bolsa tanish qoladi', () => {
-    expect(periodSpend(100, null)).toBe(100);
-    expect(periodSpend(100, undefined)).toBe(100);
+  /** Jami nol bo'lsa "0%" yolg'on - hech narsa ko'rsatilmaydi. */
+  it('jami nol bolsa null', () => {
+    expect(modelShare(0, 0)).toBeNull();
   });
 
-  /** Nol "bepul" degani va u haqiqiy qiymat - yo'qlik bilan adashmasin. */
-  it('nol tushunish narxi yoqlik emas', () => {
-    expect(periodSpend(100, 0)).toBe(100);
-    expect(isPartial(0)).toBe(false);
-    expect(isPartial(null)).toBe(true);
-    expect(isPartial(undefined)).toBe(true);
+  /** Eski yozuvlarda tushunish narxi yozilmagan - ulush nol, lekin mavjud. */
+  it('tushunish nol bolsa nol ulush', () => {
+    expect(modelShare(1000, 0)).toBe(0);
   });
 });
 

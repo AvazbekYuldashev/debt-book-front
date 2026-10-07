@@ -27,7 +27,8 @@ import {
   type VoiceUsageSummary,
 } from '../api/usage';
 import { formatDuration, formatSum, formatWhen } from '../model/formatUsage';
-import { isPartial, periodSpend } from '../model/spend';
+import { commandCost, type ModelPricing } from '../model/spend';
+
 import {
   createClickLink,
   fetchPaymentHistory,
@@ -159,19 +160,33 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     [colors.positive, colors.textSecondary, styles, t],
   );
 
+  /**
+   * Model tarifi - tafsilot oynasi va eski qatorlar uchun.
+   *
+   * ESKI yozuvlarda tushunish narxi nol: ular tarif sozlanmagan paytda
+   * yozilgan. Ularni bugungi tarif bilan qayta hisoblash uchun kerak.
+   * Tarif yoki kurs bo'lmasa null - unda hech narsa qayta hisoblanmaydi.
+   */
+  const pricing: ModelPricing | null =
+    summary?.usdRate && summary.modelInputPerMillion != null && summary.modelOutputPerMillion != null
+      ? {
+          inputPerMillion: summary.modelInputPerMillion,
+          outputPerMillion: summary.modelOutputPerMillion,
+          usdRate: summary.usdRate,
+          label: summary.modelLabel ?? '',
+        }
+      : null;
+
   const renderVoiceRow = useCallback(
     ({ item }: { item: FeedEntry }) => {
       if (item.kind !== 'VOICE') return null;
       const command = item.command;
       // Bir qatorda IKKALA qism: odam uchun bu bitta ish. Tafsiloti -
       // qaysi qismga qancha ketgani - bosilganda ochiladi.
-      const tokens = command.model
-        ? command.model.promptTokens + command.model.completionTokens
-        : 0;
-
+      /* TOKEN SONI EMAS: "1 357 token" dan odamga hech narsa chiqmaydi.
+         Narx esa yuqoridagi summada - tanish va tushunish qo'shilgan. */
       const parts = [
         command.stt ? formatDuration(command.stt.durationMs) : null,
-        tokens > 0 ? t('payments.tokensLine', { count: String(tokens) }) : null,
       ].filter(Boolean);
 
       return (
@@ -189,12 +204,12 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
               {parts.join(' · ')}
             </Text>
           </View>
-          <Text style={styles.rowCost}>{formatSum(command.cost)}</Text>
+          <Text style={styles.rowCost}>{formatSum(commandCost(command, pricing).total)}</Text>
           <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
         </Pressable>
       );
     },
-    [colors.primary, colors.textSecondary, styles, t],
+    [colors.primary, colors.textSecondary, pricing, styles, t],
   );
 
   /**
@@ -246,17 +261,17 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
     {
       labelKey: 'payments.today',
       count: summary?.countToday ?? 0,
-      spend: periodSpend(summary?.today ?? 0, summary?.modelToday),
+      spend: summary?.today ?? 0,
     },
     {
       labelKey: 'payments.thisMonth',
       count: summary?.countThisMonth ?? 0,
-      spend: periodSpend(summary?.thisMonth ?? 0, summary?.modelThisMonth),
+      spend: summary?.thisMonth ?? 0,
     },
     {
       labelKey: 'payments.allTime',
       count: summary?.countTotal ?? 0,
-      spend: periodSpend(summary?.total ?? 0, summary?.modelTotal),
+      spend: summary?.total ?? 0,
     },
   ];
 
@@ -297,17 +312,14 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
               <Text style={styles.rate}>
                 {t('payments.rate', { rate: formatSum(summary.ratePerMinute) })}
               </Text>
-              {/* Tushunish narxi ALOHIDA qatorda: ustunlardagi summaga
-                  allaqachon kirgan, bu yerda esa qaysi qismi ekani va
-                  qaysi model tarifida sanalgani ko'rinadi. */}
+              {/* Tushunish narxi ustunlardagi summaga ALLAQACHON kirgan.
+                  Bu qator faqat "shundan qanchasi modelga ketdi" deydi. */}
               <Text style={styles.rate}>
-                {isPartial(summary.modelTotal)
-                  ? t('payments.tokensOff')
-                  : t('payments.tokens', {
-                      model: summary.modelLabel ?? '',
-                      today: formatSum(summary.modelToday ?? 0),
-                      total: formatSum(summary.modelTotal ?? 0),
-                    })}
+                {t('payments.tokens', {
+                  model: summary.modelLabel ?? '',
+                  today: formatSum(summary.modelToday ?? 0),
+                  total: formatSum(summary.modelTotal ?? 0),
+                })}
               </Text>
               {summary.usdRate ? (
                 <Text style={styles.rate}>
@@ -414,7 +426,7 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
 
       <SwipePager pages={pages} style={styles.pager} />
 
-      <UsageDetailModal command={detail} onClose={() => setDetail(null)} />
+      <UsageDetailModal command={detail} onClose={() => setDetail(null)} pricing={pricing} />
     </View>
   );
 };
