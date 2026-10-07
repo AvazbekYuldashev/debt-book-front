@@ -2,8 +2,6 @@ import {
   contrastRatio,
   parseColor,
   photoFloor,
-  photoTheme,
-  photoThemeReason,
   readableShare,
   type PhotoSample,
   type Rgb,
@@ -117,9 +115,16 @@ describe('shaffoflik jadvallari', () => {
   }
 
   /**
-   * "O'rta" va "Ko'p": matn rasmning o'zi ustida - uni KO'RINISH o'qitadi
-   * (to'q rasmda oq yozuv, och rasmda to'q). Ko'rinishni photoTheme
-   * tanlaydi; foydalanuvchi qaysi rejimni tanlagan bo'lmasin.
+   * "O'rta": jadvalning O'ZI yetarli - sirt matnga hali ham fon bo'ladi,
+   * ko'rinish rasmga mos kelmasa ham.
+   *
+   * "Ko'p" bu yerda YO'Q va bu ataylab. Unda sirt deyarli ko'rinmaydi va
+   * matn rasmning o'zi ustida turadi, ya'ni tanlangan ko'rinish rasmga
+   * qarama-qarshi bo'lmasa (yorug' rejim + to'q rasm) jadval o'qita
+   * olmaydi. Ilgari buni ko'rinishni AG'DARISH hal qilardi, lekin shunda
+   * uch rejim to'q rasmda bir xil chiqib, sozlama buzuq bo'lib ko'rinardi.
+   * Endi "Ko'p" ni chegara (photoFloor) o'qitadi - quyidagi
+   * "chegara bilan hamma matn o'qiladi" testi aynan shuni qamrab oladi.
    */
   const TONED: Record<string, PhotoSample> = {
     "qop-qora": PHOTOS["qop-qora"],
@@ -129,29 +134,25 @@ describe('shaffoflik jadvallari', () => {
     pushti: uniform(MAGENTA),
     kulrang: uniform(MID_GRAY),
   };
-  for (const preferred of ['light', 'dark'] as const) {
-    for (const level of ['medium', 'clear'] as const) {
-      it(`${preferred} rejim / ${level}: ko'rinish rasmga mos va o'qiladi`, () => {
-        for (const [name, photo] of Object.entries(TONED)) {
-          const look = photoTheme(preferred, photo, level);
-          expect([name, look, readableShare(photo, look, level)]).toEqual([name, look, 1]);
-        }
-      });
-    }
+  for (const theme of ['light', 'dark'] as const) {
+    it(`${theme} rejim / medium: jadvalning o'zi o'qitadi`, () => {
+      for (const [name, photo] of Object.entries(TONED)) {
+        expect([name, readableShare(photo, theme, 'medium')]).toEqual([name, 1]);
+      }
+    });
   }
 
   /**
-   * Web: HAR daraja ("Ko'p" - to'liq shaffof ham) HAR QANDAY bir tusli
-   * rasmda o'qiladi - kulrang shkala va butun rang aylanasi. Matnni
-   * ko'rinish (photoTheme) va muzlatishning yorqinlik tuzatishi o'qitadi.
+   * Web: "Ko'p" dan boshqa HAR daraja HAR QANDAY bir tusli rasmda
+   * o'qiladi - kulrang shkala va butun rang aylanasi, chegarasiz.
    */
-  for (const preferred of ['light', 'dark'] as const) {
-    it(`web: ${preferred} rejim - hamma darajada butun rang aylanasi o'qiladi`, () => {
+  const CLOSED = LEVELS.filter((level) => level !== 'clear');
+  for (const theme of ['light', 'dark'] as const) {
+    it(`web: ${theme} rejim - Ko'p dan boshqa darajalar butun rang aylanasida o'qiladi`, () => {
       const unreadable: string[] = [];
-      for (const level of LEVELS) {
+      for (const level of CLOSED) {
         for (const { name, photo } of SWEEP) {
-          const look = photoTheme(preferred, photo, level);
-          if (readableShare(photo, look, level) < 1) unreadable.push(`${level}: ${name} (${look})`);
+          if (readableShare(photo, theme, level) < 1) unreadable.push(`${level}: ${name}`);
         }
       }
       expect(unreadable).toEqual([]);
@@ -214,22 +215,41 @@ const paletteFor = (theme: 'light' | 'dark', accentId: string) => {
  * o'qitadi. Oddiy rasmlarda u 0 va "Ko'p" to'liq shaffof qoladi.
  */
 describe('photoFloor', () => {
-  /** Foydalanuvchi talabi: "Ko'p" - to'liq shaffof. Oddiy fonlarda tus qo'shilmaydi. */
-  it("oddiy fonlarda chegara yo'q - Ko'p to'liq shaffof", () => {
-    for (const [name, photo] of [
-      ['qop-qora', uniform({ r: 0, g: 0, b: 0 })],
-      ["to'q tosh", uniform(DARK)],
-      ['och', uniform(BRIGHT)],
-      ['oppoq', uniform({ r: 255, g: 255, b: 255 })],
+  /**
+   * "Ko'p" TO'LIQ SHAFFOF qoladi - lekin faqat ko'rinish rasmga mos
+   * kelganda: to'q rasmda tungi rejim, och rasmda yorug' rejim. O'shanda
+   * matn allaqachon rasmga qarama-qarshi va tus qo'shish shart emas.
+   */
+  it("mos ko'rinishda chegara yo'q - Ko'p to'liq shaffof", () => {
+    for (const [name, photo, fits] of [
+      ['qop-qora', uniform({ r: 0, g: 0, b: 0 }), 'dark'],
+      ["to'q tosh", uniform(DARK), 'dark'],
+      ['och', uniform(BRIGHT), 'light'],
+      ['oppoq', uniform({ r: 255, g: 255, b: 255 }), 'light'],
     ] as const) {
-      for (const preferred of ['light', 'dark'] as const) {
-        const look = photoTheme(preferred, photo, 'clear');
-        expect([name, preferred, photoFloor(photo, paletteFor(look, 'green'), look)]).toEqual([
-          name,
-          preferred,
-          { text: 0, colored: 0 },
-        ]);
-      }
+      expect([name, photoFloor(photo, paletteFor(fits, 'green'), fits)]).toEqual([
+        name,
+        { text: 0, colored: 0 },
+      ]);
+    }
+  });
+
+  /**
+   * Ko'rinish rasmga MOS KELMASA (yorug' rejim + to'q rasm) chegara
+   * ko'tariladi: karta quyuqlashadi va matn o'qiladi.
+   *
+   * Bu ag'darishni olib tashlashning NARXI va u ataylab to'langan.
+   * Ilgari dastur ko'rinishni o'zi ag'darardi, natijada to'q rasmda
+   * "Yorug'" tanlab bo'lmasdi. Endi tanlov ustun, qarama-qarshilikni esa
+   * karta quyuqligi hal qiladi.
+   */
+  it("mos kelmagan ko'rinishda chegara ko'tariladi", () => {
+    for (const [name, photo, against] of [
+      ['qop-qora', uniform({ r: 0, g: 0, b: 0 }), 'light'],
+      ['oppoq', uniform({ r: 255, g: 255, b: 255 }), 'dark'],
+    ] as const) {
+      const floors = photoFloor(photo, paletteFor(against, 'green'), against);
+      expect([name, floors.text > 0, floors.colored > 0]).toEqual([name, true, true]);
     }
   });
 
@@ -239,8 +259,7 @@ describe('photoFloor', () => {
    */
   it("osmon ustidagi sarlavha ham o'qiladi", () => {
     const photo = split({ r: 200, g: 215, b: 235 }, { r: 35, g: 40, b: 30 }, 0.36);
-    const look = photoTheme('light', photo, 'clear');
-    expect(look).toBe('dark');
+    const look = 'light';
     const palette = paletteFor(look, 'green');
     const floors = photoFloor(photo, palette, look);
     expect(floors.text).toBeGreaterThan(0);
@@ -264,7 +283,7 @@ describe('photoFloor', () => {
       for (const preferred of ['light', 'dark'] as const) {
         for (const { name, photo } of SWEEP) {
           for (const level of LEVELS) {
-            const look = photoTheme(preferred, photo, level);
+            const look = preferred;
             const palette = paletteFor(look, accent);
             const floors = photoFloor(photo, palette, look);
             const colored = level === 'solid' || level === 'medium';
@@ -295,170 +314,4 @@ describe('photoFloor', () => {
     }
     expect(bad.slice(0, 10)).toEqual([]);
   }, 60000);
-});
-
-/**
- * Yozuv rangi FONGA ergashadi: yorug' rejimda fon to'q bo'lsa yozuvlar oq
- * (qorong'i ko'rinish), qorong'i rejimda fon och bo'lsa - to'q.
- */
-describe('photoTheme', () => {
-  it("yorug' rejim + to'q fon -> oq yozuv", () => {
-    expect(photoTheme('light', uniform(DARK))).toBe('dark');
-    expect(photoTheme('light', uniform({ r: 0, g: 0, b: 0 }))).toBe('dark');
-  });
-
-  it("yorug' rejim + och fon -> o'z holicha", () => {
-    expect(photoTheme('light', uniform(BRIGHT))).toBe('light');
-  });
-
-  /** O'rtacha fonda tanlov hal qiladi - har kulrangda sakramaydi. */
-  it("o'rtacha fonda tanlangan rejim qoladi", () => {
-    const mid = uniform({ r: 128, g: 128, b: 128 });
-    expect(photoTheme('light', mid)).toBe('light');
-    expect(photoTheme('dark', mid)).toBe('dark');
-  });
-
-  it("qorong'i rejim + och fon -> to'q yozuv", () => {
-    expect(photoTheme('dark', uniform(BRIGHT))).toBe('light');
-    expect(photoTheme('dark', uniform(DARK))).toBe('dark');
-  });
-
-
-  /**
-   * Mediana: to'q rasmdagi yorqin tasma va nuqtalar (skrinshotdagi neon
-   * chiziq) fonni "och" qilib qo'ymaydi.
-   */
-  it("yorqin dog'lar to'q fonni och qilmaydi", () => {
-    const neon: PhotoSample = {
-      rows: ROWS,
-      cols: COLS,
-      cells: Array.from({ length: ROWS * COLS }, (_, i) =>
-        i % COLS < 3 ? { r: 235, g: 40, b: 180, a: 1 } : { r: 40, g: 40, b: 44, a: 1 },
-      ),
-    };
-    expect(photoTheme('light', neon)).toBe('dark');
-  });
-
-  /**
-   * Shaffoflik darajasi hisobga olinadi: yopiq sirtda ikkala ko'rinish
-   * ham o'qiladi - tanlov saqlanadi. To'liq shaffof "Ko'p" da esa matn
-   * rasmning o'zi ustida: qorong'i rejim + o'rtacha kulrangda oq yozuv
-   * o'qilmaydi, to'q yozuv o'qiladi.
-   */
-  it("o'rtacha fonda tanlov saqlanadi, Ko'p da yozuv rasmga ergashadi", () => {
-    const mid = uniform({ r: 150, g: 150, b: 150 });
-    for (const level of ['none', 'solid', 'medium'] as const) {
-      expect([level, photoTheme('dark', mid, level)]).toEqual([level, 'dark']);
-    }
-    expect(photoTheme('dark', mid, 'clear')).toBe('light');
-  });
-
-  /** Foydalanuvchi talabi: yorug' rejim + to'q fon - HAR darajada oq yozuv. */
-  it("to'q fonda har darajada oq yozuv", () => {
-    for (const level of LEVELS) {
-      expect([level, photoTheme('light', uniform(DARK), level)]).toEqual([level, 'dark']);
-      expect([level, photoTheme('dark', uniform(BRIGHT), level)]).toEqual([level, 'light']);
-    }
-  });
-
-  /** Yopiq darajalarda daraja hech narsani o'zgartirmaydi - faqat yorqinlik hal qiladi. */
-  it("Yo'q va Kam da ko'rinish faqat yorqinlikka bog'liq", () => {
-    for (const preferred of ['light', 'dark'] as const) {
-      for (const level of ['none', 'solid'] as const) {
-        for (const { name, photo } of SWEEP) {
-          expect([name, photoTheme(preferred, photo, level)]).toEqual([name, photoTheme(preferred, photo)]);
-        }
-      }
-    }
-  });
-
-  /**
-   * Aralash rasmlar: yorqinlik aniq qaror qilgan joyda shaffoflik uni
-   * AG'DARMAYDI - na tepadagi osmon, na bitta yorqin/qora dog' sababli.
-   */
-  it("aralash rasmda yorqinlik qarori har darajada saqlanadi", () => {
-    const withCell = (base: Rgb, odd: Rgb): PhotoSample => {
-      const photo = uniform(base);
-      photo.cells[200] = { ...odd, a: 1 };
-      return photo;
-    };
-    const cases: [string, PhotoSample, 'light' | 'dark', 'light' | 'dark'][] = [
-      // Osmon ekranning yarmidan ko'pi, ro'yxat esa to'q yer ustida.
-      ["och osmon, to'q yer", split({ r: 200, g: 215, b: 235 }, { r: 35, g: 40, b: 30 }, 0.55), 'light', 'dark'],
-      ["test osmoni, to'q yer", split(BRIGHT_TOP, DARK_BOTTOM, 0.6), 'light', 'dark'],
-      // Xira rasm + chiroq/oy.
-      ['xira + chiroq', withCell({ r: 80, g: 80, b: 80 }, { r: 255, g: 255, b: 255 }), 'light', 'dark'],
-      // Och rasm + qora logotip.
-      ['och + logotip', withCell({ r: 225, g: 225, b: 225 }, { r: 0, g: 0, b: 0 }), 'light', 'light'],
-      ['och + logotip', withCell({ r: 225, g: 225, b: 225 }, { r: 0, g: 0, b: 0 }), 'dark', 'light'],
-    ];
-    for (const [name, photo, preferred, expected] of cases) {
-      for (const level of LEVELS) {
-        expect([name, preferred, level, photoTheme(preferred, photo, level)]).toEqual([name, preferred, level, expected]);
-      }
-    }
-  });
-
-  /**
-   * Yo'q -> Ko'p bo'ylab ko'rinish ko'pi bilan BIR marta almashadi va
-   * hech qachon ortga qaytmaydi: aks holda darajani bosib o'tganda butun
-   * ilova och-to'q bo'lib "miltillardi". Ikki rangli ustun va qator
-   * rasmlarning to'liq to'plami.
-   */
-  it("daraja oshgan sari ko'rinish ortga qaytmaydi", () => {
-    const COLORS: Rgb[] = [];
-    for (const v of [0, 60, 110, 150, 190, 235]) COLORS.push({ r: v, g: v, b: v });
-    COLORS.push({ r: 93, g: 9, b: 9 }, { r: 168, g: 201, b: 200 }, MAGENTA, { r: 40, g: 90, b: 200 }, { r: 230, g: 200, b: 60 });
-    const columns = (left: Rgb, right: Rgb, count: number): PhotoSample => ({
-      rows: ROWS,
-      cols: COLS,
-      cells: Array.from({ length: ROWS * COLS }, (_, i) => ({ ...(i % COLS < count ? left : right), a: 1 })),
-    });
-    const bad: string[] = [];
-    for (const a of COLORS) {
-      for (const b of COLORS) {
-        if (a === b) continue;
-        for (const count of [3, 6, 9]) {
-          for (const [kind, photo] of [['ustun', columns(a, b, count)], ['qator', split(a, b, count / 12)]] as const) {
-            for (const preferred of ['light', 'dark'] as const) {
-              const looks = LEVELS.map((level) => photoTheme(preferred, photo, level));
-              const changes = looks.filter((look, i) => i > 0 && look !== looks[i - 1]).length;
-              if (changes > 1) bad.push(`${kind} ${JSON.stringify(a)}/${JSON.stringify(b)} ${count} ${preferred}: ${looks.join(',')}`);
-            }
-          }
-        }
-      }
-    }
-    expect(bad).toEqual([]);
-  }, 30000);
-
-  /**
-   * "O'rta" (standart) da ikkala ko'rinish ham HAR bir tusli rasmda
-   * o'qiladi - shaffoflik sababli almashish faqat "Ko'p" da bo'lishi
-   * mumkin.
-   */
-  it("O'rta da ikkala ko'rinish ham hamma rasmda o'qiladi", () => {
-    const bad: string[] = [];
-    for (const theme of ['light', 'dark'] as const) {
-      for (const { name, photo } of SWEEP) {
-        if (readableShare(photo, theme, 'medium') < 1) bad.push(`${theme} ${name}`);
-      }
-    }
-    expect(bad).toEqual([]);
-  });
-
-  /** Sozlamalardagi izoh to'g'ri sababni aytadi. */
-  it("ko'rinish sababi: rasm yoki shaffoflik", () => {
-    expect(photoThemeReason('light', uniform(DARK), 'none')).toBe('photo');
-    expect(photoThemeReason('light', uniform(DARK), 'clear')).toBe('photo');
-    expect(photoThemeReason('light', uniform(BRIGHT), 'clear')).toBeNull();
-    const mid = uniform({ r: 150, g: 150, b: 150 });
-    expect(photoThemeReason('dark', mid, 'medium')).toBeNull();
-    expect(photoThemeReason('dark', mid, 'clear')).toBe('glass');
-  });
-
-  /** Ro'yxat pastda turadi: tepasi och, pasti to'q rasmda yozuv oq. */
-  it("tepasi och, pasti to'q rasmda pastki qism hal qiladi", () => {
-    expect(photoTheme('light', split(BRIGHT_TOP, DARK_BOTTOM, 0.4))).toBe('dark');
-  });
 });

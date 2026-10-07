@@ -62,13 +62,6 @@ export const MIN_TEXT_CONTRAST = 4.5;
  */
 export const MIN_SECONDARY_CONTRAST = 3;
 
-/**
- * Kontent (kartalar, ro'yxat) qayerdan boshlanadi - ekran balandligiga
- * nisbatan. Tepada sarlavhalar turadi va ular o'z sirtida; matn rangi
- * esa kontent turgan joydagi rasmga mos bo'lishi kerak.
- */
-export const CONTENT_TOP = 0.38;
-
 const HEX = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i;
 const RGBA = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i;
 
@@ -208,20 +201,6 @@ export const readableShare = (
 };
 
 /**
- * Rasmning KONTENT qismi (CONTENT_TOP dan pastda): kartalar va ro'yxat
- * shu yerda turadi. Yorqinlik ham, o'qilish taqqoslovi ham AYNAN shu
- * kataklarga qaraydi - aks holda tepadagi osmon pastdagi to'q yer ustidagi
- * ro'yxat rangini hal qilib qo'yardi. Juda kichik to'rda (pastda katak
- * qolmasa) butun rasm.
- */
-const contentOf = (sample: PhotoSample): PhotoSample => {
-  const cells = sample.cells.filter(
-    (_cell, index) => (Math.floor(index / sample.cols) + 0.5) / sample.rows >= CONTENT_TOP,
-  );
-  return cells.length ? { rows: cells.length / sample.cols, cols: sample.cols, cells } : sample;
-};
-
-/**
  * Sirt tusi qancha bo'lsa, ustidagi matn rasmning SHU qismida o'qiladi
  * (0..1, 0.02 qadam). Model readableShare bilan bir xil: muzlatilgan rasm
  * -> oq xiralik -> tus (withHaze).
@@ -313,110 +292,3 @@ export const photoFloor = (
   return { text: quantile(textNeed), colored: quantile(coloredNeed) };
 };
 
-/** Yorug' rejim fon shundan to'qroq bo'lsa - qorong'i (oq yozuvli) ko'rinishga o'tadi. */
-export const DARK_PHOTO_LUMINANCE = 0.18;
-/** Qorong'i rejim fon shundan ochroq bo'lsa - yorug' (to'q yozuvli) ko'rinishga o'tadi. */
-export const BRIGHT_PHOTO_LUMINANCE = 0.45;
-
-/**
- * Fon RASMINING yorqinligi (0..1).
- *
- * Xiralik (blur) rasmning rangini emas, faqat detalini o'zgartiradi -
- * shu sababli ko'rinish xiralikka qarab hech qachon sakramaydi.
- *
- * MEDIANA, o'rtacha emas: to'q rasmdagi bir nechta yorqin dog' yoki tasma
- * (neon chiziq, chiroq) o'rtachani ko'tarib, butun fonni "och" deb
- * ko'rsatardi.
- *
- * Faqat kontent qismi (CONTENT_TOP dan pastda): sarlavhalar tepada o'z
- * sirtida turadi, kartalar va ro'yxat esa pastda - matn rangi o'sha joyga
- * mos bo'lishi kerak.
- */
-export const photoLuminance = (sample: PhotoSample, theme: ThemeName): number => {
-  // Shaffof (PNG) kataklar ostida ilovaning foni ko'rinadi.
-  const background = solid(PALETTES[theme].background);
-  const pool = contentOf(sample)
-    .cells.map((cell) => luminance(mix(cell, background, cell.a)))
-    .sort((a, b) => a - b);
-  if (pool.length === 0) return luminance(background);
-  const mid = Math.floor(pool.length / 2);
-  return pool.length % 2 ? pool[mid] : (pool[mid - 1] + pool[mid]) / 2;
-};
-
-/** Yorqinlik bo'yicha ko'rinish (photoTheme 1-qadami). */
-const luminanceLook = (preferred: ThemeName, sample: PhotoSample): ThemeName => {
-  const seen = photoLuminance(sample, preferred);
-  if (preferred === 'light' && seen < DARK_PHOTO_LUMINANCE) return 'dark';
-  if (preferred === 'dark' && seen > BRIGHT_PHOTO_LUMINANCE) return 'light';
-  return preferred;
-};
-
-/**
- * Shaffoflik sababli ko'rinish almashadimi - FAQAT aniq yutuqda:
- * tanlangan ko'rinish kontentning sezilarli qismida o'qilmaydi VA ikkinchisi
- * anchagina ko'proq joyda o'qiladi. Bitta yorqin dog' (chiroq, oy) yoki
- * qora logotip butun ilovani ag'darib yubormasin.
- */
-const SWITCH_BELOW = 0.85;
-const SWITCH_MARGIN = 0.1;
-
-/**
- * Fon rasmi ustida qaysi ko'rinish: matn rangi rasmga qarama-qarshi.
- *
- * 1. YORQINLIK: tanlangan rejim faqat rasm "o'rtacha" bo'lganda hal
- *    qiladi - to'q rasmda yorug' rejim oq yozuvli, och rasmda qorong'i
- *    rejim to'q yozuvli ko'rinishga o'tadi. Bu qaror QAT'IY: yorug' rejim
- *    + to'q rasm har darajada oq yozuv.
- *
- * 2. SHAFFOFLIK (`level` berilsa, faqat 1-qadam tanlovni o'zgartirmagan
- *    o'rtacha rasmda): shaffof darajada matn rasmning o'zi ustida turadi va
- *    tanlangan ko'rinish o'qilmay qolishi mumkin. Unda ikkinchi ko'rinishga
- *    o'tiladi: u biror darajada kontentda ANIQ ko'proq o'qilgan bo'lsa
- *    (SWITCH_*) va undan SHAFFOFROQ hech bir darajada aniq yomonroq
- *    bo'lmasa - shu darajadan boshlab. Natija: Yo'q -> Ko'p bo'ylab
- *    ko'rinish ko'pi bilan BIR marta almashadi, hech qachon ortga
- *    qaytmaydi; "Ko'p" dagi durang esa "O'rta" dagi aniq yutuqni bekor
- *    qilmaydi.
- *
- * Tanlovning o'zi o'zgarmaydi - rasm almashsa yoki olib tashlansa, u
- * qaytadi.
- */
-export const photoTheme = (
-  preferred: ThemeName,
-  sample: PhotoSample,
-  level?: TransparencyLevel,
-): ThemeName => {
-  if (sample.cells.length === 0) return preferred;
-  const look = luminanceLook(preferred, sample);
-  if (level === undefined || look !== preferred) return look;
-
-  const content = contentOf(sample);
-  const other: ThemeName = look === 'light' ? 'dark' : 'light';
-  const levels = TRANSPARENCY_LEVELS.map((item) => item.id);
-  const own = levels.map((id) => readableShare(content, look, id));
-  const alt = levels.map((id) => readableShare(content, other, id));
-  // Shu darajada ikkinchi ko'rinish ANIQ yaxshiroq...
-  const wins = (i: number) => own[i] < SWITCH_BELOW && alt[i] >= own[i] + SWITCH_MARGIN;
-  // ...va undan shaffofroq hech bir darajada ANIQ yomonroq emas.
-  const holds = (i: number) => alt.slice(i).every((share, k) => share >= own[i + k] - SWITCH_MARGIN);
-  const at = levels.indexOf(level);
-  for (let i = 0; i <= at; i += 1) {
-    if (wins(i) && holds(i)) return other;
-  }
-  return look;
-};
-
-/**
- * Ko'rinish NIMA sababli tanlangan rejimdan farq qiladi: rasmning
- * yorqinligi ('photo') yoki shaffoflik ('glass'). Sozlamalardagi izoh
- * to'g'ri sababni aytishi uchun. null - farq yo'q.
- */
-export const photoThemeReason = (
-  preferred: ThemeName,
-  sample: PhotoSample,
-  level: TransparencyLevel,
-): 'photo' | 'glass' | null => {
-  if (sample.cells.length === 0) return null;
-  if (luminanceLook(preferred, sample) !== preferred) return 'photo';
-  return photoTheme(preferred, sample, level) !== preferred ? 'glass' : null;
-};

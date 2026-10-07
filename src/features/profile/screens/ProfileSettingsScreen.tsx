@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import SettingsGroup from '../../../shared/ui/SettingsGroup';
@@ -102,18 +102,6 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
               isLast={index === THEME_MODES.length - 1}
             />
           ))}
-          {/* "Yorug'" belgilangan-u ekran to'q bo'lsa, bu xato bo'lib
-              ko'rinardi. Sababi shu yerda aytiladi - rasmning yorqinligi
-              yoki shaffof kartalar (matn rasmning o'zi ustida). */}
-          {theme.photoAdapted ? (
-            <Text style={styles.note}>
-              {t(
-                theme.photoAdaptedBy === 'glass'
-                  ? theme.activeTheme === 'dark' ? 'profile.themeGlassDark' : 'profile.themeGlassLight'
-                  : theme.activeTheme === 'dark' ? 'profile.themePhotoDark' : 'profile.themePhotoLight',
-              )}
-            </Text>
-          ) : null}
         </SettingsGroup>
 
         {/* Rang mavzudan KEYIN: avval yorug'/qorong'i tanlanadi, keyin
@@ -176,7 +164,7 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
   );
 };
 
-const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
+const createStyles = ({ spacing }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -188,13 +176,6 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
     },
     block: {
       padding: spacing.md,
-    },
-    note: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.xs,
-      paddingBottom: spacing.sm,
     },
   });
 

@@ -20,7 +20,6 @@ const photo = (r: number, g: number, b: number): PhotoSample => ({
 });
 const DARK_PHOTO = photo(58, 68, 84);
 const BRIGHT_PHOTO = photo(236, 234, 228);
-
 const MID_PHOTO = photo(150, 150, 150);
 
 const Probe: React.FC<{ level: TransparencyLevel; image: boolean; preferred: 'light' | 'dark' }> = ({
@@ -28,7 +27,7 @@ const Probe: React.FC<{ level: TransparencyLevel; image: boolean; preferred: 'li
   image,
   preferred,
 }) => {
-  const { activeTheme, mode, setMode, photoAdapted, photoAdaptedBy } = useAppTheme();
+  const { activeTheme, mode, setMode } = useAppTheme();
   const { setImage } = useBackground();
   const { setLevel } = useTransparency();
 
@@ -41,12 +40,7 @@ const Probe: React.FC<{ level: TransparencyLevel; image: boolean; preferred: 'li
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <>
-      <Text testID="theme">{`${activeTheme}|${mode}${photoAdapted ? '|adapted' : ''}`}</Text>
-      <Text testID="reason">{String(photoAdaptedBy)}</Text>
-    </>
-  );
+  return <Text testID="theme">{`${activeTheme}|${mode}`}</Text>;
 };
 
 const show = (level: TransparencyLevel, image = true, preferred: 'light' | 'dark' = 'light') =>
@@ -66,8 +60,18 @@ const settle = () =>
   });
 
 /**
- * Yorug' rejim + to'q fon rasmi: yozuvlar oq (qorong'i ko'rinish), har
- * shaffoflik darajasida. Foydalanuvchi tanlovi (`mode`) esa saqlanadi.
+ * KO'RINISHNI FON RASMI AG'DARMAYDI.
+ *
+ * Ilgari ag'darardi: yorug' rejim + to'q rasm avtomatik oq yozuvli
+ * (qorong'i) ko'rinishga o'tardi, o'qilsin deb. To'q rasm qo'yilganda esa
+ * "Yorug'", "Tungi" va "Tizim" uchalasi bir xil chiqar, sozlama BUZUQ
+ * bo'lib ko'rinardi - belgi ko'chardi, ekran o'zgarmasdi.
+ *
+ * Endi tanlov ustun. O'qilishni `photoFloor` ta'minlaydi: sirtning eng
+ * kam tusi rasmga qarab ko'tariladi, ko'rinish esa tanlanganicha qoladi.
+ *
+ * Quyidagi testlar aynan shu kafolatni qo'riqlaydi - rasm qanday bo'lsa
+ * ham, `activeTheme` tanlangan rejimga teng.
  */
 describe('AppThemeProvider - fon rasmi ustida', () => {
   beforeEach(() => {
@@ -75,11 +79,11 @@ describe('AppThemeProvider - fon rasmi ustida', () => {
     mockSample.mockResolvedValue(DARK_PHOTO);
   });
 
-  it("to'q rasm -> oq yozuv (qorong'i ko'rinish), tanlov esa yorug'", async () => {
+  it("to'q rasm yorug' rejimni ag'darmaydi", async () => {
     show('clear');
     await settle();
 
-    expect(screen.getByTestId('theme').props.children).toBe('dark|light|adapted');
+    expect(screen.getByTestId('theme').props.children).toBe('light|light');
     expect(mockSample).toHaveBeenCalledWith(
       expect.stringContaining('/attach/open/photo-1'),
       'cover',
@@ -87,20 +91,38 @@ describe('AppThemeProvider - fon rasmi ustida', () => {
     );
   });
 
-  /** Qoida shaffoflikka emas, FONGA bog'liq: "Kam" da ham yozuv oq. */
-  it("Kam darajada ham to'q rasmda yozuv oq", async () => {
+  it("to'q rasm Kam shaffoflikda ham ag'darmaydi", async () => {
     show('solid');
     await settle();
 
-    expect(screen.getByTestId('theme').props.children).toBe('dark|light|adapted');
+    expect(screen.getByTestId('theme').props.children).toBe('light|light');
   });
 
-  it("och rasmda yorug' rejim o'z holicha", async () => {
+  it("och rasm qorong'i rejimni ag'darmaydi", async () => {
     mockSample.mockResolvedValue(BRIGHT_PHOTO);
-    show('clear');
+    show('clear', true, 'dark');
     await settle();
 
-    expect(screen.getByTestId('theme').props.children).toBe('light|light');
+    expect(screen.getByTestId('theme').props.children).toBe('dark|dark');
+  });
+
+  /** Shaffoflik ham sabab emas: ilgari "Ko'p" da ko'rinish almashardi. */
+  it("o'rtacha rasm Ko'p shaffoflikda ham ag'darmaydi", async () => {
+    mockSample.mockResolvedValue(MID_PHOTO);
+    show('clear', true, 'dark');
+    await settle();
+
+    expect(screen.getByTestId('theme').props.children).toBe('dark|dark');
+  });
+
+  it("uch rejim uchun ham tanlov saqlanadi", async () => {
+    for (const preferred of ['light', 'dark'] as const) {
+      mockSample.mockResolvedValue(DARK_PHOTO);
+      show('clear', true, preferred);
+      await settle();
+      expect(screen.getByTestId('theme').props.children).toBe(`${preferred}|${preferred}`);
+      screen.unmount();
+    }
   });
 
   it('rasm yoq bolsa olchanmaydi va mavzu tegilmaydi', async () => {
@@ -111,37 +133,8 @@ describe('AppThemeProvider - fon rasmi ustida', () => {
     expect(mockSample).not.toHaveBeenCalled();
   });
 
-  /** Sozlamalardagi izoh to'g'ri sababni aytishi uchun - rasmning yorqinligi. */
-  it("to'q rasmda sabab - rasm", async () => {
-    show('clear');
-    await settle();
-
-    expect(screen.getByTestId('reason').props.children).toBe('photo');
-  });
-
-  /**
-   * Qorong'i rejim + o'rtacha kulrang rasm: "O'rta" da tanlov saqlanadi,
-   * to'liq shaffof "Ko'p" da esa yozuv to'q - sabab SHAFFOFLIK, rasm
-   * "och" emas.
-   */
-  it("o'rtacha rasmda O'rta da tanlov saqlanadi", async () => {
-    mockSample.mockResolvedValue(MID_PHOTO);
-    show('medium', true, 'dark');
-    await settle();
-    expect(screen.getByTestId('theme').props.children).toBe('dark|dark');
-    expect(screen.getByTestId('reason').props.children).toBe('null');
-  });
-
-  it("o'rtacha rasmda Ko'p da yozuv to'q, sabab shaffoflik", async () => {
-    mockSample.mockResolvedValue(MID_PHOTO);
-    show('clear', true, 'dark');
-    await settle();
-    expect(screen.getByTestId('theme').props.children).toBe('light|dark|adapted');
-    expect(screen.getByTestId('reason').props.children).toBe('glass');
-  });
-
-  /** Tarmoq uzilsa: oldingi natija o'chmaydi, yangisi bo'lmasa - tanlov. */
-  it("o'lchab bo'lmasa mavzu tegilmaydi", async () => {
+  /** Tarmoq uzilsa ham natija bir xil - tanlov baribir ustun. */
+  it("o'lchab bo'lmasa ham tanlov saqlanadi", async () => {
     mockSample.mockResolvedValue(null);
     show('clear');
     await settle();

@@ -8,7 +8,7 @@ import { useBackground } from './BackgroundProvider';
 import { useAccent } from './AccentProvider';
 import { useTransparency } from './TransparencyProvider';
 import { peekPhoto, samplePhoto } from './photoColor';
-import { photoFloor, photoTheme, photoThemeReason, type PhotoSample } from './photoTone';
+import { photoFloor, type PhotoSample } from './photoTone';
 import type { BackgroundFit } from './backgroundSettings';
 import { APP_COLUMN_WIDTH } from './layout';
 import { applyAccent } from './accent';
@@ -31,17 +31,6 @@ function isThemeMode(value: unknown): value is ThemeMode {
 export interface ThemeValue {
   mode: ThemeMode;
   activeTheme: ActiveTheme;
-  /**
-   * Ko'rsatilayotgan ko'rinish tanlangandan farq qiladi: fon rasmi to'q
-   * (yoki och) bo'lgani uchun yozuvlar fonga qarama-qarshi rangda.
-   */
-  photoAdapted: boolean;
-  /**
-   * Nima sababli farq qiladi: rasmning yorqinligi ('photo') yoki shaffof
-   * sirtda matn rasmning o'zi ustida turgani ('glass'). Sozlamalardagi
-   * izoh to'g'ri sababni aytishi uchun. null - farq yo'q.
-   */
-  photoAdaptedBy: 'photo' | 'glass' | null;
   colors: ColorTokens;
   spacing: typeof spacing;
   radius: typeof radius;
@@ -124,28 +113,22 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { imageId, fit } = useBackground();
   const photo = usePhotoSample(imageId, fit);
   /**
-   * Ko'rsatiladigan ko'rinish - odatda foydalanuvchi tanlagani.
+   * Ko'rsatiladigan ko'rinish - HAR DOIM foydalanuvchi tanlagani.
    *
-   * ISTISNO - fon rasmi: yozuv rangi fonga qarama-qarshi bo'lishi kerak.
-   * Yorug' rejimda fon to'q bo'lsa yozuvlar oq (qorong'i ko'rinish),
-   * qorong'i rejimda fon och bo'lsa - to'q. Tanlovning o'zi (`mode`)
-   * o'zgarmaydi: rasm olib tashlansa yoki almashsa, u qaytadi.
+   * Bir muddat fon rasmi buni ag'dara olardi: yorug' rejim + to'q rasm
+   * avtomatik oq yozuvli ko'rinishga o'tardi. Natijada to'q rasm
+   * qo'yilganda "Yorug'", "Tungi" va "Tizim" uchalasi bir xil chiqdi va
+   * sozlama BUZUQ bo'lib ko'rindi - tanlov o'zgarardi, ekran esa yo'q.
+   *
+   * Endi tanlov ustun. O'qilishni ko'rinishni ag'darish emas, `photoFloor`
+   * ta'minlaydi: u sirtning eng kam tusini rasmga qarab ko'taradi, ya'ni
+   * to'q rasm ustida yorug' karta kerak bo'lsa quyuqlashadi, ko'rinish esa
+   * tanlanganicha qoladi.
    */
-  const preferredTheme = resolveActiveTheme(mode, systemScheme);
+  const activeTheme = resolveActiveTheme(mode, systemScheme);
   // Shaffoflik darajasi foydalanuvchi sozlamasi: to'g'ri qiymat fonga
-  // bog'liq va uni dastur bila olmaydi. Ko'rinish ham unga bog'liq:
-  // shaffof sirtda matn rasmning o'zi ustida turadi.
+  // bog'liq va uni dastur bila olmaydi.
   const { level } = useTransparency();
-  const { activeTheme, photoAdaptedBy } = useMemo(
-    () =>
-      imageId && photo
-        ? {
-            activeTheme: photoTheme(preferredTheme, photo, level),
-            photoAdaptedBy: photoThemeReason(preferredTheme, photo, level),
-          }
-        : { activeTheme: preferredTheme, photoAdaptedBy: null },
-    [imageId, photo, preferredTheme, level],
-  );
   const hasPhoto = imageId.length > 0;
   /**
    * Mavzu palitrasi + foydalanuvchi tanlagan ASOSIY RANG.
@@ -253,8 +236,6 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const value = useMemo<ThemeValue>(() => ({
     mode,
     activeTheme,
-    photoAdapted: activeTheme !== preferredTheme,
-    photoAdaptedBy,
     colors,
     spacing,
     radius,
@@ -266,7 +247,7 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     fontsLoaded,
     setMode: applyMode,
     toggleTheme,
-  }), [mode, activeTheme, preferredTheme, photoAdaptedBy, colors, shadows, glass, glassNested, toggleTheme, applyMode, fontsLoaded]);
+  }), [mode, activeTheme, colors, shadows, glass, glassNested, toggleTheme, applyMode, fontsLoaded]);
 
   // Saqlangan mavzu o'qilmaguncha render qilmaymiz — light->dark "miltillash"ning oldini oladi.
   if (!hydrated) {
