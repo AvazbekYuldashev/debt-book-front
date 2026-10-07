@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -9,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import Modal from '../../../shared/ui/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';

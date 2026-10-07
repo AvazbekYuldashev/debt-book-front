@@ -11,7 +11,7 @@ import EmptyState from '../../../shared/ui/EmptyState';
 import StatusBanner from '../../../shared/ui/StatusBanner';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import { useI18n } from '../../../shared/i18n';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import ProductRow from './ProductRow';
 import { getBusinessProducts } from '../services/productService';
@@ -96,59 +96,61 @@ const BusinessCatalogPane: React.FC<BusinessCatalogPaneProps> = ({ businessId, t
   const showHeaders = sections.length > 1;
 
   return (
-    <SectionList
-      contentContainerStyle={styles.listCard}
-      sections={sections}
-      renderItem={renderProduct}
-      renderSectionHeader={({ section }) => {
-        if (!showHeaders) return null;
-        // Chiziq sarlavha USTIDA: u kategoriyalarni bir-biridan ajratadi.
-        // Qatorlar orasidagi ingichka chiziqlar esa kategoriya ICHIDA qoladi —
-        // ikkovi aralashsa, oxirgi qatordan keyingi chiziq "yangi bo'lim
-        // boshlandi" degandek ko'rinib, sanoq bilan ro'yxat mos kelmay
-        // qolgandek tuyulardi.
-        const isFirst = sections[0]?.id === section.id;
-        return (
-          <View style={[styles.sectionHeader, !isFirst && styles.sectionDivider]}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <Text style={styles.sectionCount}>{section.data.length}</Text>
-          </View>
-        );
-      }}
-      stickySectionHeadersEnabled={false}
-      keyExtractor={keyExtractor}
-      showsVerticalScrollIndicator={false}
-      initialNumToRender={14}
-      windowSize={11}
-      refreshControl={
-        <RefreshControl
-          refreshing={loading && products.length > 0}
-          onRefresh={() => load(true)}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
-          progressBackgroundColor={colors.surface}
-        />
-      }
-      ListHeaderComponent={
-        error ? (
-          <StatusBanner
-            tone="error"
-            message={error}
-            actionLabel={t('common.retry')}
-            onAction={() => load(true)}
+    <NestedGlass>
+      <SectionList
+        contentContainerStyle={styles.listCard}
+        sections={sections}
+        renderItem={renderProduct}
+        renderSectionHeader={({ section }) => {
+          if (!showHeaders) return null;
+          // Chiziq sarlavha USTIDA: u kategoriyalarni bir-biridan ajratadi.
+          // Qatorlar orasidagi ingichka chiziqlar esa kategoriya ICHIDA qoladi —
+          // ikkovi aralashsa, oxirgi qatordan keyingi chiziq "yangi bo'lim
+          // boshlandi" degandek ko'rinib, sanoq bilan ro'yxat mos kelmay
+          // qolgandek tuyulardi.
+          const isFirst = sections[0]?.id === section.id;
+          return (
+            <View style={[styles.sectionHeader, !isFirst && styles.sectionDivider]}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <Text style={styles.sectionCount}>{section.data.length}</Text>
+            </View>
+          );
+        }}
+        stickySectionHeadersEnabled={false}
+        keyExtractor={keyExtractor}
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={14}
+        windowSize={11}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading && products.length > 0}
+            onRefresh={() => load(true)}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
           />
-        ) : null
-      }
-      ListEmptyComponent={
-        // Yuklanmagunicha skeleton: sahifa ochilishidan OLDIN "mahsulot yo'q"
-        // deb yozib qo'yish yolg'on bo'lardi — so'rov hali ketmagan ham.
-        !loaded && !error ? (
-          <SkeletonContactList count={4} />
-        ) : error ? null : (
-          <EmptyState icon="pricetags-outline" title={t('products.businessEmpty')} />
-        )
-      }
-    />
+        }
+        ListHeaderComponent={
+          error ? (
+            <StatusBanner
+              tone="error"
+              message={error}
+              actionLabel={t('common.retry')}
+              onAction={() => load(true)}
+            />
+          ) : null
+        }
+        ListEmptyComponent={
+          // Yuklanmagunicha skeleton: sahifa ochilishidan OLDIN "mahsulot yo'q"
+          // deb yozib qo'yish yolg'on bo'lardi — so'rov hali ketmagan ham.
+          !loaded && !error ? (
+            <SkeletonContactList count={4} />
+          ) : error ? null : (
+            <EmptyState icon="pricetags-outline" title={t('products.businessEmpty')} />
+          )
+        }
+      />
+    </NestedGlass>
   );
 };
 

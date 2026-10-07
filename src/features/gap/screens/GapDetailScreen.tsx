@@ -7,7 +7,7 @@ import { SkeletonCardList } from '../../../shared/ui/SkeletonShimmer';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import StatusBanner from '../../../shared/ui/StatusBanner';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { ROUTES } from '../../../app/navigation/routes';
@@ -169,36 +169,38 @@ const GapDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_DETAIL>> = ({
       {/* Xato fonda emas, o'z sirtida: to'q fon rasmida ham o'qiladi. */}
       {addError ? <StatusBanner tone="error" message={addError} /> : null}
 
-      <FlatList
-        style={styles.list}
-        contentContainerStyle={styles.listCard}
-        data={membersQuery.isLoading ? [] : visibleMembers}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={14}
-        refreshControl={
-          <RefreshControl
-            refreshing={membersQuery.isFetching && !membersQuery.isLoading}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
-        }
-        ListEmptyComponent={
-          membersQuery.isLoading ? (
-            <SkeletonCardList count={4} containerStyle={styles.skeleton} />
-          ) : (
-            <View style={styles.empty}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="people-outline" size={26} color={colors.textSecondary} />
+      <NestedGlass>
+        <FlatList
+          style={styles.list}
+          contentContainerStyle={styles.listCard}
+          data={membersQuery.isLoading ? [] : visibleMembers}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={14}
+          refreshControl={
+            <RefreshControl
+              refreshing={membersQuery.isFetching && !membersQuery.isLoading}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
+          }
+          ListEmptyComponent={
+            membersQuery.isLoading ? (
+              <SkeletonCardList count={4} containerStyle={styles.skeleton} />
+            ) : (
+              <View style={styles.empty}>
+                <View style={styles.emptyIcon}>
+                  <Ionicons name="people-outline" size={26} color={colors.textSecondary} />
+                </View>
+                <Text style={styles.emptyText}>
+                  {organizer ? t('gap.membersEmptyOrganizer') : t('gap.membersEmpty')}
+                </Text>
               </View>
-              <Text style={styles.emptyText}>
-                {organizer ? t('gap.membersEmptyOrganizer') : t('gap.membersEmpty')}
-              </Text>
-            </View>
-          )
-        }
-      />
+            )
+          }
+        />
+      </NestedGlass>
 
       {/* A'zo qo'shish faqat guruhni yaratgan odamda. */}
       {organizer ? (

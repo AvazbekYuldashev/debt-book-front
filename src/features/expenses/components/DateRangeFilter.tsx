@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import Input from '../../../shared/ui/Input';
@@ -123,98 +123,100 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
 
   return (
     <View style={styles.card}>
-      <Pressable style={styles.titleRow} onPress={onToggle} accessibilityRole="button">
-        <View style={styles.titleGroup}>
-          <Text numberOfLines={1} style={styles.inlineText}>
-            <Text style={styles.title}>{t('expenses.dateRange')}: </Text>
-            <Text style={[styles.summary, hasActiveFilter && styles.summaryActive]}>{summaryText}</Text>
-          </Text>
-        </View>
-        <Ionicons
-          name={open ? 'chevron-up-outline' : 'chevron-down-outline'}
-          size={18}
-          color={colors.textSecondary}
-        />
-      </Pressable>
-
-      {open ? (
-        <>
-          {Platform.OS === 'web' ? (
-            <View style={styles.segmentedWrapper}>
-              <View style={styles.segmentGroup}>
-                <Text style={styles.segmentLabel}>{t('expenses.start')}</Text>
-                {renderWebSelectors(fromDate, onFromDateChange, 'from')}
-              </View>
-              <View style={styles.segmentGroup}>
-                <Text style={styles.segmentLabel}>{t('expenses.end')}</Text>
-                {renderWebSelectors(endDate, onEndDateChange, 'end')}
-              </View>
-            </View>
-          ) : (
-            <View style={styles.mobileDateRange}>
-              <View style={styles.mobileDateInput}>
-                <Input
-                  label={t('expenses.startDate')}
-                  value={fromDate}
-                  onChangeText={(value) => onFromDateChange(formatDateInputValue(value))}
-                  placeholder="YYYY-MM-DD"
-                  keyboardType="numeric"
-                  containerStyle={styles.filterInput}
-                />
-                <Pressable style={styles.calendarBtn} onPress={() => onShowFromPicker(true)}>
-                  <Ionicons name="calendar-outline" size={18} color={colors.textPrimary} />
-                </Pressable>
-              </View>
-              <View style={styles.mobileDateInput}>
-                <Input
-                  label={t('expenses.endDate')}
-                  value={endDate}
-                  onChangeText={(value) => onEndDateChange(formatDateInputValue(value))}
-                  placeholder="YYYY-MM-DD"
-                  keyboardType="numeric"
-                  containerStyle={styles.filterInput}
-                />
-                <Pressable style={styles.calendarBtn} onPress={() => onShowEndPicker(true)}>
-                  <Ionicons name="calendar-outline" size={18} color={colors.textPrimary} />
-                </Pressable>
-              </View>
-            </View>
-          )}
-
-          {showFromPicker && DateTimePicker ? (
-            <DateTimePicker
-              value={getPickerDate(fromDate)}
-              mode="date"
-              display="default"
-              onChange={(_event: unknown, date: Date | undefined) => {
-                if (Platform.OS !== 'ios') onShowFromPicker(false);
-                if (date) onFromDateChange(formatDateFromDate(date));
-              }}
-            />
-          ) : null}
-          {showEndPicker && DateTimePicker ? (
-            <DateTimePicker
-              value={getPickerDate(endDate)}
-              mode="date"
-              display="default"
-              onChange={(_event: unknown, date: Date | undefined) => {
-                if (Platform.OS !== 'ios') onShowEndPicker(false);
-                if (date) onEndDateChange(formatDateFromDate(date));
-              }}
-            />
-          ) : null}
-
-          <View style={styles.actionRow}>
-            <Button title={t('expenses.applyFilter')} onPress={onApply} style={styles.applyButton} />
+      <NestedGlass>
+        <Pressable style={styles.titleRow} onPress={onToggle} accessibilityRole="button">
+          <View style={styles.titleGroup}>
+            <Text numberOfLines={1} style={styles.inlineText}>
+              <Text style={styles.title}>{t('expenses.dateRange')}: </Text>
+              <Text style={[styles.summary, hasActiveFilter && styles.summaryActive]}>{summaryText}</Text>
+            </Text>
           </View>
+          <Ionicons
+            name={open ? 'chevron-up-outline' : 'chevron-down-outline'}
+            size={18}
+            color={colors.textSecondary}
+          />
+        </Pressable>
 
-          {error ? (
-            <View style={styles.errorRow}>
-              <Text style={styles.errorText}>{error}</Text>
+        {open ? (
+          <>
+            {Platform.OS === 'web' ? (
+              <View style={styles.segmentedWrapper}>
+                <View style={styles.segmentGroup}>
+                  <Text style={styles.segmentLabel}>{t('expenses.start')}</Text>
+                  {renderWebSelectors(fromDate, onFromDateChange, 'from')}
+                </View>
+                <View style={styles.segmentGroup}>
+                  <Text style={styles.segmentLabel}>{t('expenses.end')}</Text>
+                  {renderWebSelectors(endDate, onEndDateChange, 'end')}
+                </View>
+              </View>
+            ) : (
+              <View style={styles.mobileDateRange}>
+                <View style={styles.mobileDateInput}>
+                  <Input
+                    label={t('expenses.startDate')}
+                    value={fromDate}
+                    onChangeText={(value) => onFromDateChange(formatDateInputValue(value))}
+                    placeholder="YYYY-MM-DD"
+                    keyboardType="numeric"
+                    containerStyle={styles.filterInput}
+                  />
+                  <Pressable style={styles.calendarBtn} onPress={() => onShowFromPicker(true)}>
+                    <Ionicons name="calendar-outline" size={18} color={colors.textPrimary} />
+                  </Pressable>
+                </View>
+                <View style={styles.mobileDateInput}>
+                  <Input
+                    label={t('expenses.endDate')}
+                    value={endDate}
+                    onChangeText={(value) => onEndDateChange(formatDateInputValue(value))}
+                    placeholder="YYYY-MM-DD"
+                    keyboardType="numeric"
+                    containerStyle={styles.filterInput}
+                  />
+                  <Pressable style={styles.calendarBtn} onPress={() => onShowEndPicker(true)}>
+                    <Ionicons name="calendar-outline" size={18} color={colors.textPrimary} />
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+            {showFromPicker && DateTimePicker ? (
+              <DateTimePicker
+                value={getPickerDate(fromDate)}
+                mode="date"
+                display="default"
+                onChange={(_event: unknown, date: Date | undefined) => {
+                  if (Platform.OS !== 'ios') onShowFromPicker(false);
+                  if (date) onFromDateChange(formatDateFromDate(date));
+                }}
+              />
+            ) : null}
+            {showEndPicker && DateTimePicker ? (
+              <DateTimePicker
+                value={getPickerDate(endDate)}
+                mode="date"
+                display="default"
+                onChange={(_event: unknown, date: Date | undefined) => {
+                  if (Platform.OS !== 'ios') onShowEndPicker(false);
+                  if (date) onEndDateChange(formatDateFromDate(date));
+                }}
+              />
+            ) : null}
+
+            <View style={styles.actionRow}>
+              <Button title={t('expenses.applyFilter')} onPress={onApply} style={styles.applyButton} />
             </View>
-          ) : null}
-        </>
-      ) : null}
+
+            {error ? (
+              <View style={styles.errorRow}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+          </>
+        ) : null}
+      </NestedGlass>
     </View>
   );
 };

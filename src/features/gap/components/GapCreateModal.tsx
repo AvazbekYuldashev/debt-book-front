@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import Modal from '../../../shared/ui/AppModal';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { useAppTheme } from '../../../shared/theme';

@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Modal from '../../../shared/ui/AppModal';
 import { Ionicons } from '@expo/vector-icons';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';

@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { StyleProp, View, ViewProps, ViewStyle } from 'react-native';
-import { useAppTheme } from '../theme';
+import { NestedGlass, useAppTheme } from '../theme';
 
 export type CardVariant = 'primary' | 'secondary' | 'outline';
 
@@ -50,7 +50,9 @@ const Card: React.FC<CardProps> = ({ children, style, variant = 'primary', ...pr
       ]}
       {...props}
     >
-      {children}
+      {/* Ichidagi tugma, chip va maydonlar karta USTIDA turadi - ular
+          qayta muzlatmasin (NestedGlass). */}
+      <NestedGlass>{children}</NestedGlass>
     </View>
   );
 };

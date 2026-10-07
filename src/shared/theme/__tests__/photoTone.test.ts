@@ -1,6 +1,7 @@
 import {
   contrastRatio,
   parseColor,
+  photoFloor,
   photoTheme,
   photoThemeReason,
   readableShare,
@@ -8,6 +9,8 @@ import {
   type Rgb,
 } from '../photoTone';
 import { TRANSPARENCY_LEVELS } from '../transparency';
+import { darkColors, lightColors } from '../colors';
+import { ACCENTS, applyAccent } from '../accent';
 
 const ROWS = 24;
 const COLS = 12;
@@ -197,6 +200,104 @@ describe('shaffoflik jadvallari', () => {
 });
 
 /**
+ * ThemeProvider beradigan YAKUNIY palitra: ilova rangi + rasm ustidagi
+ * kulrang matn.
+ */
+const paletteFor = (theme: 'light' | 'dark', accentId: string) => {
+  const base = applyAccent(theme === 'dark' ? darkColors : lightColors, accentId, theme === 'dark');
+  return { ...base, textSecondary: base.textSecondaryOnPhoto };
+};
+
+/**
+ * Eng kam tus (photoFloor): ko'rinish rasmning kontent qismiga qarab
+ * tanlanadi, sirtlar esa BUTUN ekranda - chegara matnni hamma joyda
+ * o'qitadi. Oddiy rasmlarda u 0 va "Ko'p" to'liq shaffof qoladi.
+ */
+describe('photoFloor', () => {
+  /** Foydalanuvchi talabi: "Ko'p" - to'liq shaffof. Oddiy fonlarda tus qo'shilmaydi. */
+  it("oddiy fonlarda chegara yo'q - Ko'p to'liq shaffof", () => {
+    for (const [name, photo] of [
+      ['qop-qora', uniform({ r: 0, g: 0, b: 0 })],
+      ["to'q tosh", uniform(DARK)],
+      ['och', uniform(BRIGHT)],
+      ['oppoq', uniform({ r: 255, g: 255, b: 255 })],
+    ] as const) {
+      for (const preferred of ['light', 'dark'] as const) {
+        const look = photoTheme(preferred, photo, 'clear');
+        expect([name, preferred, photoFloor(photo, paletteFor(look, 'green'), look)]).toEqual([
+          name,
+          preferred,
+          { text: 0, colored: 0 },
+        ]);
+      }
+    }
+  });
+
+  /**
+   * Tepasi och osmon, pasti to'q yer: yozuv oq (ro'yxat to'q yer ustida),
+   * sarlavha va summa kartasi esa osmon ustida - chegara ularni o'qitadi.
+   */
+  it("osmon ustidagi sarlavha ham o'qiladi", () => {
+    const photo = split({ r: 200, g: 215, b: 235 }, { r: 35, g: 40, b: 30 }, 0.36);
+    const look = photoTheme('light', photo, 'clear');
+    expect(look).toBe('dark');
+    const palette = paletteFor(look, 'green');
+    const floors = photoFloor(photo, palette, look);
+    expect(floors.text).toBeGreaterThan(0);
+    expect(readableShare(photo, look, 'clear', true, { palette })).toBeLessThan(0.95);
+    for (const level of LEVELS) {
+      expect([level, readableShare(photo, look, level, true, { floors, palette })]).toEqual([level, 1]);
+    }
+    for (const level of ['solid', 'medium'] as const) {
+      expect([level, readableShare(photo, look, level, true, { floors, palette, colored: true })]).toEqual([level, 1]);
+    }
+  });
+
+  /**
+   * Web, HAR ilova rangi, HAR bir tusli rasm: chegara bilan asosiy va
+   * kulrang matn hamma darajada, rangli matn (summalar, xavf, ilova
+   * rangi) esa "Kam" va "O'rta" da o'qiladi.
+   */
+  it("chegara bilan hamma matn o'qiladi - har ilova rangi, butun rang aylanasi", () => {
+    const bad: string[] = [];
+    for (const { id: accent } of ACCENTS) {
+      for (const preferred of ['light', 'dark'] as const) {
+        for (const { name, photo } of SWEEP) {
+          for (const level of LEVELS) {
+            const look = photoTheme(preferred, photo, level);
+            const palette = paletteFor(look, accent);
+            const floors = photoFloor(photo, palette, look);
+            const colored = level === 'solid' || level === 'medium';
+            if (readableShare(photo, look, level, true, { floors, palette, colored }) < 1) {
+              bad.push(`${accent} ${preferred} ${level} ${name} (${look})`);
+            }
+          }
+        }
+      }
+    }
+    expect(bad.slice(0, 10)).toEqual([]);
+  }, 60000);
+
+  /** Telefon: o'lchov yo'q - jadvalning o'zi rangli matnni ham o'qitadi ("Kam", "O'rta"). */
+  it("telefon: rangli matn Kam va O'rta da har qanday rasmda o'qiladi", () => {
+    const bad: string[] = [];
+    for (const { id: accent } of ACCENTS) {
+      for (const theme of ['light', 'dark'] as const) {
+        const palette = paletteFor(theme, accent);
+        for (const { name, photo } of SWEEP) {
+          for (const level of ['none', 'solid', 'medium'] as const) {
+            if (readableShare(photo, theme, level, false, { palette, colored: true }) < 1) {
+              bad.push(`${accent} ${theme} ${level} ${name}`);
+            }
+          }
+        }
+      }
+    }
+    expect(bad.slice(0, 10)).toEqual([]);
+  }, 60000);
+});
+
+/**
  * Yozuv rangi FONGA ergashadi: yorug' rejimda fon to'q bo'lsa yozuvlar oq
  * (qorong'i ko'rinish), qorong'i rejimda fon och bo'lsa - to'q.
  */
@@ -330,6 +431,21 @@ describe('photoTheme', () => {
     }
     expect(bad).toEqual([]);
   }, 30000);
+
+  /**
+   * "O'rta" (standart) da ikkala ko'rinish ham HAR bir tusli rasmda
+   * o'qiladi - shaffoflik sababli almashish faqat "Ko'p" da bo'lishi
+   * mumkin.
+   */
+  it("O'rta da ikkala ko'rinish ham hamma rasmda o'qiladi", () => {
+    const bad: string[] = [];
+    for (const theme of ['light', 'dark'] as const) {
+      for (const { name, photo } of SWEEP) {
+        if (readableShare(photo, theme, 'medium') < 1) bad.push(`${theme} ${name}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
 
   /** Sozlamalardagi izoh to'g'ri sababni aytadi. */
   it("ko'rinish sababi: rasm yoki shaffoflik", () => {

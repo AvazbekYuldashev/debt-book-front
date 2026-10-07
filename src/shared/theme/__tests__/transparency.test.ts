@@ -3,11 +3,12 @@ import {
   TRANSPARENCY_LEVELS,
   findTransparency,
   glassAlpha,
+  FROST_HAZE,
   reAlpha,
   withHaze,
 } from '../transparency';
 import { makeGlass } from '../glass';
-import { lightColors } from '../colors';
+import { darkColors, lightColors } from '../colors';
 import { makeShadows } from '../elevation';
 
 const shadows = makeShadows(lightColors.shadow);
@@ -42,7 +43,7 @@ describe('reAlpha', () => {
 });
 
 /**
- * Tus + uning ustidagi oq xiralik BITTA rgba ga yig'iladi - ekranda ikki
+ * Oq xiralik + uning ustidagi tus BITTA rgba ga yig'iladi - ekranda ikki
  * qatlam qanday aralashsa, xuddi shunday.
  */
 describe('withHaze', () => {
@@ -57,7 +58,7 @@ describe('withHaze', () => {
     for (const alpha of [0, 0.3, 0.8]) {
       for (const haze of [0.14, 0.25]) {
         for (const below of [[0, 0, 0], [255, 255, 255], [200, 30, 160]]) {
-          const twoLayers = below.map((b, k) => haze * 255 + (1 - haze) * (alpha * tint[k] + (1 - alpha) * b));
+          const twoLayers = below.map((b, k) => alpha * tint[k] + (1 - alpha) * (haze * 255 + (1 - haze) * b));
           over(withHaze('rgba(22, 32, 50, 0.9)', alpha, haze), below).forEach((v, k) => {
             expect(Math.abs(v - twoLayers[k])).toBeLessThan(1);
           });
@@ -168,7 +169,7 @@ describe('glassAlpha', () => {
         // 0.76 edi va telefonda ikkisi bir xil chiqardi.
         if (key === 'surface') {
           for (let i = 1; i < steps.length; i += 1) {
-            expect(steps[i - 1] - steps[i]).toBeGreaterThanOrEqual(0.08);
+            expect(steps[i - 1] - steps[i]).toBeGreaterThanOrEqual(0.08 - 1e-9);
           }
         }
       }
@@ -222,11 +223,30 @@ describe('makeGlass daraja bilan', () => {
   });
 
   /** TUS mavzudan: daraja faqat qalinlikni o'zgartiradi, rangni emas. */
-  it('rang ozgarmaydi, faqat alfa', () => {
+  it('telefonda rang ozgarmaydi, faqat alfa', () => {
     const clear = String(makeGlass(lightColors, shadows, true, 'clear').surface.backgroundColor);
     const solid = String(makeGlass(lightColors, shadows, true, 'solid').surface.backgroundColor);
 
     const rgbOf = (value: string) => value.replace(/,\s*[\d.]+\)$/, ')');
     expect(rgbOf(clear)).toBe(rgbOf(solid));
+  });
+
+  /**
+   * Web'da rgb'ni FAQAT oq xiralik o'zgartiradi: rang aynan withHaze -
+   * tus va oq xiralikning yig'indisi, boshqa hech narsa.
+   */
+  it("web'da rgb'ni faqat oq xiralik o'zgartiradi", () => {
+    const { Platform } = require('react-native');
+    const original = Platform.OS;
+    Platform.OS = 'web';
+    try {
+      for (const level of ['solid', 'medium', 'clear'] as const) {
+        expect(makeGlass(darkColors, shadows, true, level, true).surface.backgroundColor).toBe(
+          withHaze(darkColors.glassSurfaceOnPhoto, glassAlpha(level, true, true).surface, FROST_HAZE.dark),
+        );
+      }
+    } finally {
+      Platform.OS = original;
+    }
   });
 });

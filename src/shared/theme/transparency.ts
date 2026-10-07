@@ -120,13 +120,30 @@ const WITH_PHOTO_DARK: Record<TransparencyLevel, AlphaSet> = {
  * QANDAY rasmda o'qiladigan eng shaffof qiymatda qoladi (test qulflaydi).
  */
 const NO_FROST_FLOOR: Record<'light' | 'dark', Partial<Record<TransparencyLevel, number>>> = {
-  // O'qilish uchun eng kami: yorug' 0.59, qorong'i 0.68 (qora/oq rasm,
-  // textSecondaryOnPhoto bilan). Undan yuqorida zinapoya teng qadamli
-  // (~0.1): ilgari qorong'ida Kam 0.8 / O'rta 0.76 edi va telefonda bu
-  // ikki daraja bir xil ko'rinardi.
-  light: { solid: 0.86, medium: 0.74, clear: 0.62 },
-  dark: { solid: 0.9, medium: 0.8, clear: 0.7 },
+  // Qoida web'dagi photoFloor bilan bir xil:
+  //   "Ko'p"        - asosiy va kulrang matn: eng kami yorug' 0.59,
+  //                   qorong'i 0.68 (qora/oq rasm);
+  //   "Kam", "O'rta" - + qizil/yashil summalar va HAR ilova rangi (3:1):
+  //                   eng kami yorug' 0.79, qorong'i 0.80.
+  // Qadamlar kamida 0.08: ilgari qorong'ida Kam 0.8 / O'rta 0.76 edi va
+  // telefonda bu ikki daraja bir xil ko'rinardi.
+  light: { solid: 0.88, medium: 0.8, clear: 0.62 },
+  dark: { solid: 0.9, medium: 0.82, clear: 0.7 },
 };
+
+/**
+ * O'lchangan fon rasmi uchun eng kam tus (web) - photoTone.photoFloor.
+ *
+ *   text    - asosiy va kulrang matn; HAR shaffof darajada;
+ *   colored - + rangli matn (summalar, ilova rangi); "Kam" va "O'rta" da.
+ *
+ * "Ko'p" faqat `text` ni oladi: foydalanuvchi eng ko'p shaffoflikni
+ * tanlagan va u ko'p rasmlarda baribir 0 - sirt to'liq shaffof qoladi.
+ */
+export interface PhotoFloors {
+  text: number;
+  colored: number;
+}
 
 /**
  * Rasm ustidagi MUZLATISH retsepti (web, backdrop-filter): blur ->
@@ -138,8 +155,9 @@ const NO_FROST_FLOOR: Record<'light' | 'dark', Partial<Record<TransparencyLevel,
  *
  * OQ XIRALIK (rgba 255,255,255): muzli shishaning o'zi - Samsung/iOS
  * panellari kabi sirt ortidagi rasm oqish, "sovuq oyna" bo'lib ko'rinadi.
- * Foydalanuvchi talabi. U daraja tusining USTIDA turadi, shuning uchun har
- * shaffof darajada bir xil seziladi; "Yo'q" da (yopiq karta) yo'q.
+ * Foydalanuvchi talabi. U daraja tusining OSTIDA turadi (withHaze): "Ko'p"
+ * da to'liq ko'rinadi, yopiqroq darajalarda tus uni qoplaydi; "Yo'q" da
+ * (yopiq karta) yo'q.
  * Faqat muzlatish bor joyda: blur'siz (telefon) oq qatlam keskin rasm
  * ustidagi sut rangli parda bo'lardi.
  *
@@ -169,26 +187,45 @@ export const glassAlpha = (
   onPhoto: boolean,
   isDark = false,
   frosted = true,
+  /** O'lchangan rasm uchun chegaralar (web). Yo'q bo'lsa - jadval. */
+  floors?: PhotoFloors,
 ): AlphaSet => {
   if (!onPhoto) return (isDark ? WITHOUT_PHOTO_DARK : WITHOUT_PHOTO_LIGHT)[level];
   const set = (isDark ? WITH_PHOTO_DARK : WITH_PHOTO_LIGHT)[level];
-  const floor = frosted ? undefined : NO_FROST_FLOOR[isDark ? 'dark' : 'light'][level];
-  if (floor === undefined) return set;
+  if (!frosted) {
+    const floor = NO_FROST_FLOOR[isDark ? 'dark' : 'light'][level];
+    if (floor === undefined) return set;
+    return {
+      surface: Math.max(set.surface, floor),
+      strong: Math.max(set.strong, floor),
+      muted: Math.max(set.muted, floor),
+    };
+  }
+  if (!floors || level === 'none') return set;
+  const floor = level === 'clear' ? floors.text : Math.max(floors.text, floors.colored);
+  // Ichki bo'lak (muted) ota-sirt ichida: ota qalinlashsa, u ham o'qiladi.
   return {
     surface: Math.max(set.surface, floor),
     strong: Math.max(set.strong, floor),
-    muted: Math.max(set.muted, floor),
+    muted: set.muted,
   };
 };
 
 /**
- * Sirt rangi: daraja tusi (`rgba` ning rgb'si, `alpha` qalinlikda), uning
- * USTIDA oq xiralik (`haze`) - ikkalasi BITTA rgba ga yig'iladi.
+ * Sirt rangi: muzlatilgan fon ustida oq xiralik (`haze`), uning USTIDA
+ * daraja tusi (`rgba` ning rgb'si, `alpha` qalinlikda) - ikkalasi BITTA
+ * rgba ga yig'iladi.
+ *
+ * Xiralik muzli shishaning o'zi, tus esa uning ustidagi bo'yoq: tus qancha
+ * qalin bo'lsa, xiralik shuncha kam ko'rinadi. "Ko'p" (alpha 0) - sof oq
+ * muzli shisha; "Kam" da u deyarli sezilmaydi va karta rangi (shu bilan
+ * qizil/yashil summalar kontrasti) avvalgidek qoladi. "Yo'q" da (alpha 1)
+ * xiralik yo'q.
  *
  * Ekran ikki qatlamni shunday aralashtiradi:
- *   natija = haze*oq + (1-haze)*(alpha*tus + (1-alpha)*ort)
- * ya'ni bitta qatlam: qalinligi haze + (1-haze)*alpha, rangi esa oq va
- * tusning shu ulushlardagi o'rtachasi. Bitta rang - bitta View: qo'shimcha
+ *   natija = alpha*tus + (1-alpha)*(haze*oq + (1-haze)*ort)
+ * ya'ni bitta qatlam: qalinligi alpha + (1-alpha)*haze, rangi esa tus va
+ * oqning shu ulushlardagi o'rtachasi. Bitta rang - bitta View: qo'shimcha
  * qatlam ham, telefon/web farqi ham yo'q.
  *
  * Mos kelmagan satr reAlpha kabi o'z holicha qaytadi.
@@ -197,8 +234,8 @@ export const withHaze = (rgba: string, alpha: number, haze: number): string => {
   if (haze <= 0) return reAlpha(rgba, alpha);
   const match = /^rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*[\d.]+\s*\)$/.exec(rgba);
   if (!match) return rgba;
-  const total = haze + (1 - haze) * alpha;
-  const tintShare = ((1 - haze) * alpha) / total;
+  const total = alpha + (1 - alpha) * haze;
+  const tintShare = alpha / total;
   const channel = (value: string) => Math.round(255 * (1 - tintShare) + Number(value) * tintShare);
   return `rgba(${channel(match[1])}, ${channel(match[2])}, ${channel(match[3])}, ${+total.toFixed(3)})`;
 };

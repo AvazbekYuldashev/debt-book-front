@@ -160,6 +160,40 @@ describe('muzli shisha', () => {
     });
   });
 
+  /**
+   * Boshqa sirt ICHIDAGI bo'lak (nested): tus va alfa xuddi shunday,
+   * lekin muzlatish ham, oq xiralik ham yo'q - ota sirtni qayta
+   * muzlatib kulrang plita yasamasin.
+   */
+  it("ichki shisha muzlatmaydi va oq xiralik qo'shmaydi", () => {
+    const shadowsDark = makeShadows(darkColors.shadow);
+    withPlatform('web', () => {
+      for (const level of ['solid', 'medium', 'clear'] as const) {
+        const nested = makeGlass(darkColors, shadowsDark, true, level, true, { nested: true });
+        for (const key of ['surface', 'pane', 'flush', 'raised'] as const) {
+          expect([level, key, frostOf(nested[key] as Record<string, unknown>)]).toEqual([level, key, undefined]);
+        }
+        expect(nested.surface.backgroundColor).toBe(
+          reAlpha(darkColors.glassSurfaceOnPhoto, glassAlpha(level, true, true).surface),
+        );
+        expect(nested.frost).toEqual({});
+      }
+    });
+  });
+
+  /** Rasm chegarasi (photoFloor): "Kam"/"O'rta" rangli matn chegarasini, "Ko'p" faqat matnnikini oladi. */
+  it("rasm chegarasi darajaga qarab qo'llanadi", () => {
+    const floors = { text: 0.2, colored: 0.6 };
+    withPlatform('web', () => {
+      expect(glassAlpha('clear', true, true, true, floors).surface).toBe(0.2);
+      expect(glassAlpha('medium', true, true, true, floors).surface).toBe(0.6);
+      expect(glassAlpha('solid', true, true, true, floors).surface).toBe(glassAlpha('solid', true, true).surface);
+      expect(glassAlpha('none', true, true, true, floors).surface).toBe(1);
+      // Telefonda o'lchov yo'q - jadval chegaralari.
+      expect(glassAlpha('clear', true, true, false, floors)).toEqual(glassAlpha('clear', true, true, false));
+    });
+  });
+
   it("Yo'q darajasida va rasmsiz muzlatish yo'q", () => {
     withPlatform('web', () => {
       expect(frostOf(makeGlass(lightColors, shadowsLight, true, 'none').surface as Record<string, unknown>)).toBeUndefined();
@@ -195,7 +229,11 @@ const GREY: Rgb = { r: 128, g: 128, b: 128 };
  * kulrang rasm; rasmsiz - mavzu foni) ko'z ko'radigan qatlam:
  * fon -> karta (surface) -> ichki bo'lak (muted).
  */
-describe("qorong'i shisha: muted har darajada to'q va o'qiladi", () => {
+// Quyidagi ikki blok MUZLATISHSIZ yo'lni (telefon; jest - iOS) tekshiradi:
+// u yerda ko'rinish rasmga moslashmaydi, shuning uchun eng yomon fonlar
+// (qop-qora, oppoq, kulrang) to'g'ridan-to'g'ri qo'yiladi. Web (muzlatish,
+// oq xiralik, rasmga mos ko'rinish) photoTone testlarida qulflangan.
+describe("telefon: qorong'i shisha - muted har darajada to'q va o'qiladi", () => {
   const colors = darkColors;
   const shadows = makeShadows(colors.shadow);
   const cases = TRANSPARENCY_LEVELS.flatMap(({ id: level }) => [
@@ -241,7 +279,7 @@ describe("qorong'i shisha: muted har darajada to'q va o'qiladi", () => {
  * u yerda faqat tus va alfa hal qiladi (och rasmda qalinroq to'q sirt
  * tabiiy ravishda to'qroq chiqadi).
  */
-describe("qorong'i shisha: raised kartadan to'q emas", () => {
+describe("telefon: qorong'i shisha - raised kartadan to'q emas", () => {
   const colors = darkColors;
   const shadows = makeShadows(colors.shadow);
   const backdrops = [

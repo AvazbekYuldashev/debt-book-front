@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import Modal from '../../../shared/ui/AppModal';
 import { useQueryClient } from '@tanstack/react-query';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';

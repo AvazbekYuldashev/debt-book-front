@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Appearance, ColorSchemeName, Dimensions, useColorScheme } from 'react-native';
+import { Appearance, ColorSchemeName, Dimensions, Platform, useColorScheme } from 'react-native';
 import { ColorTokens, darkColors, lightColors } from './colors';
 import { applyWebTheme } from './applyWebTheme';
 import { makeShadows, ShadowTokens } from './elevation';
@@ -8,7 +8,7 @@ import { useBackground } from './BackgroundProvider';
 import { useAccent } from './AccentProvider';
 import { useTransparency } from './TransparencyProvider';
 import { peekPhoto, samplePhoto } from './photoColor';
-import { photoTheme, photoThemeReason, type PhotoSample } from './photoTone';
+import { photoFloor, photoTheme, photoThemeReason, type PhotoSample } from './photoTone';
 import type { BackgroundFit } from './backgroundSettings';
 import { APP_COLUMN_WIDTH } from './layout';
 import { applyAccent } from './accent';
@@ -50,6 +50,12 @@ export interface ThemeValue {
   shadows: ShadowTokens;
   /** Yarim shaffof "shisha" sirtlar (surface / raised / muted). */
   glass: GlassTokens;
+  /**
+   * Boshqa sirt ICHIDAGI bo'laklar uchun shisha: muzlatishsiz va oq
+   * xiraliksiz (glass.ts GlassOptions.nested). To'g'ridan-to'g'ri
+   * ishlatilmaydi - NestedGlass uni `glass` o'rniga beradi.
+   */
+  glassNested: GlassTokens;
   /** Ikonka o'lchamlari shkalasi. */
   iconSize: typeof iconSize;
   fontsLoaded: boolean;
@@ -221,9 +227,27 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    * ishlaydi. Shu sababli BackgroundProvider daraxtda bu provayderdan
    * TASHQARIDA turadi - u mavzuga bog'liq emas, mavzu esa unga bog'liq.
    */
+  /**
+   * O'lchangan rasm uchun eng kam tus: matn BUTUN ekranda o'qilsin (tepasi
+   * och osmon, pasti to'q yer kabi rasmlarda ham). Ko'p rasmlarda 0 -
+   * shaffoflik jadvaldagidek qoladi. YAKUNIY palitra bilan hisoblanadi:
+   * tanlangan ilova rangi va rasm ustidagi kulrang matn ham tekshiriladi.
+   */
+  const floors = useMemo(
+    () => (imageId && photo ? photoFloor(photo, colors, activeTheme) : undefined),
+    [imageId, photo, colors, activeTheme],
+  );
   const glass = useMemo(
-    () => makeGlass(colors, shadows, hasPhoto, level, activeTheme === 'dark'),
-    [colors, shadows, hasPhoto, level, activeTheme],
+    () => makeGlass(colors, shadows, hasPhoto, level, activeTheme === 'dark', { floors }),
+    [colors, shadows, hasPhoto, level, activeTheme, floors],
+  );
+  // Telefonda muzlatish yo'q - ichki shisha tashqisi bilan bir xil.
+  const glassNested = useMemo(
+    () =>
+      Platform.OS === 'web'
+        ? makeGlass(colors, shadows, hasPhoto, level, activeTheme === 'dark', { floors, nested: true })
+        : glass,
+    [colors, shadows, hasPhoto, level, activeTheme, floors, glass],
   );
 
   const value = useMemo<ThemeValue>(() => ({
@@ -237,17 +261,39 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     typography,
     shadows,
     glass,
+    glassNested,
     iconSize,
     fontsLoaded,
     setMode: applyMode,
     toggleTheme,
-  }), [mode, activeTheme, preferredTheme, photoAdaptedBy, colors, shadows, glass, toggleTheme, applyMode, fontsLoaded]);
+  }), [mode, activeTheme, preferredTheme, photoAdaptedBy, colors, shadows, glass, glassNested, toggleTheme, applyMode, fontsLoaded]);
 
   // Saqlangan mavzu o'qilmaguncha render qilmaymiz — light->dark "miltillash"ning oldini oladi.
   if (!hydrated) {
     return null;
   }
 
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+};
+
+/**
+ * Ichidagi hamma narsa BOSHQA SIRT ustida turadi: karta, sozlamalar guruhi,
+ * dialog, ro'yxat kartasi. Shu daraxtda `useAppTheme().glass` muzlatishsiz
+ * va oq xiraliksiz shisha qaytaradi (glassNested).
+ *
+ * Nega kontekst: tugma, chip, qidiruv maydoni o'zi qayerda turganini
+ * bilmaydi - sarlavhada (rasm ustida, muzlatish kerak) yoki karta ichida
+ * (ota sirt allaqachon muzlatgan; ikkinchi muzlatish kulrang plita
+ * yasardi). Sirt chizadigan konteyner buni bir marta aytadi, ichidagi
+ * barcha komponentlar o'zgarishsiz to'g'ri ishlaydi. Ichma-ich qo'yish
+ * xavfsiz: ichkarida glass allaqachon glassNested.
+ */
+export const NestedGlass: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const theme = useAppTheme();
+  const value = useMemo(
+    () => (theme.glass === theme.glassNested ? theme : { ...theme, glass: theme.glassNested }),
+    [theme],
+  );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };
 

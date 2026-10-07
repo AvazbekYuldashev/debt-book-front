@@ -16,7 +16,7 @@ import type { ProfileNavigation } from '../../../app/navigation/types';
 import { useI18n } from '../../../shared/i18n';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import SurfaceLabel from '../../../shared/ui/SurfaceLabel';
-import { useAppTheme } from '../../../shared/theme';
+import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import BusinessCard from '../components/BusinessCard';
 
@@ -83,7 +83,9 @@ const MyBusinessesScreen: React.FC<{ navigation: ProfileNavigation }> = ({ navig
         ) : businesses.length === 0 ? (
           // Matn fonda emas, kartada: to'q fon rasmida ham o'qiladi.
           <View style={styles.emptyCard}>
-            <Text style={styles.empty}>{t('workspace.noBusiness')}</Text>
+            <NestedGlass>
+              <Text style={styles.empty}>{t('workspace.noBusiness')}</Text>
+            </NestedGlass>
           </View>
         ) : (
           businesses.map((business) => (
