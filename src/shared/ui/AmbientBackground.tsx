@@ -226,7 +226,7 @@ const AmbientBackground: React.FC = () => {
     // ham davom etadi (ortiqchasini konteynerning overflow'i kesadi).
     // Panel o'z bo'lagini AYNAN shu qutidan chizadi (BottomTabNavigator):
     // qutilar bir xil bo'lgani uchun cover/contain kesimi ham bir xil va
-    // rasm panel chizig'ida uzilmaydi. photoTone ham rasmni to'liq ekran
+    // rasm panel chizig'ida uzilmaydi. O'lchov ham rasmni to'liq ekran
     // nisbatida o'lchaydi - bu quti o'sha nisbatga mos.
     //
     // Balandlik onLayout'siz, `bottom: -panel` bilan: birinchi kadrdanoq

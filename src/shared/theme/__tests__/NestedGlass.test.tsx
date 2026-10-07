@@ -5,11 +5,6 @@ import { AppThemeProvider, NestedGlass, useAppTheme } from '../ThemeProvider';
 import { BackgroundProvider } from '../BackgroundProvider';
 import { TransparencyProvider } from '../TransparencyProvider';
 
-jest.mock('../photoColor', () => ({
-  samplePhoto: () => Promise.resolve(null),
-  peekPhoto: () => null,
-}));
-
 const Probe: React.FC<{ id: string }> = ({ id }) => {
   const { glass, glassNested } = useAppTheme();
   return <Text testID={id}>{glass === glassNested ? 'nested' : 'top'}</Text>;

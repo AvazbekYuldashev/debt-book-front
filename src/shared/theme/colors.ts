@@ -98,9 +98,6 @@ export interface ColorTokens {
    * Rasm qo'yilganda sirtlar deyarli to'ldiriladi: karta toza panel
    * bo'lib turadi, rasm esa ular ORASIDA o'z holicha ko'rinadi.
    */
-  glassSurfaceOnPhoto: string;
-  glassSurfaceStrongOnPhoto: string;
-  glassMutedOnPhoto: string;
   ctaGradientStart: string;
   ctaGradientEnd: string;
   /** Gradient ustidagi matn - ikkala mavzuda ham o'qilishi tekshirilgan. */
@@ -163,9 +160,6 @@ export const lightColors: ColorTokens = {
   negativeSoft: '#FDEFF1',
   // Yorug' mavzuda farq KATTA: 0.28 oq to'q rasm ustida sut rangli
   // parda edi. Deyarli to'ldirilgan oq esa toza karta bo'lib turadi.
-  glassSurfaceOnPhoto: 'rgba(255, 255, 255, 0.92)',
-  glassSurfaceStrongOnPhoto: 'rgba(255, 255, 255, 0.96)',
-  glassMutedOnPhoto: 'rgba(240, 244, 250, 0.92)',
   ctaGradientStart: '#2DD4A7',
   ctaGradientEnd: '#15803D',
   ctaText: '#FFFFFF',
@@ -236,12 +230,9 @@ export const darkColors: ColorTokens = {
   // Qorong'i mavzuda shisha allaqachon TO'Q: to'q rasm ustida u tabiiy
   // qo'shilib ketadi, shuning uchun bu yerda deyarli o'zgarish yo'q -
   // faqat ozgina quyuqroq, matn har qanday rasmda o'qilishi uchun.
-  glassSurfaceOnPhoto: 'rgba(22, 32, 50, 0.78)',
   // Kartadan bir pog'ona och - yuqoridagi glassSurfaceStrong bilan bir sabab.
-  glassSurfaceStrongOnPhoto: 'rgba(26, 37, 57, 0.86)',
   // glassMuted bilan bir sabab: rasm ustida jadval alfasi 0.7..1.0, och
   // slate esa to'q rasmda sut rangli plitaga aylanardi.
-  glassMutedOnPhoto: 'rgba(44, 58, 84, 0.80)',
   // Qorong'ida ochroq: to'q yashil qora fonda deyarli ko'rinmasdi.
   ctaGradientStart: '#34D399',
   ctaGradientEnd: '#10B981',

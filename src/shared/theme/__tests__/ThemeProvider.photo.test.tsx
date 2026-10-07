@@ -5,29 +5,13 @@ import { AppThemeProvider, useAppTheme } from '../ThemeProvider';
 import { BackgroundProvider, useBackground } from '../BackgroundProvider';
 import { TransparencyProvider, useTransparency } from '../TransparencyProvider';
 import type { TransparencyLevel } from '../transparency';
-import type { PhotoSample } from '../photoTone';
-
-const mockSample = jest.fn<Promise<PhotoSample | null>, [string, string, number]>();
-jest.mock('../photoColor', () => ({
-  samplePhoto: (url: string, fit: string, aspect: number) => mockSample(url, fit, aspect),
-  peekPhoto: () => null,
-}));
-
-const photo = (r: number, g: number, b: number): PhotoSample => ({
-  rows: 4,
-  cols: 2,
-  cells: Array.from({ length: 8 }, () => ({ r, g, b, a: 1 })),
-});
-const DARK_PHOTO = photo(58, 68, 84);
-const BRIGHT_PHOTO = photo(236, 234, 228);
-const MID_PHOTO = photo(150, 150, 150);
 
 const Probe: React.FC<{ level: TransparencyLevel; image: boolean; preferred: 'light' | 'dark' }> = ({
   level,
   image,
   preferred,
 }) => {
-  const { activeTheme, mode, setMode } = useAppTheme();
+  const { activeTheme, mode, setMode, glass } = useAppTheme();
   const { setImage } = useBackground();
   const { setLevel } = useTransparency();
 
@@ -40,7 +24,12 @@ const Probe: React.FC<{ level: TransparencyLevel; image: boolean; preferred: 'li
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <Text testID="theme">{`${activeTheme}|${mode}`}</Text>;
+  return (
+    <>
+      <Text testID="theme">{`${activeTheme}|${mode}`}</Text>
+      <Text testID="surface">{String(glass.surface.backgroundColor)}</Text>
+    </>
+  );
 };
 
 const show = (level: TransparencyLevel, image = true, preferred: 'light' | 'dark' = 'light') =>
@@ -60,85 +49,54 @@ const settle = () =>
   });
 
 /**
- * KO'RINISHNI FON RASMI AG'DARMAYDI.
+ * FON RASMI KO'RINISHGA HAM, SIRTLARGA HAM TEGMAYDI.
  *
- * Ilgari ag'darardi: yorug' rejim + to'q rasm avtomatik oq yozuvli
- * (qorong'i) ko'rinishga o'tardi, o'qilsin deb. To'q rasm qo'yilganda esa
- * "Yorug'", "Tungi" va "Tizim" uchalasi bir xil chiqar, sozlama BUZUQ
- * bo'lib ko'rinardi - belgi ko'chardi, ekran o'zgarmasdi.
+ * Ikkalasi ham bir vaqtda tegardi va ikkalasi ham rad etildi:
  *
- * Endi tanlov ustun. O'qilishni `photoFloor` ta'minlaydi: sirtning eng
- * kam tusi rasmga qarab ko'tariladi, ko'rinish esa tanlanganicha qoladi.
+ *   1. Ko'rinish: yorug' rejim + to'q rasm avtomatik qorong'iga
+ *      ag'darilardi. To'q rasm qo'yilganda "Yorug'", "Tungi" va "Tizim"
+ *      uchalasi bir xil chiqib, sozlama BUZUQ bo'lib ko'rinardi.
  *
- * Quyidagi testlar aynan shu kafolatni qo'riqlaydi - rasm qanday bo'lsa
- * ham, `activeTheme` tanlangan rejimga teng.
+ *   2. Sirtlar: rasm ustida alohida alfa jadvali, muzlatish va oq xiralik
+ *      ishlardi - rasm qo'yilgan ilova sut rangli va so'nik ko'rinardi.
+ *
+ * Endi rasm faqat FON sifatida chiziladi. Quyidagi testlar shuni
+ * qo'riqlaydi: rasm qo'yilgani bilan na mavzu, na shisha o'zgaradi.
  */
-describe('AppThemeProvider - fon rasmi ustida', () => {
-  beforeEach(() => {
-    mockSample.mockReset();
-    mockSample.mockResolvedValue(DARK_PHOTO);
-  });
-
-  it("to'q rasm yorug' rejimni ag'darmaydi", async () => {
+describe('AppThemeProvider - fon rasmi', () => {
+  it('rasm yorug rejimni agdarmaydi', async () => {
     show('clear');
     await settle();
 
     expect(screen.getByTestId('theme').props.children).toBe('light|light');
-    expect(mockSample).toHaveBeenCalledWith(
-      expect.stringContaining('/attach/open/photo-1'),
-      'cover',
-      expect.any(Number),
-    );
   });
 
-  it("to'q rasm Kam shaffoflikda ham ag'darmaydi", async () => {
+  it('rasm qorongi rejimni agdarmaydi', async () => {
+    show('clear', true, 'dark');
+    await settle();
+
+    expect(screen.getByTestId('theme').props.children).toBe('dark|dark');
+  });
+
+  it('rasm Kam shaffoflikda ham agdarmaydi', async () => {
     show('solid');
     await settle();
 
     expect(screen.getByTestId('theme').props.children).toBe('light|light');
   });
 
-  it("och rasm qorong'i rejimni ag'darmaydi", async () => {
-    mockSample.mockResolvedValue(BRIGHT_PHOTO);
-    show('clear', true, 'dark');
-    await settle();
-
-    expect(screen.getByTestId('theme').props.children).toBe('dark|dark');
-  });
-
-  /** Shaffoflik ham sabab emas: ilgari "Ko'p" da ko'rinish almashardi. */
-  it("o'rtacha rasm Ko'p shaffoflikda ham ag'darmaydi", async () => {
-    mockSample.mockResolvedValue(MID_PHOTO);
-    show('clear', true, 'dark');
-    await settle();
-
-    expect(screen.getByTestId('theme').props.children).toBe('dark|dark');
-  });
-
-  it("uch rejim uchun ham tanlov saqlanadi", async () => {
-    for (const preferred of ['light', 'dark'] as const) {
-      mockSample.mockResolvedValue(DARK_PHOTO);
-      show('clear', true, preferred);
+  /** Ekranda ko'rinadigan asosiy farq shu edi - sirt rangi. */
+  it('rasmli va rasmsiz sirt rangi bir xil', async () => {
+    for (const level of ['clear', 'medium', 'solid'] as const) {
+      show(level, true);
       await settle();
-      expect(screen.getByTestId('theme').props.children).toBe(`${preferred}|${preferred}`);
+      const rasmda = screen.getByTestId('surface').props.children;
+      screen.unmount();
+
+      show(level, false);
+      await settle();
+      expect([level, screen.getByTestId('surface').props.children]).toEqual([level, rasmda]);
       screen.unmount();
     }
-  });
-
-  it('rasm yoq bolsa olchanmaydi va mavzu tegilmaydi', async () => {
-    show('clear', false);
-    await settle();
-
-    expect(screen.getByTestId('theme').props.children).toBe('light|light');
-    expect(mockSample).not.toHaveBeenCalled();
-  });
-
-  /** Tarmoq uzilsa ham natija bir xil - tanlov baribir ustun. */
-  it("o'lchab bo'lmasa ham tanlov saqlanadi", async () => {
-    mockSample.mockResolvedValue(null);
-    show('clear');
-    await settle();
-
-    expect(screen.getByTestId('theme').props.children).toBe('light|light');
   });
 });

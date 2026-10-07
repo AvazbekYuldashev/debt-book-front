@@ -3,13 +3,8 @@ import type { ColorTokens } from './colors';
 import type { ShadowTokens } from './elevation';
 import {
   DEFAULT_TRANSPARENCY,
-  FROST_BRIGHTNESS,
-  FROST_HAZE,
-  FROST_SATURATE,
   glassAlpha,
   reAlpha,
-  withHaze,
-  type PhotoFloors,
   type TransparencyLevel,
 } from './transparency';
 
@@ -74,13 +69,6 @@ export interface GlassTokens {
   modal: ViewStyle;
   /** Modal ortidagi qatlam: qoraytirish + xiralashtirish. */
   scrim: ViewStyle;
-  /**
-   * Faqat "muzlatish" - ortdagi rasmni xiralashtirish (web, fon rasmi
-   * ustida). surface/pane/flush'da allaqachon bor; sirt rangini to'liq
-   * token o'rniga faqat `backgroundColor` orqali oladigan joylar (ro'yxat
-   * qatorlari) uchun alohida beriladi.
-   */
-  frost: ViewStyle;
 }
 
 /**
@@ -100,60 +88,13 @@ const backdrop = (amount: number): ViewStyle =>
     ? ({ backdropFilter: `blur(${amount}px) saturate(150%)` } as ViewStyle)
     : {};
 
-/**
- * Fon rasmi ustidagi muzli shisha kuchi.
- *
- * Fon rasmi "Xiralik: Yo'q" da KESKIN qoladi - Samsung'dagidek. Sirt esa
- * ortidagi rasmni o'zi xiralashtiradi: rasmning ranglari o'tadi, mayda
- * detallari (yoriqlar, nuqtalar) matnga aralashmaydi.
- */
-const FROST_BLUR = 20;
-
-/**
- * Web'da sirt ortidagi rasmni muzlata olamiz; telefonda - yo'q.
- * Chaqiruv paytida o'qiladi (modul yuklanganda emas): testlar web yo'lini
- * ham tekshira olsin.
- */
-const canFrost = () => Platform.OS === 'web';
-
-/**
- * Rasm ustidagi muzlatish: blur + yengil yorqinlik tuzatishi.
- *
- * "Ko'p" da sirt TO'LIQ shaffof - tus yo'q, matn rasmning o'zi ustida.
- * Yorqinlik tuzatishi tus emas (rang qo'shmaydi): to'q ko'rinishda ortdagi
- * rasmni biroz qoraytiradi (oq yozuv uchun), yorug'ida biroz oqartiradi
- * (to'q yozuv uchun) - Apple'ning "vibrancy" si kabi.
- */
-const photoFrost = (amount: number, isDark: boolean): ViewStyle =>
-  canFrost()
-    ? ({
-        backdropFilter: `blur(${amount}px) saturate(${Math.round(FROST_SATURATE * 100)}%) brightness(${
-          FROST_BRIGHTNESS[isDark ? 'dark' : 'light']
-        })`,
-      } as ViewStyle)
-    : {};
-
-/**
- * @param onPhoto foydalanuvchi fon RASMI qo'yilganmi.
- *
- * Shisha retsepti ilovaning o'z bezakli foni uchun o'ylangan: past
- * kontrastli va och. Ixtiyoriy fotosurat ustida esa o'sha yarim shaffof
- * sirt rasmni yeb qo'yadi - yorug' mavzuda butun ekran sut rangli
- * pardaga aylanardi. Rasm bor bo'lsa sirtlar deyarli to'ldiriladi va
- * rasm ular ORASIDA o'z holicha ko'rinadi.
- */
 export interface GlassOptions {
-  /** O'lchangan fon rasmi uchun eng kam tus (photoTone.photoFloor). */
-  floors?: PhotoFloors;
   /**
-   * Boshqa sirt ICHIDAGI bo'laklar uchun (NestedGlass): tus va alfa xuddi
-   * shunday, lekin muzlatish ham, oq xiralik ham YO'Q.
+   * Boshqa sirt ICHIDAGI bo'laklar uchun (NestedGlass).
    *
-   * Sabab: backdrop-filter ichma-ich bo'lsa, ichkisi rasmni emas, ota
-   * sirtning O'Z bo'yog'ini qayta muzlatadi va ustiga yana xiralik
-   * qo'shadi - dialog ichidagi "Bekor qilish" tugmasi va chiplar kulrang
-   * plitaga, karta ichidagi tugma oqish dog'ga aylanardi (yozuvi 2:1 gacha
-   * tushardi).
+   * Hozir tus va alfa tashqi sirt bilan bir xil - rasm ustida alohida
+   * muzlatish qolmagach, farq yo'qoldi. Bayroq saqlanadi: ichma-ich
+   * sirtlar o'z qoidasini talab qilgan bir necha marta qaytgan.
    */
   nested?: boolean;
 }
@@ -164,39 +105,28 @@ export const makeGlass = (
   onPhoto = false,
   level: TransparencyLevel = DEFAULT_TRANSPARENCY,
   isDark = false,
-  { floors, nested = false }: GlassOptions = {},
+  { nested = false }: GlassOptions = {},
 ): GlassTokens => {
   // TUS mavzudan, ALFA sozlamadan. Shu sababli shaffoflikni o'zgartirish
   // sirtning rangini emas, faqat qalinligini o'zgartiradi.
-  const alpha = glassAlpha(level, onPhoto, isDark, canFrost(), floors);
+  //
+  // FON RASMI SHISHAGA TEGMAYDI. Ilgari tegardi: rasm ustida alohida alfa
+  // jadvali, backdrop-filter (blur + yorqinlik) va tus ostida oq xiralik
+  // ishlardi. Maqsad shovqinli rasmda matnni o'qitish edi, natijasi esa
+  // rasm qo'yilgan ilovaning sut rangli, so'nik ko'rinishi bo'ldi -
+  // foydalanuvchi uni rad etdi. `onPhoto` va `nested` saqlanadi: chaqiruv
+  // joylari ko'p va bu farq qaytib kelishi mumkin.
+  const alpha = glassAlpha(level, isDark);
 
-  // Muzlatish FAQAT fon rasmi ustida va sirt shaffof bo'lganda. Bezakli
-  // fon mayda detalsiz - u yerda blur ko'zga ko'rinmaydi, scroll'dagi
-  // narxi esa qolardi (backdrop har kadrda qayta hisoblanadi). To'liq
-  // yopiq ("Yo'q") sirt ortini baribir ko'rsatmaydi. Ichki bo'lak
-  // (nested) ortida rasm emas, ota sirt turadi.
-  const frosts = !nested && onPhoto && canFrost() && alpha.surface < 1;
-  const strongFrosts = !nested && onPhoto && canFrost() && alpha.strong < 1;
-  const frost = frosts ? photoFrost(FROST_BLUR, isDark) : {};
-
-  // Muzlatilgan sirtda tus OSTIDA OQ XIRALIK (transparency.ts FROST_HAZE, withHaze):
-  // muzli shisha oqish ko'rinadi. Ichki bo'lak (muted) ota-karta ichida -
-  // xiralik u yerda allaqachon bor.
-  const haze = FROST_HAZE[isDark ? 'dark' : 'light'];
-  const surfaceColor = withHaze(
-    onPhoto ? colors.glassSurfaceOnPhoto : colors.glassSurface, alpha.surface, frosts ? haze : 0);
-  const strongColor = withHaze(
-    onPhoto ? colors.glassSurfaceStrongOnPhoto : colors.glassSurfaceStrong, alpha.strong,
-    strongFrosts ? haze : 0);
-  const mutedColor = reAlpha(
-    onPhoto ? colors.glassMutedOnPhoto : colors.glassMuted, alpha.muted);
+  const surfaceColor = reAlpha(colors.glassSurface, alpha.surface);
+  const strongColor = reAlpha(colors.glassSurfaceStrong, alpha.strong);
+  const mutedColor = reAlpha(colors.glassMuted, alpha.muted);
 
   return {
   surface: {
     backgroundColor: surfaceColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
-    ...frost,
     ...shadows.card,
   },
   // Bu sirtlar STATIK va sanoqli (modal, summary) — haqiqiy blur shu yerda
@@ -205,9 +135,7 @@ export const makeGlass = (
     backgroundColor: strongColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
-    // Rasm ustida - boshqa sirtlar bilan bir xil muzlatish (yorqinlik
-    // tuzatishi bilan): "Ko'p" da bu karta ham to'liq shaffof.
-    ...(strongFrosts ? photoFrost(24, isDark) : nested ? {} : backdrop(24)),
+    ...(nested ? {} : backdrop(24)),
     ...shadows.raised,
   },
   // Soyasiz: bu sirt ALLAQACHON shisha karta ichida turadi, ikkinchi soya
@@ -223,11 +151,9 @@ export const makeGlass = (
     backgroundColor: surfaceColor,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
-    ...frost,
   },
   flush: {
     backgroundColor: surfaceColor,
-    ...frost,
   },
   // Dialog sirti: blur mavjud bo'lmagan platformalarda ham matn o'qilishi
   // SHART, shuning uchun shaffoflik yo'q.
@@ -243,6 +169,5 @@ export const makeGlass = (
     backgroundColor: colors.overlay,
     ...backdrop(12),
   },
-  frost,
   };
 };

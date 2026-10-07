@@ -12,7 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
-import { useListFrost } from '../../../shared/ui/ListFrost';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
@@ -453,7 +452,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   // Balans HAR VALYUTA bo'yicha alohida — kursda aralashtirmaymiz.
   const lastIndex = sortedContacts.length - 1;
   // Karta ortidagi yagona muzli shisha (qatorlar orasida chok qolmasin).
-  const listFrost = useListFrost(sortedContacts.length, FAB_CLEARANCE);
   const renderContact = useCallback<ListRenderItem<Contact>>(
     ({ item, index }) => {
       const totals = totalsByContact[item.id];
@@ -654,8 +652,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         <FlatList
           style={styles.scroll}
           contentContainerStyle={styles.listCard}
-          ListHeaderComponent={listFrost.ListHeaderComponent}
-          ListHeaderComponentStyle={listFrost.ListHeaderComponentStyle}
           data={sortedContacts}
           renderItem={renderContact}
           keyExtractor={keyExtractor}
@@ -887,12 +883,10 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
     //
     // Ilgari karta kontent konteyneri edi va bo'shliq uning ICHIGA tushib,
     // karta ekran ostiga yopishib qolardi.
-    // Sirt MAVZUDAN olinadi, xom tokendan emas: fon rasmi qo'yilganda
-    // shisha o'zi quyuqlashadi va matn o'qiladigan bo'lib qoladi.
+    // Sirt MAVZUDAN olinadi, xom tokendan emas: daraja o'zgarsa
+    // qator ham u bilan birga o'zgaradi.
     rowSlice: {
       backgroundColor: glass.surface.backgroundColor,
-      // Muzlatish qatorda EMAS - butun karta ortida bitta qatlam
-      // (useListFrost): har qator alohida muzlatsa, chegaralarda chok qolardi.
       marginHorizontal: spacing.md,
     },
     rowFirst: {

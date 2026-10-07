@@ -2,16 +2,8 @@ import { makeGlass } from '../glass';
 import { darkColors, lightColors } from '../colors';
 import { makeShadows } from '../elevation';
 import { ACCENTS } from '../accent';
-import {
-  FROST_BRIGHTNESS,
-  FROST_HAZE,
-  FROST_SATURATE,
-  TRANSPARENCY_LEVELS,
-  glassAlpha,
-  reAlpha,
-  withHaze,
-} from '../transparency';
-import { contrastRatio, luminance, mix, parseColor, type Rgb } from '../photoTone';
+import { TRANSPARENCY_LEVELS } from '../transparency';
+import { contrastRatio, luminance, mix, parseColor, type Rgb } from '../colorMath';
 
 const themes = [
   ['yorug\'', lightColors],
@@ -48,34 +40,41 @@ describe('glass.modal', () => {
 });
 
 /**
- * Foydalanuvchi fon RASMI qo'yilganda sirtlar boshqacha yasaladi.
+ * FON RASMI SIRTLARGA TEGMAYDI.
  *
- * Shisha retsepti ilovaning o'z bezakli foni uchun o'ylangan: past
- * kontrastli va och. Ixtiyoriy fotosurat ustida esa yarim shaffof oq
- * sirt sut rangli dog'ga aylanib, butun ekranni "xira" qilardi.
+ * Ilgari tegardi: rasm ustida sirtlar quyuqlashar, backdrop-filter bilan
+ * muzlatilar va tus ostiga oq xiralik qo'yilardi - maqsad shovqinli rasmda
+ * matnni o'qitish edi. Natijada esa rasm qo'yilgan ilova rasmsizidan
+ * butunlay boshqacha, sut rangli va so'nik ko'rinardi.
+ *
+ * Endi ikkovi bir xil. O'qilishni faqat DARAJA boshqaradi: shovqinli
+ * rasmda "O'rta" yoki "Kam" tanlanadi - bu foydalanuvchi tanlovi.
  */
-describe('makeGlass — fon rasmi ustida', () => {
-  it('rasm bor bolsa sirt quyuqroq', () => {
-    const shadows = makeShadows(lightColors.shadow);
-    const oddiy = makeGlass(lightColors, shadows, false);
-    const rasmda = makeGlass(lightColors, shadows, true);
-
-    expect(rasmda.surface.backgroundColor).not.toBe(oddiy.surface.backgroundColor);
-    // Aniq alfa SOZLAMADAN keladi, shuning uchun bu yerda faqat yo'nalish
-    // tekshiriladi: rasm ustida sirt quyuqroq bo'lishi SHART.
-    expect(alphaOf(rasmda.surface.backgroundColor as string))
-      .toBeGreaterThan(alphaOf(oddiy.surface.backgroundColor as string));
+describe('makeGlass - fon rasmi ustida', () => {
+  it('rasm sirtlarni ozgartirmaydi', () => {
+    for (const [, palette] of themes) {
+      const isDark = palette === darkColors;
+      const shadows = makeShadows(palette.shadow);
+      for (const { id } of TRANSPARENCY_LEVELS) {
+        const oddiy = makeGlass(palette, shadows, false, id, isDark);
+        const rasmda = makeGlass(palette, shadows, true, id, isDark);
+        expect([id, isDark, rasmda]).toEqual([id, isDark, oddiy]);
+      }
+    }
   });
 
-  /** Ko'tarilgan sirt ham, ichki bo'lak ham o'z variantini oladi. */
-  it('barcha shaffof sirtlar almashadi', () => {
-    const shadows = makeShadows(lightColors.shadow);
-    const oddiy = makeGlass(lightColors, shadows, false);
-    const rasmda = makeGlass(lightColors, shadows, true);
-
-    for (const key of ['raised', 'muted', 'pane', 'flush'] as const) {
-      expect(alphaOf(rasmda[key].backgroundColor as string))
-        .toBeGreaterThan(alphaOf(oddiy[key].backgroundColor as string));
+  /** Muzlatish (backdrop-filter) shaffof sirtlarda umuman qolmagan - web'da ham. */
+  it('rasm ustida muzlatish yoq', () => {
+    const { Platform } = require('react-native');
+    const original = Platform.OS;
+    Platform.OS = 'web';
+    try {
+      const glass = makeGlass(lightColors, makeShadows(lightColors.shadow), true, 'clear');
+      for (const key of ['surface', 'pane', 'flush', 'muted'] as const) {
+        expect([key, (glass[key] as Record<string, unknown>).backdropFilter]).toEqual([key, undefined]);
+      }
+    } finally {
+      Platform.OS = original;
     }
   });
 
@@ -86,119 +85,6 @@ describe('makeGlass — fon rasmi ustida', () => {
     const rasmda = makeGlass(lightColors, shadows, true);
 
     expect(rasmda.modal.backgroundColor).toBe(oddiy.modal.backgroundColor);
-  });
-});
-
-/**
- * "Shaffoflik" elementlarni MUZLI SHISHAGA aylantiradi: fon rasmi keskin
- * bo'lsa ham sirt ortidagi rasmni o'zi xiralashtiradi (web). To'liq yopiq
- * sirtda va bezakli fonda bunga hojat yo'q - scroll'dagi narxi qolardi.
- */
-describe('muzli shisha', () => {
-  const withPlatform = (os: string, run: () => void) => {
-    const { Platform } = require('react-native');
-    const original = Platform.OS;
-    Platform.OS = os;
-    try {
-      run();
-    } finally {
-      Platform.OS = original;
-    }
-  };
-  const frostOf = (style: Record<string, unknown>) => style.backdropFilter as string | undefined;
-  const shadowsLight = makeShadows(lightColors.shadow);
-
-  it('rasm ustida shaffof sirt ortini xiralashtiradi', () => {
-    withPlatform('web', () => {
-      const glass = makeGlass(lightColors, shadowsLight, true, 'clear');
-      expect(frostOf(glass.surface as Record<string, unknown>)).toMatch(/blur/);
-      expect(frostOf(glass.pane as Record<string, unknown>)).toMatch(/blur/);
-      expect(frostOf(glass.flush as Record<string, unknown>)).toMatch(/blur/);
-      expect(frostOf(glass.frost as Record<string, unknown>)).toMatch(/blur/);
-    });
-  });
-
-  /**
-   * CSS aynan photoTone modellagan retsept: o'qilish testi boshqa
-   * qiymatni tekshirib, ekranda boshqasi chizilmasin.
-   */
-  it("muzlatish CSS'i o'qilish modeli bilan bir xil", () => {
-    withPlatform('web', () => {
-      const shadowsDark = makeShadows(darkColors.shadow);
-      const light = frostOf(makeGlass(lightColors, shadowsLight, true, 'clear', false).surface as Record<string, unknown>);
-      const dark = frostOf(makeGlass(darkColors, shadowsDark, true, 'clear', true).surface as Record<string, unknown>);
-      const saturate = `saturate(${Math.round(FROST_SATURATE * 100)}%)`;
-      expect(light).toContain(saturate);
-      expect(dark).toContain(saturate);
-      expect(light).toContain(`brightness(${FROST_BRIGHTNESS.light})`);
-      expect(dark).toContain(`brightness(${FROST_BRIGHTNESS.dark})`);
-    });
-  });
-
-  /**
-   * OQ XIRALIK (foydalanuvchi talabi, rgba 255,255,255): muzlatilgan sirt
-   * oqish shisha. "Ko'p" da sirt rangi sof oq xiralik; telefonda (blur
-   * yo'q), "Yo'q" da va rasmsiz fonda xiralik qo'shilmaydi.
-   */
-  it("muzlatilgan sirtda oq xiralik, boshqa joyda yo'q", () => {
-    const shadowsDark = makeShadows(darkColors.shadow);
-    withPlatform('web', () => {
-      expect(makeGlass(darkColors, shadowsDark, true, 'clear', true).surface.backgroundColor)
-        .toBe(`rgba(255, 255, 255, ${FROST_HAZE.dark})`);
-      expect(makeGlass(lightColors, shadowsLight, true, 'clear', false).surface.backgroundColor)
-        .toBe(`rgba(255, 255, 255, ${FROST_HAZE.light})`);
-      expect(makeGlass(darkColors, shadowsDark, true, 'medium', true).surface.backgroundColor)
-        .toBe(withHaze(darkColors.glassSurfaceOnPhoto, glassAlpha('medium', true, true).surface, FROST_HAZE.dark));
-      expect(makeGlass(darkColors, shadowsDark, true, 'none', true).surface.backgroundColor)
-        .toBe(reAlpha(darkColors.glassSurfaceOnPhoto, 1));
-      expect(makeGlass(darkColors, shadowsDark, false, 'clear', true).surface.backgroundColor)
-        .toBe(reAlpha(darkColors.glassSurface, glassAlpha('clear', false, true).surface));
-    });
-    withPlatform('android', () => {
-      expect(makeGlass(darkColors, shadowsDark, true, 'clear', true).surface.backgroundColor)
-        .toBe(reAlpha(darkColors.glassSurfaceOnPhoto, glassAlpha('clear', true, true, false).surface));
-    });
-  });
-
-  /**
-   * Boshqa sirt ICHIDAGI bo'lak (nested): tus va alfa xuddi shunday,
-   * lekin muzlatish ham, oq xiralik ham yo'q - ota sirtni qayta
-   * muzlatib kulrang plita yasamasin.
-   */
-  it("ichki shisha muzlatmaydi va oq xiralik qo'shmaydi", () => {
-    const shadowsDark = makeShadows(darkColors.shadow);
-    withPlatform('web', () => {
-      for (const level of ['solid', 'medium', 'clear'] as const) {
-        const nested = makeGlass(darkColors, shadowsDark, true, level, true, { nested: true });
-        for (const key of ['surface', 'pane', 'flush', 'raised'] as const) {
-          expect([level, key, frostOf(nested[key] as Record<string, unknown>)]).toEqual([level, key, undefined]);
-        }
-        expect(nested.surface.backgroundColor).toBe(
-          reAlpha(darkColors.glassSurfaceOnPhoto, glassAlpha(level, true, true).surface),
-        );
-        expect(nested.frost).toEqual({});
-      }
-    });
-  });
-
-  /** Rasm chegarasi (photoFloor): "Kam"/"O'rta" rangli matn chegarasini, "Ko'p" faqat matnnikini oladi. */
-  it("rasm chegarasi darajaga qarab qo'llanadi", () => {
-    const floors = { text: 0.2, colored: 0.6 };
-    withPlatform('web', () => {
-      expect(glassAlpha('clear', true, true, true, floors).surface).toBe(0.2);
-      expect(glassAlpha('medium', true, true, true, floors).surface).toBe(0.6);
-      expect(glassAlpha('solid', true, true, true, floors).surface).toBe(glassAlpha('solid', true, true).surface);
-      expect(glassAlpha('none', true, true, true, floors).surface).toBe(1);
-      // Telefonda o'lchov yo'q - jadval chegaralari.
-      expect(glassAlpha('clear', true, true, false, floors)).toEqual(glassAlpha('clear', true, true, false));
-    });
-  });
-
-  it("Yo'q darajasida va rasmsiz muzlatish yo'q", () => {
-    withPlatform('web', () => {
-      expect(frostOf(makeGlass(lightColors, shadowsLight, true, 'none').surface as Record<string, unknown>)).toBeUndefined();
-      expect(frostOf(makeGlass(lightColors, shadowsLight, false, 'clear').surface as Record<string, unknown>)).toBeUndefined();
-    });
   });
 });
 
@@ -229,17 +115,32 @@ const GREY: Rgb = { r: 128, g: 128, b: 128 };
  * kulrang rasm; rasmsiz - mavzu foni) ko'z ko'radigan qatlam:
  * fon -> karta (surface) -> ichki bo'lak (muted).
  */
-// Quyidagi ikki blok MUZLATISHSIZ yo'lni (telefon; jest - iOS) tekshiradi:
-// u yerda ko'rinish rasmga moslashmaydi, shuning uchun eng yomon fonlar
-// (qop-qora, oppoq, kulrang) to'g'ridan-to'g'ri qo'yiladi. Web (muzlatish,
-// oq xiralik, rasmga mos ko'rinish) photoTone testlarida qulflangan.
+// Quyidagi ikki blok eng yomon fonlarni (qop-qora, oppoq, kulrang)
+// to'g'ridan-to'g'ri qo'yadi: endi web bilan telefon o'rtasida farq yo'q -
+// muzlatish ham, rasmga moslashish ham olib tashlangan.
 describe("telefon: qorong'i shisha - muted har darajada to'q va o'qiladi", () => {
   const colors = darkColors;
   const shadows = makeShadows(colors.shadow);
+  /**
+   * FOTOSURAT faqat YOPIQ darajalarda ("Yo'q", "Kam") tekshiriladi.
+   *
+   * "O'rta" va "Ko'p" da sirt ataylab deyarli shaffof: ortidagi rasm
+   * ko'rinadi va och rasmda tungi chip ham oqarib ketadi. Ilgari buni
+   * o'lchangan chegara (photoFloor) va oq xiralik to'sardi, lekin o'sha
+   * himoya rasm qo'yilgan ilovani sut rangli qilib qo'yardi -
+   * foydalanuvchi uni rad etdi va shaffoflikni O'ZI tanlashni so'radi.
+   *
+   * Shuning uchun shaffof darajalarda rasm ustidagi kontrast endi DASTUR
+   * KAFOLATI emas: shovqinli rasmda "Kam" yoki "O'rta" tanlanadi. Ilovaning
+   * O'Z foni esa har darajada kafolat bo'lib qoladi - u past kontrastli.
+   */
+  const COVERING = ['none', 'solid'] as const;
   const cases = TRANSPARENCY_LEVELS.flatMap(({ id: level }) => [
-    ...([['qora rasm', BLACK], ['oq rasm', WHITE], ['kulrang rasm', GREY]] as const).map(
-      ([fon, backdrop]) => ({ level, onPhoto: true, fon, backdrop }),
-    ),
+    ...(COVERING.includes(level as typeof COVERING[number])
+      ? ([['qora rasm', BLACK], ['oq rasm', WHITE], ['kulrang rasm', GREY]] as const).map(
+          ([fon, backdrop]) => ({ level, onPhoto: true, fon, backdrop }),
+        )
+      : []),
     { level, onPhoto: false, fon: 'mavzu foni', backdrop: rgbOf(colors.background) },
   ]);
 

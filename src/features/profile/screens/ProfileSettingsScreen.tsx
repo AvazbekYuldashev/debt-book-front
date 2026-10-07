@@ -92,20 +92,9 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
           ))}
         </SettingsGroup>
 
-        <SettingsGroup title={t('profile.theme')}>
-          {THEME_MODES.map((item, index) => (
-            <SettingsRow
-              key={item.mode}
-              label={t(item.labelKey)}
-              selected={item.mode === mode}
-              onPress={() => setMode(item.mode)}
-              isLast={index === THEME_MODES.length - 1}
-            />
-          ))}
-        </SettingsGroup>
-
-        {/* Rang mavzudan KEYIN: avval yorug'/qorong'i tanlanadi, keyin
-            brand rangi - namuna darhol to'g'ri tusda ko'rinadi. */}
+        {/* Rang mavzudan OLDIN: odam avval "qaysi rang" ni tanlaydi, keyin
+            uning yorug'/qorong'i variantini - rang bo'limning yuzi, mavzu
+            esa uning ko'rinishi. */}
         <SettingsGroup title={t('accent.title')}>
           {ACCENTS.map((item, index) => (
             <SettingsRow
@@ -115,6 +104,18 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
               selected={item.id === accent}
               onPress={() => chooseAccent(item.id)}
               isLast={index === ACCENTS.length - 1}
+            />
+          ))}
+        </SettingsGroup>
+
+        <SettingsGroup title={t('profile.theme')}>
+          {THEME_MODES.map((item, index) => (
+            <SettingsRow
+              key={item.mode}
+              label={t(item.labelKey)}
+              selected={item.mode === mode}
+              onPress={() => setMode(item.mode)}
+              isLast={index === THEME_MODES.length - 1}
             />
           ))}
         </SettingsGroup>

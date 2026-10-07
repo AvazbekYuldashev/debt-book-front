@@ -117,7 +117,7 @@ function trackInputModality(doc: Document): void {
  * ko'rinadigan fon - SAMARALI ko'rinish rangida.
  *
  * index.html'dagi qiymatlar faqat OS mavzusini biladi: yorug' rejimda fon
- * rasmi to'q bo'lsa (photoAdapted) ilova to'q, panel esa och qolardi.
+ * rasmi to'q bo'lsa ilova to'q, panel esa och qolardi.
  * Ikkala <meta> ga ham bir xil rang: media sharti endi ahamiyatsiz.
  */
 function paintBrowserChrome(doc: Document, background: string): void {

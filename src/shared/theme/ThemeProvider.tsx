@@ -7,8 +7,6 @@ import { makeGlass, GlassTokens } from './glass';
 import { useBackground } from './BackgroundProvider';
 import { useAccent } from './AccentProvider';
 import { useTransparency } from './TransparencyProvider';
-import { peekPhoto, samplePhoto } from './photoColor';
-import { photoFloor, type PhotoSample } from './photoTone';
 import type { BackgroundFit } from './backgroundSettings';
 import { APP_COLUMN_WIDTH } from './layout';
 import { applyAccent } from './accent';
@@ -59,59 +57,12 @@ function resolveActiveTheme(mode: ThemeMode, scheme: ColorSchemeName | null | un
   return mode;
 }
 
-/**
- * Fon rasmining ekranda ko'rinadigan qismi, kataklarga bo'lingan.
- * Rasm yo'q yoki o'lchab bo'lmasa (telefonda) - null.
- */
-function usePhotoSample(imageId: string, fit: BackgroundFit): PhotoSample | null {
-  /**
-   * Ekran nisbati QURILMA ekranidan, oynadan emas.
-   *
-   * Web'da oyna o'lchami klaviatura ochilganda, manzil satri yashirinsa
-   * yoki oyna cho'zilsa o'zgaradi - fon rasmi esa joyidan qimirlamaydi.
-   * Oynaga bog'lansa, har safar boshqa kesim o'lchanib, mavzu yozish
-   * paytida sakrab ketardi. Ilova 560px ustunga yig'iladi.
-   */
-  const [aspect] = useState(() => {
-    const screen = Dimensions.get('screen');
-    const width = Math.min(screen.width, APP_COLUMN_WIDTH);
-    return screen.height > 0 ? Math.round((width / screen.height) * 20) / 20 : 0;
-  });
-
-  const url = imageId ? buildAttachUrl(imageId) : '';
-  const key = `${url}|${fit}`;
-  const [sample, setSample] = useState<{ url: string; key: string; value: PhotoSample } | null>(null);
-
-  useEffect(() => {
-    if (!url) return undefined;
-    let alive = true;
-    samplePhoto(url, fit, aspect).then((value) => {
-      // Muvaffaqiyatsiz o'lchov oldingi natijani O'CHIRMAYDI: tarmoq bir
-      // lahza uzilgani uchun ko'rinish sakramasin.
-      if (alive && value) setSample({ url, key, value });
-    });
-    return () => {
-      alive = false;
-    };
-  }, [url, fit, aspect, key]);
-
-  if (!url) return null;
-  if (sample && sample.key === key) return sample.value;
-  // Saqlangan tayyor natija - birinchi chizishdanoq to'g'ri ko'rinish.
-  const saved = peekPhoto(url, fit, aspect);
-  if (saved) return saved;
-  // Shu rasmning eski o'lchovi (masalan "Moslash" o'zgardi): yangisi
-  // kelguncha u bilan qolamiz - tanlangan rejimga sakrab qaytmaymiz.
-  return sample && sample.url === url ? sample.value : null;
-}
-
 export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mode, setMode] = useState<ThemeMode>('system');
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const systemScheme = useColorScheme();
-  const { imageId, fit } = useBackground();
-  const photo = usePhotoSample(imageId, fit);
+  const { imageId } = useBackground();
   /**
    * Ko'rsatiladigan ko'rinish - HAR DOIM foydalanuvchi tanlagani.
    *
@@ -120,10 +71,8 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    * qo'yilganda "Yorug'", "Tungi" va "Tizim" uchalasi bir xil chiqdi va
    * sozlama BUZUQ bo'lib ko'rindi - tanlov o'zgarardi, ekran esa yo'q.
    *
-   * Endi tanlov ustun. O'qilishni ko'rinishni ag'darish emas, `photoFloor`
-   * ta'minlaydi: u sirtning eng kam tusini rasmga qarab ko'taradi, ya'ni
-   * to'q rasm ustida yorug' karta kerak bo'lsa quyuqlashadi, ko'rinish esa
-   * tanlanganicha qoladi.
+   * Endi tanlov ustun. O'qilish esa SHAFFOFLIK darajasi bilan
+   * boshqariladi: shovqinli rasmda "O'rta" yoki "Kam" tanlanadi.
    */
   const activeTheme = resolveActiveTheme(mode, systemScheme);
   // Shaffoflik darajasi foydalanuvchi sozlamasi: to'g'ri qiymat fonga
@@ -210,27 +159,17 @@ export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
    * ishlaydi. Shu sababli BackgroundProvider daraxtda bu provayderdan
    * TASHQARIDA turadi - u mavzuga bog'liq emas, mavzu esa unga bog'liq.
    */
-  /**
-   * O'lchangan rasm uchun eng kam tus: matn BUTUN ekranda o'qilsin (tepasi
-   * och osmon, pasti to'q yer kabi rasmlarda ham). Ko'p rasmlarda 0 -
-   * shaffoflik jadvaldagidek qoladi. YAKUNIY palitra bilan hisoblanadi:
-   * tanlangan ilova rangi va rasm ustidagi kulrang matn ham tekshiriladi.
-   */
-  const floors = useMemo(
-    () => (imageId && photo ? photoFloor(photo, colors, activeTheme) : undefined),
-    [imageId, photo, colors, activeTheme],
-  );
   const glass = useMemo(
-    () => makeGlass(colors, shadows, hasPhoto, level, activeTheme === 'dark', { floors }),
-    [colors, shadows, hasPhoto, level, activeTheme, floors],
+    () => makeGlass(colors, shadows, hasPhoto, level, activeTheme === 'dark'),
+    [colors, shadows, hasPhoto, level, activeTheme],
   );
   // Telefonda muzlatish yo'q - ichki shisha tashqisi bilan bir xil.
   const glassNested = useMemo(
     () =>
       Platform.OS === 'web'
-        ? makeGlass(colors, shadows, hasPhoto, level, activeTheme === 'dark', { floors, nested: true })
+        ? makeGlass(colors, shadows, hasPhoto, level, activeTheme === 'dark', { nested: true })
         : glass,
-    [colors, shadows, hasPhoto, level, activeTheme, floors, glass],
+    [colors, shadows, hasPhoto, level, activeTheme, glass],
   );
 
   const value = useMemo<ThemeValue>(() => ({
