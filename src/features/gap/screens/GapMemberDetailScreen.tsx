@@ -19,6 +19,7 @@ import GapTransferDetailModal from '../components/GapTransferDetailModal';
 import { GapTransferDTO, GapTransferDirection, GapUnit } from '../types/gap';
 import type { GapVoicePrefill } from '../../voice/model/resolveGapCommand';
 import { clearPendingIntent } from '../../voice/model/pendingVoice';
+import { markVoiceTarget } from '../../voice/api/voice';
 
 /** Ro'yxat qatori: yozuv va uning men uchun yo'nalishi. */
 interface LedgerItem {
@@ -115,6 +116,14 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         },
         {
           onSuccess: () => {
+            /**
+             * Ovozdan kelgan bo'lsa - tarixdagi qator gap kassasi
+             * bo'limiga olib borishi uchun havola yoziladi.
+             *
+             * Xatosi yutiladi: to'lov allaqachon saqlangan, havola esa
+             * faqat qulaylik.
+             */
+            void markVoiceTarget(voicePrefill?.commandId, 'GAP', groupId);
             setDirection(null);
             setVoicePrefill(undefined);
             // Yozuv saqlandi - saqlangan gap endi kerak emas.
@@ -123,7 +132,7 @@ const GapMemberDetailScreen: React.FC<GapScreenProps<typeof ROUTES.GAP_MEMBER>> 
         }
       );
     },
-    [createMutation, memberId, direction]
+    [createMutation, memberId, direction, groupId, voicePrefill?.commandId]
   );
 
   /**

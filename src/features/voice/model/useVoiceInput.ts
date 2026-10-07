@@ -231,7 +231,14 @@ export function useVoiceInput({ kind, accountType, token, onResult }: VoiceInput
         if (!aliveRef.current) return;
 
         setState('idle');
-        onResultRef.current(intent);
+        /**
+         * Belgi NIYAT bilan birga ekranga o'tadi.
+         *
+         * Ekran amalni saqlagach "shu ovoz shu yozuvni yaratdi" deb
+         * serverga qaytaradi - tarixdagi strelka o'sha yozuvga olib
+         * borishi uchun. Belgisiz bu bog'lanishni tiklab bo'lmasdi.
+         */
+        onResultRef.current({ ...intent, commandId });
       } catch (e) {
         if (!aliveRef.current) return;
         setState('idle');

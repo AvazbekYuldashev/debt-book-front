@@ -36,6 +36,7 @@ import TransactionDetailModal from '../components/TransactionDetailModal';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
 import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
 import type { VoiceCommandPrefill } from '../../voice/model/resolveVoiceCommand';
+import { markVoiceTarget } from '../../voice/api/voice';
 import { resolveVoiceCommand } from '../../voice/model/resolveVoiceCommand';
 import { clearPendingIntent, takePendingIntent } from '../../voice/model/pendingVoice';
 
@@ -48,6 +49,8 @@ interface VoicePrefill {
   currency?: Currency;
   items?: MoneyItemCreateDTO[];
   calcNote?: string;
+  /** Qaysi ovozdan kelgani - saqlangach havola yozish uchun. */
+  commandId?: string;
 }
 
 /** Navbatdagi valyuta: forma qiymatlari va qaysi tugma bilan ochilishi. */
@@ -107,13 +110,19 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       currency: spoken.currency,
       items: spoken.items?.map((item) => ({ productId: item.productId, quantity: item.quantity })),
       calcNote: spoken.calcNote,
+      commandId: spoken.commandId,
     });
     // Birinchi valyuta yuqoridagi amount/currency'da keldi, qolganlari
     // navbatda kutadi.
     setSettlementQueue(
       (spoken.settlements ?? []).slice(1).map((line) => ({
         actionType: line.direction === 'GAVE' ? ('GIVE' as const) : ('TAKE' as const),
-        prefill: { amount: line.amount, currency: line.currency, description: spoken.note },
+        prefill: {
+          amount: line.amount,
+          currency: line.currency,
+          description: spoken.note,
+          commandId: spoken.commandId,
+        },
       })),
     );
     setModalVisible(true);
@@ -219,6 +228,16 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       if (!ok) return;
       setModalVisible(false);
 
+      /**
+       * Ovozdan kelgan bo'lsa - tarixdagi qator shu KONTAKTGA olib
+       * borishi uchun havola yoziladi. Tranzaksiyaning o'z ekrani yo'q:
+       * u kontakt tarixining bir qatori.
+       *
+       * Xatosi yutiladi: yozuv allaqachon saqlangan, havola esa faqat
+       * qulaylik - odamni xato bilan bezovta qilish noto'g'ri bo'lardi.
+       */
+      void markVoiceTarget(voicePrefill?.commandId, 'TRANSACTION', contactId);
+
       const [next, ...rest] = settlementQueue;
       if (!next) {
         setVoicePrefill(undefined);
@@ -233,7 +252,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       setVoicePrefill(next.prefill);
       setModalVisible(true);
     },
-    [contact, createMoney, actionType, settlementQueue],
+    [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue],
   );
 
   const openModal = useCallback((type: MoneyActionType) => {

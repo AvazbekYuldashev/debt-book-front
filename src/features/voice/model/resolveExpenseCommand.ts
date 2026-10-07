@@ -26,6 +26,8 @@ export type ExpenseCommand =
       amount: number;
       description: string;
       calcNote: string | null;
+      /** Qaysi ovozdan kelgani - saqlangach havola yozish uchun. */
+      commandId?: string;
     }
   /** Summa bor, kategoriya yo'q yoki topilmadi - odam o'zi tanlaydi. */
   | { kind: 'PICK_CATEGORY'; amount: number; description: string; calcNote: string | null }
@@ -73,6 +75,7 @@ export const resolveExpenseCommand = (
       amount,
       description,
       calcNote,
+      commandId: intent.commandId,
     };
   }
 

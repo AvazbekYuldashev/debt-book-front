@@ -20,7 +20,21 @@ export interface VoiceCommand {
   model: VoiceUsage | null;
   /** Ikkala qismning jami narxi. */
   cost: number;
+  /**
+   * Ovoz yaratgan yozuv - qatordagi strelka shunga olib boradi.
+   *
+   * Guruhdagi IXTIYORIY qatordan olinadi: havola ikkala qatorga ham
+   * birdek yoziladi, lekin biri eski bo'lishi mumkin (masalan tushunish
+   * chaqirilmagan). Birinchi topilgani olinadi.
+   */
+  target: { type: 'TRANSACTION' | 'EXPENSE' | 'GAP'; id: string; label: string | null } | null;
 }
+
+/** Yozuvdagi havolani guruh shakliga keltiradi. Havolasi yo'q bo'lsa null. */
+const targetOf = (item: VoiceUsage): VoiceCommand['target'] =>
+  item.targetType && item.targetId
+    ? { type: item.targetType, id: item.targetId, label: item.targetLabel ?? null }
+    : null;
 
 /**
  * Belgisiz yozuvni oldingi ovozga bog'lash oynasi.
@@ -107,6 +121,7 @@ export const groupByCommand = (usage: VoiceUsage[]): VoiceCommand[] => {
         stt: isModel(item) ? null : item,
         model: isModel(item) ? item : null,
         cost: item.cost ?? 0,
+        target: targetOf(item),
       });
       continue;
     }
@@ -115,6 +130,8 @@ export const groupByCommand = (usage: VoiceUsage[]): VoiceCommand[] => {
     else existing.stt = item;
 
     existing.cost += item.cost ?? 0;
+    // Birinchi topilgan havola qoladi: ikkala qatorda ham bir xil yoziladi.
+    existing.target = existing.target ?? targetOf(item);
     // Buyruq ERTAROQ boshlangan paytda turadi: ovoz avval yoziladi,
     // tushunish undan keyin. Kechki vaqtni olsak qator ro'yxatda
     // o'zidan keyingi ishlardan yuqorida turib qolardi.

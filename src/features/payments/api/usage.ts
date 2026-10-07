@@ -14,6 +14,18 @@ export interface VoiceUsage {
   sizeBytes: number;
   /** Bitta ovozli buyruqning belgisi. Eski yozuvlarda bo'sh. */
   commandId?: string | null;
+  /**
+   * Ovoz YARATGAN yozuv - qatordagi strelka shunga olib boradi.
+   *
+   * `targetId` yozuvning emas, u YASHAYDIGAN EKRANNING belgisi: kontakt,
+   * xarajat kategoriyasi yoki gap kassasi.
+   *
+   * Bo'sh bo'lishi mumkin: odam formani tasdiqlamagan yoki yozuv bu
+   * imkoniyat paydo bo'lishidan oldin yaratilgan. Unda strelka yo'q.
+   */
+  targetType?: 'TRANSACTION' | 'EXPENSE' | 'GAP' | null;
+  targetId?: string | null;
+  targetLabel?: string | null;
 }
 
 /**

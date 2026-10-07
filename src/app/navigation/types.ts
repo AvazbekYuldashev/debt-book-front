@@ -40,7 +40,13 @@ export type ExpensesStackParamList = {
      * Ovozdan kelgan to'ldirma: ekran ochilishi bilan xarajat formasi
      * ochilib, summa va izoh yozilgan bo'ladi. Odam faqat tasdiqlaydi.
      */
-    voice?: { amount: number; description?: string; calcNote?: string | null };
+    voice?: {
+      amount: number;
+      description?: string;
+      calcNote?: string | null;
+      /** Qaysi ovozdan kelgani - saqlangach havola yozish uchun. */
+      commandId?: string;
+    };
   };
 };
 

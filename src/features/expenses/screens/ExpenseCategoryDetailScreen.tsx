@@ -22,6 +22,7 @@ import type { ExpensesScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
 import ExpenseRow from '../components/ExpenseRow';
 import ExpenseFormModal from '../components/ExpenseFormModal';
+import { markVoiceTarget } from '../../voice/api/voice';
 
 type Props = ExpensesScreenProps<typeof ROUTES.EXPENSE_CATEGORY_DETAIL>;
 
@@ -129,6 +130,12 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
       setError('');
       try {
         await createExpense({ amount, description, categoryId, calcNote: calcNote ?? undefined }, profile.jwt);
+        /**
+         * Ovozdan kelgan bo'lsa - tarixdagi qator shu kategoriyaga olib
+         * borishi uchun havola yoziladi. Xatosi yutiladi: xarajat
+         * allaqachon saqlangan, havola esa faqat qulaylik.
+         */
+        void markVoiceTarget(voicePrefill?.commandId, 'EXPENSE', categoryId, categoryName);
         await loadExpenses(true);
         return true;
       } catch (e) {
@@ -138,7 +145,7 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
         setSavingExpense(false);
       }
     },
-    [profile?.jwt, categoryId, loadExpenses, t]
+    [profile?.jwt, categoryId, categoryName, voicePrefill?.commandId, loadExpenses, t]
   );
 
   const handleDeleteExpense = useCallback(

@@ -47,6 +47,7 @@ const command: VoiceCommand = {
   stt,
   model,
   cost: 69.3,
+  target: null,
 };
 
 const show = (value: VoiceCommand | null, pricing: ModelPricing | null = null) =>
@@ -120,7 +121,7 @@ describe('UsageDetailModal', () => {
    * mumkin - oyna shunda ham ochilishi kerak.
    */
   it('modelsiz buyruq ham ochiladi', async () => {
-    show({ key: 'solo-u1', at: stt.createdDate, stt, model: null, cost: 69.3 });
+    show({ key: 'solo-u1', at: stt.createdDate, stt, model: null, cost: 69.3, target: null });
     await settle();
 
     expect(screen.getByText('9 soniya')).toBeTruthy();

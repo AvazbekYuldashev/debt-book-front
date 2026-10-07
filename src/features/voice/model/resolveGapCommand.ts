@@ -16,6 +16,13 @@ export interface GapVoicePrefill {
   direction?: VoiceDirection;
   currency?: VoiceCurrency;
   note?: string;
+  /**
+   * Qaysi ovozdan kelgani.
+   *
+   * To'lov saqlangach serverga qaytariladi - tarixdagi strelka gap
+   * kassasi bo'limiga olib borishi uchun.
+   */
+  commandId?: string;
 }
 
 export type GapVoiceCommand =
@@ -37,6 +44,7 @@ function prefillOf(intent: VoiceIntent): GapVoicePrefill {
     currency: intent.currency ?? undefined,
     // Izohda AYTILGAN gap turadi, modelning qisqartmasi emas.
     note: (intent.transcript ?? intent.text)?.trim() || undefined,
+    commandId: intent.commandId,
   };
 }
 

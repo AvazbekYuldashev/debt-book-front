@@ -121,7 +121,47 @@ export interface VoiceIntent {
   contactPartyId?: string | null;
   contactPartyType?: string | null;
   contactOptions?: VoiceContactOption[] | null;
+  /**
+   * Shu ovozning belgisi - ILOVA biriktiradi, serverdan kelmaydi.
+   *
+   * Ekran amalni saqlagach `markVoiceTarget` ga beradi: tarixdagi qator
+   * o'sha yozuvga olib borishi uchun.
+   */
+  commandId?: string;
 }
+
+/** Ovoz yaratgan yozuv turi - server shu uchtasini qabul qiladi. */
+export type VoiceTargetType = 'TRANSACTION' | 'EXPENSE' | 'GAP';
+
+/**
+ * "Shu ovoz shu yozuvni yaratdi" deb belgilaydi.
+ *
+ * `targetId` - yozuvning emas, u YASHAYDIGAN EKRANNING belgisi (kontakt,
+ * xarajat kategoriyasi, gap kassasi): tranzaksiyaning o'z id'si bilan
+ * ochiladigan ekran yo'q, u kontakt tarixining bir qatori.
+ *
+ * XATOSI YUTILADI: havola qulaylik, yozuvning o'zi emas. Yozib bo'lmasa
+ * odamning amali baribir saqlangan - uni xato bilan bezovta qilish
+ * noto'g'ri bo'lardi.
+ */
+export const markVoiceTarget = async (
+  commandId: string | undefined,
+  targetType: VoiceTargetType,
+  targetId: string,
+  targetLabel?: string,
+): Promise<void> => {
+  if (!commandId || !targetId) return;
+  try {
+    await apiClient.post('/voice/usage/target', {
+      commandId,
+      targetType,
+      targetId,
+      targetLabel: targetLabel ?? null,
+    });
+  } catch {
+    // Ataylab jim: yuqoridagi izohga qarang.
+  }
+};
 
 /**
  * Ovozni matnga aylantiradi.

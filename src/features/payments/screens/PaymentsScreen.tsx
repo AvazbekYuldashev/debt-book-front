@@ -19,7 +19,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { ROUTES } from '../../../app/navigation/routes';
-import type { ProfileScreenProps } from '../../../app/navigation/types';
+import type { MainTabNavigation, ProfileScreenProps } from '../../../app/navigation/types';
 import {
   fetchVoiceUsage,
   fetchVoiceUsageSummary,
@@ -28,6 +28,7 @@ import {
 } from '../api/usage';
 import { formatDuration, formatSum, formatWhen } from '../model/formatUsage';
 import { commandCost, type ModelPricing } from '../model/spend';
+import { openTarget, type OpenCommand } from '../model/openTarget';
 
 import {
   createClickLink,
@@ -161,6 +162,39 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
   );
 
   /**
+   * Amallar BOSHQA bo'limlarda turadi, shuning uchun tab navigatsiyasi
+   * kerak - ekranning o'z navigatsiyasi faqat profil ichida yura oladi.
+   *
+   * `getParent()` orqali olinadi, `useNavigation` orqali EMAS: bu ekran
+   * testlarda navigator ichisiz ham chiziladi va `useNavigation` o'sha
+   * yerda yiqilardi. Ota yo'q bo'lsa strelka shunchaki ish bermaydi.
+   */
+  const tabNavigation = navigation.getParent<MainTabNavigation>();
+
+  const openOperation = useCallback(
+    (open: OpenCommand) => {
+      if (!open || !tabNavigation) return;
+      switch (open.kind) {
+        case 'CONTACT':
+          tabNavigation.navigate(ROUTES.DEBTS, {
+            screen: ROUTES.CONTACT_DETAIL,
+            params: { id: open.id },
+          });
+          return;
+        case 'EXPENSE_CATEGORY':
+          tabNavigation.navigate(ROUTES.EXPENSES, {
+            screen: ROUTES.EXPENSE_CATEGORY_DETAIL,
+            params: { id: open.id, name: open.name },
+          });
+          return;
+        case 'GAP_LIST':
+          tabNavigation.navigate(ROUTES.GAP, { screen: ROUTES.GAP_LIST });
+      }
+    },
+    [tabNavigation],
+  );
+
+  /**
    * Model tarifi - tafsilot oynasi va eski qatorlar uchun.
    *
    * ESKI yozuvlarda tushunish narxi nol: ular tarif sozlanmagan paytda
@@ -183,6 +217,8 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
       const command = item.command;
       // Bir qatorda IKKALA qism: odam uchun bu bitta ish. Tafsiloti -
       // qaysi qismga qancha ketgani - bosilganda ochiladi.
+      const open = openTarget(command.target);
+
       /* TOKEN SONI EMAS: "1 357 token" dan odamga hech narsa chiqmaydi.
          Narx esa yuqoridagi summada - tanish va tushunish qo'shilgan. */
       const parts = [
@@ -205,11 +241,25 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
             </Text>
           </View>
           <Text style={styles.rowCost}>{formatSum(commandCost(command, pricing).total)}</Text>
-          <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+          {/* Strelka ALOHIDA bosiladi: u amalga olib boradi, qatorning
+              qolgan joyi esa sarf tafsilotini ochadi. Havolasi yo'q
+              yozuvlarda (eski tarix) umuman ko'rsatilmaydi - bosilsa
+              hech narsa bo'lmaydigan tugma aldab qo'yardi. */}
+          {open ? (
+            <Pressable
+              onPress={() => openOperation(open)}
+              accessibilityRole="button"
+              accessibilityLabel={t('payments.openTarget')}
+              hitSlop={10}
+              style={({ pressed }) => pressed && styles.arrowPressed}
+            >
+              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+            </Pressable>
+          ) : null}
         </Pressable>
       );
     },
-    [colors.primary, colors.textSecondary, pricing, styles, t],
+    [colors.primary, colors.textSecondary, openOperation, pricing, styles, t],
   );
 
   /**
@@ -569,6 +619,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       color: colors.textPrimary,
       fontWeight: '600',
       marginRight: spacing.xxs,
+    },
+    arrowPressed: {
+      opacity: 0.5,
     },
     rowPressed: {
       opacity: 0.6,

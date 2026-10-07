@@ -386,6 +386,7 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
           amount: command.amount,
           description: command.description,
           calcNote: command.calcNote,
+          commandId: command.commandId,
         },
       });
     },

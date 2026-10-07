@@ -22,7 +22,16 @@ const mockBalance = fetchPaymentSummary as jest.Mock;
  * oxirigacha aylantirib o'tish kerak edi.
  */
 const show = () => {
-  const navigation = { goBack: jest.fn(), navigate: jest.fn() } as any;
+  /**
+   * `getParent` ham moklanadi: strelka amalni BOSHQA bo'limda ochadi,
+   * ya'ni tab navigatoriga chiqadi. Haqiqiy ilovada u doim bor.
+   */
+  const tabNavigate = jest.fn();
+  const navigation = {
+    goBack: jest.fn(),
+    navigate: jest.fn(),
+    getParent: () => ({ navigate: tabNavigate }),
+  } as any;
   render(
     <AppThemeProvider>
       <LanguageProvider>
@@ -30,7 +39,7 @@ const show = () => {
       </LanguageProvider>
     </AppThemeProvider>,
   );
-  return { navigation };
+  return { navigation, tabNavigate };
 };
 
 /** Provayder birinchi renderda null qaytaradi, so'ng ma'lumot keladi. */

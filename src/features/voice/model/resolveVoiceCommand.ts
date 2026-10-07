@@ -35,6 +35,13 @@ export interface VoiceCommandPrefill {
    * `amount`/`currency`da, qolganlari shu yerda navbatini kutadi.
    */
   settlements?: VoiceSettlement[];
+  /**
+   * Qaysi ovozdan kelgani.
+   *
+   * Yozuv saqlangach serverga "shu ovoz shu kontaktda yozuv yaratdi" deb
+   * qaytariladi - tarixdagi strelka o'sha kontaktga olib borishi uchun.
+   */
+  commandId?: string;
 }
 
 export type VoiceCommand =
@@ -58,6 +65,7 @@ function prefillOf(intent: VoiceIntent): VoiceCommandPrefill {
     items: intent.items?.length ? intent.items : undefined,
     calcNote: intent.calcNote || undefined,
     settlements: intent.settlements?.length ? intent.settlements : undefined,
+    commandId: intent.commandId,
   };
 }
 
