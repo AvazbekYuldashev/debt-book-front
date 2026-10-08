@@ -362,18 +362,17 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
             ))}
           </View>
 
-          {/* IKKI XIZMAT, BITTA QATOR.
-              Ustunlardagi summa allaqachon ikkalasini qo'shib ko'rsatadi,
-              shuning uchun bu yerda faqat TARIFLAR turadi: nimaga qarab
-              sanalgani. Ilgari ikki qator edi va ular bir xil narsani
-              ikki marta aytayotgandek ko'rinardi. */}
+          {/* FAQAT TARIF, tannarx tafsiloti EMAS.
+              Ilgari bu yerda model nomi va dollar kursi ham turardi -
+              ya'ni xizmatlarning O'Z narxi. Ilova ularni qayta sotadi,
+              shuning uchun o'sha raqamlardan foydalanuvchi to'laydigan
+              summa chiqmasdi: e'lon qilingan tarif bilan olingan pul
+              bir-biriga to'g'ri kelmas edi.
+
+              Endi bitta son ko'rsatiladi va u ayni olinadigan tarif. */}
           {summary ? (
             <Text style={styles.rate}>
-              {t('payments.tariffs', {
-                voice: formatSum(summary.ratePerMinute),
-                model: summary.modelLabel ?? '',
-                usd: summary.usdRate ? formatSum(summary.usdRate) : '—',
-              })}
+              {t('payments.rate', { rate: formatSum(summary.ratePerMinute) })}
             </Text>
           ) : null}
         </Card>

@@ -75,25 +75,28 @@ describe('UsageDetailModal', () => {
   });
 
   /**
-   * TOKEN SONI EMAS, NARX. "690 token" dan odamga hech narsa chiqmaydi;
-   * tarif va kurs berilganda esa kirish va chiqish so'mda ko'rinadi.
+   * TOKEN SONI EMAS, NARX - va tafsilotsiz.
    *
-   * 690 x $5 / 1M x 12 000 = 41,40 so'm
-   *  47 x $25 / 1M x 12 000 = 14,10 so'm
+   * Oynada tushunishning faqat UMUMIY narxi turadi: uni kirish va
+   * chiqishga ajratish foydalanuvchiga hech narsa bermaydi, u bitta ovoz
+   * uchun qancha to'laganini bilsa kifoya.
+   *
+   * 690 x $5 x 2 (ustama) / 1M x 12 000 = 82,80 so'm
+   *  47 x $25 x 2 (ustama) / 1M x 12 000 = 28,20 so'm  -> jami 111 so'm
    */
   it('token soni emas, somdagi narxi korsatiladi', async () => {
     show(command, {
-      inputPerMillion: 5,
-      outputPerMillion: 25,
+      // Server SOTUV tarifini beradi - ustama allaqachon ichida.
+      inputPerMillion: 10,
+      outputPerMillion: 50,
       usdRate: 12000,
       label: 'Claude Opus 5',
     });
     await settle();
 
     expect(screen.queryByText('690')).toBeNull();
-    expect(screen.getByText("41,40 so'm")).toBeTruthy();
-    expect(screen.getByText("14,10 so'm")).toBeTruthy();
-    expect(screen.getByText('Claude Opus 5')).toBeTruthy();
+    expect(screen.queryByText('47')).toBeNull();
+    expect(screen.getByText("111 so'm")).toBeTruthy();
   });
 
   /**

@@ -107,33 +107,10 @@ const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ command, onClose, p
                 </Text>
               </View>
 
-              {/* NARX, token soni emas: "1 214 token" dan odamga hech
-                  narsa chiqmaydi, "14 so'm" dan esa chiqadi. Tarif
-                  bo'lmasa (eski server) faqat umumiy narx qoladi. */}
-              {pricing ? (
-                <>
-                  <View style={styles.row}>
-                    <Text style={styles.rowLabel}>{t('usage.inputCost')}</Text>
-                    <Text style={styles.rowValue}>
-                      {formatSum(
-                        tokenCost(model.promptTokens, pricing.inputPerMillion, pricing.usdRate),
-                      )}
-                    </Text>
-                  </View>
-                  <View style={styles.row}>
-                    <Text style={styles.rowLabel}>{t('usage.outputCost')}</Text>
-                    <Text style={styles.rowValue}>
-                      {formatSum(
-                        tokenCost(model.completionTokens, pricing.outputPerMillion, pricing.usdRate),
-                      )}
-                    </Text>
-                  </View>
-                </>
-              ) : null}
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>{t('usage.rate')}</Text>
-                <Text style={styles.rowValue}>{pricing?.label ?? '—'}</Text>
-              </View>
+              {/* Tafsilot BERILMAYDI: tushunish narxi yuqoridagi
+                  sarlavhada turibdi, uni kirish va chiqishga ajratish
+                  foydalanuvchiga hech narsa bermaydi - u bitta ovoz
+                  uchun qancha to'laganini bilsa kifoya. */}
             </View>
           ) : null}
 
