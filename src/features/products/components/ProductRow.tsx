@@ -45,11 +45,12 @@ const ProductRow: React.FC<ProductRowProps> = ({
   onRequestDelete,
 }) => {
   const theme = useAppTheme();
+  const isDark = theme.activeTheme === 'dark';
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const avatarColor = useMemo(
-    () => pickAvatarColor(product.name || product.id, colors),
+    () => pickAvatarColor(product.name || product.id, isDark),
     [product.name, product.id, colors],
   );
 

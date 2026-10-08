@@ -24,7 +24,8 @@ interface UserAvatarProps {
  * beradi — bosh harflardan farqli o'laroq, siluet har qanday alifboda ishlaydi.
  */
 const UserAvatar: React.FC<UserAvatarProps> = ({ uri, size, name }) => {
-  const { colors } = useAppTheme();
+  const { colors, activeTheme } = useAppTheme();
+  const isDark = activeTheme === 'dark';
   const radius = size / 2;
 
   if (uri) {
@@ -36,7 +37,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ uri, size, name }) => {
     );
   }
 
-  const palette = name ? pickAvatarColor(name, colors) : undefined;
+  const palette = name ? pickAvatarColor(name, isDark) : undefined;
 
   return (
     <View

@@ -10,8 +10,9 @@ interface InitialsAvatarProps {
 
 /** Rasm bo'lmaganda: ismdan deterministik rangli bosh-harf doiracha. */
 const InitialsAvatar: React.FC<InitialsAvatarProps> = ({ name, size }) => {
-  const { colors } = useAppTheme();
-  const { bg, fg } = pickAvatarColor(name, colors);
+  const { colors, activeTheme } = useAppTheme();
+  const isDark = activeTheme === 'dark';
+  const { bg, fg } = pickAvatarColor(name, isDark);
   return (
     <View
       style={[

@@ -47,11 +47,12 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
   onViewPhoto,
 }) => {
   const theme = useAppTheme();
+  const isDark = theme.activeTheme === 'dark';
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const avatarColor = useMemo(
-    () => pickAvatarColor(category.name || category.id, colors),
+    () => pickAvatarColor(category.name || category.id, isDark),
     [category.name, category.id, colors],
   );
   const photoUri = category.photoId ? buildAttachUrl(category.photoId) : undefined;
