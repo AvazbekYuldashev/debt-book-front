@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -27,6 +27,36 @@ import VoiceNoticeModal from './VoiceNoticeModal';
  * bo'lmaganini kutib turgandan ko'ra, bosib bo'lmasligi ko'rinib
  * turgani yaxshi.
  */
+/**
+ * Brauzerga "bu harakat meniki" deyish. Telefonda barmoq surilishi
+ * aks holda skroll deb olinadi va bosish uzilib ketadi.
+ *
+ * Faqat web'da ma'noli; telefon ilovasida bu uslublar e'tiborsiz qoladi.
+ */
+const webHold = Platform.OS === 'web'
+  ? ({ touchAction: 'none', userSelect: 'none' } as unknown as ViewStyle)
+  : undefined;
+
+/**
+ * Barmoqni TUGMAGA biriktirish (web).
+ *
+ * `setPointerCapture` dan keyin barmoq qayerga surilsa ham, hamma
+ * hodisa shu tugmaga keladi va uni boshqa element tortib ololmaydi.
+ * Qo'llab-quvvatlanmasa jim o'tkazib yuboriladi - bosish baribir
+ * yuqoridagi ikki himoya bilan ishlaydi.
+ */
+const capturePointer = (event: { nativeEvent?: { pointerId?: number }; currentTarget?: unknown }) => {
+  if (Platform.OS !== 'web') return;
+  const target = event.currentTarget as { setPointerCapture?: (id: number) => void } | undefined;
+  const id = event.nativeEvent?.pointerId;
+  if (!target?.setPointerCapture || typeof id !== 'number') return;
+  try {
+    target.setPointerCapture(id);
+  } catch {
+    // Brauzer rad etsa - muhim emas, qolgan himoyalar yetadi.
+  }
+};
+
 const VoiceTabButton: React.FC = () => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -66,6 +96,32 @@ const VoiceTabButton: React.FC = () => {
          */
         onPressIn={voice.start}
         onPressOut={voice.stop}
+        /**
+         * TELEFONDA BOSISH O'ZI UZILIB KETARDI.
+         *
+         * Barmoq bir necha piksel qimirlashi bilan `Pressable` bosishni
+         * BEKOR deb hisoblab, `onPressOut` ni chaqirardi - ya'ni odam
+         * hali gapirayotganda yozuv to'xtardi. Sichqoncha bunchalik
+         * qimirlamaydi, shuning uchun kompyuterda sezilmasdi.
+         *
+         * Ushlab turish doirasi kattalashtirildi: barmoq tugmadan
+         * ancha chiqib ketsa ham bosish tirik qoladi. Gapirayotgan odam
+         * tugmani kuzatib turmaydi - uning qo'li tabiiy ravishda suriladi.
+         */
+        pressRetentionOffset={{ top: 200, bottom: 200, left: 200, right: 200 }}
+        /**
+         * Brauzer harakatni O'ZINIKI deb olib qo'ymasin.
+         *
+         * Telefon brauzerida barmoq surilishi odatda skroll yoki
+         * masshtab deb qaraladi; shunda gesture ilovadan tortib
+         * olinadi va bosish uziladi. `touchAction: none` - "bu
+         * harakat meniki" degani.
+         *
+         * `userSelect: none` esa uzoq bosishda chiqadigan matn
+         * tanlash va kontekst menyusini to'xtatadi: ular ham bosishni
+         * bekor qilardi.
+         */
+        onPointerDown={capturePointer}
         disabled={disabled}
         accessibilityRole="button"
         // Ekran o'quvchiga ham `disabled` prop bilan AYNAN bir xil holat
@@ -76,6 +132,7 @@ const VoiceTabButton: React.FC = () => {
         // "pressed" rangidan keyin qo'yiladi, aks holda yashilga qaytardi.
         style={({ pressed }) => [
           styles.button,
+          webHold,
           pressed && styles.pressed,
           recording && styles.recording,
           !ready && styles.off,
