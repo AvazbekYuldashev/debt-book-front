@@ -12,6 +12,15 @@ export interface PaymentSummary {
    * ilovani qayta chiqarish kerak bo'lmasligi uchun.
    */
   clickEnabled: boolean;
+  /**
+   * Shu ish maydonini to'ldira oladimi.
+   *
+   * Shaxsiy hisob - doim ha. Biznes hisobini FAQAT EGASI to'ldiradi: pul
+   * butun jamoaga ishlaydi, shuning uchun uni kim to'lashi aniq bo'lishi
+   * kerak. Eski server bu maydonni yubormaydi - o'shanda tugma
+   * ko'rinaveradi va taqiqni server o'zi aytadi.
+   */
+  canTopUp?: boolean;
 }
 
 /** To'ldirish tarixining bitta qatori. */

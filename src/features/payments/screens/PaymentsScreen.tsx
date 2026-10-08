@@ -400,7 +400,15 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
           {/* Tugmalar FAQAT server "tayyor" desa chiqadi. Kalitlar
               ulanmagan bo'lsa bosilganda hech narsa qilmaydigan tugma
               ishlaydi deb o'ylashga majbur qilardi. */}
-          {account?.clickEnabled ? (
+          {/* Egasi bo'lmagan a'zoga to'ldirish tugmasi KO'RSATILMAYDI:
+              bosilsa server rad etardi va odam nega ishlamayotganini
+              tushunmasdi. Sabab yoziladi - tugma jim yo'qolmasin.
+              Taqiqning o'zi serverda: yashirilgan tugma himoya emas. */}
+          {account && account.canTopUp === false ? (
+            <Text style={styles.soonNote}>{t('payments.ownerOnly')}</Text>
+          ) : null}
+
+          {account?.clickEnabled && account.canTopUp !== false ? (
             <>
               <Text style={styles.soonNote}>{t('payments.amount')}</Text>
               <View style={styles.amounts}>
