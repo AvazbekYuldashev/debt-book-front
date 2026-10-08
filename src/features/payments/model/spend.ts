@@ -50,6 +50,21 @@ export const tokenCost = (
 ): number => (tokens * perMillionUsd * usdRate) / 1_000_000;
 
 /**
+ * Tarif uchun: 1000 TOKENNING so'mdagi narxi.
+ *
+ * Tarif dollarda va 1 million token uchun keladi - ikkala raqam ham
+ * odamga hech narsa aytmaydi. Ekranda birlik 1000 token: bitta gap
+ * taxminan shu kattalikda turadi, demak son taqqoslashga yaroqli.
+ *
+ * Kirish va chiqish ARALASHTIRILMAYDI, o'rtachasi ham olinmaydi:
+ * narxlari besh baravar farq qiladi va aralash son hech bir qatorga
+ * to'g'ri kelmasdi. Foydalanuvchi e'lon qilingan tarifni qo'lda
+ * tekshiradi - shuning uchun u ayni hisoblanadigan raqam bo'lishi kerak.
+ */
+export const tokenRatePerThousand = (perMillionUsd: number, usdRate: number): number =>
+  tokenCost(1000, perMillionUsd, usdRate);
+
+/**
  * Bitta ovozning TO'LIQ narxi: tanish + tushunish.
  *
  * Yangi yozuvlarda ikkala narx ham qatorning o'zida so'mda saqlanadi va

@@ -27,7 +27,7 @@ import {
   type VoiceUsageSummary,
 } from '../api/usage';
 import { formatDuration, formatSum, formatWhen } from '../model/formatUsage';
-import { commandCost, type ModelPricing } from '../model/spend';
+import { commandCost, type ModelPricing, tokenRatePerThousand } from '../model/spend';
 import { openTarget, type OpenCommand } from '../model/openTarget';
 
 import {
@@ -362,17 +362,32 @@ const PaymentsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PAYMENTS>> = ({ 
             ))}
           </View>
 
-          {/* FAQAT TARIF, tannarx tafsiloti EMAS.
-              Ilgari bu yerda model nomi va dollar kursi ham turardi -
-              ya'ni xizmatlarning O'Z narxi. Ilova ularni qayta sotadi,
-              shuning uchun o'sha raqamlardan foydalanuvchi to'laydigan
-              summa chiqmasdi: e'lon qilingan tarif bilan olingan pul
-              bir-biriga to'g'ri kelmas edi.
+          {/* TARIF TO'LIQ: bitta ovoz IKKI xizmatdan to'lanadi - audioni
+              tanish daqiqaga, gapni tushunish tokenga ketadi. Faqat
+              birinchisini yozsak, yuqoridagi summa e'lon qilingan
+              tarifdan katta chiqib, raqam tushunarsiz bo'lib qolardi.
 
-              Endi bitta son ko'rsatiladi va u ayni olinadigan tarif. */}
+              Ikkisi ALOHIDA qatorda, chunki birligi boshqa-boshqa
+              (daqiqa va 1000 token) - bitta qatorga tiqilsa qaysi son
+              nimaga tegishli ekani bilinmasdi.
+
+              Ko'rsatilgan raqamlar - ayni OLINADIGAN tarif (ustama
+              serverda qo'shilib keladi), tannarx emas: aks holda e'lon
+              qilingan narx bilan hisobdan olingan pul to'g'ri kelmasdi. */}
           {summary ? (
             <Text style={styles.rate}>
               {t('payments.rate', { rate: formatSum(summary.ratePerMinute) })}
+            </Text>
+          ) : null}
+
+          {/* Tarif yoki kurs yo'q bo'lsa qator umuman chiqmaydi: "0 so'm"
+              degan yolg'on raqamdan ko'ra hech narsa yaxshiroq. */}
+          {pricing ? (
+            <Text style={styles.rate}>
+              {t('payments.rateModel', {
+                input: formatSum(tokenRatePerThousand(pricing.inputPerMillion, pricing.usdRate)),
+                output: formatSum(tokenRatePerThousand(pricing.outputPerMillion, pricing.usdRate)),
+              })}
             </Text>
           ) : null}
         </Card>
