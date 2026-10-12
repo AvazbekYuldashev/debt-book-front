@@ -13,3 +13,7 @@ coverage/
 
 # Claude Code mahalliy sozlamasi - loyiha kodi emas.
 .claude/
+
+# Ish stolidan tushgan vaqtinchalik skrinshot - ilova kodi emas.
+# (deploy/release.sh toza ish nusxasini talab qiladi)
+eskiz.png

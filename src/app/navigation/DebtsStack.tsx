@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import DebtListScreen from '../../features/debts/screens/DebtListScreen';
 import ContactDetailScreen from '../../features/debts/screens/ContactDetailScreen';
 import NotificationsScreen from '../../features/notifications/screens/NotificationsScreen';
+import RentalListScreen from '../../features/rentals/screens/RentalListScreen';
 import { ROUTES } from './routes';
 import type { DebtsStackParamList } from './types';
 import { withFadeInScreen } from './withFadeInScreen';
@@ -11,6 +12,7 @@ const Stack = createNativeStackNavigator<DebtsStackParamList>();
 const DebtListScreenWithFade = withFadeInScreen(DebtListScreen);
 const ContactDetailScreenWithFade = withFadeInScreen(ContactDetailScreen);
 const NotificationsScreenWithFade = withFadeInScreen(NotificationsScreen);
+const RentalListScreenWithFade = withFadeInScreen(RentalListScreen);
 
 const DebtsStack: React.FC = () => (
   <Stack.Navigator>
@@ -23,6 +25,11 @@ const DebtsStack: React.FC = () => (
     <Stack.Screen
       name={ROUTES.NOTIFICATIONS}
       component={NotificationsScreenWithFade}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name={ROUTES.RENTALS}
+      component={RentalListScreenWithFade}
       options={{ headerShown: false }}
     />
   </Stack.Navigator>

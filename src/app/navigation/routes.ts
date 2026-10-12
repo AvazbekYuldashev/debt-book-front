@@ -14,6 +14,7 @@ export const ROUTES = {
   DEBT_LIST: 'DebtList',
   CONTACT_DETAIL: 'ContactDetail',
   NOTIFICATIONS: 'Notifications',
+  RENTALS: 'Rentals',
   EXPENSE_CATEGORIES: 'ExpenseCategories',
   EXPENSE_CATEGORY_DETAIL: 'ExpenseCategoryDetail',
   MY_BUSINESSES: 'MyBusinesses',

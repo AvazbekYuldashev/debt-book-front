@@ -28,6 +28,14 @@ export type DebtsStackParamList = {
     tab?: 'products' | 'history';
   };
   [ROUTES.NOTIFICATIONS]: undefined;
+  /**
+   * Ijara ro'yxati.
+   *
+   * Qarzlar stack'ida turadi: ijara haqi mijozning qarzi bo'lib turadi,
+   * ya'ni bu qarz daftarining bir ko'rinishi. Parametr kerak emas —
+   * ekran ro'yxatni o'zi yuklaydi.
+   */
+  [ROUTES.RENTALS]: undefined;
 };
 
 export type DebtsNavigation = NativeStackNavigationProp<DebtsStackParamList>;
