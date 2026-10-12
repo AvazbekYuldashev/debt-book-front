@@ -40,6 +40,9 @@ const normalizeRental = (raw: RentalResponseDTO): RentalResponseDTO => ({
   // Miqdor yo'q bo'lsa 1: eski yozuvlarda ustun umuman bo'lmagan.
   quantity: raw.quantity === null || raw.quantity === undefined ? 1 : toAmount(raw.quantity) || 1,
   currency: normalizeCurrency(raw.currency),
+  // Qaytarish partiyalari: hisob shular bo'yicha chiqadi, demak miqdor
+  // satr bo'lib kelsa ham son bo'lishi shart.
+  returns: (raw.returns ?? []).map((item) => ({ ...item, quantity: toAmount(item.quantity) })),
 });
 
 // ---------------------------------------------------------------- o'qish

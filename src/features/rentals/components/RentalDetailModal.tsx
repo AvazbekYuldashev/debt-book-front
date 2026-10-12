@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Modal from '../../../shared/ui/AppModal';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
@@ -23,8 +24,11 @@ import {
   accruedAmount,
   billedDays,
   overdueDays,
+  remainingQuantity,
   rentalStatus,
+  returnedQuantity,
   todayString,
+  totalQuantity,
   unpaidAmount,
 } from '../model/rentalMath';
 import { toAmount, type RentalResponseDTO } from '../types/rental';
@@ -41,10 +45,15 @@ type Pane = 'info' | 'return' | 'payment';
 /**
  * Bitta ijaraning kartasi va ikki amali.
  *
+ * KO'RINISH: eng muhim raqam — OLINMAGAN QOLDIQ, shuning uchun u tepada,
+ * katta va rangli turadi. Qolgan maydonlar uning ostida, ikkinchi darajali
+ * matn bilan. Ilgari hammasi bir xil og'irlikdagi jadval edi va odam
+ * qaysi raqam muhimligini o'zi qidirib topishi kerak edi.
+ *
  * Buyumning qaytishi va pulning kelishi ALOHIDA tugma: hayotda ular bir
  * paytda bo'lmaydi — buyum qaytib, puli bir hafta keyin ham berilishi
- * mumkin. Bitta "yopish" tugmasi bo'lsa dastur ikkisini bir vaqtda
- * bo'ldi deb yozishga majbur qilardi, ya'ni yolg'on tarix.
+ * mumkin. Bitta "yopish" tugmasi bo'lsa dastur ikkisini bir vaqtda bo'ldi
+ * deb yozishga majbur qilardi, ya'ni yolg'on tarix.
  *
  * Amal tanlanganda forma AYNI KARTA ichida ochiladi (`Pane`): ustiga
  * yana bir modal qalashtirish telefonda orqaga qaytishni chalkashtiradi.
@@ -62,27 +71,27 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
 
   const [pane, setPane] = useState<Pane>('info');
   const [returnDate, setReturnDate] = useState(todayString());
+  const [returnQty, setReturnQty] = useState('');
   const [payAmount, setPayAmount] = useState('');
   const [error, setError] = useState('');
-
-  const unpaid = rental ? unpaidAmount(rental) : 0;
 
   /**
    * Oyna yangi yozuv bilan ochilganda doim ma'lumot ko'rinishidan boshlanadi.
    *
-   * Qoldiq effekt ICHIDA hisoblanadi, tashqaridan bog'lanmaydi: aks holda
-   * yarim tunda kun almashib qoldiq o'zgarganda effekt qaytadan ishlab,
-   * odamning yozib qo'ygan summasini ustidan o'chirardi.
+   * Qoldiqlar effekt ICHIDA hisoblanadi, tashqaridan bog'lanmaydi: aks
+   * holda yarim tunda kun almashib qoldiq o'zgarganda effekt qaytadan
+   * ishlab, odamning yozib qo'ygan summasini ustidan o'chirardi.
    */
   useEffect(() => {
     if (!rental) return;
     setPane('info');
     setError('');
     setReturnDate(todayString());
-    // To'lov maydoni QOLDIQ bilan to'ldiriladi: ko'p holatda odam qolganini
-    // to'liq beradi va hech narsa yozmasdan tasdiqlaydi.
-    const remaining = unpaidAmount(rental);
-    setPayAmount(remaining > 0 ? formatAmountInput(String(remaining)) : '');
+    // Maydonlar QOLGANI bilan to'ldiriladi: ko'p holatda hammasi birdan
+    // qaytadi va hech narsa yozmasdan tasdiqlanadi.
+    setReturnQty(String(remainingQuantity(rental)));
+    const remainingMoney = unpaidAmount(rental);
+    setPayAmount(remainingMoney > 0 ? formatAmountInput(String(remainingMoney)) : '');
   }, [rental]);
 
   const handleReturn = useCallback(() => {
@@ -92,11 +101,16 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
     // Buyum berilishidan OLDIN qaytarilgan bo'lishi mumkin emas.
     if (returnDate < rental.startDate) return setError(t('rentals.errReturnBeforeStart'));
 
+    const left = remainingQuantity(rental);
+    const quantity = Number(returnQty);
+    if (!Number.isFinite(quantity) || quantity <= 0) return setError(t('rentals.errReturnQty'));
+    if (quantity > left) return setError(t('rentals.errReturnTooMany', { count: String(left) }));
+
     returnMutation.mutate(
-      { id: rental.id, dto: { returnedDate: returnDate } },
+      { id: rental.id, dto: { returnedDate: returnDate, quantity } },
       { onSuccess: onClose, onError: (err) => setError((err as Error).message) },
     );
-  }, [rental, returnDate, returnMutation, onClose, t]);
+  }, [rental, returnDate, returnQty, returnMutation, onClose, t]);
 
   const handlePay = useCallback(() => {
     if (!rental) return;
@@ -127,8 +141,21 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
   const late = overdueDays(rental);
   const accrued = accruedAmount(rental);
   const paid = toAmount(rental.paidAmount);
-  const statusTone =
+  const unpaid = unpaidAmount(rental);
+  const total = totalQuantity(rental);
+  const back = returnedQuantity(rental);
+  const left = remainingQuantity(rental);
+  const multiple = total > 1;
+
+  const tone =
     status === 'OVERDUE' ? colors.negative : status === 'RETURNED' ? colors.textSecondary : colors.positive;
+
+  const statusText =
+    status === 'RETURNED'
+      ? t('rentals.returnedOn', { date: rental.returnedDate ?? '' })
+      : late > 0
+        ? t('rentals.lateByDays', { count: String(late) })
+        : t('rentals.dueOn', { date: rental.dueDate });
 
   return (
     <Modal transparent visible={Boolean(rental)} animationType="slide" onRequestClose={onClose}>
@@ -145,22 +172,54 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
-              {rental.itemName}
-              {rental.quantity > 1 ? ` × ${rental.quantity}` : ''}
-            </Text>
+            {/* ---- Sarlavha: buyum nomi va holat ---- */}
+            <View style={styles.head}>
+              <View style={[styles.icon, { backgroundColor: `${tone}1A` }]}>
+                <Ionicons name="cube-outline" size={20} color={tone} />
+              </View>
+              <View style={styles.headText}>
+                <Text style={styles.title} numberOfLines={2}>
+                  {rental.itemName}
+                  {multiple ? ` × ${total}` : ''}
+                </Text>
+                <Text style={[styles.statusText, { color: tone }]} numberOfLines={1}>
+                  {statusText}
+                </Text>
+              </View>
+            </View>
 
-            <View style={[styles.statusChip, { backgroundColor: `${statusTone}1A` }]}>
-              <Text style={[styles.statusText, { color: statusTone }]}>
-                {status === 'RETURNED'
-                  ? t('rentals.returnedOn', { date: rental.returnedDate ?? '' })
-                  : late > 0
-                    ? t('rentals.lateByDays', { count: String(late) })
-                    : t('rentals.dueOn', { date: rental.dueDate })}
+            {/* ---- Eng muhim raqam: olinmagan qoldiq ----
+                Katta va rangli: odam kartani aynan shuni bilish uchun
+                ochadi. Hisob yopiq bo'lsa yashil "Hisob toza". */}
+            <View style={[styles.hero, { backgroundColor: unpaid > 0 ? colors.negativeSoft : colors.positiveSoft }]}>
+              <Text style={styles.heroLabel}>
+                {unpaid > 0 ? t('rentals.unpaid') : unpaid < 0 ? t('rentals.advance') : t('rentals.settled')}
+              </Text>
+              <Text
+                style={[styles.heroValue, { color: unpaid > 0 ? colors.negative : colors.positive }]}
+                numberOfLines={1}
+              >
+                {formatMoney(Math.abs(unpaid), rental.currency)}
+              </Text>
+              <Text style={styles.heroHint} numberOfLines={1}>
+                {t('rentals.heroHint', {
+                  accrued: formatMoney(accrued, rental.currency),
+                  paid: formatMoney(paid, rental.currency),
+                })}
               </Text>
             </View>
 
-            {/* ---- Hisob ---- */}
+            {/* ---- Qisman qaytarish: alohida qatorda, ko'zga tashlansin ---- */}
+            {multiple && back > 0 && left > 0 ? (
+              <View style={styles.partial}>
+                <Ionicons name="repeat-outline" size={15} color={colors.info} />
+                <Text style={styles.partialText}>
+                  {t('rentals.partialReturn', { back: String(back), left: String(left) })}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* ---- Tafsilotlar ---- */}
             <View style={styles.rows}>
               <DetailRow label={t('rentals.fieldClient')} value={rental.clientName} styles={styles} />
               <DetailRow
@@ -168,35 +227,43 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
                 value={formatMoney(toAmount(rental.dailyPrice), rental.currency)}
                 styles={styles}
               />
+              {multiple ? (
+                <DetailRow
+                  label={t('rentals.fieldQuantity')}
+                  value={t('rentals.quantityLine', { total: String(total), left: String(left) })}
+                  styles={styles}
+                />
+              ) : null}
               <DetailRow
                 label={t('rentals.billedDays')}
                 value={t('rentals.dayCount', { count: String(days) })}
                 styles={styles}
               />
-              <DetailRow label={t('rentals.fieldStartDate')} value={rental.startDate} styles={styles} />
-              <DetailRow label={t('rentals.dueDate')} value={rental.dueDate} styles={styles} />
               <DetailRow
-                label={t('rentals.accrued')}
-                value={formatMoney(accrued, rental.currency)}
+                label={t('rentals.period')}
+                value={`${rental.startDate} → ${rental.dueDate}`}
                 styles={styles}
-                strong
-              />
-              <DetailRow
-                label={t('rentals.paid')}
-                value={formatMoney(paid, rental.currency)}
-                styles={styles}
-              />
-              <DetailRow
-                label={unpaid >= 0 ? t('rentals.unpaid') : t('rentals.advance')}
-                value={formatMoney(Math.abs(unpaid), rental.currency)}
-                styles={styles}
-                strong
-                tone={unpaid > 0 ? colors.negative : colors.positive}
               />
               {rental.note ? (
                 <DetailRow label={t('rentals.fieldNote')} value={rental.note} styles={styles} />
               ) : null}
             </View>
+
+            {/* ---- Qaytarish tarixi ---- */}
+            {(rental.returns ?? []).length > 0 ? (
+              <View style={styles.rows}>
+                {(rental.returns ?? []).map((item, index) => (
+                  <View key={item.id ?? index} style={styles.detailRow}>
+                    <Text style={styles.detailLabel} numberOfLines={1}>
+                      {t('rentals.returnedBatch', { count: String(toAmount(item.quantity)) })}
+                    </Text>
+                    <Text style={styles.detailValue} numberOfLines={1}>
+                      {item.returnedDate}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
 
             {/* ---- Amallar ---- */}
             {pane === 'info' ? (
@@ -232,6 +299,16 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
 
             {pane === 'return' ? (
               <View style={styles.pane}>
+                {/* Miqdor FAQAT bittadan ko'p berilgan bo'lsa so'raladi:
+                    bitta buyumda bu savol ortiqcha bosqich bo'lardi. */}
+                {multiple ? (
+                  <Input
+                    label={t('rentals.returnQty', { left: String(left) })}
+                    value={returnQty}
+                    onChangeText={(value) => setReturnQty(value.replace(/[^\d.]/g, '').slice(0, 7))}
+                    keyboardType="decimal-pad"
+                  />
+                ) : null}
                 <Input
                   label={t('rentals.returnDate')}
                   value={returnDate}
@@ -239,7 +316,9 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
                   keyboardType="number-pad"
                   placeholder="2026-10-12"
                 />
-                <Text style={styles.note}>{t('rentals.returnHint')}</Text>
+                <Text style={styles.note}>
+                  {multiple ? t('rentals.returnHintMany') : t('rentals.returnHint')}
+                </Text>
                 <View style={styles.actionsRow}>
                   <Button
                     title={t('common.cancel')}
@@ -295,19 +374,14 @@ interface DetailRowProps {
   label: string;
   value: string;
   styles: ReturnType<typeof createStyles>;
-  strong?: boolean;
-  tone?: string;
 }
 
-const DetailRow: React.FC<DetailRowProps> = ({ label, value, styles, strong, tone }) => (
+const DetailRow: React.FC<DetailRowProps> = ({ label, value, styles }) => (
   <View style={styles.detailRow}>
     <Text style={styles.detailLabel} numberOfLines={1}>
       {label}
     </Text>
-    <Text
-      style={[styles.detailValue, strong && styles.detailValueStrong, tone ? { color: tone } : null]}
-      numberOfLines={2}
-    >
+    <Text style={styles.detailValue} numberOfLines={2}>
       {value}
     </Text>
   </View>
@@ -333,21 +407,75 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       padding: spacing.md,
       gap: spacing.sm,
     },
+    head: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    icon: {
+      width: 38,
+      height: 38,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headText: {
+      flex: 1,
+      minWidth: 0,
+      gap: 1,
+    },
     title: {
       ...typography.heading2,
       fontSize: 18,
       color: colors.textPrimary,
     },
-    statusChip: {
-      alignSelf: 'flex-start',
-      paddingVertical: 3,
-      paddingHorizontal: spacing.sm,
-      borderRadius: radius.pill,
-    },
     statusText: {
       ...typography.caption,
       fontSize: 12,
       fontWeight: '700',
+    },
+    // Kartaning markazi: bitta katta raqam va uning ostida qisqa izoh.
+    hero: {
+      borderRadius: radius.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      gap: 1,
+    },
+    heroLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    heroValue: {
+      ...typography.amount,
+      fontSize: 26,
+      lineHeight: 32,
+      fontVariant: ['tabular-nums'],
+    },
+    heroHint: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontVariant: ['tabular-nums'],
+    },
+    partial: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      backgroundColor: colors.infoSoft,
+      borderRadius: radius.md,
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.sm,
+    },
+    partialText: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.info,
+      flexShrink: 1,
     },
     rows: {
       backgroundColor: colors.surfaceMuted,
@@ -376,10 +504,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       textAlign: 'right',
       flexShrink: 1,
       fontVariant: ['tabular-nums'],
-    },
-    detailValueStrong: {
-      fontSize: 15,
-      fontWeight: '800',
     },
     pane: {
       gap: spacing.sm,

@@ -18,10 +18,20 @@ import { RentalResponseDTO, RentalStatus, toAmount } from '../types/rental';
  * buyum uchun 0 kun emas, 1 kun olinadi.
  *
  * MUDDATDAN KEYIN HISOB TO'XTAMAYDI: buyum qaytmaguncha har kun
- * ustiga qo'shilib boradi. Shuning uchun sana YO'Q (`returnedDate`
- * null) bo'lsa hisob "bugun"ga nisbatan chiqariladi.
+ * ustiga qo'shilib boradi.
  *
- * Server ham AYNAN shu qoidani bajarishi shart (docs/rental-api.md) —
+ * ========================= QISMAN QAYTARISH =========================
+ * Buyum PARTIYALAB qaytishi mumkin va har partiya O'Z kunigacha
+ * hisoblanadi:
+ *
+ *   10 stul, 1-oktyabr:  3 tasi 3-oktyabrda qaytdi  -> 3 × 2 kun
+ *                        7 tasi hali mijozda        -> 7 × (bugungacha)
+ *
+ * Shuning uchun summa BUYUM-KUNLAR yig'indisidan chiqariladi, oddiy
+ * "miqdor × kun" dan emas.
+ *
+ * Server ham AYNAN shu qoidani bajaradi
+ * (Debt-Book: rental/service/RentalCalculator.java, docs/rental-api.md) —
  * aks holda telefondagi summa bilan serverdagi summa farq qiladi.
  * =====================================================================
  */
@@ -54,22 +64,62 @@ export const daysBetween = (from: string, to: string): number | null => {
   return end - start;
 };
 
-/** Ijara tugagan (yoki hozircha to'xtagan) kun: qaytarilgan sana yoki bugun. */
-export const effectiveEndDate = (rental: RentalResponseDTO, today = todayString()): string =>
-  rental.returnedDate && isValidDateInput(rental.returnedDate) ? rental.returnedDate : today;
-
-/**
- * Hisobga kiradigan kunlar soni — kamida 1.
- *
- * Buyum qaytmagan bo'lsa bugungacha, qaytgan bo'lsa qaytgan kungacha.
- */
-export const billedDays = (rental: RentalResponseDTO, today = todayString()): number => {
-  const diff = daysBetween(rental.startDate, effectiveEndDate(rental, today));
+/** Ikki sana orasidagi hisob kunlari — kamida 1. */
+export const billedDaysBetween = (from: string, to: string): number => {
+  const diff = daysBetween(from, to);
   if (diff === null) return 1;
   return Math.max(1, diff);
 };
 
-/** Muddatdan keyin o'tgan kunlar. Muddat o'tmagan bo'lsa 0. */
+// ---------------------------------------------------------------- miqdor
+
+/** Berilgan buyumlar soni (eski yozuvlarda maydon yo'q = 1). */
+export const totalQuantity = (rental: RentalResponseDTO): number => toAmount(rental.quantity) || 1;
+
+/** Shu paytgacha qaytgan buyumlar soni. */
+export const returnedQuantity = (rental: RentalResponseDTO): number =>
+  (rental.returns ?? []).reduce((sum, item) => sum + toAmount(item.quantity), 0);
+
+/**
+ * Hali mijozda turgan buyumlar soni.
+ *
+ * `returnedDate` to'la bo'lsa NOL: u yozuvning yopilganlik belgisi va
+ * partiyalar joriy qilinishidan oldingi yozuvlarda partiya umuman yo'q.
+ * Shu tekshiruvsiz eski yozuv "hali mijozda" deb hisoblanib, summasi
+ * har kuni o'sib ketardi.
+ */
+export const remainingQuantity = (rental: RentalResponseDTO): number => {
+  if (rental.returnedDate) return 0;
+  return Math.max(0, totalQuantity(rental) - returnedQuantity(rental));
+};
+
+/** Buyum qisman qaytganmi — qatorda va kartada alohida ko'rsatiladi. */
+export const isPartiallyReturned = (rental: RentalResponseDTO): boolean =>
+  !rental.returnedDate && returnedQuantity(rental) > 0;
+
+// ---------------------------------------------------------------- kunlar
+
+/** Hisob to'xtagan kun: yozuv yopilgan bo'lsa o'sha sana, aks holda bugun. */
+export const effectiveEndDate = (rental: RentalResponseDTO, today = todayString()): string => {
+  // Yopilganlik belgisi birinchi: u yozuv qachon tugaganini aniq aytadi.
+  if (rental.returnedDate && isValidDateInput(rental.returnedDate)) return rental.returnedDate;
+  if (remainingQuantity(rental) > 0) return today;
+
+  const dates = (rental.returns ?? []).map((item) => item.returnedDate).filter(Boolean);
+  if (dates.length === 0) return today;
+  return dates.reduce((last, date) => (date > last ? date : last));
+};
+
+/**
+ * Ko'rsatish uchun kun soni: ijara boshidan hisob to'xtagan kungacha.
+ *
+ * Qisman qaytarishda bu raqam PULNI bermaydi (har partiya o'z kunigacha
+ * hisoblanadi) — u faqat "bu ijara qancha davom etdi" degan ma'noda.
+ */
+export const billedDays = (rental: RentalResponseDTO, today = todayString()): number =>
+  billedDaysBetween(rental.startDate, effectiveEndDate(rental, today));
+
+/** Muddatdan keyin o'tgan kunlar. Muddat kunining o'zida hali 0. */
 export const overdueDays = (rental: RentalResponseDTO, today = todayString()): number => {
   const diff = daysBetween(rental.dueDate, effectiveEndDate(rental, today));
   if (diff === null) return 0;
@@ -77,30 +127,54 @@ export const overdueDays = (rental: RentalResponseDTO, today = todayString()): n
 };
 
 /**
- * Holat sanalardan chiqariladi.
+ * Holat sanalardan va qaytgan miqdordan chiqariladi.
  *
- * Qaytarilgan sana bor — RETURNED, muddatidan keyin qaytarilgan bo'lsa ham:
- * ish tugagan, ro'yxatda qizil bo'lib qolishi noto'g'ri bo'lardi.
+ * RETURNED faqat HAMMA buyum qaytganda — qisman qaytarishdan keyin ijara
+ * ochiq qoladi va qolgani uchun hisob davom etadi.
  */
 export const rentalStatus = (rental: RentalResponseDTO, today = todayString()): RentalStatus => {
-  if (rental.returnedDate) return 'RETURNED';
+  if (remainingQuantity(rental) === 0) return 'RETURNED';
   return overdueDays(rental, today) > 0 ? 'OVERDUE' : 'ACTIVE';
 };
 
-/** Shu paytgacha yig'ilgan ijara haqi: kunlik narx × nechta buyum × kun. */
+// ---------------------------------------------------------------- pul
+
+/**
+ * Yig'ilgan ijara haqi: kunlik narx × buyum-kunlar yig'indisi.
+ *
+ * Har qaytarish partiyasi o'z kunigacha, qaytmagan qism esa hisob
+ * to'xtagan kungacha hisoblanadi.
+ */
 export const accruedAmount = (rental: RentalResponseDTO, today = todayString()): number => {
-  const quantity = toAmount(rental.quantity) || 1;
-  return toAmount(rental.dailyPrice) * quantity * billedDays(rental, today);
+  const price = toAmount(rental.dailyPrice);
+  const end = effectiveEndDate(rental, today);
+
+  let itemDays = 0;
+  for (const item of rental.returns ?? []) {
+    itemDays += toAmount(item.quantity) * billedDaysBetween(rental.startDate, item.returnedDate);
+  }
+
+  const remaining = remainingQuantity(rental);
+  if (remaining > 0) {
+    itemDays += remaining * billedDaysBetween(rental.startDate, end);
+  } else if ((rental.returns ?? []).length === 0) {
+    // Partiyasiz yopilgan eski yozuv: butun miqdor `returnedDate` gacha.
+    itemDays += totalQuantity(rental) * billedDaysBetween(rental.startDate, end);
+  }
+
+  return price * itemDays;
 };
 
 /**
  * Mijozning shu ijara bo'yicha qarzi: yig'ilgan − to'langan.
  *
  * Manfiy qiymat KESILMAYDI: oldindan ko'proq to'lab qo'ygan bo'lsa bu
- * haqiqat va ekranda "haqdor" bo'lib ko'rinishi kerak.
+ * haqiqat va ekranda "ortiqcha to'lov" bo'lib ko'rinishi kerak.
  */
 export const unpaidAmount = (rental: RentalResponseDTO, today = todayString()): number =>
   accruedAmount(rental, today) - toAmount(rental.paidAmount);
+
+// ---------------------------------------------------------------- sanalar
 
 /**
  * Boshlanish sanasi + kun soni = muddat sanasi (YYYY-MM-DD).

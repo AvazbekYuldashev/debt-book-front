@@ -3,8 +3,11 @@ import {
   billedDays,
   daysFromDueDate,
   dueDateFrom,
+  isPartiallyReturned,
   overdueDays,
+  remainingQuantity,
   rentalStatus,
+  returnedQuantity,
   unpaidAmount,
 } from '../rentalMath';
 import type { RentalResponseDTO } from '../../types/rental';
@@ -150,5 +153,74 @@ describe('dueDateFrom / daysFromDueDate', () => {
 
   it('muddat boshlanishdan oldin bo\'lsa null', () => {
     expect(daysFromDueDate('2026-10-04', '2026-10-01')).toBeNull();
+  });
+});
+
+/**
+ * QISMAN QAYTARISH.
+ *
+ * Bu testlar serverdagi `RentalCalculatorTest` bilan AYNAN bir xil
+ * holatlarni tekshiradi: ikki tomon bir xil javob berishi shart, aks
+ * holda ekrandagi summa bazadagidan farq qiladi.
+ */
+describe('qisman qaytarish', () => {
+  // 10 stul, 1-oktyabr, muddat 4-oktyabr, kunlik 1000.
+  const chairs = (over: Partial<RentalResponseDTO> = {}): RentalResponseDTO =>
+    rental({ quantity: 10, dailyPrice: 1000, ...over });
+
+  it("har partiya O'Z kunigacha hisoblanadi", () => {
+    // 3 tasi 3-oktyabrda qaytdi (3 × 2 kun), 7 tasi hali mijozda (7 × 11 kun).
+    const item = chairs({ returns: [{ quantity: 3, returnedDate: '2026-10-03' }] });
+    expect(accruedAmount(item, '2026-10-12')).toBe(83000);
+  });
+
+  it("qisman qaytarilgan ijara OCHIQ qoladi", () => {
+    const item = chairs({ returns: [{ quantity: 3, returnedDate: '2026-10-03' }] });
+
+    expect(returnedQuantity(item)).toBe(3);
+    expect(remainingQuantity(item)).toBe(7);
+    expect(isPartiallyReturned(item)).toBe(true);
+    expect(rentalStatus(item, '2026-10-12')).toBe('OVERDUE');
+  });
+
+  it("hamma buyum qaytgach hisob TO'XTAYDI", () => {
+    const item = chairs({
+      returnedDate: '2026-10-06',
+      returns: [
+        { quantity: 3, returnedDate: '2026-10-03' },
+        { quantity: 7, returnedDate: '2026-10-06' },
+      ],
+    });
+
+    expect(remainingQuantity(item)).toBe(0);
+    expect(rentalStatus(item, '2026-10-12')).toBe('RETURNED');
+    // 3 × 2 + 7 × 5 = 41 buyum-kun. Kun o'tgani bilan summa o'zgarmaydi.
+    expect(accruedAmount(item, '2026-10-12')).toBe(41000);
+    expect(accruedAmount(item, '2026-12-31')).toBe(41000);
+  });
+
+  it("o'sha kuni qaytgan partiyaga ham eng kami bir kun yoziladi", () => {
+    const item = rental({
+      quantity: 2,
+      dailyPrice: 1000,
+      returns: [{ quantity: 1, returnedDate: '2026-10-01' }],
+    });
+    // 1 × 1 kun (eng kami) + 1 × 11 kun = 12 buyum-kun.
+    expect(accruedAmount(item, '2026-10-12')).toBe(12000);
+  });
+
+  it('partiyasiz yopilgan eski yozuv avvalgidek hisoblanadi', () => {
+    const item = rental({ returnedDate: '2026-10-04' });
+    expect(accruedAmount(item, '2026-10-12')).toBe(150000);
+    expect(rentalStatus(item, '2026-10-12')).toBe('RETURNED');
+    expect(remainingQuantity(item)).toBe(0);
+  });
+
+  it('server satr yuborsa ham miqdor son bo\'lib hisoblanadi', () => {
+    const item = chairs({
+      returns: [{ quantity: '3' as unknown as number, returnedDate: '2026-10-03' }],
+    });
+    expect(returnedQuantity(item)).toBe(3);
+    expect(accruedAmount(item, '2026-10-12')).toBe(83000);
   });
 });

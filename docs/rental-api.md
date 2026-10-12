@@ -52,6 +52,27 @@ Formula ikki joyda, bir xil:
 Ikkalasi ham AYNAN shu jadvalni qaytaradi. Yakuniy hisob server tomonda:
 pul masalasida telefon emas, server haq.
 
+### Qisman qaytarish
+
+Buyum PARTIYALAB qaytishi mumkin va har partiya **o'z kunigacha**
+hisoblanadi. Shuning uchun summa oddiy "miqdor × kun" emas, **buyum-kunlar
+yig'indisi**:
+
+```
+10 stul, 1-oktyabr:  3 tasi 3-oktyabrda qaytdi  -> 3 × 2 kun  =  6
+                     7 tasi hali mijozda        -> 7 × 11 kun = 77
+                                                   jami        83 buyum-kun
+```
+
+`rental.returned_date` **faqat HAMMA buyum qaytganda** to'ldiriladi — u
+yopilganlik belgisi va ro'yxat so'rovlari (holat filtri, tartib) aynan shunga
+tayanadi. Qisman qaytarishda to'ldirilsa, qolgan buyumlar hali mijozda turgani
+holda ijara "qaytarilgan" bo'lib ko'rinardi.
+
+Partiyasiz yopilgan ESKI yozuvlar (bu o'zgarishdan oldin yaratilganlar)
+avvalgidek hisoblanadi: `returned_date` bor, partiya yo'q -> butun miqdor
+o'sha sanagacha.
+
 ### Holat (status) saqlanmaydi
 
 `ACTIVE` / `OVERDUE` / `RETURNED` ustun sifatida saqlanmaydi, sanalardan
@@ -93,6 +114,23 @@ CREATE TABLE rental (
 CREATE INDEX idx_rental_client ON rental (client_id);
 CREATE INDEX idx_rental_open   ON rental (returned_date) WHERE returned_date IS NULL;
 ```
+
+Qaytarish partiyalari alohida jadvalda (`V26__rental_return.sql`):
+
+```sql
+CREATE TABLE rental_return (
+    id            VARCHAR(36) PRIMARY KEY,
+    rental_id     VARCHAR(36) NOT NULL REFERENCES rental(id),
+    quantity      NUMERIC(19,3) NOT NULL,   -- shu partiyada nechta qaytdi
+    returned_date DATE        NOT NULL,     -- qaysi kuni
+    created_date  TIMESTAMP   NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_rental_return_rental ON rental_return (rental_id);
+```
+
+Ijara yozuvining o'zi BO'LINMAYDI: buyum bitta kelishuv bo'yicha berilgan va
+to'lov ham bitta. Yozuvni ikkiga ajratish "to'langan summani qaysi bo'lakka
+yozamiz" degan sun'iy savolni tug'dirardi.
 
 Amalda yozilgan versiya: `src/main/resources/db.migration/V25__rental.sql`.
 `business_id` NULL bo'lishi mumkin — ijara shaxsiy hisobda ham yuritiladi
@@ -170,6 +208,10 @@ PUT semantikasi: `id`, `itemName`, `dailyPrice`, `startDate`, `days`
 MAJBURIY (narxnomadagi `PUT /product` bilan bir xil). `dueDate` qayta
 hisoblanadi.
 
+`quantity` ni allaqachon QAYTARILGAN sondan kam qilib bo'lmaydi
+(409 `rental.quantity.below.returned`) — u holda qolgan miqdor manfiyga
+tushardi.
+
 `clientId` DTO'da umuman yo'q — yuborilsa jim e'tiborsiz qoldiriladi
 (Jackson standart sozlamasi). Mijozni almashtirish yozuvni boshqa odamning
 ijarasiga aylantirardi, to'lov tarixi esa birinchisida qolib ketardi —
@@ -178,13 +220,18 @@ boshqa odamga berilgan buyum uchun yangi ijara ochiladi.
 ### `POST /rental/{id}/return` → `RentalResponseDTO`
 
 ```json
-{ "returnedDate": "2026-10-04" }
+{ "returnedDate": "2026-10-04", "quantity": 3 }
 ```
 
-Sana berilmasa — bugun. `returnedDate < startDate` bo'lsa 409
-(`rental.return.before.start`). Allaqachon qaytarilgan yozuvga ikkinchi
-marta qo'llash ham 409 (`rental.already.returned`): aks holda birinchi sana
-ustiga yangisi yozilib, hisoblangan kunlar sababsiz o'zgarardi.
+Har chaqiruv YANGI PARTIYA qo'shadi (ustiga yozmaydi).
+
+- `returnedDate` berilmasa — bugun
+- `quantity` berilmasa — qolganining hammasi (eng ko'p uchraydigan holat;
+  bitta buyumli ijarada ilova bu savolni umuman bermaydi)
+
+Xatolar: `returnedDate < startDate` -> 409 `rental.return.before.start`;
+`quantity` qolganidan ko'p -> 409 `rental.return.too.many`; hamma buyum
+qaytib bo'lgandan keyin yana chaqirilsa -> 409 `rental.already.returned`.
 
 ### `POST /rental/{id}/payment` → `RentalResponseDTO`
 
@@ -219,6 +266,9 @@ dastur ikkisini bir vaqtda bo'ldi deb yozishga majbur bo'lardi.
   "startDate": "2026-10-01",
   "dueDate": "2026-10-04",
   "returnedDate": null,
+  "returns": [
+    { "id": "uuid", "quantity": 3, "returnedDate": "2026-10-03" }
+  ],
   "paidAmount": 0,
   "note": null,
   "createdDate": "2026-10-01T09:12:33",
@@ -226,6 +276,8 @@ dastur ikkisini bir vaqtda bo'ldi deb yozishga majbur bo'lardi.
   "status": "OVERDUE",
   "billedDays": 11,
   "overdueDays": 8,
+  "returnedQuantity": 3,
+  "remainingQuantity": 7,
   "accrued": 550000.00,
   "unpaid": 550000.00
 }

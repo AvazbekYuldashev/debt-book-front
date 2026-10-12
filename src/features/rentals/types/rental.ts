@@ -25,6 +25,20 @@ import type { ProductUnit } from '../../products/types/product';
  */
 export type RentalStatus = 'ACTIVE' | 'OVERDUE' | 'RETURNED';
 
+/**
+ * Bitta qaytarish partiyasi: NECHTA buyum QAYSI kuni qaytdi.
+ *
+ * Alohida ro'yxat bo'lgani sababi: 10 stuldan 3 tasi uchinchi kuni,
+ * qolgan 7 tasi o'ninchi kuni qaytishi mumkin va har partiya o'z
+ * kunigacha hisoblanadi. Bitta sana bilan buni ifodalab bo'lmaydi.
+ */
+export interface RentalReturnItemDTO {
+  id?: string;
+  quantity: number | string;
+  /** YYYY-MM-DD. */
+  returnedDate: string;
+}
+
 /** Ro'yxat filtri. Bo'sh yuborilsa hammasi qaytadi. */
 export interface RentalFilterDTO {
   clientId?: string;
@@ -53,8 +67,18 @@ export interface RentalResponseDTO {
   startDate: string;
   /** Qaytarilishi kerak bo'lgan kun — YYYY-MM-DD. */
   dueDate: string;
-  /** Qaytarilgan kun. null = buyum hali mijozda, hisob o'sib boradi. */
+  /**
+   * HAMMA buyum qaytgan kun. null = kamida bittasi hali mijozda.
+   *
+   * Yopilganlik belgisi: ro'yxat so'rovlari ham shunga tayanadi.
+   */
   returnedDate?: string | null;
+  /** Qaytarish partiyalari — summa shular bo'yicha qayta hisoblanadi. */
+  returns?: RentalReturnItemDTO[];
+  /** Server hisoblagan: shu paytgacha qaytgan buyumlar soni. */
+  returnedQuantity?: number | string | null;
+  /** Server hisoblagan: hali mijozda turgan buyumlar soni. */
+  remainingQuantity?: number | string | null;
   /** Shu ijara uchun jami olingan pul. */
   paidAmount: number;
   note?: string | null;
@@ -83,9 +107,15 @@ export interface RentalUpdateDTO extends Partial<RentalCreateDTO> {
   id: string;
 }
 
-/** Buyum qaytdi. Sana berilmasa server bugunni oladi. */
+/**
+ * Buyum qaytdi — qaytgan QISM uchun hisob shu kunda to'xtaydi.
+ *
+ * Sana berilmasa server bugunni, miqdor berilmasa qolganining hammasini
+ * oladi: bitta buyumli ijarada bu savol umuman berilmaydi.
+ */
 export interface RentalReturnDTO {
   returnedDate?: string;
+  quantity?: number;
 }
 
 /** Pul olindi — buyum qaytishidan MUSTAQIL yoziladi. */

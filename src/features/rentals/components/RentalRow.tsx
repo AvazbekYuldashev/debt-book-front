@@ -7,7 +7,16 @@ import { useI18n } from '../../../shared/i18n';
 import { formatMoney } from '../../../shared/lib/money';
 import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 import type { RentalResponseDTO } from '../types/rental';
-import { accruedAmount, billedDays, overdueDays, rentalStatus, unpaidAmount } from '../model/rentalMath';
+import {
+  accruedAmount,
+  billedDays,
+  isPartiallyReturned,
+  overdueDays,
+  remainingQuantity,
+  rentalStatus,
+  totalQuantity,
+  unpaidAmount,
+} from '../model/rentalMath';
 
 interface RentalRowProps {
   item: RentalResponseDTO;
@@ -44,7 +53,17 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
   const late = overdueDays(item);
   const accrued = accruedAmount(item);
   const unpaid = unpaidAmount(item);
-  const quantity = item.quantity > 1 ? ` × ${item.quantity}` : '';
+
+  /**
+   * Miqdor qo'shimchasi.
+   *
+   * Qisman qaytarilganda QOLGANI ham ko'rsatiladi ("× 7/10"): ro'yxatga
+   * qarab turib "bu odamda nechta buyum qoldi" degan savolga javob
+   * topish mumkin bo'lishi kerak.
+   */
+  const total = totalQuantity(item);
+  const left = remainingQuantity(item);
+  const quantity = total > 1 ? (isPartiallyReturned(item) ? ` × ${left}/${total}` : ` × ${total}`) : '';
 
   const statusTone =
     status === 'OVERDUE' ? colors.negative : status === 'RETURNED' ? colors.textSecondary : colors.positive;
