@@ -33,6 +33,11 @@ import BusinessCatalogPane from '../../products/components/BusinessCatalogPane';
 import ContactBalanceHeader from '../components/ContactBalanceHeader';
 import TransactionRow from '../components/TransactionRow';
 import TransactionDetailModal from '../components/TransactionDetailModal';
+import RentalRow from '../../rentals/components/RentalRow';
+import RentalFormModal from '../../rentals/components/RentalFormModal';
+import RentalDetailModal from '../../rentals/components/RentalDetailModal';
+import { useMyRentals } from '../../rentals/hooks/useRentals';
+import type { RentalResponseDTO } from '../../rentals/types/rental';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
 import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
 import type { VoiceCommandPrefill } from '../../voice/model/resolveVoiceCommand';
@@ -285,6 +290,45 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    */
   const showCatalog = contact?.partyType === 'BUSINESS_ACCOUNT' && Boolean(contact?.partyId);
 
+  // ---- Ijara ----
+  //
+  // Ijara shu ODAM bilan bo'ladigan oldi-berdining bir turi, shuning uchun
+  // u mijoz kartasida turadi — "Oldim/Berdim" bilan yonma-yon. Ro'yxat
+  // faqat shu mijozning yozuvlari bilan cheklanadi.
+  const rentalFilter = useMemo(() => ({ clientId: contactId }), [contactId]);
+  const rentalsQuery = useMyRentals(rentalFilter);
+  const [rentalFormVisible, setRentalFormVisible] = useState(false);
+  const [editingRental, setEditingRental] = useState<RentalResponseDTO | null>(null);
+  const [openedRental, setOpenedRental] = useState<RentalResponseDTO | null>(null);
+
+  /**
+   * Kartada eng ko'pi bilan uchta ijara ko'rinadi.
+   *
+   * Bu sahifaning ASOSIY mazmuni tarix; ijara bo'limi uzayib ketsa tarixni
+   * pastga siqib qo'yardi. To'liq ro'yxat Qarzlar ekranidagi ijara
+   * bo'limida turadi.
+   */
+  const clientRentals = useMemo(
+    () => (rentalsQuery.data?.content ?? []).slice(0, 3),
+    [rentalsQuery.data],
+  );
+
+  const openRentalForm = useCallback(() => {
+    setEditingRental(null);
+    setRentalFormVisible(true);
+  }, []);
+
+  const handleEditRental = useCallback((rental: RentalResponseDTO) => {
+    setOpenedRental(null);
+    setEditingRental(rental);
+    setRentalFormVisible(true);
+  }, []);
+
+  const closeRentalForm = useCallback(() => {
+    setRentalFormVisible(false);
+    setEditingRental(null);
+  }, []);
+
   if (!contact) {
     return (
       <View style={styles.centered}>
@@ -363,6 +407,35 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           </View>
         ) : null}
 
+        {/* IJARA — tarixdan yuqorida.
+            Bu yerda turgani ataylab: ijara ham shu odam bilan bo'ladigan
+            oldi-berdi, va uni boshqa ekrandan qidirtirish mantiqsiz edi.
+            Sarlavhadagi tugma YOZUVLI: faqat ikonka bo'lsa ko'zga
+            tashlanmasligi allaqachon sinab ko'rilgan. */}
+        <SectionHeader
+          icon="cube"
+          iconBadge={false}
+          title={t('rentals.title')}
+          actionLabel={allowWrite ? t('rentals.createSubmit') : undefined}
+          actionIcon={allowWrite ? 'add' : undefined}
+          actionVariant="solid"
+          onAction={allowWrite ? openRentalForm : undefined}
+        />
+
+        {clientRentals.length > 0 ? (
+          <View style={styles.rentalCard}>
+            {clientRentals.map((rental, index) => (
+              <RentalRow
+                key={rental.id}
+                item={rental}
+                isLast={index === clientRentals.length - 1}
+                showClient={false}
+                onPress={setOpenedRental}
+              />
+            ))}
+          </View>
+        ) : null}
+
         {showCatalog ? null : (
           <SectionHeader icon="time" iconBadge={false} title={t('debts.history')} />
         )}
@@ -411,6 +484,19 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         </SurfaceLabel>
       )}
 
+      <RentalFormModal
+        visible={rentalFormVisible}
+        onClose={closeRentalForm}
+        client={contact ? { id: contact.id, name: contact.fullName } : null}
+        rental={editingRental}
+      />
+
+      <RentalDetailModal
+        rental={openedRental}
+        onClose={() => setOpenedRental(null)}
+        onEdit={handleEditRental}
+      />
+
       <MoneyActionModal
         visible={modalVisible}
         actionType={actionType}
@@ -457,6 +543,16 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       borderRadius: radius.xxl,
       marginHorizontal: spacing.md,
       marginBottom: spacing.md,
+      overflow: 'hidden',
+      ...shadows.card,
+    },
+    // Ijara qatorlari uchun: tarix kartasi bilan bir xil sirt, lekin
+    // `flex` siz - balandligi mazmunga qarab (eng ko'pi uchta qator).
+    rentalCard: {
+      ...glass.pane,
+      borderRadius: radius.xxl,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.sm,
       overflow: 'hidden',
       ...shadows.card,
     },

@@ -12,6 +12,13 @@ import { accruedAmount, billedDays, overdueDays, rentalStatus, unpaidAmount } fr
 interface RentalRowProps {
   item: RentalResponseDTO;
   isLast?: boolean;
+  /**
+   * Mijoz ismi qatorda ko'rinsinmi.
+   *
+   * MIJOZ EKRANIDA o'chiriladi: u yerda butun sahifa bitta odamniki va
+   * ismni har qatorda takrorlash qatorni behuda to'ldirardi.
+   */
+  showClient?: boolean;
   onPress?: (item: RentalResponseDTO) => void;
 }
 
@@ -25,7 +32,7 @@ interface RentalRowProps {
  * Kun soni va kechikish bitta qatorda belgi ("chip") bo'lib turadi:
  * odam ro'yxatni ko'zdan kechirganda avval KECHIKKANLARNI qidiradi.
  */
-const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, onPress }) => {
+const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient = true, onPress }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
@@ -60,12 +67,14 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, onPress }) 
         </Text>
 
         <View style={styles.metaRow}>
-          <View style={styles.meta}>
-            <Ionicons name="person-outline" size={13} color={colors.textSecondary} />
-            <Text style={styles.metaText} numberOfLines={1}>
-              {item.clientName}
-            </Text>
-          </View>
+          {showClient ? (
+            <View style={styles.meta}>
+              <Ionicons name="person-outline" size={13} color={colors.textSecondary} />
+              <Text style={styles.metaText} numberOfLines={1}>
+                {item.clientName}
+              </Text>
+            </View>
+          ) : null}
 
           <View style={styles.meta}>
             <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
