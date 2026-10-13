@@ -36,6 +36,7 @@ import TransactionDetailModal from '../components/TransactionDetailModal';
 import ClientRentalPane from '../../rentals/components/ClientRentalPane';
 import RentalFormModal from '../../rentals/components/RentalFormModal';
 import RentalDetailModal from '../../rentals/components/RentalDetailModal';
+import RentalRequestModal from '../../rentals/components/RentalRequestModal';
 import type { RentalResponseDTO } from '../../rentals/types/rental';
 import type { RentalItemResponseDTO } from '../../rentals/types/rentalItem';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
@@ -196,7 +197,29 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const allowWrite = canWrite(workspace.activeBusinessRole);
   // Ijara — Mahsulotlar kabi BIZNES bo'limi: ombor biznesniki va uning
   // barcha adminlariga ko'rinadi. Shaxsiy hisobda bo'lim umuman yo'q.
-  const rentalsAvailable = workspace.mode === 'business';
+  /**
+   * Ijara sahifasi qachon chiqadi.
+   *
+   * BIZNESDA — har qanday mijoz uchun: ombor meniki, men beraman.
+   * SHAXSIYDA — faqat qarshi tomon BIZNES bo'lganda: ombor uniki va u
+   * narxnoma kabi mijozga ochiq, men esa undan olaman.
+   *
+   * Ikki holat bir sahifada, lekin yo'nalish teskari — `ownerBusinessId`
+   * shuni ajratadi.
+   */
+  const counterpartyBusinessId =
+    contact?.partyType === 'BUSINESS_ACCOUNT' ? contact?.partyId : undefined;
+  const rentalsAvailable =
+    workspace.mode === 'business' || Boolean(counterpartyBusinessId);
+
+  /**
+   * MIJOZ REJIMI: ombor meniki emas, qarshi tomonniki.
+   *
+   * Shaxsiy hisobda do'kon kartasini ochganda shunday bo'ladi — u yerda
+   * men beruvchi emas, OLUVCHIMAN. Biznesda esa aksincha, shuning uchun
+   * o'z ish maydonimda bu rejim yoqilmaydi.
+   */
+  const clientMode = workspace.mode !== 'business' && Boolean(counterpartyBusinessId);
 
   const mappedHistory = useMemo(
     () => history.map((item) => mapTransaction(item, owner, selectedCounterparty || undefined)),
@@ -303,6 +326,8 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const [openedRental, setOpenedRental] = useState<RentalResponseDTO | null>(null);
   /** Ombordan tanlangan buyum — forma shu buyum bilan ochiladi. */
   const [presetItem, setPresetItem] = useState<RentalItemResponseDTO | null>(null);
+  /** Mijoz rejimida tanlangan buyum — "ijaraga olish" so'rovi oynasi. */
+  const [requestItem, setRequestItem] = useState<RentalItemResponseDTO | null>(null);
 
   /** Ombor qatori yoki sarlavhadagi tugma: buyum bilan yoki bo'sh forma. */
   const openRentalForm = useCallback((item: RentalItemResponseDTO | null = null) => {
@@ -452,9 +477,10 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
                 clientId={contactId}
                 active={pageOpened('rental')}
                 allowWrite={allowWrite}
-                onGiveOut={openRentalForm}
+                onGiveOut={clientMode ? setRequestItem : openRentalForm}
                 onOpenRental={setOpenedRental}
                 onAddItem={allowWrite ? openStockForNewItem : undefined}
+                ownerBusinessId={clientMode ? counterpartyBusinessId : null}
               />
             ),
           },
@@ -541,6 +567,14 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         rental={editingRental}
         onAddItem={allowWrite ? openStockForNewItem : undefined}
       />
+
+      {clientMode && counterpartyBusinessId ? (
+        <RentalRequestModal
+          businessId={counterpartyBusinessId}
+          item={requestItem}
+          onClose={() => setRequestItem(null)}
+        />
+      ) : null}
 
       <RentalDetailModal
         rental={openedRental}

@@ -6,6 +6,7 @@ import {
   RentalBatchCreateDTO,
   RentalFilterDTO,
   RentalPaymentDTO,
+  RentalRequestDTO,
   RentalResponseDTO,
   RentalReturnDTO,
   RentalSummaryDTO,
@@ -109,6 +110,40 @@ export const createRentalBatch = async (
   setApiAuthToken(token);
   const response = await apiClient.post<RentalResponseDTO[]>('/rental/batch', dto);
   return (response.data ?? []).map(normalizeRental);
+};
+
+/**
+ * MENDAGI buyumlar: men mijoz bo'lgan ijaralar (shu do'kon bo'yicha).
+ *
+ * Yozuv do'konning daftarida turadi, lekin mijoz ham o'zidagini
+ * ko'rishi kerak — qarz tarixi ham ikki tomonlama.
+ */
+export const getRentalsWithBusiness = async (
+  businessId: string,
+  token?: string,
+): Promise<RentalResponseDTO[]> => {
+  setApiAuthToken(token);
+  const response = await apiClient.get<RentalResponseDTO[]>(
+    `/rental/with-business/${encodeURIComponent(businessId)}`,
+  );
+  return (response.data ?? []).map(normalizeRental);
+};
+
+/** Mijoz yozadigan ijara: tasdiq kutib turadi, ombordan band qilmaydi. */
+export const requestRental = async (
+  dto: RentalRequestDTO,
+  token?: string,
+): Promise<RentalResponseDTO[]> => {
+  setApiAuthToken(token);
+  const response = await apiClient.post<RentalResponseDTO[]>('/rental/request', dto);
+  return (response.data ?? []).map(normalizeRental);
+};
+
+/** Egasi tasdiqlaydi — shundan keyin buyum band bo'ladi. */
+export const confirmRental = async (id: string, token?: string): Promise<RentalResponseDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.put<RentalResponseDTO>(`/rental/${id}/confirm`, {});
+  return normalizeRental(response.data);
 };
 
 export const updateRental = async (

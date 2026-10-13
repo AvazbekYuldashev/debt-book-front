@@ -19,7 +19,12 @@ import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatAmountInput, formatMoney, parseAmountInput } from '../../../shared/lib/money';
 import { formatDateInputValue, isValidDateInput } from '../../../shared/lib/date';
 import { confirmAction } from '../../../shared/lib/confirm';
-import { useDeleteRental, usePayRental, useReturnRental } from '../hooks/useRentals';
+import {
+  useConfirmRental,
+  useDeleteRental,
+  usePayRental,
+  useReturnRental,
+} from '../hooks/useRentals';
 import {
   accruedAmount,
   billedUnits,
@@ -87,6 +92,7 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
   const returnMutation = useReturnRental();
   const payMutation = usePayRental();
   const deleteMutation = useDeleteRental();
+  const confirmMutation = useConfirmRental();
 
   const [pane, setPane] = useState<Pane>('info');
   const [returnDate, setReturnDate] = useState(todayString());
@@ -152,6 +158,21 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
       { onSuccess: onClose, onError: (err) => setError((err as Error).message) },
     );
   }, [rental, payAmount, payMutation, onClose, t]);
+
+  /**
+   * So'rovni tasdiqlash — faqat ombor egasida.
+   *
+   * Shu paytgacha yozuv ombordan hech narsa band qilmagan; tasdiqdan
+   * keyin band bo'ladi va server bo'sh sonini qaytadan tekshiradi.
+   */
+  const handleConfirm = useCallback(() => {
+    if (!rental) return;
+    setError('');
+    confirmMutation.mutate(rental.id, {
+      onSuccess: onClose,
+      onError: (err) => setError((err as Error).message),
+    });
+  }, [rental, confirmMutation, onClose]);
 
   const handleDelete = useCallback(() => {
     if (!rental) return;
@@ -319,6 +340,16 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
             {/* ---- Amallar ---- */}
             {pane === 'info' ? (
               <View style={styles.actionsColumn}>
+                {/* Tasdiq kutayotgan yozuv: boshqa amallardan OLDIN —
+                    tasdiqlanmaguncha buyum band ham emas, hisob ham
+                    yurmaydi, ya'ni birinchi qadam shu. */}
+                {rental.canConfirm ? (
+                  <Button
+                    title={t('rentals.confirm')}
+                    onPress={handleConfirm}
+                    loading={confirmMutation.isPending}
+                  />
+                ) : null}
                 {allowWrite && !returned ? (
                   <Button title={t('rentals.markReturned')} onPress={() => setPane('return')} />
                 ) : null}

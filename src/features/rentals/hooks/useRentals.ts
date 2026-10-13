@@ -2,17 +2,21 @@ import { useContext } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../../auth/context/AuthContext';
 import {
+  confirmRental,
   createRentalBatch,
   deleteRental,
   getMyRentals,
   getRentalById,
+  getRentalsWithBusiness,
   getRentalSummary,
   payRental,
+  requestRental,
   returnRental,
   updateRental,
 } from '../services/rentalService';
 import {
   createRentalItem,
+  getBusinessRentalItems,
   deleteRentalItem,
   getRentalItems,
   updateRentalItem,
@@ -21,6 +25,7 @@ import type {
   RentalBatchCreateDTO,
   RentalFilterDTO,
   RentalPaymentDTO,
+  RentalRequestDTO,
   RentalReturnDTO,
   RentalUpdateDTO,
 } from '../types/rental';
@@ -101,6 +106,59 @@ const useRentalInvalidate = () => {
 };
 
 /** Bir mijozga bir yoki bir nechta buyumni berish. */
+/**
+ * MENDAGI buyumlar: men mijoz bo'lgan ijaralar (shu do'kon bo'yicha).
+ *
+ * Alohida kalit: bu ro'yxat o'z daftarimdagi ijaralar emas, shuning
+ * uchun `my` keshiga aralashtirilmaydi.
+ */
+export const useRentalsWithBusiness = (businessId: string, options: { enabled?: boolean } = {}) => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+
+  return useQuery({
+    queryKey: [RENTAL_KEY, 'with-business', businessId],
+    queryFn: () => getRentalsWithBusiness(businessId, token),
+    enabled: Boolean(token) && Boolean(businessId) && options.enabled !== false,
+  });
+};
+
+/** Boshqa biznesning ombori — mijoz ko'rinishi. */
+export const useBusinessRentalItems = (businessId: string, options: { enabled?: boolean } = {}) => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+
+  return useQuery({
+    queryKey: [RENTAL_KEY, 'items', 'by-business', businessId],
+    queryFn: () => getBusinessRentalItems(businessId, token),
+    enabled: Boolean(token) && Boolean(businessId) && options.enabled !== false,
+  });
+};
+
+/** Mijoz "men shuni oldim" deb yozadi — tasdiq kutib turadi. */
+export const useRequestRental = () => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+  const invalidate = useRentalInvalidate();
+
+  return useMutation({
+    mutationFn: (dto: RentalRequestDTO) => requestRental(dto, token),
+    onSuccess: invalidate,
+  });
+};
+
+/** Egasi tasdiqlaydi — shundan keyin buyum band bo'ladi. */
+export const useConfirmRental = () => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+  const invalidate = useRentalInvalidate();
+
+  return useMutation({
+    mutationFn: (id: string) => confirmRental(id, token),
+    onSuccess: invalidate,
+  });
+};
+
 export const useCreateRentalBatch = () => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;

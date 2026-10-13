@@ -34,6 +34,24 @@ export const getRentalItems = async (token?: string): Promise<RentalItemResponse
   return (response.data ?? []).map(normalizeRentalItem);
 };
 
+/**
+ * BOSHQA biznesning ijara ombori — mijoz ko'rinishi.
+ *
+ * Narxnomadagi `getBusinessProducts` bilan bir xil: biznes id'si yo'ldan
+ * boradi, a'zolik talab qilinmaydi (ijarachi buyumlarini mijozga
+ * ko'rsatish uchun kiritadi).
+ */
+export const getBusinessRentalItems = async (
+  businessId: string,
+  token?: string,
+): Promise<RentalItemResponseDTO[]> => {
+  setApiAuthToken(token);
+  const response = await apiClient.get<RentalItemResponseDTO[]>(
+    `/rental-item/by-business/${encodeURIComponent(businessId)}`,
+  );
+  return (response.data ?? []).map(normalizeRentalItem);
+};
+
 export const createRentalItem = async (
   dto: RentalItemCreateDTO,
   token?: string

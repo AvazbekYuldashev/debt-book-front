@@ -87,6 +87,21 @@ export interface RentalFilterDTO {
   search?: string;
 }
 
+/**
+ * Tasdiq holati.
+ *
+ * Yozuvni ikki tomon ham yaratadi: ombor egasi va mijoz. Egasi yozsa
+ * darhol CONFIRMED, mijoz yozsa WAITING bo'lib egasini kutadi.
+ *
+ * WAITING yozuv ombordan HECH NARSA band qilmaydi — aks holda begona
+ * odam ijarachining omborini qog'ozda band qilib qo'ya olardi.
+ */
+export type RentalApproval = 'WAITING' | 'CONFIRMED';
+
+/** Eski server bu maydonni yubormaydi — u holda yozuv tasdiqlangan. */
+export const normalizeApproval = (value?: RentalApproval | null): RentalApproval =>
+  value === 'WAITING' ? 'WAITING' : 'CONFIRMED';
+
 export interface RentalResponseDTO {
   id: string;
   /** Mijoz — qarz daftaridagi kontakt (`ClientDTO.id`). */
@@ -126,6 +141,12 @@ export interface RentalResponseDTO {
   returnedTime?: string | null;
   /** Qaytarish partiyalari — summa shular bo'yicha qayta hisoblanadi. */
   returns?: RentalReturnItemDTO[];
+  /** Tasdiq holati: mijoz yozgan yozuv egasi tasdiqlaguncha WAITING. */
+  approval?: RentalApproval | null;
+  /** Yozuv MENING daftarimdami (ombor egasimanmi). */
+  owner?: boolean;
+  /** Men tasdiqlay olamanmi: egasiman va yozuv kutib turibdi. */
+  canConfirm?: boolean;
   /** Server hisoblagan: shu paytgacha qaytgan buyumlar soni. */
   returnedQuantity?: number | string | null;
   /** Server hisoblagan: hali mijozda turgan buyumlar soni. */
@@ -247,3 +268,20 @@ export const toAmount = (value: number | string | null | undefined): number => {
   }
   return 0;
 };
+
+/** Mijoz yuboradigan so'rov: qaysi do'kondan, qaysi buyumdan nechta. */
+export interface RentalRequestLineDTO {
+  rentalItemId: string;
+  quantity: number;
+}
+
+export interface RentalRequestDTO {
+  /** Ijara beruvchi biznes. */
+  businessId: string;
+  lines: RentalRequestLineDTO[];
+  startDate: string;
+  /** Soatlik ijarada majburiy. */
+  startTime?: string;
+  duration: number;
+  note?: string;
+}

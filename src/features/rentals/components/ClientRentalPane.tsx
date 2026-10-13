@@ -8,7 +8,12 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import RentalRow from './RentalRow';
 import RentalItemRow from './RentalItemRow';
-import { useMyRentals, useRentalItems } from '../hooks/useRentals';
+import {
+  useBusinessRentalItems,
+  useMyRentals,
+  useRentalItems,
+  useRentalsWithBusiness,
+} from '../hooks/useRentals';
 import { groupRentalItems } from '../model/rentalStock';
 import type { RentalResponseDTO } from '../types/rental';
 import type { RentalItemResponseDTO } from '../types/rentalItem';
@@ -24,6 +29,14 @@ interface ClientRentalPaneProps {
   onOpenRental: (rental: RentalResponseDTO) => void;
   /** Omborda buyum yo'q — ombor bo'limiga o'tib, qo'shish formasi ochiladi. */
   onAddItem?: () => void;
+  /**
+   * MIJOZ REJIMI: qarshi tomon biznes va ombor UNIKI.
+   *
+   * Berilsa sahifa teskari tomondan ko'rinadi — "ularning ombori" va
+   * "mendagi buyumlar", amal esa berish emas, OLISH bo'ladi. Yozuvni
+   * baribir do'kon tasdiqlaydi: ombor birovning mulki.
+   */
+  ownerBusinessId?: string | null;
 }
 
 type Row =
@@ -62,16 +75,35 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   onGiveOut,
   onOpenRental,
   onAddItem,
+  ownerBusinessId,
 }) => {
   const theme = useAppTheme();
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  // Mijoz rejimida ro'yxatlar BOSHQA endpointlardan keladi: ombor
+  // do'konniki, ijaralar esa "men mijoz bo'lgan" yozuvlar.
+  const clientMode = Boolean(ownerBusinessId);
   const filter = useMemo(() => ({ clientId }), [clientId]);
-  const rentalsQuery = useMyRentals(filter, { enabled: active });
-  const itemsQuery = useRentalItems({ enabled: active });
 
-  const rentals = useMemo(() => rentalsQuery.data?.content ?? [], [rentalsQuery.data]);
+  const ownRentals = useMyRentals(filter, { enabled: active && !clientMode });
+  const theirRentals = useRentalsWithBusiness(ownerBusinessId ?? '', {
+    enabled: active && clientMode,
+  });
+  const ownItems = useRentalItems({ enabled: active && !clientMode });
+  const theirItems = useBusinessRentalItems(ownerBusinessId ?? '', {
+    enabled: active && clientMode,
+  });
+
+  const rentalsQuery = clientMode ? theirRentals : ownRentals;
+  const itemsQuery = clientMode ? theirItems : ownItems;
+
+  const rentals = useMemo(() => {
+    const data = rentalsQuery.data;
+    if (!data) return [];
+    // Mijoz rejimida endpoint massiv, egasinikida sahifa qaytaradi.
+    return Array.isArray(data) ? data : data.content ?? [];
+  }, [rentalsQuery.data]);
   const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
 
   const sections = useMemo<Section[]>(() => {
@@ -80,7 +112,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
     if (rentals.length > 0) {
       result.push({
         key: 'rentals',
-        title: t('rentals.atThisClient'),
+        title: clientMode ? t('rentals.atMe') : t('rentals.atThisClient'),
         icon: 'cube',
         data: rentals.map((rental, index) => ({
           kind: 'rental' as const,
@@ -104,7 +136,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
     groups.forEach((group, index) => {
       result.push({
         key: `stock:${group.category ?? ''}`,
-        title: group.category ?? t('rentals.noCategory'),
+        title: group.category ?? (clientMode ? t('rentals.theirStock') : t('rentals.noCategory')),
         icon: 'albums',
         action: allowWrite && index === 0,
         data: group.items.map((item, itemIndex) => ({
@@ -129,7 +161,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
     }
 
     return result;
-  }, [rentals, items, allowWrite, t]);
+  }, [rentals, items, allowWrite, clientMode, t]);
 
   const renderItem = useCallback(
     ({ item: row }: { item: Row }) => (
@@ -140,12 +172,15 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
           <RentalItemRow
             item={row.item}
             isLast={row.isLast}
-            onPress={allowWrite ? onGiveOut : undefined}
+            // Mijoz rejimida yozish huquqi biznesga emas, o'ziga tegishli:
+            // u do'kondan olish uchun so'rov yuboradi, ombor esa
+            // tasdiqlanmaguncha o'zgarmaydi.
+            onPress={clientMode || allowWrite ? onGiveOut : undefined}
           />
         )}
       </View>
     ),
-    [styles, onOpenRental, onGiveOut, allowWrite],
+    [styles, onOpenRental, onGiveOut, allowWrite, clientMode],
   );
 
   if (rentalsQuery.isLoading || itemsQuery.isLoading) {
@@ -165,9 +200,9 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
           icon="cube-outline"
           title={t('rentals.stockEmptyTitle')}
           description={t('rentals.stockEmptyHint')}
-          actionLabel={allowWrite && onAddItem ? t('rentals.addItem') : undefined}
+          actionLabel={!clientMode && allowWrite && onAddItem ? t('rentals.addItem') : undefined}
           actionIcon="add"
-          onAction={allowWrite ? onAddItem : undefined}
+          onAction={!clientMode && allowWrite ? onAddItem : undefined}
         />
       </NestedGlass>
     );
@@ -184,10 +219,16 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
             icon={(section as Section).icon}
             iconBadge={false}
             title={(section as Section).title}
-            actionLabel={(section as Section).action ? t('rentals.createSubmit') : undefined}
-            actionIcon={(section as Section).action ? 'add' : undefined}
+            actionLabel={
+              (section as Section).action
+                ? clientMode
+                  ? undefined
+                  : t('rentals.createSubmit')
+                : undefined
+            }
+            actionIcon={(section as Section).action && !clientMode ? 'add' : undefined}
             actionVariant="solid"
-            onAction={(section as Section).action ? () => onGiveOut(null) : undefined}
+            onAction={(section as Section).action && !clientMode ? () => onGiveOut(null) : undefined}
           />
         )}
         renderSectionFooter={({ section }) =>

@@ -7,7 +7,7 @@ import { useI18n } from '../../../shared/i18n';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatQuantity } from '../../../shared/lib/quantity';
 import { FOCUS_INSET } from '../../../shared/ui/focusRing';
-import type { RentalResponseDTO } from '../types/rental';
+import { normalizeApproval, type RentalResponseDTO } from '../types/rental';
 import {
   accruedAmount,
   billedUnits,
@@ -76,6 +76,14 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
   const quantity = total > 1 || unit ? ` × ${counted}${unit}` : '';
 
   /**
+   * Tasdiq kutayotgan yozuv — mijoz yozgan, egasi hali tasdiqlamagan.
+   *
+   * Ro'yxatda ALOHIDA ko'rinadi: u ombordan band qilmagan va puli ham
+   * hisoblanmayapti, ya'ni egasi uchun "bajarilmagan ish".
+   */
+  const waiting = normalizeApproval(item.approval) === 'WAITING';
+
+  /**
    * Rang bosqichga qarab: kechikkan — qizil, NASIYA (buyum qaytgan, puli
    * olinmagan) — sariq, yopilgan — kulrang. Nasiya kechikkandan alohida
    * rangda: buyum endi omborda, faqat pul undirilishi kerak.
@@ -123,6 +131,13 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
         </View>
 
         <View style={styles.metaRow}>
+          {waiting ? (
+            <View style={[styles.badge, { backgroundColor: colors.infoSoft }]}>
+              <Text style={[styles.badgeText, { color: colors.info }]}>
+                {t('rentals.waitingShort')}
+              </Text>
+            </View>
+          ) : null}
           {stage === 'CLOSED' ? (
             <View style={[styles.badge, { backgroundColor: colors.surfaceMuted }]}>
               <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
