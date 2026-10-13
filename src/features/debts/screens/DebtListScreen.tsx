@@ -15,7 +15,6 @@ import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
-import IconButton from '../../../shared/ui/IconButton';
 import SearchField from '../../../shared/ui/SearchField';
 import SectionHeader from '../../../shared/ui/SectionHeader';
 import StatusBanner from '../../../shared/ui/StatusBanner';
@@ -568,13 +567,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           </View>
 
           <View style={styles.headerTools}>
-            {/* Ijara bo'limi — qarz daftarining bir ko'rinishi, shuning
-                uchun alohida tab emas, shu yerdan ochiladi. */}
-            <IconButton
-              name="cube-outline"
-              onPress={() => navigation.navigate(ROUTES.RENTALS)}
-              accessibilityLabel={t('rentals.title')}
-            />
             <SearchToggle
               label="ABC"
               active={activeSearch === 'name'}

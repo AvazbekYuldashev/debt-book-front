@@ -39,7 +39,6 @@ export type DebtsStackParamList = {
    * kartasidagi ijara formasida kerakli buyum topilmaganda shu yo'l bilan
    * keladi.
    */
-  [ROUTES.RENTALS]: { tab?: 'stock' | 'rentals'; addItem?: boolean } | undefined;
 };
 
 export type DebtsNavigation = NativeStackNavigationProp<DebtsStackParamList>;
@@ -148,9 +147,28 @@ export type GapScreenProps<T extends keyof GapStackParamList> = NativeStackScree
   T
 >;
 
+/**
+ * Ijara stack'i — FAQAT biznes hisobida.
+ *
+ * `tab` ochilishi kerak bo'lgan sahifa (ombor yoki ijaralar), `addItem`
+ * esa darhol "yangi buyum" formasini ochadi: mijoz kartasidagi formada
+ * kerakli buyum topilmaganda shu yo'l bilan omborga o'tiladi.
+ */
+export type RentalsStackParamList = {
+  [ROUTES.RENTAL_LIST]: { tab?: 'stock' | 'rentals'; addItem?: boolean } | undefined;
+};
+
+export type RentalsNavigation = NativeStackNavigationProp<RentalsStackParamList>;
+
+export type RentalsScreenProps<T extends keyof RentalsStackParamList> = NativeStackScreenProps<
+  RentalsStackParamList,
+  T
+>;
+
 /** Pastki tab navigatori — stack'lararo (cross-tab) navigatsiya uchun. */
 export type MainTabParamList = {
   [ROUTES.PRODUCTS]: NavigatorScreenParams<ProductsStackParamList>;
+  [ROUTES.RENTALS]: NavigatorScreenParams<RentalsStackParamList>;
   [ROUTES.DEBTS]: NavigatorScreenParams<DebtsStackParamList>;
   [ROUTES.GAP]: NavigatorScreenParams<GapStackParamList>;
   [ROUTES.EXPENSES]: NavigatorScreenParams<ExpensesStackParamList>;

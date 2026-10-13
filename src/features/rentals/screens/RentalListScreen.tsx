@@ -15,7 +15,7 @@ import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
-import type { DebtsScreenProps } from '../../../app/navigation/types';
+import type { RentalsScreenProps } from '../../../app/navigation/types';
 import type { ROUTES } from '../../../app/navigation/routes';
 import RentalRow from '../components/RentalRow';
 import RentalItemRow from '../components/RentalItemRow';
@@ -77,7 +77,10 @@ type StockEntry =
  * to'rtta tab bor va beshinchisi o'rtadagi ovoz tugmasining
  * simmetriyasini buzardi.
  */
-const RentalListScreen: React.FC<DebtsScreenProps<typeof ROUTES.RENTALS>> = ({ navigation, route }) => {
+const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> = ({
+  navigation,
+  route,
+}) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();

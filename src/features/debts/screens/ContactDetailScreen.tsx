@@ -194,6 +194,9 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
   // Biznes kontekstida MEMBER faqat ko'rishi mumkin — yozish tugmalari yashiriladi.
   const allowWrite = canWrite(workspace.activeBusinessRole);
+  // Ijara — Mahsulotlar kabi BIZNES bo'limi: ombor biznesniki va uning
+  // barcha adminlariga ko'rinadi. Shaxsiy hisobda bo'lim umuman yo'q.
+  const rentalsAvailable = workspace.mode === 'business';
 
   const mappedHistory = useMemo(
     () => history.map((item) => mapTransaction(item, owner, selectedCounterparty || undefined)),
@@ -330,13 +333,20 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   }, []);
 
   /**
-   * Omborda kerakli buyum yo'q — ijara bo'limining omboriga o'tib, buyum
-   * qo'shish formasi darhol ochiladi. Shu yerda modal ustiga modal
+   * Omborda kerakli buyum yo'q — ijara omboriga o'tib, buyum qo'shish
+   * formasi darhol ochiladi. Shu yerda modal ustiga modal
    * qalashtirilmaydi: orqaga qaytish chalkashib ketardi.
+   *
+   * Ijara endi ALOHIDA TAB, shuning uchun o'tish ota navigator orqali:
+   * mijoz kartasi Qarzlar stack'ida turadi va u boshqa tabning ekranini
+   * o'zi ocha olmaydi.
    */
   const openStockForNewItem = useCallback(() => {
     closeRentalForm();
-    navigation.navigate(ROUTES.RENTALS, { tab: 'stock', addItem: true });
+    navigation.getParent()?.navigate(ROUTES.RENTALS, {
+      screen: ROUTES.RENTAL_LIST,
+      params: { tab: 'stock', addItem: true },
+    });
   }, [closeRentalForm, navigation]);
 
   if (!contact) {
@@ -417,11 +427,15 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           </View>
         ) : null}
 
-        {/* IJARA — tarixdan yuqorida.
+        {/* IJARA — tarixdan yuqorida, FAQAT biznes hisobida.
             Bu yerda turgani ataylab: ijara ham shu odam bilan bo'ladigan
             oldi-berdi, va uni boshqa ekrandan qidirtirish mantiqsiz edi.
             Sarlavhadagi tugma YOZUVLI: faqat ikonka bo'lsa ko'zga
-            tashlanmasligi allaqachon sinab ko'rilgan. */}
+            tashlanmasligi allaqachon sinab ko'rilgan.
+            Shaxsiy hisobda ijara bo'limi yo'q (ombor biznesniki), shuning
+            uchun bu yerda ham ko'rinmaydi. */}
+        {rentalsAvailable ? (
+        <>
         <SectionHeader
           icon="cube"
           iconBadge={false}
@@ -444,6 +458,8 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
               />
             ))}
           </View>
+        ) : null}
+        </>
         ) : null}
 
         {showCatalog ? null : (

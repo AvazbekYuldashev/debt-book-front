@@ -16,6 +16,7 @@ import {
 } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProductsStack from './ProductsStack';
+import RentalsStack from './RentalsStack';
 import DebtsStack from './DebtsStack';
 import GapStack from './GapStack';
 import ExpensesStack from './ExpensesStack';
@@ -37,6 +38,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TAB_ICONS: Record<string, React.ComponentProps<typeof Feather>['name']> = {
   [ROUTES.PRODUCTS]: 'tag',
+  [ROUTES.RENTALS]: 'box',
   [ROUTES.DEBTS]: 'list',
   [ROUTES.GAP]: 'users',
   [ROUTES.EXPENSES]: 'dollar-sign',
@@ -44,6 +46,9 @@ const TAB_ICONS: Record<string, React.ComponentProps<typeof Feather>['name']> = 
 };
 
 const ICON_SIZE = 22;
+const ICON_SIZE_COMPACT = 20;
+/** Shu sondan boshlab panel ixcham rejimga o'tadi. */
+const COMPACT_FROM = 5;
 const DOT_SIZE = 5;
 const BAR_HEIGHT = 70;
 
@@ -58,6 +63,14 @@ interface TabItemProps {
   styles: ReturnType<typeof createStyles>;
   activeColor: string;
   inactiveColor: string;
+  /**
+   * Beshta tab bo'lganda (biznes hisobi) yorliq ixchamlashadi.
+   *
+   * 360px ekranda ovoz tugmasidan keyin har tabga ~57px qoladi va
+   * "Mahsulotlar" 12px shriftda sig'maydi — qirqilgan so'z esa o'qib
+   * bo'lmaydigan "Mahsulot..." bo'lib qolardi.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -75,6 +88,7 @@ const TabItem: React.FC<TabItemProps> = ({
   styles,
   activeColor,
   inactiveColor,
+  compact = false,
 }) => {
   const indicator = useRef(new Animated.Value(focused ? 1 : 0)).current;
 
@@ -98,8 +112,8 @@ const TabItem: React.FC<TabItemProps> = ({
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
     >
-      <Feather name={iconName} size={ICON_SIZE} color={color} />
-      <Text style={[styles.label, { color }]} numberOfLines={1}>
+      <Feather name={iconName} size={compact ? ICON_SIZE_COMPACT : ICON_SIZE} color={color} />
+      <Text style={[styles.label, compact && styles.labelCompact, { color }]} numberOfLines={1}>
         {label}
       </Text>
       <Animated.View
@@ -145,6 +159,10 @@ export const AppTabBar: React.FC<BottomTabBarProps & { labelOf: (routeName: stri
   // Maxsus tabBar balandligini navigatorga O'ZI aytishi shart: aks holda
   // sahnalar standart (~49px) qiymatni oladi va rasm qutisini panel
   // ostiga noto'g'ri uzaytiradi - panel bo'lagi bilan kesim mos kelmaydi.
+  // Biznes hisobida beshta tab bo'ladi — yorliqlar va ovoz uyasi
+  // toraytiriladi, aks holda matnlar qirqilib ketadi.
+  const compact = state.routes.length >= COMPACT_FROM;
+
   const reportHeight = useContext(BottomTabBarHeightCallbackContext);
   // Panel pastki chetidan ramka tepasigacha: sahnalardagi rasm qutisi
   // (tepaga bog'langan, panel bilan birga) aynan shu balandlikda.
@@ -191,8 +209,10 @@ export const AppTabBar: React.FC<BottomTabBarProps & { labelOf: (routeName: stri
       ) : null}
       {state.routes.map((route, index) => {
         const focused = state.index === index;
-        // Ovoz tugmasi O'RTADA: tablar soni juft (4 ta), shuning uchun
-        // u ikkinchisidan keyin qo'yiladi va panel simmetrik qoladi.
+        // Ovoz tugmasi O'RTADA. Tablar soni juft bo'lganda (shaxsiy
+        // hisobda 4 ta) panel aniq simmetrik chiqadi; biznesda 5 ta
+        // bo'lgani uchun bir tomonda bittadan ko'p qoladi — tugmaning
+        // o'zi baribir barmoq yetadigan markazda turadi.
         const middle = index === Math.floor(state.routes.length / 2);
 
         const onPress = () => {
@@ -213,7 +233,7 @@ export const AppTabBar: React.FC<BottomTabBarProps & { labelOf: (routeName: stri
         return (
           <React.Fragment key={route.key}>
             {middle ? (
-              <View style={styles.voiceSlot}>
+              <View style={[styles.voiceSlot, compact && styles.voiceSlotCompact]}>
                 <VoiceTabButton />
               </View>
             ) : null}
@@ -226,6 +246,7 @@ export const AppTabBar: React.FC<BottomTabBarProps & { labelOf: (routeName: stri
               styles={styles}
               activeColor={colors.primary}
               inactiveColor={colors.textSecondary}
+              compact={compact}
             />
           </React.Fragment>
         );
@@ -240,15 +261,22 @@ const BottomTabNavigator: React.FC = () => {
   // Biznes hisobiga o'tilganda tab umuman ko'rinmaydi (backend ham
   // biznes konteksti bilan kelgan so'rovni rad etadi).
   //
-  // Mahsulotlar (narxnoma) — buning AKSI: faqat biznes bo'limi. Shu sababli
-  // panelda har doim 4 ta tab turadi, shaxsiyda 2-o'rinda Gap, biznesda
-  // 1-o'rinda Mahsulotlar.
+  // Mahsulotlar (narxnoma) va Ijara — buning AKSI: ikkalasi ham faqat
+  // BIZNES bo'limi. Ijara omborida buyumlar biznesniki va uning barcha
+  // adminlariga ko'rinadi; shaxsiy hisobda bunday "umumiy ombor"
+  // tushunchasi yo'q.
+  //
+  // Shuning uchun panelda shaxsiyda 4 ta tab (Qarzlar, Gap, Xarajatlar,
+  // Profil), biznesda esa 5 ta bo'ladi (Mahsulotlar, Ijara, Qarzlar,
+  // Xarajatlar, Profil) — beshtasida yorliqlar ixchamlashadi.
   const { workspace } = useContext(WorkspaceContext);
   const gapAvailable = workspace.mode !== 'business';
   const productsAvailable = workspace.mode === 'business';
+  const rentalsAvailable = workspace.mode === 'business';
 
   const tabLabel = (routeName: string) => {
     if (routeName === ROUTES.PRODUCTS) return t('tab.products');
+    if (routeName === ROUTES.RENTALS) return t('tab.rentals');
     if (routeName === ROUTES.DEBTS) return t('tab.debts');
     if (routeName === ROUTES.GAP) return t('tab.gap');
     if (routeName === ROUTES.EXPENSES) return t('tab.expenses');
@@ -265,6 +293,7 @@ const BottomTabNavigator: React.FC = () => {
       tabBar={(props) => <AppTabBar {...props} labelOf={tabLabel} />}
     >
       {productsAvailable ? <Tab.Screen name={ROUTES.PRODUCTS} component={ProductsStack} /> : null}
+      {rentalsAvailable ? <Tab.Screen name={ROUTES.RENTALS} component={RentalsStack} /> : null}
       <Tab.Screen name={ROUTES.DEBTS} component={DebtsStack} />
       {gapAvailable ? <Tab.Screen name={ROUTES.GAP} component={GapStack} /> : null}
       <Tab.Screen name={ROUTES.EXPENSES} component={ExpensesStack} />
@@ -330,6 +359,10 @@ const createStyles = ({ colors, typography, shadows, glass }: ThemeValue) =>
       lineHeight: 15,
       fontWeight: '600',
     },
+    labelCompact: {
+      fontSize: 10,
+      lineHeight: 13,
+    },
     dot: {
       width: DOT_SIZE,
       height: DOT_SIZE,
@@ -346,6 +379,11 @@ const createStyles = ({ colors, typography, shadows, glass }: ThemeValue) =>
     voiceSlot: {
       width: 76,
       alignItems: 'center',
+    },
+    // Beshta tabda uya toraytiriladi: ovoz doirasi o'zi 56px, qolgani
+    // faqat nafas joyi edi va uni tablarga berish muhimroq.
+    voiceSlotCompact: {
+      width: 62,
     },
   });
 

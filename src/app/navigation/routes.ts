@@ -15,6 +15,7 @@ export const ROUTES = {
   CONTACT_DETAIL: 'ContactDetail',
   NOTIFICATIONS: 'Notifications',
   RENTALS: 'Rentals',
+  RENTAL_LIST: 'RentalList',
   EXPENSE_CATEGORIES: 'ExpenseCategories',
   EXPENSE_CATEGORY_DETAIL: 'ExpenseCategoryDetail',
   MY_BUSINESSES: 'MyBusinesses',

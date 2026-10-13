@@ -149,6 +149,7 @@ const uz: Dict = {
   'tab.profile': 'Profil',
   'tab.gap': "Gap to'yona",
   'tab.products': 'Mahsulotlar',
+  'tab.rentals': 'Ijara',
   // gap to'yona
   'gap.title': "Gap to'yona",
   'gap.empty': "Hozircha gap to'yona yo'q",
@@ -967,6 +968,7 @@ const ru: Dict = {
   'tab.profile': 'Профиль',
   'tab.gap': 'Гап туёна',
   'tab.products': 'Товары',
+  'tab.rentals': 'Аренда',
   // gap to'yona
   'gap.title': 'Гап туёна',
   'gap.empty': 'Пока нет гап туёна',
@@ -1780,6 +1782,7 @@ const en: Dict = {
   'tab.profile': 'Profile',
   'tab.gap': "Gap to'yona",
   'tab.products': 'Products',
+  'tab.rentals': 'Rentals',
   // gap to'yona
   'gap.title': "Gap to'yona",
   'gap.empty': "No gap to'yona yet",
