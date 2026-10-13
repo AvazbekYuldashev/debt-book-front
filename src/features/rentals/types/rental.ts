@@ -2,31 +2,67 @@ import { Currency } from '../../../shared/types/money';
 import type { ProductUnit } from '../../products/types/product';
 
 /**
- * Ijara: buyum beriladi, kelishilgan kun o'tadi, puli olinadi.
+ * Ijara: buyum OMBORDAN beriladi, kelishilgan muddat o'tadi, puli olinadi.
  *
  * Qarzdan farqi — summa VAQT bilan o'sadi. Shuning uchun yozuvda summa
- * emas, KUNLIK NARX saqlanadi: hisob har ko'rishda qaytadan chiqariladi
- * (`model/rentalMath.ts`). Server ham AYNAN shu qoida bo'yicha hisoblaydi,
- * aks holda telefondagi raqam bilan serverdagi raqam farq qilardi.
+ * emas, BIR DAVR (kun yoki soat) NARXI saqlanadi: hisob har ko'rishda
+ * qaytadan chiqariladi (`model/rentalMath.ts`). Server ham AYNAN shu
+ * qoida bo'yicha hisoblaydi, aks holda telefondagi raqam bilan serverdagi
+ * raqam farq qilardi.
  *
  * Pul buyum qaytganda olinadi, ya'ni ijara yopilmaguncha mijozda QARZ
  * bo'lib turadi. Buyumning qaytishi va pulning kelishi ALOHIDA voqea:
- * buyum qaytib, puli keyin ham to'lanishi mumkin.
+ * buyum qaytib, puli keyin ham to'lanishi mumkin — shunday yozuv
+ * "NASIYA" bo'lib qoladi.
  */
 
 /**
+ * Narx qaysi davr uchun: kunlik (lesa, opalubka, to'y stullari) yoki
+ * soatlik (ba'zi asbob, texnika).
+ *
+ * Eski yozuvlarda maydon yo'q — ular hammasi kunlik edi.
+ */
+export type RentalPeriod = 'DAY' | 'HOUR';
+
+export const RENTAL_PERIODS: readonly RentalPeriod[] = ['DAY', 'HOUR'];
+
+export const normalizeRentalPeriod = (value: unknown): RentalPeriod =>
+  value === 'HOUR' ? 'HOUR' : 'DAY';
+
+/**
+ * Buyumning holati — sanalardan chiqariladi, SAQLANMAYDI.
+ *
  * ACTIVE   — buyum mijozda, muddat hali o'tmagan.
  * OVERDUE  — buyum mijozda, muddat o'tib ketgan (hisob o'sib boradi).
- * RETURNED — buyum qaytdi, hisob to'xtadi (puli qolgan bo'lishi mumkin).
+ * RETURNED — hamma buyum qaytdi, hisob to'xtadi (puli qolgan bo'lishi mumkin).
  *
- * Holat ALOHIDA ustun sifatida SAQLANMAYDI — u sanalardan kelib chiqadi
- * (`rentalStatus`). Saqlanganda "bugun" o'zgarishi bilan yozuv yolg'on
- * holatda qolib ketardi: kecha ACTIVE yozilgani bugun ham ACTIVE turardi.
+ * Saqlanganda "bugun" o'zgarishi bilan yozuv yolg'on holatda qolib ketardi:
+ * kecha ACTIVE yozilgani bugun ham ACTIVE turardi.
  */
 export type RentalStatus = 'ACTIVE' | 'OVERDUE' | 'RETURNED';
 
 /**
- * Bitta qaytarish partiyasi: NECHTA buyum QAYSI kuni qaytdi.
+ * Ijaraning HISOB bosqichi — holat + pul birgalikda.
+ *
+ * RETURNED ikkiga bo'linadi, chunki ijarachi uchun ular butunlay boshqa
+ * narsa: buyum qaytib puli ham olingan bo'lsa ish tugagan (CLOSED), puli
+ * olinmagan bo'lsa bu NASIYA (DEBT) — uni alohida ro'yxatda kuzatadi.
+ */
+export type RentalStage = 'ACTIVE' | 'OVERDUE' | 'DEBT' | 'CLOSED';
+
+/**
+ * Ro'yxat filtridagi holat.
+ *
+ * OUT    — buyum mijozda (ACTIVE + OVERDUE).
+ * DEBT   — buyum qaytgan, puli to'liq olinmagan (nasiya).
+ * CLOSED — buyum qaytgan va puli olingan.
+ * ACTIVE / RETURNED — eski ilova versiyalari uchun saqlanib qolgan.
+ */
+export type RentalFilterStatus = 'OUT' | 'OVERDUE' | 'DEBT' | 'CLOSED' | 'ACTIVE' | 'RETURNED';
+
+/**
+ * Bitta qaytarish partiyasi: NECHTA buyum QAYSI kuni (soatlikda — soati
+ * bilan) qaytdi.
  *
  * Alohida ro'yxat bo'lgani sababi: 10 stuldan 3 tasi uchinchi kuni,
  * qolgan 7 tasi o'ninchi kuni qaytishi mumkin va har partiya o'z
@@ -37,12 +73,16 @@ export interface RentalReturnItemDTO {
   quantity: number | string;
   /** YYYY-MM-DD. */
   returnedDate: string;
+  /** HH:mm — faqat soatlik ijarada. */
+  returnedTime?: string | null;
 }
 
 /** Ro'yxat filtri. Bo'sh yuborilsa hammasi qaytadi. */
 export interface RentalFilterDTO {
   clientId?: string;
-  status?: RentalStatus;
+  /** Ombordagi bitta buyum — "bu buyum kimlarda" degan ro'yxat uchun. */
+  rentalItemId?: string;
+  status?: RentalFilterStatus;
   /** Buyum nomi yoki mijoz ismi bo'yicha qidiruv. */
   search?: string;
 }
@@ -53,26 +93,37 @@ export interface RentalResponseDTO {
   clientId: string;
   clientName: string;
   clientPhone?: string | null;
-  /** Narxnomadan tanlangan bo'lsa — mahsulot id'si; erkin kiritilsa null. */
+  /** Ombordagi buyum. Ombor joriy qilinishidan oldingi yozuvlarda null. */
+  rentalItemId?: string | null;
+  /** Eski: narxnomadan tanlangan mahsulot. Yangi yozuvlar omborga bog'lanadi. */
   productId?: string | null;
-  /** Buyum nomi NUSXA qilib saqlanadi: narxnoma keyin o'zgarsa ham yozuv o'z nomini saqlaydi. */
+  /** Buyum nomi NUSXA qilib saqlanadi: ombordagi nom keyin o'zgarsa ham yozuv o'z nomini saqlaydi. */
   itemName: string;
-  /** Nechta buyum berildi (10 stol, 50 stul). Berilmasa 1. */
+  /** Nechta buyum berildi (10 stol, 50 stul, 120 m² opalubka). Berilmasa 1. */
   quantity: number;
   unit?: ProductUnit | null;
-  /** BITTA buyumning BIR KUNLIK narxi. Umumiy summa shundan hisoblanadi. */
-  dailyPrice: number;
+  /** Narx davri. Normallashtirilgandan keyin doim bor. */
+  period?: RentalPeriod;
+  /** BITTA buyumning BIR DAVRLIK (kun yoki soat) narxi. Umumiy summa shundan hisoblanadi. */
+  price: number;
+  /** Eski maydon: server o'tish davrida `price` bilan birga yuboradi. */
+  dailyPrice?: number | string | null;
   currency?: Currency;
   /** Buyum berilgan kun — YYYY-MM-DD. */
   startDate: string;
+  /** Berilgan soat — HH:mm, faqat soatlik ijarada. */
+  startTime?: string | null;
   /** Qaytarilishi kerak bo'lgan kun — YYYY-MM-DD. */
   dueDate: string;
+  /** Qaytarish soati — HH:mm, faqat soatlik ijarada. */
+  dueTime?: string | null;
   /**
    * HAMMA buyum qaytgan kun. null = kamida bittasi hali mijozda.
    *
    * Yopilganlik belgisi: ro'yxat so'rovlari ham shunga tayanadi.
    */
   returnedDate?: string | null;
+  returnedTime?: string | null;
   /** Qaytarish partiyalari — summa shular bo'yicha qayta hisoblanadi. */
   returns?: RentalReturnItemDTO[];
   /** Server hisoblagan: shu paytgacha qaytgan buyumlar soni. */
@@ -82,39 +133,79 @@ export interface RentalResponseDTO {
   /** Shu ijara uchun jami olingan pul. */
   paidAmount: number;
   note?: string | null;
+  /**
+   * Kim bergan — biznesda bir nechta admin bo'lsa "buni kim yozgan"
+   * degan savolga javob. Shaxsiy hisobda ko'rsatilmaydi.
+   */
+  creatorName?: string | null;
   createdDate?: string;
 }
 
-export interface RentalCreateDTO {
-  clientId: string;
+/**
+ * Bitta ijarani tahrirlash.
+ *
+ * PUT semantikasi: hamma maydon yuboriladi. Mijoz va ombordagi buyum
+ * O'ZGARMAYDI — boshqa odamga yoki boshqa buyumga berilgan narsa uchun
+ * yangi ijara ochiladi, aks holda to'lov tarixi begona yozuvda qolardi.
+ */
+export interface RentalUpdateDTO {
+  id: string;
   itemName: string;
-  /** Narxnomadan tanlanganda yuboriladi — hisobot uchun bog'lanish qoladi. */
-  productId?: string;
-  quantity?: number;
-  unit?: ProductUnit;
-  dailyPrice: number;
+  quantity: number;
+  period: RentalPeriod;
+  price: number;
   currency: Currency;
   startDate: string;
+  startTime?: string;
   /**
-   * Kun soni. `dueDate`ni SERVER hisoblaydi (startDate + days) — ikkisini
-   * ham yuborib bir-biriga mos kelmaydigan juftlik qoldirmaslik uchun.
+   * Necha kun (yoki soat). `dueDate`ni SERVER hisoblaydi — ikkisini ham
+   * yuborib bir-biriga mos kelmaydigan juftlik qoldirmaslik uchun.
    */
-  days: number;
+  duration: number;
   note?: string;
 }
 
-export interface RentalUpdateDTO extends Partial<RentalCreateDTO> {
-  id: string;
+/** Bitta mijozga bir vaqtda berilgan buyumlardan biri. */
+export interface RentalBatchLineDTO {
+  rentalItemId: string;
+  quantity: number;
+  /** Ombordagi narxdan farq qilishi mumkin (chegirma, doimiy mijoz). */
+  price: number;
 }
 
 /**
- * Buyum qaytdi — qaytgan QISM uchun hisob shu kunda to'xtaydi.
+ * Bir mijozga bir nechta buyumni BIRDANIGA berish.
+ *
+ * To'y uchun 200 stul, 20 stol va 1 chodir, qurilishga 150 m² opalubka
+ * va 40 ta lesa — hayotda buyurtma shunday keladi. Har birini alohida
+ * forma bilan kiritish mijoz, sana va muddatni qayta-qayta yozdirardi.
+ *
+ * Server buni BITTA tranzaksiyada bajaradi: biror buyum omborda yetmasa
+ * hech biri yozilmaydi (yarim berilgan buyurtma qolmasin).
+ */
+export interface RentalBatchCreateDTO {
+  clientId: string;
+  period: RentalPeriod;
+  startDate: string;
+  /** HH:mm — faqat soatlik ijarada. */
+  startTime?: string;
+  /** Necha kun yoki necha soat (davrga qarab). */
+  duration: number;
+  note?: string;
+  lines: RentalBatchLineDTO[];
+}
+
+/**
+ * Buyum qaytdi — qaytgan QISM uchun hisob shu paytda to'xtaydi va u
+ * omborga BO'SH bo'lib qaytadi.
  *
  * Sana berilmasa server bugunni, miqdor berilmasa qolganining hammasini
  * oladi: bitta buyumli ijarada bu savol umuman berilmaydi.
  */
 export interface RentalReturnDTO {
   returnedDate?: string;
+  /** HH:mm — faqat soatlik ijarada. */
+  returnedTime?: string;
   quantity?: number;
 }
 
@@ -133,10 +224,18 @@ export interface RentalSummaryDTO {
   activeCount: number;
   /** Muddati o'tganlar soni — ekranda qizil raqam. */
   overdueCount: number;
+  /** Mijozlardagi buyumlar SONI (dona/m² aralash bo'lsa ham — taxminiy ko'rsatkich). */
+  outQuantity?: number | string | null;
+  /** Buyum qaytgan, lekin puli olinmagan ijaralar soni (nasiya). */
+  debtCount?: number | null;
   /** Shu paytgacha yig'ilgan ijara haqi, valyuta bo'yicha. */
   accruedByCurrency?: Record<string, number | string>;
   /** Hali olinmagan pul (yig'ilgan − to'langan), valyuta bo'yicha. */
   unpaidByCurrency?: Record<string, number | string>;
+  /** Mijozlardagi buyumlardan olinishi kerak bo'lgan pul (ijara davom etmoqda). */
+  outUnpaidByCurrency?: Record<string, number | string>;
+  /** Nasiya: buyum qaytgan, puli olinmagan. */
+  debtByCurrency?: Record<string, number | string>;
 }
 
 /** Backend BigDecimal'ni ba'zan satr qilib yuboradi — chegarada normallashtiramiz. */

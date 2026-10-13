@@ -19,40 +19,92 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
-import { CURRENCIES, type Currency } from '../../../shared/types/money';
-import { CURRENCY_LABEL, CURRENCY_SYMBOL } from '../../../shared/lib/currency';
 import { formatAmountInput, formatMoney, parseAmountInput } from '../../../shared/lib/money';
+import { formatQuantity } from '../../../shared/lib/quantity';
+import { normalizeCurrency } from '../../../shared/lib/currency';
 import { formatDateInputValue, isValidDateInput } from '../../../shared/lib/date';
 import { ContactsContext, type Contact } from '../../debts/context/ContactsContext';
-import { useCurrency } from '../../debts/context/CurrencyContext';
-import { useCreateRental, useUpdateRental } from '../hooks/useRentals';
-import { daysFromDueDate, dueDateFrom, todayString } from '../model/rentalMath';
-import type { RentalResponseDTO } from '../types/rental';
+import { useCreateRentalBatch, useRentalItems, useUpdateRental } from '../hooks/useRentals';
+import {
+  currentTimeString,
+  dueFrom,
+  durationOf,
+  formatMoment,
+  formatTimeInputValue,
+  isValidTimeInput,
+  remainingQuantity,
+  rentalPeriod,
+  todayString,
+} from '../model/rentalMath';
+import { freeQuantity, itemsForPeriod } from '../model/rentalStock';
+import { periodLabel, perPeriodLabel, quantityLabel, unitCountLabel } from '../model/rentalLabels';
+import { RENTAL_PERIODS, type RentalPeriod, type RentalResponseDTO } from '../types/rental';
+import type { RentalItemResponseDTO } from '../types/rentalItem';
 
 interface RentalFormModalProps {
   visible: boolean;
   onClose: () => void;
   /** Mijoz oldindan ma'lum bo'lsa (mijoz ekranidan ochilgan) — tanlash so'ralmaydi. */
   client?: { id: string; name: string } | null;
-  /** Berilsa tahrirlash rejimi. */
+  /** Ombor kartasidan "Ijaraga berish" — shu buyum ro'yxatda tayyor turadi. */
+  presetItem?: RentalItemResponseDTO | null;
+  /** Berilsa tahrirlash rejimi (bitta yozuv). */
   rental?: RentalResponseDTO | null;
+  /**
+   * Omborda kerakli buyum yo'q — "buyum qo'shish" ga o'tish. Formani
+   * yopish va ombor formasini ochish ota-ekranning ishi: modal ustiga
+   * modal qalashtirilmaydi.
+   */
+  onAddItem?: () => void;
 }
 
 /** Ro'yxatda ko'rinadigan mijozlar soni — undan ortig'ini qidiruv bilan topadi. */
 const CONTACT_LIMIT = 6;
+/** Ombordan tanlash ro'yxatida ko'rinadigan buyumlar soni. */
+const ITEM_LIMIT = 8;
+
+/** Muddat uchun tez tugmalar: qurilishda hafta/oy, to'yda 1-2 kun, soatlikda bir necha soat. */
+const QUICK_DURATIONS: Record<RentalPeriod, number[]> = {
+  DAY: [1, 2, 3, 7, 30],
+  HOUR: [1, 2, 3, 4, 8],
+};
+
+/** Formadagi bitta buyum qatori — qiymatlar maydon matni ko'rinishida. */
+interface Line {
+  itemId: string;
+  quantity: string;
+  price: string;
+}
+
+const parseQuantity = (raw: string): number => Number(raw.replace(',', '.'));
 
 /**
- * Ijara ochish / tahrirlash formasi.
+ * Ijaraga berish / tahrirlash formasi.
  *
- * Forma KUN SONINI so'raydi, muddat sanasini emas: "nechta kunga berdim"
- * degan savol odamga tabiiy, sanani esa dastur o'zi chiqaradi va darhol
- * ko'rsatib turadi — shunda noto'g'ri kun yozilsa ko'zga tashlanadi.
+ * BUYUM OMBORDAN tanlanadi: nomini qayta yozish o'rniga ro'yxatdan bosiladi
+ * va har birining yonida nechtasi BO'SH ekani turadi. Bo'shidan ko'p
+ * yozilsa forma darhol aytadi — server ham baribir rad etadi.
  *
- * Pastdagi hisob satri ATAYIN bor: summa kunlik narxdan ko'paytirilgani
- * uchun odam saqlashdan OLDIN "3 kun × 50 000 = 150 000" ni ko'rib
- * tasdiqlashi kerak. Aks holda ortiqcha nol yozilgani keyin bilinardi.
+ * Bir mijozga BIR NECHTA buyum birdaniga beriladi (to'yga stul + stol +
+ * chodir, qurilishga opalubka + lesa): mijoz, sana va muddat bir marta
+ * yoziladi. Bitta buyurtmada davr bitta — kunlik va soatlik aralashmaydi.
+ *
+ * Forma MUDDATNI (necha kun / necha soat) so'raydi, sanani emas: "nechta
+ * kunga berdim" degan savol odamga tabiiy, qaytarish sanasini esa dastur
+ * o'zi chiqarib ko'rsatadi.
+ *
+ * Pastdagi hisob satri ATAYIN bor: summa narxdan ko'paytirilgani uchun
+ * odam saqlashdan OLDIN "3 kun × 10 dona × 5 000" ni ko'rib tasdiqlashi
+ * kerak. Aks holda ortiqcha nol yozilgani keyin bilinardi.
  */
-const RentalFormModal: React.FC<RentalFormModalProps> = ({ visible, onClose, client, rental }) => {
+const RentalFormModal: React.FC<RentalFormModalProps> = ({
+  visible,
+  onClose,
+  client,
+  presetItem,
+  rental,
+  onAddItem,
+}) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const keyboardInset = useKeyboardInset();
@@ -60,60 +112,84 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({ visible, onClose, cli
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const { contacts } = useContext(ContactsContext);
-  const { baseCurrency } = useCurrency();
-  const createMutation = useCreateRental();
+  // Forma mijoz kartasida doim o'rnatilgan turadi — ombor faqat ochilganda so'raladi.
+  const itemsQuery = useRentalItems({ enabled: visible });
+  const createMutation = useCreateRentalBatch();
   const updateMutation = useUpdateRental();
   const isEdit = Boolean(rental);
 
   const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
   const [contactSearch, setContactSearch] = useState('');
-  const [itemName, setItemName] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [dailyPrice, setDailyPrice] = useState('');
-  const [currency, setCurrency] = useState<Currency>(baseCurrency);
+  const [period, setPeriod] = useState<RentalPeriod>('DAY');
+  const [lines, setLines] = useState<Line[]>([]);
+  const [itemSearch, setItemSearch] = useState('');
   const [startDate, setStartDate] = useState(todayString());
-  const [days, setDays] = useState('');
+  const [startTime, setStartTime] = useState(currentTimeString());
+  const [duration, setDuration] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
 
-  // Oyna har ochilganda toza forma (yoki tahrirlanayotgan yozuv qiymatlari).
+  // Faqat tahrirlash maydonlari: bitta yozuvning miqdori va narxi.
+  const [editQuantity, setEditQuantity] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+
+  const allItems = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
+  const itemById = useMemo(() => new Map(allItems.map((item) => [item.id, item])), [allItems]);
+
+  /**
+   * Oyna har ochilganda toza forma (yoki tahrirlanayotgan yozuv qiymatlari).
+   *
+   * Bog'liqlik OBYEKT emas, id: mijoz kartasi `client` ni har renderda
+   * yangi obyekt qilib beradi va ochiq forma (so'rov yangilanganda) yozib
+   * qo'yilgan buyumlari bilan birga tozalanib ketardi.
+   */
+  const clientId = client?.id;
+  const clientName = client?.name;
+  const presetId = presetItem?.id;
   useEffect(() => {
     if (!visible) return;
     setError('');
     setContactSearch('');
+    setItemSearch('');
     if (rental) {
+      const rentalPeriodValue = rentalPeriod(rental);
       setSelected({ id: rental.clientId, name: rental.clientName });
-      setItemName(rental.itemName);
-      setQuantity(String(rental.quantity || 1));
-      setDailyPrice(formatAmountInput(String(rental.dailyPrice)));
-      setCurrency(rental.currency ?? baseCurrency);
+      setPeriod(rentalPeriodValue);
+      setLines([]);
+      setEditQuantity(formatQuantity(rental.quantity || 1));
+      setEditPrice(formatAmountInput(String(rental.price)));
       setStartDate(rental.startDate);
-      setDays(String(daysFromDueDate(rental.startDate, rental.dueDate) ?? ''));
+      setStartTime(rental.startTime ?? currentTimeString());
+      setDuration(String(durationOf(rental) ?? ''));
       setNote(rental.note ?? '');
       return;
     }
-    setSelected(client ?? null);
-    setItemName('');
-    setQuantity('1');
-    setDailyPrice('');
-    setCurrency(baseCurrency);
+    setSelected(clientId && clientName ? { id: clientId, name: clientName } : null);
+    setPeriod(presetItem?.period ?? 'DAY');
+    setLines(
+      presetItem
+        ? [{ itemId: presetItem.id, quantity: '1', price: formatAmountInput(String(presetItem.price)) }]
+        : [],
+    );
     setStartDate(todayString());
-    setDays('');
+    setStartTime(currentTimeString());
+    setDuration('');
     setNote('');
-  }, [visible, rental, client, baseCurrency]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, rental, clientId, clientName, presetId]);
 
-  const currencyOptions = useMemo<ChipOption<Currency>[]>(
-    () =>
-      CURRENCIES.map((code) => {
-        const label = CURRENCY_LABEL[code];
-        const symbol = CURRENCY_SYMBOL[code];
-        // "So'm (so'm)" kabi takror bo'lmasin — belgi nomdan farq qilsagina qavsda.
-        return {
-          value: code,
-          label: label.toLowerCase() === symbol.toLowerCase() ? label : `${label} (${symbol})`,
-        };
-      }),
-    [],
+  const periodOptions = useMemo<ChipOption<RentalPeriod>[]>(
+    () => RENTAL_PERIODS.map((value) => ({ value, label: periodLabel(t, value) })),
+    [t],
+  );
+
+  /** Davr almashsa boshqa davrdagi buyumlar ro'yxatdan chiqadi. */
+  const handlePeriod = useCallback(
+    (next: RentalPeriod) => {
+      setPeriod(next);
+      setLines((current) => current.filter((line) => itemById.get(line.itemId)?.period === next));
+    },
+    [itemById],
   );
 
   const visibleContacts = useMemo(() => {
@@ -127,65 +203,174 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({ visible, onClose, cli
     return list.slice(0, CONTACT_LIMIT);
   }, [contacts, contactSearch]);
 
+  /** Tanlash uchun buyumlar: shu davrdagi, hali qo'shilmaganlar, bo'shi borlar oldinda. */
+  const pickable = useMemo(() => {
+    const taken = new Set(lines.map((line) => line.itemId));
+    const needle = itemSearch.trim().toLowerCase();
+    return itemsForPeriod(allItems, period)
+      .filter((item) => !taken.has(item.id))
+      .filter(
+        (item) =>
+          !needle ||
+          item.name.toLowerCase().includes(needle) ||
+          (item.category ?? '').toLowerCase().includes(needle),
+      )
+      .sort((a, b) => Number(freeQuantity(b) > 0) - Number(freeQuantity(a) > 0) || a.name.localeCompare(b.name))
+      .slice(0, ITEM_LIMIT);
+  }, [allItems, period, lines, itemSearch]);
+
+  const addLine = useCallback((item: RentalItemResponseDTO) => {
+    setLines((current) => [
+      ...current,
+      { itemId: item.id, quantity: '1', price: formatAmountInput(String(item.price)) },
+    ]);
+    setItemSearch('');
+  }, []);
+
+  const updateLine = useCallback((itemId: string, patch: Partial<Line>) => {
+    setLines((current) => current.map((line) => (line.itemId === itemId ? { ...line, ...patch } : line)));
+  }, []);
+
+  const removeLine = useCallback((itemId: string) => {
+    setLines((current) => current.filter((line) => line.itemId !== itemId));
+  }, []);
+
   // ---- Hisob satri: forma to'ldirilgani sayin yangilanadi ----
 
-  const priceValue = parseAmountInput(dailyPrice);
-  const dayValue = Number(days);
-  const quantityValue = Number(quantity) || 1;
-  const validDays = Number.isFinite(dayValue) && dayValue >= 1;
-  const due = validDays ? dueDateFrom(startDate, dayValue) : null;
-  const total = priceValue && validDays ? priceValue * quantityValue * Math.floor(dayValue) : null;
+  const durationValue = Math.floor(Number(duration));
+  const validDuration = Number.isFinite(durationValue) && durationValue >= 1;
+  const due = validDuration
+    ? dueFrom(period, startDate, period === 'HOUR' ? startTime : null, durationValue)
+    : null;
+
+  /** Tahrirlashda bu yozuvning ombordagi buyumi (topilsa — bo'sh sonini tekshirish uchun). */
+  const editItem = rental?.rentalItemId ? itemById.get(rental.rentalItemId) : undefined;
+  /**
+   * Tahrirlashda ko'paytirish mumkin bo'lgan eng ko'p son: ombordagi bo'sh
+   * + shu yozuvda allaqachon band turgani (o'zi bilan o'zi to'qnashmasin).
+   */
+  const editMax = editItem && rental ? freeQuantity(editItem) + remainingQuantity(rental) : null;
+
+  /** Har qator uchun summa — valyuta bo'yicha jamlanadi. */
+  const preview = useMemo(() => {
+    if (!validDuration) return null;
+    const rows: { key: string; label: string; total: number; currency: string }[] = [];
+    if (rental) {
+      const qty = parseQuantity(editQuantity);
+      const price = parseAmountInput(editPrice);
+      if (!qty || !price) return null;
+      rows.push({
+        key: rental.id,
+        label: rental.itemName,
+        total: qty * price * durationValue,
+        currency: normalizeCurrency(rental.currency),
+      });
+    } else {
+      for (const line of lines) {
+        const item = itemById.get(line.itemId);
+        const qty = parseQuantity(line.quantity);
+        const price = parseAmountInput(line.price);
+        if (!item || !qty || !price) continue;
+        rows.push({
+          key: line.itemId,
+          label: `${item.name} × ${quantityLabel(t, qty, item.unit)}`,
+          total: qty * price * durationValue,
+          currency: normalizeCurrency(item.currency),
+        });
+      }
+    }
+    if (rows.length === 0) return null;
+    const totals = new Map<string, number>();
+    for (const row of rows) totals.set(row.currency, (totals.get(row.currency) ?? 0) + row.total);
+    return { rows, totals: [...totals.entries()] };
+  }, [validDuration, rental, editQuantity, editPrice, durationValue, lines, itemById, t]);
 
   const handleSubmit = useCallback(() => {
     setError('');
 
     if (!selected) return setError(t('rentals.errClient'));
-    if (!itemName.trim()) return setError(t('rentals.errItem'));
-
-    const price = parseAmountInput(dailyPrice);
-    if (!price) return setError(t('rentals.errPrice'));
-
-    const dayCount = Number(days);
-    if (!Number.isFinite(dayCount) || dayCount < 1) return setError(t('rentals.errDays'));
-
     if (!isValidDateInput(startDate)) return setError(t('rentals.errStartDate'));
+    if (period === 'HOUR' && !isValidTimeInput(startTime)) return setError(t('rentals.errTime'));
 
-    const quantityNumber = Number(quantity);
-    if (!Number.isFinite(quantityNumber) || quantityNumber <= 0) {
-      return setError(t('rentals.errQuantity'));
+    const dur = Math.floor(Number(duration));
+    if (!Number.isFinite(dur) || dur < 1) {
+      return setError(t(period === 'HOUR' ? 'rentals.errHours' : 'rentals.errDays'));
     }
-
-    const payload = {
-      clientId: selected.id,
-      itemName: itemName.trim(),
-      quantity: quantityNumber,
-      dailyPrice: price,
-      currency,
-      startDate,
-      days: Math.floor(dayCount),
-      note: note.trim() || undefined,
-    };
 
     const handlers = {
       onSuccess: onClose,
       onError: (err: unknown) => setError((err as Error).message),
     };
+    const time = period === 'HOUR' ? { startTime } : {};
 
     if (rental) {
-      updateMutation.mutate({ id: rental.id, ...payload }, handlers);
+      const qty = parseQuantity(editQuantity);
+      if (!Number.isFinite(qty) || qty <= 0) return setError(t('rentals.errQuantity'));
+      if (editMax !== null && qty > editMax) {
+        return setError(t('rentals.errNotEnough', { item: rental.itemName, free: formatQuantity(editMax) }));
+      }
+      const price = parseAmountInput(editPrice);
+      if (!price) return setError(t('rentals.errPrice'));
+
+      updateMutation.mutate(
+        {
+          id: rental.id,
+          itemName: rental.itemName,
+          quantity: qty,
+          period,
+          price,
+          currency: normalizeCurrency(rental.currency),
+          startDate,
+          ...time,
+          duration: dur,
+          note: note.trim() || undefined,
+        },
+        handlers,
+      );
       return;
     }
-    createMutation.mutate(payload, handlers);
+
+    if (lines.length === 0) return setError(t('rentals.errNoItems'));
+
+    const payloadLines = [];
+    for (const line of lines) {
+      const item = itemById.get(line.itemId);
+      if (!item) return setError(t('rentals.errNoItems'));
+      const qty = parseQuantity(line.quantity);
+      if (!Number.isFinite(qty) || qty <= 0) return setError(t('rentals.errQuantity'));
+      if (qty > freeQuantity(item)) {
+        return setError(t('rentals.errNotEnough', { item: item.name, free: formatQuantity(freeQuantity(item)) }));
+      }
+      const price = parseAmountInput(line.price);
+      if (!price) return setError(t('rentals.errPrice'));
+      payloadLines.push({ rentalItemId: item.id, quantity: qty, price });
+    }
+
+    createMutation.mutate(
+      {
+        clientId: selected.id,
+        period,
+        startDate,
+        ...time,
+        duration: dur,
+        note: note.trim() || undefined,
+        lines: payloadLines,
+      },
+      handlers,
+    );
   }, [
     selected,
-    itemName,
-    dailyPrice,
-    days,
     startDate,
-    quantity,
-    currency,
-    note,
+    period,
+    startTime,
+    duration,
     rental,
+    editQuantity,
+    editMax,
+    editPrice,
+    lines,
+    itemById,
+    note,
     createMutation,
     updateMutation,
     onClose,
@@ -193,6 +378,7 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({ visible, onClose, cli
   ]);
 
   const pending = createMutation.isPending || updateMutation.isPending;
+  const periodItemsCount = itemsForPeriod(allItems, period).length;
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -229,7 +415,7 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({ visible, onClose, cli
                 ) : null}
               </View>
             ) : (
-              <View style={styles.pickerBlock}>
+              <View style={styles.block}>
                 <Text style={styles.fieldLabel}>{t('rentals.fieldClient')}</Text>
                 <SearchField
                   value={contactSearch}
@@ -238,20 +424,20 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({ visible, onClose, cli
                   accessibilityLabel={t('rentals.searchClient')}
                 />
                 {visibleContacts.length === 0 ? (
-                  <Text style={styles.note}>{t('rentals.noClients')}</Text>
+                  <Text style={[styles.note, styles.noteText]}>{t('rentals.noClients')}</Text>
                 ) : (
                   visibleContacts.map((contact: Contact) => (
                     <Pressable
                       key={contact.id}
                       onPress={() => setSelected({ id: contact.id, name: contact.fullName })}
-                      style={({ pressed }) => [styles.contactRow, pressed && styles.contactPressed]}
+                      style={({ pressed }) => [styles.pickRow, pressed && styles.pickPressed]}
                       accessibilityRole="button"
                       accessibilityLabel={contact.fullName}
                     >
-                      <Text style={styles.contactName} numberOfLines={1}>
+                      <Text style={styles.pickName} numberOfLines={1}>
                         {contact.fullName}
                       </Text>
-                      <Text style={styles.contactMeta} numberOfLines={1}>
+                      <Text style={styles.pickMeta} numberOfLines={1}>
                         {contact.phone || contact.username}
                       </Text>
                     </Pressable>
@@ -260,65 +446,244 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({ visible, onClose, cli
               </View>
             )}
 
-            {/* ---- Buyum ---- */}
-            <Input label={t('rentals.fieldItem')} value={itemName} onChangeText={setItemName} />
+            {/* ---- Davr: tahrirlashda o'zgarmaydi (summa qoidasi boshqa) ---- */}
+            {!isEdit ? (
+              <ChipSelector
+                options={periodOptions}
+                value={period}
+                onChange={handlePeriod}
+                label={t('rentals.itemPeriod')}
+                layout="fluid"
+              />
+            ) : null}
 
+            {/* ---- Buyumlar ---- */}
+            {rental ? (
+              <View style={styles.block}>
+                <View style={styles.lineHead}>
+                  <Text style={styles.lineName} numberOfLines={1}>
+                    {rental.itemName}
+                  </Text>
+                  {editMax !== null ? (
+                    <Text style={styles.lineFree} numberOfLines={1}>
+                      {t('rentals.freeUpTo', { count: formatQuantity(editMax) })}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={styles.pairRow}>
+                  <Input
+                    label={t('rentals.fieldQuantity')}
+                    value={editQuantity}
+                    onChangeText={(value) => setEditQuantity(value.replace(/[^\d.,]/g, '').slice(0, 9))}
+                    keyboardType="decimal-pad"
+                    containerStyle={styles.pairItem}
+                  />
+                  <Input
+                    label={t(period === 'HOUR' ? 'rentals.itemPriceHour' : 'rentals.itemPriceDay')}
+                    value={editPrice}
+                    onChangeText={(value) => setEditPrice(formatAmountInput(value))}
+                    keyboardType="decimal-pad"
+                    containerStyle={styles.pairItem}
+                  />
+                </View>
+              </View>
+            ) : (
+              <View style={styles.block}>
+                <Text style={styles.fieldLabel}>{t('rentals.fieldItems')}</Text>
+
+                {lines.map((line) => {
+                  const item = itemById.get(line.itemId);
+                  if (!item) return null;
+                  const free = freeQuantity(item);
+                  const qty = parseQuantity(line.quantity);
+                  const tooMany = Number.isFinite(qty) && qty > free;
+                  return (
+                    <View key={line.itemId} style={styles.lineCard}>
+                      <View style={styles.lineHead}>
+                        <Text style={styles.lineName} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        <Text
+                          style={[styles.lineFree, tooMany && { color: colors.negative }]}
+                          numberOfLines={1}
+                        >
+                          {t('rentals.freeCount', { count: quantityLabel(t, free, item.unit) })}
+                        </Text>
+                        <Pressable
+                          onPress={() => removeLine(line.itemId)}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('rentals.removeItem', { item: item.name })}
+                        >
+                          <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                        </Pressable>
+                      </View>
+                      <View style={styles.pairRow}>
+                        <Input
+                          label={t('rentals.fieldQuantity')}
+                          value={line.quantity}
+                          onChangeText={(value) =>
+                            updateLine(line.itemId, { quantity: value.replace(/[^\d.,]/g, '').slice(0, 9) })
+                          }
+                          keyboardType="decimal-pad"
+                          containerStyle={styles.pairItem}
+                        />
+                        <Input
+                          label={t(period === 'HOUR' ? 'rentals.itemPriceHour' : 'rentals.itemPriceDay')}
+                          value={line.price}
+                          onChangeText={(value) => updateLine(line.itemId, { price: formatAmountInput(value) })}
+                          keyboardType="decimal-pad"
+                          containerStyle={styles.pairItem}
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+
+                {/* Ombordan tanlash. Omborda shu davrdagi buyum yo'q bo'lsa —
+                    qo'shishga yo'naltiriladi. */}
+                {periodItemsCount === 0 && !itemsQuery.isLoading ? (
+                  <View style={styles.note}>
+                    <Text style={styles.noteText}>{t('rentals.stockEmptyForPeriod')}</Text>
+                    {onAddItem ? (
+                      <Pressable onPress={onAddItem} accessibilityRole="button">
+                        <Text style={styles.changeLink}>{t('rentals.addItem')}</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ) : (
+                  <>
+                    {periodItemsCount > ITEM_LIMIT ? (
+                      <SearchField
+                        value={itemSearch}
+                        onChangeText={setItemSearch}
+                        placeholder={t('rentals.searchItem')}
+                        accessibilityLabel={t('rentals.searchItem')}
+                      />
+                    ) : null}
+                    {pickable.map((item) => {
+                      const free = freeQuantity(item);
+                      return (
+                        <Pressable
+                          key={item.id}
+                          onPress={() => addLine(item)}
+                          disabled={free <= 0}
+                          style={({ pressed }) => [
+                            styles.pickRow,
+                            styles.pickRowLine,
+                            pressed && styles.pickPressed,
+                            free <= 0 && styles.pickDisabled,
+                          ]}
+                          accessibilityRole="button"
+                          accessibilityLabel={item.name}
+                          accessibilityState={{ disabled: free <= 0 }}
+                        >
+                          <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+                          <View style={styles.pickText}>
+                            <Text style={styles.pickName} numberOfLines={1}>
+                              {item.name}
+                            </Text>
+                            <Text style={styles.pickMeta} numberOfLines={1}>
+                              {formatMoney(item.price, item.currency)} {perPeriodLabel(t, item.period)}
+                            </Text>
+                          </View>
+                          <Text
+                            style={[styles.pickFree, { color: free > 0 ? colors.positive : colors.negative }]}
+                            numberOfLines={1}
+                          >
+                            {free > 0
+                              ? t('rentals.freeCount', { count: quantityLabel(t, free, item.unit) })
+                              : t('rentals.stockAllBusy')}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                    {onAddItem ? (
+                      <Pressable onPress={onAddItem} accessibilityRole="button" style={styles.addItemLink}>
+                        <Text style={styles.changeLink}>{t('rentals.addItemToStock')}</Text>
+                      </Pressable>
+                    ) : null}
+                  </>
+                )}
+              </View>
+            )}
+
+            {/* ---- Muddat ---- */}
             <View style={styles.pairRow}>
               <Input
-                label={t('rentals.fieldQuantity')}
-                value={quantity}
-                onChangeText={(value) => setQuantity(value.replace(/\D/g, '').slice(0, 5))}
+                label={t('rentals.fieldStartDate')}
+                value={startDate}
+                onChangeText={(value) => setStartDate(formatDateInputValue(value))}
                 keyboardType="number-pad"
+                placeholder="2026-10-12"
                 containerStyle={styles.pairItem}
               />
-              <Input
-                label={t('rentals.fieldDays')}
-                value={days}
-                onChangeText={(value) => setDays(value.replace(/\D/g, '').slice(0, 4))}
-                keyboardType="number-pad"
-                containerStyle={styles.pairItem}
-              />
+              {period === 'HOUR' ? (
+                <Input
+                  label={t('rentals.fieldStartTime')}
+                  value={startTime}
+                  onChangeText={(value) => setStartTime(formatTimeInputValue(value))}
+                  keyboardType="number-pad"
+                  placeholder="14:00"
+                  containerStyle={styles.pairItem}
+                />
+              ) : null}
             </View>
 
-            <Input
-              label={t('rentals.fieldDailyPrice')}
-              value={dailyPrice}
-              onChangeText={(value) => setDailyPrice(formatAmountInput(value))}
-              keyboardType="decimal-pad"
-            />
-
-            <ChipSelector
-              options={currencyOptions}
-              value={currency}
-              onChange={setCurrency}
-              label={t('money.currency')}
-            />
-
-            <Input
-              label={t('rentals.fieldStartDate')}
-              value={startDate}
-              onChangeText={(value) => setStartDate(formatDateInputValue(value))}
-              keyboardType="number-pad"
-              placeholder="2026-10-12"
-            />
+            <View style={styles.block}>
+              <Input
+                label={t(period === 'HOUR' ? 'rentals.fieldHours' : 'rentals.fieldDays')}
+                value={duration}
+                onChangeText={(value) => setDuration(value.replace(/\D/g, '').slice(0, 4))}
+                keyboardType="number-pad"
+              />
+              <View style={styles.quickRow}>
+                {QUICK_DURATIONS[period].map((value) => (
+                  <Pressable
+                    key={value}
+                    onPress={() => setDuration(String(value))}
+                    style={({ pressed }) => [
+                      styles.quick,
+                      duration === String(value) && styles.quickActive,
+                      pressed && styles.pickPressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={unitCountLabel(t, period, value)}
+                  >
+                    <Text
+                      style={[styles.quickText, duration === String(value) && styles.quickTextActive]}
+                    >
+                      {unitCountLabel(t, period, value)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
 
             <Input label={t('rentals.fieldNote')} value={note} onChangeText={setNote} />
 
             {/* ---- Hisob: saqlashdan oldingi oxirgi tekshiruv ---- */}
-            {total !== null && due ? (
+            {preview && due ? (
               <View style={styles.preview}>
+                {preview.rows.map((row) => (
+                  <Text key={row.key} style={styles.previewLine} numberOfLines={1}>
+                    {row.label}: {formatMoney(row.total, normalizeCurrency(row.currency))}
+                  </Text>
+                ))}
                 <Text style={styles.previewLine}>
-                  {t('rentals.previewFormula', {
-                    days: String(Math.floor(dayValue)),
-                    quantity: String(quantityValue),
-                    price: formatMoney(priceValue ?? 0, currency),
-                  })}
+                  {t('rentals.previewFor', { duration: unitCountLabel(t, period, durationValue) })}
                 </Text>
-                <Text style={styles.previewTotal}>{formatMoney(total, currency)}</Text>
-                <Text style={styles.previewDue}>{t('rentals.previewDue', { date: due })}</Text>
+                {preview.totals.map(([code, amount]) => (
+                  <Text key={code} style={styles.previewTotal}>
+                    {formatMoney(amount, normalizeCurrency(code))}
+                  </Text>
+                ))}
+                <Text style={styles.previewDue}>
+                  {t('rentals.previewDue', { date: formatMoment(due.date, due.time) })}
+                </Text>
               </View>
             ) : (
-              <Text style={styles.note}>{t('rentals.previewHint')}</Text>
+              <Text style={[styles.note, styles.noteText]}>{t('rentals.previewHint')}</Text>
             )}
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -373,27 +738,51 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.label,
       color: colors.textSecondary,
     },
-    pickerBlock: {
+    block: {
       gap: spacing.xs,
     },
-    contactRow: {
+    pickRow: {
       paddingVertical: spacing.xs,
       paddingHorizontal: spacing.sm,
       borderRadius: radius.md,
       backgroundColor: colors.surfaceMuted,
     },
-    contactPressed: {
+    pickRowLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    pickPressed: {
       backgroundColor: colors.primarySoft,
     },
-    contactName: {
+    pickDisabled: {
+      opacity: 0.55,
+    },
+    pickText: {
+      flex: 1,
+      minWidth: 0,
+    },
+    pickName: {
       ...typography.body,
       fontWeight: '600',
       color: colors.textPrimary,
     },
-    contactMeta: {
+    pickMeta: {
       ...typography.caption,
       fontSize: 12,
       color: colors.textSecondary,
+      fontVariant: ['tabular-nums'],
+    },
+    pickFree: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '700',
+      fontVariant: ['tabular-nums'],
+      maxWidth: '40%',
+    },
+    addItemLink: {
+      alignSelf: 'flex-start',
+      paddingVertical: 2,
     },
     selectedRow: {
       flexDirection: 'row',
@@ -417,12 +806,62 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       fontWeight: '700',
       color: colors.primary,
     },
+    lineCard: {
+      gap: spacing.xs,
+      padding: spacing.sm,
+      borderRadius: radius.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
+    },
+    lineHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    lineName: {
+      ...typography.body,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      flex: 1,
+      minWidth: 0,
+    },
+    lineFree: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.positive,
+      fontVariant: ['tabular-nums'],
+    },
     pairRow: {
       flexDirection: 'row',
       gap: spacing.xs,
     },
     pairItem: {
       flex: 1,
+    },
+    quickRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
+    quick: {
+      paddingVertical: 4,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surfaceMuted,
+    },
+    quickActive: {
+      backgroundColor: colors.primary,
+    },
+    quickText: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    quickTextActive: {
+      color: colors.textOnPrimary,
     },
     preview: {
       backgroundColor: colors.surfaceMuted,
@@ -434,6 +873,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.caption,
       fontSize: 12,
       color: colors.textSecondary,
+      fontVariant: ['tabular-nums'],
     },
     previewTotal: {
       ...typography.body,
@@ -449,12 +889,15 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       color: colors.textSecondary,
     },
     note: {
-      ...typography.caption,
-      fontSize: 12,
-      color: colors.textSecondary,
       backgroundColor: colors.surfaceMuted,
       borderRadius: radius.md,
       padding: spacing.sm,
+      gap: spacing.xxs,
+    },
+    noteText: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textSecondary,
     },
     error: {
       ...typography.caption,

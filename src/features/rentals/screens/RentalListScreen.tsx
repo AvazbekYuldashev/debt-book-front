@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { FlatList, type ListRenderItem, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -13,93 +13,213 @@ import SearchField from '../../../shared/ui/SearchField';
 import StatusBanner from '../../../shared/ui/StatusBanner';
 import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
-import type { DebtsNavigation } from '../../../app/navigation/types';
+import { canDelete, canWrite } from '../../../shared/lib/permissions';
+import { WorkspaceContext } from '../../business/context/WorkspaceContext';
+import type { DebtsScreenProps } from '../../../app/navigation/types';
+import type { ROUTES } from '../../../app/navigation/routes';
 import RentalRow from '../components/RentalRow';
+import RentalItemRow from '../components/RentalItemRow';
 import RentalSummaryCard from '../components/RentalSummaryCard';
 import RentalFormModal from '../components/RentalFormModal';
 import RentalDetailModal from '../components/RentalDetailModal';
-import { useMyRentals, useRentalSummary } from '../hooks/useRentals';
-import { rentalStatus } from '../model/rentalMath';
-import type { RentalResponseDTO, RentalStatus } from '../types/rental';
+import RentalItemFormModal from '../components/RentalItemFormModal';
+import RentalItemDetailModal from '../components/RentalItemDetailModal';
+import { useMyRentals, useRentalItems, useRentalSummary } from '../hooks/useRentals';
+import { rentalStage } from '../model/rentalMath';
+import { groupRentalItems, rentalItemCategories } from '../model/rentalStock';
+import type { RentalFilterStatus, RentalResponseDTO, RentalStage } from '../types/rental';
+import type { RentalItemResponseDTO } from '../types/rentalItem';
 
-/** Ro'yxat filtri. 'ALL' — odatiy: hammasi ko'rinadi. */
-type StatusFilter = RentalStatus | 'ALL';
+/** Ekranning ikki bo'limi: OMBOR (nima bor, nechtasi bo'sh) va berilgan IJARALAR. */
+type Tab = 'stock' | 'rentals';
+
+/** Ijaralar filtri. 'ALL' — odatiy: hammasi ko'rinadi. */
+type StatusFilter = 'ALL' | Extract<RentalFilterStatus, 'OUT' | 'OVERDUE' | 'DEBT' | 'CLOSED'>;
 
 /** Qidiruv shu uzunlikdan boshlab serverga yuboriladi. */
 const SEARCH_MIN = 2;
 
+/** Filtr qaysi bosqichlarni o'z ichiga oladi — server eski bo'lsa ham ro'yxat to'g'ri chiqsin. */
+const STAGES_OF: Record<StatusFilter, RentalStage[]> = {
+  ALL: ['ACTIVE', 'OVERDUE', 'DEBT', 'CLOSED'],
+  OUT: ['ACTIVE', 'OVERDUE'],
+  OVERDUE: ['OVERDUE'],
+  DEBT: ['DEBT'],
+  CLOSED: ['CLOSED'],
+};
+
+/** Ro'yxat tartibi: kechikkan, mijozdagi, nasiya, yopilgan. */
+const STAGE_WEIGHT: Record<RentalStage, number> = { OVERDUE: 0, ACTIVE: 1, DEBT: 2, CLOSED: 3 };
+
+/** Ombor ro'yxatidagi qator: guruh sarlavhasi yoki buyum. */
+type StockEntry =
+  | { kind: 'header'; key: string; title: string }
+  | { kind: 'item'; key: string; item: RentalItemResponseDTO; isLast: boolean };
+
 /**
  * Ijara bo'limining bosh ekrani.
  *
- * Qarzlar stack'i ichida turadi (alohida tab EMAS): ijara haqi mijozning
- * qarzi bo'lib turadi, ya'ni bu qarz daftarining bir ko'rinishi. Pastdagi
- * panelda doim to'rtta tab bor va beshinchisi o'rtadagi ovoz tugmasining
- * simmetriyasini buzardi.
+ * Ijarachi (opalubka, lesa, arava, to'y jihozlari) uchun ikki savol bor:
  *
- * Karta QATORLARDAN yig'iladi (`rowSlice`): shunda ro'yxat tugagan joyda
- * karta ham tugaydi va "+" tugmasi fon ustida suzadi — gap kassa va
- * xarajatlar bo'limi ham shunday qurilgan.
+ *   OMBOR    — "nimam bor, nechtasi bo'sh, nechtasi kimda?"
+ *              100 ta lesadan 50 tasi band, 50 tasi bo'sh.
+ *   IJARALAR — "kimdan qancha pul olishim kerak?" Buyumi hali
+ *              mijozda turganlar va buyum qaytib, puli olinmagani —
+ *              NASIYA — alohida filtr.
+ *
+ * Yuqoridagi panel ikkala bo'limda bir xil: ochiq ijaralar, kechikkan,
+ * nasiya soni va pul.
+ *
+ * Biznes hisobida ombor ham, ijaralar ham BIZNESNIKI: hamma adminlar
+ * bir xil ro'yxatni ko'radi (X-Business-ID). MEMBER faqat ko'radi.
+ *
+ * Qarzlar stack'i ichida turadi (alohida tab EMAS): pastki panelda doim
+ * to'rtta tab bor va beshinchisi o'rtadagi ovoz tugmasining
+ * simmetriyasini buzardi.
  */
-const RentalListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation }) => {
+const RentalListScreen: React.FC<DebtsScreenProps<typeof ROUTES.RENTALS>> = ({ navigation, route }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  const { workspace } = useContext(WorkspaceContext);
+  const allowWrite = canWrite(workspace.activeBusinessRole);
+  const allowDelete = canDelete(workspace.activeBusinessRole);
+
+  const [tab, setTab] = useState<Tab>(route?.params?.tab ?? 'stock');
   const [status, setStatus] = useState<StatusFilter>('ALL');
   const [search, setSearch] = useState('');
+
+  // Ijara formasi va kartasi
   const [formVisible, setFormVisible] = useState(false);
   const [editing, setEditing] = useState<RentalResponseDTO | null>(null);
+  const [presetItem, setPresetItem] = useState<RentalItemResponseDTO | null>(null);
   const [opened, setOpened] = useState<RentalResponseDTO | null>(null);
 
+  // Ombor formasi va kartasi
+  const [itemFormVisible, setItemFormVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<RentalItemResponseDTO | null>(null);
+  const [openedItem, setOpenedItem] = useState<RentalItemResponseDTO | null>(null);
+
+  /**
+   * Boshqa ekrandan "buyum qo'shish" so'rovi bilan kelinganda (mijoz
+   * kartasidagi formada kerakli buyum yo'q edi) — ombor ochiladi va forma
+   * darhol chiqadi. Parametr ishlatilgach tozalanadi: orqaga qaytib
+   * kelganda forma yana ochilib qolmasin.
+   */
+  useEffect(() => {
+    const params = route?.params;
+    if (!params) return;
+    if (params.tab) setTab(params.tab);
+    if (params.addItem && allowWrite) {
+      setEditingItem(null);
+      setItemFormVisible(true);
+    }
+    if (params.tab || params.addItem) navigation.setParams({ tab: undefined, addItem: undefined });
+  }, [route?.params, allowWrite, navigation]);
+
+  const needle = search.trim();
   const filter = useMemo(
     () => ({
       ...(status === 'ALL' ? {} : { status }),
-      ...(search.trim().length >= SEARCH_MIN ? { search: search.trim() } : {}),
+      ...(needle.length >= SEARCH_MIN ? { search: needle } : {}),
     }),
-    [status, search],
+    [status, needle],
   );
 
+  const itemsQuery = useRentalItems();
   const listQuery = useMyRentals(filter);
-  // Panel qidiruvga BOG'LANMAYDI: yuqoridagi umumiy raqamlar qidiruv
-  // natijasiga qarab o'zgarib tursa, ular umumiy holatni ko'rsatmay qoladi.
-  const summaryQuery = useRentalSummary(status === 'ALL' ? {} : { status });
+  // Panel filtr va qidiruvga BOG'LANMAYDI: yuqoridagi umumiy raqamlar
+  // ro'yxat filtriga qarab o'zgarib tursa, umumiy holatni ko'rsatmay qoladi.
+  const summaryQuery = useRentalSummary();
+
+  const tabOptions = useMemo<ChipOption<Tab>[]>(
+    () => [
+      { value: 'stock', label: t('rentals.tabStock') },
+      { value: 'rentals', label: t('rentals.tabRentals') },
+    ],
+    [t],
+  );
 
   const statusOptions = useMemo<ChipOption<StatusFilter>[]>(
     () => [
       { value: 'ALL', label: t('rentals.filterAll') },
-      { value: 'ACTIVE', label: t('rentals.filterActive') },
+      { value: 'OUT', label: t('rentals.filterActive') },
       { value: 'OVERDUE', label: t('rentals.filterOverdue') },
-      { value: 'RETURNED', label: t('rentals.filterReturned') },
+      { value: 'DEBT', label: t('rentals.filterDebt') },
+      { value: 'CLOSED', label: t('rentals.filterClosed') },
     ],
     [t],
   );
 
   /**
-   * Kechikkanlar yuqorida, keyin muddati yaqinlari.
+   * Ijaralar: kechikkanlar yuqorida, keyin mijozdagilar, nasiya, yopilgan.
    *
-   * Tartib SERVERGA tashlab qo'yilmaydi: holat sanalardan hisoblanadi va
-   * "bugun" telefonning kuni — server kechagi tartibni yuborishi mumkin.
+   * Tartib va filtr SERVERGA tashlab qo'yilmaydi: bosqich "hozir"ga
+   * bog'liq va u telefonning soati — server kechagi holatni yuborishi
+   * mumkin.
    */
-  const items = useMemo(() => {
-    const list = listQuery.data?.content ?? [];
-    const weight = (item: RentalResponseDTO) => {
-      const value = rentalStatus(item);
-      if (value === 'OVERDUE') return 0;
-      if (value === 'ACTIVE') return 1;
-      return 2;
-    };
-    return [...list].sort((a, b) => weight(a) - weight(b) || a.dueDate.localeCompare(b.dueDate));
-  }, [listQuery.data]);
+  const rentals = useMemo(() => {
+    const allowed = STAGES_OF[status];
+    return (listQuery.data?.content ?? [])
+      .map((item) => ({ item, stage: rentalStage(item) }))
+      .filter(({ stage }) => allowed.includes(stage))
+      .sort(
+        (a, b) =>
+          STAGE_WEIGHT[a.stage] - STAGE_WEIGHT[b.stage] || a.item.dueDate.localeCompare(b.item.dueDate),
+      )
+      .map(({ item }) => item);
+  }, [listQuery.data, status]);
 
-  const handleOpenCreate = useCallback(() => {
+  const allItems = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
+  const categories = useMemo(() => rentalItemCategories(allItems), [allItems]);
+
+  /** Ombor: qidiruv telefonda (ro'yxat to'liq yuklangan), guruhlarga bo'lingan. */
+  const stockEntries = useMemo<StockEntry[]>(() => {
+    const lower = needle.toLowerCase();
+    const matched = lower
+      ? allItems.filter(
+          (item) =>
+            item.name.toLowerCase().includes(lower) || (item.category ?? '').toLowerCase().includes(lower),
+        )
+      : allItems;
+    const groups = groupRentalItems(matched);
+    // Bitta guruh bo'lsa (yoki hammasi guruhsiz) sarlavha ortiqcha.
+    const withHeaders = groups.length > 1 || Boolean(groups[0]?.category);
+    const entries: StockEntry[] = [];
+    groups.forEach((group, groupIndex) => {
+      if (withHeaders) {
+        entries.push({
+          kind: 'header',
+          key: `h:${group.category ?? ''}`,
+          title: group.category ?? t('rentals.noCategory'),
+        });
+      }
+      group.items.forEach((item, index) => {
+        entries.push({
+          kind: 'item',
+          key: item.id,
+          item,
+          isLast: index === group.items.length - 1 && groupIndex === groups.length - 1,
+        });
+      });
+    });
+    return entries;
+  }, [allItems, needle, t]);
+
+  // ---- Ijara amallari ----
+
+  const openRentalForm = useCallback((item: RentalItemResponseDTO | null = null) => {
     setEditing(null);
+    setPresetItem(item);
     setFormVisible(true);
   }, []);
 
   /** Kartadan "tahrirlash" — karta yopiladi, forma o'sha yozuv bilan ochiladi. */
   const handleEdit = useCallback((rental: RentalResponseDTO) => {
     setOpened(null);
+    setPresetItem(null);
     setEditing(rental);
     setFormVisible(true);
   }, []);
@@ -107,28 +227,172 @@ const RentalListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigatio
   const handleCloseForm = useCallback(() => {
     setFormVisible(false);
     setEditing(null);
+    setPresetItem(null);
   }, []);
 
+  // ---- Ombor amallari ----
+
+  const openItemForm = useCallback((item: RentalItemResponseDTO | null = null) => {
+    setEditingItem(item);
+    setItemFormVisible(true);
+  }, []);
+
+  const handleCloseItemForm = useCallback(() => {
+    setItemFormVisible(false);
+    setEditingItem(null);
+  }, []);
+
+  /** Ijara formasidan "omborga buyum qo'shish" — forma yopilib ombor formasi ochiladi. */
+  const handleAddItemFromForm = useCallback(() => {
+    handleCloseForm();
+    setTab('stock');
+    openItemForm(null);
+  }, [handleCloseForm, openItemForm]);
+
+  const handleItemEdit = useCallback(
+    (item: RentalItemResponseDTO) => {
+      setOpenedItem(null);
+      openItemForm(item);
+    },
+    [openItemForm],
+  );
+
+  const handleItemGiveOut = useCallback(
+    (item: RentalItemResponseDTO) => {
+      setOpenedItem(null);
+      openRentalForm(item);
+    },
+    [openRentalForm],
+  );
+
+  const handleItemOpenRental = useCallback((rental: RentalResponseDTO) => {
+    setOpenedItem(null);
+    setOpened(rental);
+  }, []);
+
+  const handleFab = useCallback(() => {
+    if (tab === 'stock') openItemForm(null);
+    else openRentalForm(null);
+  }, [tab, openItemForm, openRentalForm]);
+
   const handleRefresh = useCallback(() => {
+    itemsQuery.refetch();
     listQuery.refetch();
     summaryQuery.refetch();
-  }, [listQuery, summaryQuery]);
+  }, [itemsQuery, listQuery, summaryQuery]);
 
-  const renderItem = useCallback<ListRenderItem<RentalResponseDTO>>(
+  // ---- Qatorlar ----
+
+  const renderRental = useCallback<ListRenderItem<RentalResponseDTO>>(
     ({ item, index }) => {
-      const isLast = index === items.length - 1;
+      const isLast = index === rentals.length - 1;
       return (
-        <View
-          style={[styles.rowSlice, index === 0 && styles.rowFirst, isLast && styles.rowLast]}
-        >
+        <View style={[styles.rowSlice, index === 0 && styles.rowFirst, isLast && styles.rowLast]}>
           <RentalRow item={item} isLast={isLast} onPress={setOpened} />
         </View>
       );
     },
-    [items.length, styles],
+    [rentals.length, styles],
   );
 
-  const error = listQuery.error ? (listQuery.error as Error).message : '';
+  const renderStock = useCallback<ListRenderItem<StockEntry>>(
+    ({ item: entry, index }) => {
+      const isFirst = index === 0;
+      const isLast = index === stockEntries.length - 1;
+      return (
+        <View style={[styles.rowSlice, isFirst && styles.rowFirst, isLast && styles.rowLast]}>
+          {entry.kind === 'header' ? (
+            <Text style={styles.groupTitle} numberOfLines={1}>
+              {entry.title}
+            </Text>
+          ) : (
+            <RentalItemRow item={entry.item} isLast={entry.isLast} onPress={setOpenedItem} />
+          )}
+        </View>
+      );
+    },
+    [stockEntries.length, styles],
+  );
+
+  const activeQuery = tab === 'stock' ? itemsQuery : listQuery;
+  const error = activeQuery.error ? (activeQuery.error as Error).message : '';
+  const refreshControl = (
+    <RefreshControl
+      refreshing={activeQuery.isRefetching}
+      onRefresh={handleRefresh}
+      tintColor={colors.primary}
+    />
+  );
+
+  const renderBody = () => {
+    if (activeQuery.isLoading) {
+      return (
+        <View style={styles.emptyCard}>
+          <SkeletonContactList />
+        </View>
+      );
+    }
+
+    if (tab === 'stock') {
+      if (stockEntries.length === 0) {
+        return (
+          <View style={styles.emptyCard}>
+            <EmptyState
+              icon="cube-outline"
+              title={needle ? t('rentals.stockNotFound') : t('rentals.stockEmptyTitle')}
+              description={needle ? undefined : t('rentals.stockEmptyHint')}
+              actionLabel={!needle && allowWrite ? t('rentals.addItem') : undefined}
+              actionIcon="add"
+              onAction={!needle && allowWrite ? () => openItemForm(null) : undefined}
+            />
+          </View>
+        );
+      }
+      return (
+        <NestedGlass>
+          <FlatList
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            data={stockEntries}
+            keyExtractor={(entry) => entry.key}
+            renderItem={renderStock}
+            showsVerticalScrollIndicator={false}
+            refreshControl={refreshControl}
+          />
+        </NestedGlass>
+      );
+    }
+
+    if (rentals.length === 0) {
+      return (
+        <View style={styles.emptyCard}>
+          <EmptyState
+            icon="cube-outline"
+            title={t('rentals.emptyTitle')}
+            description={t('rentals.emptyHint')}
+            actionLabel={allowWrite ? t('rentals.createSubmit') : undefined}
+            actionIcon="add"
+            onAction={allowWrite ? () => openRentalForm(null) : undefined}
+          />
+        </View>
+      );
+    }
+    return (
+      <NestedGlass>
+        <FlatList
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          data={rentals}
+          keyExtractor={(item) => item.id}
+          renderItem={renderRental}
+          showsVerticalScrollIndicator={false}
+          refreshControl={refreshControl}
+        />
+      </NestedGlass>
+    );
+  };
+
+  const isEmpty = tab === 'stock' ? stockEntries.length === 0 : rentals.length === 0;
 
   return (
     <View style={styles.container}>
@@ -148,14 +412,18 @@ const RentalListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigatio
         <View style={styles.headerBody}>
           <RentalSummaryCard summary={summaryQuery.data} loading={summaryQuery.isLoading} />
 
+          <ChipSelector options={tabOptions} value={tab} onChange={setTab} layout="fluid" />
+
           <SearchField
             value={search}
             onChangeText={setSearch}
-            placeholder={t('rentals.searchPlaceholder')}
-            accessibilityLabel={t('rentals.searchPlaceholder')}
+            placeholder={tab === 'stock' ? t('rentals.searchItem') : t('rentals.searchPlaceholder')}
+            accessibilityLabel={tab === 'stock' ? t('rentals.searchItem') : t('rentals.searchPlaceholder')}
           />
 
-          <ChipSelector options={statusOptions} value={status} onChange={setStatus} />
+          {tab === 'rentals' ? (
+            <ChipSelector options={statusOptions} value={status} onChange={setStatus} layout="scroll" />
+          ) : null}
 
           {error ? (
             <StatusBanner
@@ -168,49 +436,45 @@ const RentalListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigatio
         </View>
       </EntranceView>
 
-      {listQuery.isLoading ? (
-        <View style={styles.emptyCard}>
-          <SkeletonContactList />
-        </View>
-      ) : items.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <EmptyState
-            icon="cube-outline"
-            title={t('rentals.emptyTitle')}
-            description={t('rentals.emptyHint')}
-            actionLabel={t('rentals.createSubmit')}
-            actionIcon="add"
-            onAction={handleOpenCreate}
-          />
-        </View>
-      ) : (
-        <NestedGlass>
-          <FlatList
-            style={styles.list}
-            contentContainerStyle={styles.listContent}
-            data={items}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={listQuery.isRefetching}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary}
-              />
-            }
-          />
-        </NestedGlass>
-      )}
+      {renderBody()}
 
-      <FloatingActionButton
-        onPress={handleOpenCreate}
-        accessibilityLabel={t('rentals.createSubmit')}
-        pulse={items.length === 0}
+      {allowWrite ? (
+        <FloatingActionButton
+          onPress={handleFab}
+          accessibilityLabel={tab === 'stock' ? t('rentals.addItem') : t('rentals.createSubmit')}
+          pulse={isEmpty}
+        />
+      ) : null}
+
+      <RentalFormModal
+        visible={formVisible}
+        onClose={handleCloseForm}
+        rental={editing}
+        presetItem={presetItem}
+        onAddItem={allowWrite ? handleAddItemFromForm : undefined}
       />
-
-      <RentalFormModal visible={formVisible} onClose={handleCloseForm} rental={editing} />
-      <RentalDetailModal rental={opened} onClose={() => setOpened(null)} onEdit={handleEdit} />
+      <RentalDetailModal
+        rental={opened}
+        onClose={() => setOpened(null)}
+        onEdit={handleEdit}
+        allowWrite={allowWrite}
+        allowDelete={allowDelete}
+      />
+      <RentalItemFormModal
+        visible={itemFormVisible}
+        onClose={handleCloseItemForm}
+        item={editingItem}
+        categories={categories}
+      />
+      <RentalItemDetailModal
+        item={openedItem}
+        onClose={() => setOpenedItem(null)}
+        onEdit={handleItemEdit}
+        onGiveOut={handleItemGiveOut}
+        onOpenRental={handleItemOpenRental}
+        allowWrite={allowWrite}
+        allowDelete={allowDelete}
+      />
     </View>
   );
 };
@@ -284,6 +548,17 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       borderBottomLeftRadius: radius.xxl,
       borderBottomRightRadius: radius.xxl,
       overflow: 'hidden',
+    },
+    groupTitle: {
+      ...typography.caption,
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.xxs,
     },
   });
 

@@ -5,18 +5,22 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { formatMoney } from '../../../shared/lib/money';
+import { formatQuantity } from '../../../shared/lib/quantity';
 import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 import type { RentalResponseDTO } from '../types/rental';
 import {
   accruedAmount,
-  billedDays,
+  billedUnits,
+  formatMoment,
   isPartiallyReturned,
-  overdueDays,
+  overdueUnits,
   remainingQuantity,
-  rentalStatus,
+  rentalPeriod,
+  rentalStage,
   totalQuantity,
   unpaidAmount,
 } from '../model/rentalMath';
+import { lateLabel, unitCountLabel, unitLabel } from '../model/rentalLabels';
 
 interface RentalRowProps {
   item: RentalResponseDTO;
@@ -48,9 +52,10 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Summa VAQTGA bog'liq, shuning uchun har render'da qaytadan hisoblanadi.
-  const status = rentalStatus(item);
-  const days = billedDays(item);
-  const late = overdueDays(item);
+  const period = rentalPeriod(item);
+  const stage = rentalStage(item);
+  const units = billedUnits(item);
+  const late = overdueUnits(item);
   const accrued = accruedAmount(item);
   const unpaid = unpaidAmount(item);
 
@@ -63,10 +68,26 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
    */
   const total = totalQuantity(item);
   const left = remainingQuantity(item);
-  const quantity = total > 1 ? (isPartiallyReturned(item) ? ` × ${left}/${total}` : ` × ${total}`) : '';
+  // Birlik faqat donadan farq qilsa yoziladi: "Opalubka × 120 m²".
+  const unit = item.unit && item.unit !== 'DONA' ? ` ${unitLabel(t, item.unit)}` : '';
+  const counted = isPartiallyReturned(item)
+    ? `${formatQuantity(left)}/${formatQuantity(total)}`
+    : formatQuantity(total);
+  const quantity = total > 1 || unit ? ` × ${counted}${unit}` : '';
 
+  /**
+   * Rang bosqichga qarab: kechikkan — qizil, NASIYA (buyum qaytgan, puli
+   * olinmagan) — sariq, yopilgan — kulrang. Nasiya kechikkandan alohida
+   * rangda: buyum endi omborda, faqat pul undirilishi kerak.
+   */
   const statusTone =
-    status === 'OVERDUE' ? colors.negative : status === 'RETURNED' ? colors.textSecondary : colors.positive;
+    stage === 'OVERDUE'
+      ? colors.negative
+      : stage === 'DEBT'
+        ? colors.secondary
+        : stage === 'CLOSED'
+          ? colors.textSecondary
+          : colors.positive;
 
   return (
     <Pressable
@@ -97,27 +118,35 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
 
           <View style={styles.meta}>
             <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
-            <Text style={styles.metaText}>{t('rentals.dayCount', { count: String(days) })}</Text>
+            <Text style={styles.metaText}>{unitCountLabel(t, period, units)}</Text>
           </View>
         </View>
 
         <View style={styles.metaRow}>
-          {status === 'RETURNED' ? (
+          {stage === 'CLOSED' ? (
             <View style={[styles.badge, { backgroundColor: colors.surfaceMuted }]}>
               <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
                 {t('rentals.returned')}
               </Text>
             </View>
+          ) : stage === 'DEBT' ? (
+            <View style={[styles.badge, { backgroundColor: `${colors.secondary}26` }]}>
+              <Text style={[styles.badgeText, { color: colors.secondary }]}>
+                {t('rentals.debtBadge')}
+              </Text>
+            </View>
           ) : late > 0 ? (
             <View style={[styles.badge, { backgroundColor: colors.negativeSoft }]}>
               <Text style={[styles.badgeText, { color: colors.negative }]}>
-                {t('rentals.lateByDays', { count: String(late) })}
+                {lateLabel(t, period, late)}
               </Text>
             </View>
           ) : (
             <View style={[styles.badge, { backgroundColor: colors.positiveSoft }]}>
               <Text style={[styles.badgeText, { color: colors.positive }]}>
-                {t('rentals.dueOn', { date: item.dueDate })}
+                {t('rentals.dueOn', {
+                  date: formatMoment(item.dueDate, period === 'HOUR' ? item.dueTime : null),
+                })}
               </Text>
             </View>
           )}

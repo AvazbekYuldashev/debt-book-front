@@ -1,11 +1,15 @@
 import {
   accruedAmount,
-  billedDays,
+  billedUnits,
   daysFromDueDate,
   dueDateFrom,
+  dueFrom,
+  durationOf,
+  formatTimeInputValue,
   isPartiallyReturned,
-  overdueDays,
+  overdueUnits,
   remainingQuantity,
+  rentalStage,
   rentalStatus,
   returnedQuantity,
   unpaidAmount,
@@ -24,7 +28,7 @@ const rental = (over: Partial<RentalResponseDTO> = {}): RentalResponseDTO => ({
   clientName: 'Akmal',
   itemName: 'Perforator',
   quantity: 1,
-  dailyPrice: 50000,
+  price: 50000,
   currency: 'UZS',
   startDate: '2026-10-01',
   dueDate: '2026-10-04',
@@ -33,48 +37,48 @@ const rental = (over: Partial<RentalResponseDTO> = {}): RentalResponseDTO => ({
   ...over,
 });
 
-describe('billedDays', () => {
+describe('billedUnits', () => {
   it("muddat kuni qaytarilsa kun soni kelishilganiga TENG (3 kunga berildi - 3 kun)", () => {
-    expect(billedDays(rental({ returnedDate: '2026-10-04' }))).toBe(3);
+    expect(billedUnits(rental({ returnedDate: '2026-10-04' }))).toBe(3);
   });
 
   it('bergan kunining o\'zida qaytarilsa kamida bir kun olinadi', () => {
-    expect(billedDays(rental({ returnedDate: '2026-10-01' }))).toBe(1);
+    expect(billedUnits(rental({ returnedDate: '2026-10-01' }))).toBe(1);
   });
 
   it('buyum qaytmagan bo\'lsa bugungacha hisoblanadi', () => {
-    expect(billedDays(rental(), '2026-10-07')).toBe(6);
+    expect(billedUnits(rental(), '2026-10-07')).toBe(6);
   });
 
   it('muddat o\'tib ketgan bo\'lsa hisob TO\'XTAMAYDI', () => {
     // 1-oktyabrdan 12-oktyabrgacha = 11 kun, muddat (4-oktyabr) ortda qoldi.
-    expect(billedDays(rental(), '2026-10-12')).toBe(11);
+    expect(billedUnits(rental(), '2026-10-12')).toBe(11);
   });
 
   it('kech qaytarilsa haqiqiy kunlar olinadi, muddat emas', () => {
-    expect(billedDays(rental({ returnedDate: '2026-10-09' }))).toBe(8);
+    expect(billedUnits(rental({ returnedDate: '2026-10-09' }))).toBe(8);
   });
 
   it('noto\'g\'ri sanada ham hisob buzilmaydi — eng kami qaytadi', () => {
-    expect(billedDays(rental({ startDate: 'xato' }), '2026-10-07')).toBe(1);
+    expect(billedUnits(rental({ startDate: 'xato' }), '2026-10-07')).toBe(1);
   });
 });
 
-describe('overdueDays', () => {
+describe('overdueUnits', () => {
   it('muddat ichida nol', () => {
-    expect(overdueDays(rental(), '2026-10-03')).toBe(0);
+    expect(overdueUnits(rental(), '2026-10-03')).toBe(0);
   });
 
   it('muddat kunining o\'zida hali kechikish yo\'q', () => {
-    expect(overdueDays(rental(), '2026-10-04')).toBe(0);
+    expect(overdueUnits(rental(), '2026-10-04')).toBe(0);
   });
 
   it('muddatdan keyin har kun qo\'shiladi', () => {
-    expect(overdueDays(rental(), '2026-10-07')).toBe(3);
+    expect(overdueUnits(rental(), '2026-10-07')).toBe(3);
   });
 
   it('kech qaytarilgan yozuvda kechikish SAQLANADI', () => {
-    expect(overdueDays(rental({ returnedDate: '2026-10-06' }))).toBe(2);
+    expect(overdueUnits(rental({ returnedDate: '2026-10-06' }))).toBe(2);
   });
 });
 
@@ -98,7 +102,7 @@ describe('accruedAmount', () => {
   });
 
   it('nechta buyum berilgani ham ko\'paytiriladi (10 stol × 3 kun)', () => {
-    const item = rental({ quantity: 10, dailyPrice: 5000, returnedDate: '2026-10-04' });
+    const item = rental({ quantity: 10, price: 5000, returnedDate: '2026-10-04' });
     expect(accruedAmount(item)).toBe(150000);
   });
 
@@ -108,7 +112,7 @@ describe('accruedAmount', () => {
   });
 
   it('server summani satr qilib yuborsa ham son chiqadi', () => {
-    const item = rental({ dailyPrice: '50000.00' as unknown as number, returnedDate: '2026-10-04' });
+    const item = rental({ price: '50000.00' as unknown as number, returnedDate: '2026-10-04' });
     expect(accruedAmount(item)).toBe(150000);
   });
 });
@@ -166,7 +170,7 @@ describe('dueDateFrom / daysFromDueDate', () => {
 describe('qisman qaytarish', () => {
   // 10 stul, 1-oktyabr, muddat 4-oktyabr, kunlik 1000.
   const chairs = (over: Partial<RentalResponseDTO> = {}): RentalResponseDTO =>
-    rental({ quantity: 10, dailyPrice: 1000, ...over });
+    rental({ quantity: 10, price: 1000, ...over });
 
   it("har partiya O'Z kunigacha hisoblanadi", () => {
     // 3 tasi 3-oktyabrda qaytdi (3 × 2 kun), 7 tasi hali mijozda (7 × 11 kun).
@@ -202,7 +206,7 @@ describe('qisman qaytarish', () => {
   it("o'sha kuni qaytgan partiyaga ham eng kami bir kun yoziladi", () => {
     const item = rental({
       quantity: 2,
-      dailyPrice: 1000,
+      price: 1000,
       returns: [{ quantity: 1, returnedDate: '2026-10-01' }],
     });
     // 1 × 1 kun (eng kami) + 1 × 11 kun = 12 buyum-kun.
@@ -222,5 +226,153 @@ describe('qisman qaytarish', () => {
     });
     expect(returnedQuantity(item)).toBe(3);
     expect(accruedAmount(item, '2026-10-12')).toBe(83000);
+  });
+});
+
+/**
+ * SOATLIK IJARA.
+ *
+ * Boshlangan soat to'liq hisoblanadi, eng kami bir soat. Kunlik
+ * ijaradagi kabi bu qoida ham serverdagi kalkulyator bilan bir xil.
+ */
+describe('soatlik ijara', () => {
+  // Beton aralashtirgich: 13-oktyabr 14:00 da 3 soatga, soatiga 20 000.
+  const mixer = (over: Partial<RentalResponseDTO> = {}): RentalResponseDTO =>
+    rental({
+      itemName: 'Beton aralashtirgich',
+      period: 'HOUR',
+      price: 20000,
+      startDate: '2026-10-13',
+      startTime: '14:00',
+      dueDate: '2026-10-13',
+      dueTime: '17:00',
+      ...over,
+    });
+
+  it('muddatida qaytsa kelishilgan soat olinadi', () => {
+    const item = mixer({ returnedDate: '2026-10-13', returnedTime: '17:00' });
+    expect(billedUnits(item)).toBe(3);
+    expect(accruedAmount(item)).toBe(60000);
+  });
+
+  it("boshlangan soat TO'LIQ hisoblanadi (3 soat 10 daqiqa = 4 soat)", () => {
+    const item = mixer({ returnedDate: '2026-10-13', returnedTime: '17:10' });
+    expect(billedUnits(item)).toBe(4);
+    expect(overdueUnits(item)).toBe(1);
+  });
+
+  it('darhol qaytsa ham kamida bir soat', () => {
+    const item = mixer({ returnedDate: '2026-10-13', returnedTime: '14:05' });
+    expect(billedUnits(item)).toBe(1);
+  });
+
+  it('qaytmagan buyum hozirgacha hisoblanadi va yarim tundan o\'tadi', () => {
+    // 14:00 dan ertasi 09:30 gacha = 19.5 soat -> 20 soat.
+    expect(billedUnits(mixer(), '2026-10-14T09:30')).toBe(20);
+    expect(rentalStatus(mixer(), '2026-10-14T09:30')).toBe('OVERDUE');
+  });
+
+  it("muddat soatining o'zida hali kechikish yo'q", () => {
+    expect(overdueUnits(mixer(), '2026-10-13T17:00')).toBe(0);
+    expect(rentalStatus(mixer(), '2026-10-13T16:59')).toBe('ACTIVE');
+  });
+
+  it('partiyalar ham o\'z soatigacha hisoblanadi', () => {
+    // 2 ta: biri 15:30 da (2 soat), ikkinchisi 18:00 da (4 soat) qaytdi.
+    const item = mixer({
+      quantity: 2,
+      returnedDate: '2026-10-13',
+      returnedTime: '18:00',
+      returns: [
+        { quantity: 1, returnedDate: '2026-10-13', returnedTime: '15:30' },
+        { quantity: 1, returnedDate: '2026-10-13', returnedTime: '18:00' },
+      ],
+    });
+    expect(accruedAmount(item)).toBe(120000);
+  });
+
+  it('kunlik ijarada soat hisobga kirmaydi', () => {
+    // Kechqurun berib ertalab qaytarilsa — 1 kun, 0.5 emas.
+    const item = rental({
+      startDate: '2026-10-01',
+      startTime: '21:00',
+      returnedDate: '2026-10-02',
+      returnedTime: '08:00',
+    });
+    expect(billedUnits(item)).toBe(1);
+  });
+});
+
+describe('dueFrom / durationOf', () => {
+  it('kunlikda faqat sana', () => {
+    expect(dueFrom('DAY', '2026-10-01', null, 3)).toEqual({ date: '2026-10-04', time: null });
+  });
+
+  it('soatlikda sana va soat', () => {
+    expect(dueFrom('HOUR', '2026-10-13', '14:00', 3)).toEqual({ date: '2026-10-13', time: '17:00' });
+  });
+
+  it('soatlik muddat yarim tundan o\'tsa sana suriladi', () => {
+    expect(dueFrom('HOUR', '2026-12-31', '22:30', 5)).toEqual({ date: '2027-01-01', time: '03:30' });
+  });
+
+  it('soat yoki muddat xato bo\'lsa null', () => {
+    expect(dueFrom('HOUR', '2026-10-13', '25:00', 3)).toBeNull();
+    expect(dueFrom('HOUR', '2026-10-13', '14:00', 0)).toBeNull();
+  });
+
+  it('tahrirlash uchun muddat qaytadan chiqariladi', () => {
+    expect(durationOf(rental())).toBe(3);
+    expect(
+      durationOf(
+        rental({
+          period: 'HOUR',
+          startDate: '2026-10-13',
+          startTime: '22:00',
+          dueDate: '2026-10-14',
+          dueTime: '02:00',
+        }),
+      ),
+    ).toBe(4);
+  });
+
+  it('soat maydoni raqamlardan HH:mm ga keladi', () => {
+    expect(formatTimeInputValue('1')).toBe('1');
+    expect(formatTimeInputValue('143')).toBe('14:3');
+    expect(formatTimeInputValue('14:30')).toBe('14:30');
+    expect(formatTimeInputValue('143099')).toBe('14:30');
+  });
+});
+
+/**
+ * HISOB BOSQICHI — ijarachi ro'yxatni shu bo'yicha ajratadi:
+ * mijozda / kechikkan / NASIYA (qaytgan, puli olinmagan) / yopilgan.
+ */
+describe('rentalStage', () => {
+  it('buyum mijozda bo\'lsa holat o\'zi', () => {
+    expect(rentalStage(rental(), '2026-10-02')).toBe('ACTIVE');
+    expect(rentalStage(rental(), '2026-10-10')).toBe('OVERDUE');
+  });
+
+  it("qaytgan, puli olinmagan — NASIYA", () => {
+    const item = rental({ returnedDate: '2026-10-04', paidAmount: 100000 });
+    expect(rentalStage(item, '2026-10-12')).toBe('DEBT');
+  });
+
+  it('qaytgan va puli olingan — yopilgan', () => {
+    const item = rental({ returnedDate: '2026-10-04', paidAmount: 150000 });
+    expect(rentalStage(item, '2026-10-12')).toBe('CLOSED');
+  });
+
+  it("ortiqcha to'langan bo'lsa ham yopilgan (nasiya emas)", () => {
+    const item = rental({ returnedDate: '2026-10-04', paidAmount: 200000 });
+    expect(rentalStage(item, '2026-10-12')).toBe('CLOSED');
+  });
+
+  it('kasr narxda yaxlitlash xatosi nasiya bo\'lib chiqmaydi', () => {
+    // 0.1 × 3 = 0.30000000000000004 — to'langan 0.3 bilan teng bo'lishi kerak.
+    const item = rental({ price: 0.1, returnedDate: '2026-10-04', paidAmount: 0.3, currency: 'USD' });
+    expect(unpaidAmount(item)).toBe(0);
+    expect(rentalStage(item, '2026-10-12')).toBe('CLOSED');
   });
 });

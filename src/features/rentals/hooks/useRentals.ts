@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../../auth/context/AuthContext';
 import {
-  createRental,
+  createRentalBatch,
   deleteRental,
   getMyRentals,
   getRentalById,
@@ -11,13 +11,20 @@ import {
   returnRental,
   updateRental,
 } from '../services/rentalService';
+import {
+  createRentalItem,
+  deleteRentalItem,
+  getRentalItems,
+  updateRentalItem,
+} from '../services/rentalItemService';
 import type {
-  RentalCreateDTO,
+  RentalBatchCreateDTO,
   RentalFilterDTO,
   RentalPaymentDTO,
   RentalReturnDTO,
   RentalUpdateDTO,
 } from '../types/rental';
+import type { RentalItemCreateDTO, RentalItemUpdateDTO } from '../types/rentalItem';
 
 const RENTAL_KEY = 'rental';
 
@@ -43,14 +50,18 @@ export const useRentalSummary = (filter: RentalFilterDTO = {}) => {
   });
 };
 
-export const useMyRentals = (filter: RentalFilterDTO = {}) => {
+/**
+ * `enabled: false` — oyna yopiq turganda so'rov ketmasin (masalan ombor
+ * kartasidagi "kimlarda" ro'yxati faqat karta ochilganda kerak).
+ */
+export const useMyRentals = (filter: RentalFilterDTO = {}, options: { enabled?: boolean } = {}) => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;
 
   return useQuery({
     queryKey: [RENTAL_KEY, 'my', filter],
     queryFn: () => getMyRentals({ filter, token }),
-    enabled: Boolean(token),
+    enabled: Boolean(token) && options.enabled !== false,
   });
 };
 
@@ -78,6 +89,8 @@ export const useRental = (id: string) => {
 const useRentalInvalidate = () => {
   const queryClient = useQueryClient();
   return () => {
+    // Ombor kaliti ham `rental` ostida: buyum berilganda yoki qaytganda
+    // ombordagi BAND/BO'SH soni o'zgaradi va u ham yangilanishi shart.
     queryClient.invalidateQueries({ queryKey: [RENTAL_KEY] });
     // Kalitlar qarz bo'limidagi so'rovlar bilan AYNAN bir xil bo'lishi
     // shart (ContactsContext va useContactBalances), aks holda tozalash
@@ -87,13 +100,14 @@ const useRentalInvalidate = () => {
   };
 };
 
-export const useCreateRental = () => {
+/** Bir mijozga bir yoki bir nechta buyumni berish. */
+export const useCreateRentalBatch = () => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: (dto: RentalCreateDTO) => createRental(dto, token),
+    mutationFn: (dto: RentalBatchCreateDTO) => createRentalBatch(dto, token),
     onSuccess: invalidate,
   });
 };
@@ -141,6 +155,56 @@ export const useDeleteRental = () => {
 
   return useMutation({
     mutationFn: (id: string) => deleteRental(id, token),
+    onSuccess: invalidate,
+  });
+};
+
+// ---------------------------------------------------------------- ombor
+
+/**
+ * Ombordagi buyumlar. Kalit `rental` ostida — ijara o'zgarganda (berildi,
+ * qaytdi) band/bo'sh soni ham yangilanadi.
+ */
+export const useRentalItems = (options: { enabled?: boolean } = {}) => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+
+  return useQuery({
+    queryKey: [RENTAL_KEY, 'items'],
+    queryFn: () => getRentalItems(token),
+    enabled: Boolean(token) && options.enabled !== false,
+  });
+};
+
+export const useCreateRentalItem = () => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+  const invalidate = useRentalInvalidate();
+
+  return useMutation({
+    mutationFn: (dto: RentalItemCreateDTO) => createRentalItem(dto, token),
+    onSuccess: invalidate,
+  });
+};
+
+export const useUpdateRentalItem = () => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+  const invalidate = useRentalInvalidate();
+
+  return useMutation({
+    mutationFn: (dto: RentalItemUpdateDTO) => updateRentalItem(dto, token),
+    onSuccess: invalidate,
+  });
+};
+
+export const useDeleteRentalItem = () => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+  const invalidate = useRentalInvalidate();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteRentalItem(id, token),
     onSuccess: invalidate,
   });
 };

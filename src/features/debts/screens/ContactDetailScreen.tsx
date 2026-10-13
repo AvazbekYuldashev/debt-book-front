@@ -27,7 +27,7 @@ import { ROUTES } from '../../../app/navigation/routes';
 import { MoneyActionType } from '../../../shared/types/money';
 import { netByCurrency } from '../../../shared/lib/currency';
 import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
-import { canWrite } from '../../../shared/lib/permissions';
+import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { useI18n } from '../../../shared/i18n';
 import BusinessCatalogPane from '../../products/components/BusinessCatalogPane';
 import ContactBalanceHeader from '../components/ContactBalanceHeader';
@@ -329,6 +329,16 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     setEditingRental(null);
   }, []);
 
+  /**
+   * Omborda kerakli buyum yo'q — ijara bo'limining omboriga o'tib, buyum
+   * qo'shish formasi darhol ochiladi. Shu yerda modal ustiga modal
+   * qalashtirilmaydi: orqaga qaytish chalkashib ketardi.
+   */
+  const openStockForNewItem = useCallback(() => {
+    closeRentalForm();
+    navigation.navigate(ROUTES.RENTALS, { tab: 'stock', addItem: true });
+  }, [closeRentalForm, navigation]);
+
   if (!contact) {
     return (
       <View style={styles.centered}>
@@ -489,12 +499,15 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         onClose={closeRentalForm}
         client={contact ? { id: contact.id, name: contact.fullName } : null}
         rental={editingRental}
+        onAddItem={allowWrite ? openStockForNewItem : undefined}
       />
 
       <RentalDetailModal
         rental={openedRental}
         onClose={() => setOpenedRental(null)}
         onEdit={handleEditRental}
+        allowWrite={allowWrite}
+        allowDelete={canDelete(workspace.activeBusinessRole)}
       />
 
       <MoneyActionModal

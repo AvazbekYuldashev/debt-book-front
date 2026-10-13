@@ -1,26 +1,32 @@
 import React from 'react';
-import { act, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactTestInstance } from 'react-test-renderer';
 import RentalListScreen from '../RentalListScreen';
 import { AppThemeProvider } from '../../../../shared/theme';
 import { LanguageProvider } from '../../../../shared/i18n';
 import { formatDateFromDate } from '../../../../shared/lib/date';
 import type { RentalResponseDTO } from '../../types/rental';
+import type { RentalItemResponseDTO } from '../../types/rentalItem';
 
 jest.mock('../../hooks/useRentals');
 
 import {
-  useCreateRental,
+  useCreateRentalBatch,
+  useCreateRentalItem,
   useDeleteRental,
+  useDeleteRentalItem,
   useMyRentals,
   usePayRental,
+  useRentalItems,
   useRentalSummary,
   useReturnRental,
   useUpdateRental,
+  useUpdateRentalItem,
 } from '../../hooks/useRentals';
 
 const mockList = useMyRentals as jest.Mock;
 const mockSummary = useRentalSummary as jest.Mock;
+const mockItems = useRentalItems as jest.Mock;
 
 /**
  * Ekran forma va karta oynalarini ham o'z ichiga oladi, ular esa yozish
@@ -47,7 +53,8 @@ const rental = (over: Partial<RentalResponseDTO>): RentalResponseDTO => ({
   clientName: 'Akmal',
   itemName: 'Perforator',
   quantity: 1,
-  dailyPrice: 50000,
+  period: 'DAY',
+  price: 50000,
   currency: 'UZS',
   startDate: dayShift(-5),
   dueDate: dayShift(-2),
@@ -56,12 +63,38 @@ const rental = (over: Partial<RentalResponseDTO>): RentalResponseDTO => ({
   ...over,
 });
 
-const show = () => {
-  const navigation = { goBack: jest.fn(), navigate: jest.fn() } as never;
+const stockItem = (over: Partial<RentalItemResponseDTO>): RentalItemResponseDTO => ({
+  id: 'i1',
+  name: 'Lesa',
+  period: 'DAY',
+  price: 5000,
+  currency: 'UZS',
+  unit: 'DONA',
+  totalQuantity: 100,
+  busyQuantity: 0,
+  ...over,
+});
+
+const listResult = (content: RentalResponseDTO[]) => ({
+  data: { content },
+  isLoading: false,
+  isRefetching: false,
+  error: null,
+  refetch: jest.fn(),
+});
+
+/**
+ * `tab` berilmasa ekran OMBOR bilan ochiladi. Ijaralar testlari
+ * to'g'ridan-to'g'ri o'sha bo'limni ochadi — chipni bosib o'tish har
+ * testda bir xil takror bo'lardi.
+ */
+const show = (tab?: 'stock' | 'rentals') => {
+  const navigation = { goBack: jest.fn(), navigate: jest.fn(), setParams: jest.fn() } as never;
+  const route = { key: 'Rentals', name: 'Rentals', params: tab ? { tab } : undefined } as never;
   return render(
     <AppThemeProvider>
       <LanguageProvider>
-        <RentalListScreen navigation={navigation} />
+        <RentalListScreen navigation={navigation} route={route} />
       </LanguageProvider>
     </AppThemeProvider>,
   );
@@ -75,14 +108,22 @@ const show = () => {
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 20)); });
 
 beforeEach(() => {
-  (useCreateRental as jest.Mock).mockReturnValue(mutationStub);
-  (useUpdateRental as jest.Mock).mockReturnValue(mutationStub);
-  (useReturnRental as jest.Mock).mockReturnValue(mutationStub);
-  (usePayRental as jest.Mock).mockReturnValue(mutationStub);
-  (useDeleteRental as jest.Mock).mockReturnValue(mutationStub);
+  for (const hook of [
+    useCreateRentalBatch,
+    useUpdateRental,
+    useReturnRental,
+    usePayRental,
+    useDeleteRental,
+    useCreateRentalItem,
+    useUpdateRentalItem,
+    useDeleteRentalItem,
+  ]) {
+    (hook as jest.Mock).mockReturnValue(mutationStub);
+  }
   mockSummary.mockReturnValue({ data: undefined, isLoading: false, refetch: jest.fn() });
-  mockList.mockReturnValue({
-    data: { content: [] },
+  mockList.mockReturnValue(listResult([]));
+  mockItems.mockReturnValue({
+    data: [],
     isLoading: false,
     isRefetching: false,
     error: null,
@@ -90,9 +131,72 @@ beforeEach(() => {
   });
 });
 
-describe('RentalListScreen', () => {
-  it("ro'yxat bo'sh bo'lsa nima qilish kerakligini aytadi", async () => {
+describe('RentalListScreen — ombor', () => {
+  it("ombor bo'sh bo'lsa buyum qo'shishga undaydi", async () => {
     show();
+    await settle();
+    expect(screen.getByText("Ombor bo'sh")).toBeTruthy();
+  });
+
+  it("100 tadan 50 tasi band bo'lsa 50 tasi bo'sh ko'rinadi", async () => {
+    mockItems.mockReturnValue({
+      data: [stockItem({ busyQuantity: 50 })],
+      isLoading: false,
+      isRefetching: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+    show();
+    await settle();
+
+    expect(screen.getByText('50')).toBeTruthy();
+    expect(screen.getByText('Band 50 · jami 100 dona')).toBeTruthy();
+  });
+
+  it('hammasi band bo\'lsa shunday deb yoziladi', async () => {
+    mockItems.mockReturnValue({
+      data: [stockItem({ busyQuantity: 100 })],
+      isLoading: false,
+      isRefetching: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+    show();
+    await settle();
+
+    expect(screen.getByText('hammasi band')).toBeTruthy();
+  });
+
+  it('guruhlar sarlavha bilan ajraladi', async () => {
+    mockItems.mockReturnValue({
+      data: [
+        stockItem({ id: 'a', name: 'Opalubka', category: 'Qurilish', unit: 'METR_KVADRAT' }),
+        stockItem({ id: 'b', name: 'Stul', category: "To'y" }),
+      ],
+      isLoading: false,
+      isRefetching: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+    show();
+    await settle();
+
+    expect(screen.getByText('Qurilish')).toBeTruthy();
+    expect(screen.getByText("To'y")).toBeTruthy();
+  });
+});
+
+describe('RentalListScreen — ijaralar', () => {
+  it("ro'yxat bo'sh bo'lsa nima qilish kerakligini aytadi", async () => {
+    show('rentals');
+    await settle();
+    expect(screen.getByText("Hozircha ijara yo'q")).toBeTruthy();
+  });
+
+  it('bo\'lim chipi bosilganda ijaralar ochiladi', async () => {
+    show();
+    await settle();
+    fireEvent.press(screen.getByText('Ijaralar'));
     await settle();
     expect(screen.getByText("Hozircha ijara yo'q")).toBeTruthy();
   });
@@ -106,7 +210,7 @@ describe('RentalListScreen', () => {
       error: null,
       refetch: jest.fn(),
     });
-    show();
+    show('rentals');
     await settle();
 
     expect(screen.getByText('2 kun kechikdi')).toBeTruthy();
@@ -122,7 +226,7 @@ describe('RentalListScreen', () => {
       error: null,
       refetch: jest.fn(),
     });
-    show();
+    show('rentals');
     await settle();
 
     expect(screen.getByText('Qaytarildi')).toBeTruthy();
@@ -147,7 +251,7 @@ describe('RentalListScreen', () => {
       error: null,
       refetch: jest.fn(),
     });
-    show();
+    show('rentals');
     await settle();
 
     // Qatorda nom va miqdor qo'shimchasi ikki bola bo'lib keladi
@@ -170,10 +274,68 @@ describe('RentalListScreen', () => {
       error: null,
       refetch: jest.fn(),
     });
-    show();
+    show('rentals');
     await settle();
 
     // 5 kun × 50 000 = 250 000, 100 000 olingan -> 150 000 qoldi.
     expect(screen.getByText(/150 000/)).toBeTruthy();
+  });
+
+  it("buyum qaytib puli olinmagan bo'lsa NASIYA deb turadi", async () => {
+    mockList.mockReturnValue(
+      listResult([rental({ returnedDate: dayShift(-1), paidAmount: 50000 })]),
+    );
+    show('rentals');
+    await settle();
+
+    // Bir xil so'z panelda, filtrda va qatorda bor — qator belgisi ham shular orasida.
+    expect(screen.getAllByText('Nasiya').length).toBeGreaterThanOrEqual(3);
+    // 4 kun × 50 000 = 200 000, 50 000 olingan -> 150 000 nasiya.
+    expect(screen.getByText(/150 000/)).toBeTruthy();
+  });
+
+  it('Nasiya filtri faqat qaytgan, puli olinmaganlarni qoldiradi', async () => {
+    mockList.mockReturnValue(
+      listResult([
+        rental({ id: 'r-debt', itemName: 'Stul', returnedDate: dayShift(-1) }),
+        rental({ id: 'r-paid', itemName: 'Stol', returnedDate: dayShift(-1), paidAmount: 200000 }),
+        rental({ id: 'r-out', itemName: 'Lesa' }),
+      ]),
+    );
+    show('rentals');
+    await settle();
+
+    fireEvent.press(screen.getByRole('radio', { name: 'Nasiya' }));
+    await settle();
+
+    expect(screen.getByText('Stul')).toBeTruthy();
+    expect(screen.queryByText('Stol')).toBeNull();
+    expect(screen.queryByText('Lesa')).toBeNull();
+    // Serverga ham shu filtr ketadi.
+    expect(mockList).toHaveBeenCalledWith({ status: 'DEBT' });
+  });
+
+  it('soatlik ijarada soatlar ko\'rinadi', async () => {
+    const now = new Date();
+    const pad = (v: number) => String(v).padStart(2, '0');
+    const start = new Date(now.getTime() - 3 * 60 * 60 * 1000 - 10 * 60 * 1000);
+    mockList.mockReturnValue(
+      listResult([
+        rental({
+          itemName: 'Generator',
+          period: 'HOUR',
+          price: 20000,
+          startDate: formatDateFromDate(start),
+          startTime: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
+          dueDate: formatDateFromDate(start),
+          dueTime: `${pad(start.getHours())}:${pad(start.getMinutes())}`,
+        }),
+      ]),
+    );
+    show('rentals');
+    await settle();
+
+    // 3 soat 10 daqiqa — boshlangan soat to'liq: 4 soat.
+    expect(screen.getByText('4 soat')).toBeTruthy();
   });
 });

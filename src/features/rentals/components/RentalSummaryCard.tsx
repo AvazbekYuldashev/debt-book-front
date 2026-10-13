@@ -14,14 +14,20 @@ interface RentalSummaryCardProps {
 }
 
 /**
- * Ijara bo'limining yuqori paneli.
+ * Ijara bo'limining yuqori paneli — ijarachining uchta savoliga javob:
  *
- * Chapda ikki raqam: nechta buyum odamlarda va qanchasining muddati
- * o'tgan. O'ngda pul — valyutalar ALOHIDA qator bo'lib turadi, chunki
- * so'm bilan dollarni qo'shib bo'lmaydi (gap kassadagi qoida bilan bir xil).
+ *   1. Nechta ijara ochiq, qanchasi kechikkan, nechtasi nasiyada?
+ *   2. Mijozlardagi buyumlardan qancha pul OLINISHI KERAK?
+ *   3. Buyumi qaytib, puli olinmagan — NASIYA qancha?
  *
- * "Olinmagan" raqami ataylab pastda va rangli: foydalanuvchiga eng kerakli
- * ma'lumot — qancha pul hali qo'lga tegmagani.
+ * Ikki pul raqami ATAYIN alohida: birinchisi hali o'sib boradi (buyum
+ * mijozda), ikkinchisi qotib qolgan qarz — uni undirish kerak.
+ *
+ * Valyutalar ALOHIDA qator bo'lib turadi, chunki so'm bilan dollarni
+ * qo'shib bo'lmaydi (gap kassadagi qoida bilan bir xil).
+ *
+ * Eski server ikki yangi maydonni yubormasa, avvalgidek bitta
+ * "Olinmagan pul" ko'rsatiladi.
  */
 const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({ summary, loading = false }) => {
   const theme = useAppTheme();
@@ -29,62 +35,134 @@ const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({ summary, loading 
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const unpaid = useMemo(
-    () => Object.entries(parseCurrencyAmounts(summary?.unpaidByCurrency)),
-    [summary?.unpaidByCurrency],
+  const split = Boolean(summary?.outUnpaidByCurrency || summary?.debtByCurrency);
+
+  const outMoney = useMemo(
+    () =>
+      Object.entries(
+        parseCurrencyAmounts(split ? summary?.outUnpaidByCurrency : summary?.unpaidByCurrency),
+      ),
+    [split, summary?.outUnpaidByCurrency, summary?.unpaidByCurrency],
+  );
+  const debtMoney = useMemo(
+    () => Object.entries(parseCurrencyAmounts(summary?.debtByCurrency)),
+    [summary?.debtByCurrency],
   );
 
   const active = summary?.activeCount ?? 0;
   const overdue = summary?.overdueCount ?? 0;
+  const debt = summary?.debtCount ?? 0;
+
+  const dash = loading ? '—' : null;
 
   return (
     <View style={styles.card}>
       <View style={styles.counts}>
-        <View style={styles.countBlock}>
-          <View style={styles.countHead}>
-            <Ionicons name="cube-outline" size={14} color={colors.textSecondary} />
-            <Text style={styles.countLabel}>{t('rentals.outCount')}</Text>
-          </View>
-          <Text style={styles.countValue}>{loading ? '—' : String(active)}</Text>
-        </View>
-
+        <Count
+          icon="cube-outline"
+          label={t('rentals.outCount')}
+          value={dash ?? String(active)}
+          styles={styles}
+          colors={colors}
+        />
         <View style={styles.divider} />
-
-        <View style={styles.countBlock}>
-          <View style={styles.countHead}>
-            <Ionicons name="alert-circle-outline" size={14} color={colors.textSecondary} />
-            <Text style={styles.countLabel}>{t('rentals.overdueCount')}</Text>
-          </View>
-          <Text style={[styles.countValue, overdue > 0 ? { color: colors.negative } : null]}>
-            {loading ? '—' : String(overdue)}
-          </Text>
-        </View>
+        <Count
+          icon="alert-circle-outline"
+          label={t('rentals.overdueCount')}
+          value={dash ?? String(overdue)}
+          tone={overdue > 0 ? colors.negative : undefined}
+          styles={styles}
+          colors={colors}
+        />
+        <View style={styles.divider} />
+        <Count
+          icon="wallet-outline"
+          label={t('rentals.debtCount')}
+          value={dash ?? String(debt)}
+          tone={debt > 0 ? colors.secondary : undefined}
+          styles={styles}
+          colors={colors}
+        />
       </View>
 
-      <View style={styles.moneyBlock}>
-        <Text style={styles.countLabel}>{t('rentals.unpaidTotal')}</Text>
-        {/* Qator yo'q = olinmagan pul qolmagan. "0 so'm" chizish noto'g'ri
-            bo'lardi: qaysi valyutada nol ekani ma'lum emas. */}
-        {unpaid.length === 0 ? (
-          <Text style={styles.moneyMuted}>{loading ? '—' : t('rentals.allCollected')}</Text>
-        ) : (
-          unpaid.map(([code, amount]) => (
-            <Text key={code} style={styles.moneyValue} numberOfLines={1}>
-              {formatMoney(amount ?? 0, normalizeCurrency(code))}
-            </Text>
-          ))
-        )}
+      <View style={styles.moneyRow}>
+        <MoneyBlock
+          label={split ? t('rentals.toCollect') : t('rentals.unpaidTotal')}
+          entries={outMoney}
+          empty={dash ?? t('rentals.allCollected')}
+          tone={colors.negative}
+          styles={styles}
+        />
+        {split ? (
+          <MoneyBlock
+            label={t('rentals.debtTotal')}
+            entries={debtMoney}
+            empty={dash ?? t('rentals.noDebt')}
+            tone={colors.secondary}
+            styles={styles}
+            alignEnd
+          />
+        ) : null}
       </View>
     </View>
   );
 };
 
+interface CountProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  tone?: string;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeValue['colors'];
+}
+
+const Count: React.FC<CountProps> = ({ icon, label, value, tone, styles, colors }) => (
+  <View style={styles.countBlock}>
+    <View style={styles.countHead}>
+      <Ionicons name={icon} size={14} color={colors.textSecondary} />
+      <Text style={styles.countLabel} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+    <Text style={[styles.countValue, tone ? { color: tone } : null]}>{value}</Text>
+  </View>
+);
+
+interface MoneyBlockProps {
+  label: string;
+  entries: [string, number | undefined][];
+  /** Qator yo'q bo'lganda chiqadigan matn. */
+  empty: string;
+  tone: string;
+  styles: ReturnType<typeof createStyles>;
+  alignEnd?: boolean;
+}
+
+/**
+ * Qator yo'q = pul qolmagan. "0 so'm" chizish noto'g'ri bo'lardi: qaysi
+ * valyutada nol ekani ma'lum emas.
+ */
+const MoneyBlock: React.FC<MoneyBlockProps> = ({ label, entries, empty, tone, styles, alignEnd }) => (
+  <View style={[styles.moneyBlock, alignEnd && styles.moneyBlockEnd]}>
+    <Text style={styles.countLabel} numberOfLines={1}>
+      {label}
+    </Text>
+    {entries.length === 0 ? (
+      <Text style={styles.moneyMuted}>{empty}</Text>
+    ) : (
+      entries.map(([code, amount]) => (
+        <Text key={code} style={[styles.moneyValue, { color: tone }]} numberOfLines={1}>
+          {formatMoney(amount ?? 0, normalizeCurrency(code))}
+        </Text>
+      ))
+    )}
+  </View>
+);
+
 const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     card: {
-      flexDirection: 'row',
-      alignItems: 'stretch',
-      justifyContent: 'space-between',
       gap: spacing.sm,
       // Gap kassaning statistika paneli bilan bir xil sirt — ikki bo'lim
       // yonma-yon turganda ular bir xil ko'rinishi kerak.
@@ -96,11 +174,13 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     counts: {
       flexDirection: 'row',
       alignItems: 'stretch',
+      justifyContent: 'space-between',
       gap: spacing.sm,
-      flexShrink: 1,
     },
     countBlock: {
+      flex: 1,
       gap: 2,
+      minWidth: 0,
     },
     countHead: {
       flexDirection: 'row',
@@ -112,6 +192,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       fontSize: 11,
       fontWeight: '600',
       color: colors.textSecondary,
+      flexShrink: 1,
     },
     countValue: {
       ...typography.body,
@@ -124,17 +205,26 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       width: StyleSheet.hairlineWidth,
       backgroundColor: colors.border,
     },
+    moneyRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.border,
+      paddingTop: spacing.xs,
+    },
     moneyBlock: {
-      alignItems: 'flex-end',
       gap: 1,
       flexShrink: 1,
       minWidth: 0,
+    },
+    moneyBlockEnd: {
+      alignItems: 'flex-end',
     },
     moneyValue: {
       ...typography.body,
       fontSize: 15,
       fontWeight: '800',
-      color: colors.negative,
       fontVariant: ['tabular-nums'],
     },
     moneyMuted: {

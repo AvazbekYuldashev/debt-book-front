@@ -29,13 +29,17 @@ export type DebtsStackParamList = {
   };
   [ROUTES.NOTIFICATIONS]: undefined;
   /**
-   * Ijara ro'yxati.
+   * Ijara: ombor va berilgan ijaralar.
    *
    * Qarzlar stack'ida turadi: ijara haqi mijozning qarzi bo'lib turadi,
-   * ya'ni bu qarz daftarining bir ko'rinishi. Parametr kerak emas —
-   * ekran ro'yxatni o'zi yuklaydi.
+   * ya'ni bu qarz daftarining bir ko'rinishi.
+   *
+   * `tab` — qaysi bo'lim ochilsin (berilmasa ombor).
+   * `addItem` — ochilishi bilan "omborga buyum qo'shish" formasi: mijoz
+   * kartasidagi ijara formasida kerakli buyum topilmaganda shu yo'l bilan
+   * keladi.
    */
-  [ROUTES.RENTALS]: undefined;
+  [ROUTES.RENTALS]: { tab?: 'stock' | 'rentals'; addItem?: boolean } | undefined;
 };
 
 export type DebtsNavigation = NativeStackNavigationProp<DebtsStackParamList>;

@@ -22,15 +22,25 @@ import { confirmAction } from '../../../shared/lib/confirm';
 import { useDeleteRental, usePayRental, useReturnRental } from '../hooks/useRentals';
 import {
   accruedAmount,
-  billedDays,
-  overdueDays,
+  billedUnits,
+  currentTimeString,
+  effectiveEnd,
+  formatMoment,
+  formatTimeInputValue,
+  isValidTimeInput,
+  joinMoment,
+  minutesBetween,
+  overdueUnits,
   remainingQuantity,
-  rentalStatus,
+  rentalPeriod,
+  rentalStage,
   returnedQuantity,
+  startMoment,
   todayString,
   totalQuantity,
   unpaidAmount,
 } from '../model/rentalMath';
+import { lateLabel, perPeriodLabel, quantityLabel, unitCountLabel } from '../model/rentalLabels';
 import { toAmount, type RentalResponseDTO } from '../types/rental';
 
 interface RentalDetailModalProps {
@@ -38,6 +48,9 @@ interface RentalDetailModalProps {
   onClose: () => void;
   /** Tahrirlash formasini ochish — forma ota-ekranda turadi. */
   onEdit: (rental: RentalResponseDTO) => void;
+  /** Biznesda MEMBER faqat ko'radi — amal tugmalari chiqmaydi. */
+  allowWrite?: boolean;
+  allowDelete?: boolean;
 }
 
 type Pane = 'info' | 'return' | 'payment';
@@ -58,7 +71,13 @@ type Pane = 'info' | 'return' | 'payment';
  * Amal tanlanganda forma AYNI KARTA ichida ochiladi (`Pane`): ustiga
  * yana bir modal qalashtirish telefonda orqaga qaytishni chalkashtiradi.
  */
-const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, onEdit }) => {
+const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
+  rental,
+  onClose,
+  onEdit,
+  allowWrite = true,
+  allowDelete = true,
+}) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const keyboardInset = useKeyboardInset();
@@ -71,6 +90,7 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
 
   const [pane, setPane] = useState<Pane>('info');
   const [returnDate, setReturnDate] = useState(todayString());
+  const [returnTime, setReturnTime] = useState(currentTimeString());
   const [returnQty, setReturnQty] = useState('');
   const [payAmount, setPayAmount] = useState('');
   const [error, setError] = useState('');
@@ -87,6 +107,7 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
     setPane('info');
     setError('');
     setReturnDate(todayString());
+    setReturnTime(currentTimeString());
     // Maydonlar QOLGANI bilan to'ldiriladi: ko'p holatda hammasi birdan
     // qaytadi va hech narsa yozmasdan tasdiqlanadi.
     setReturnQty(String(remainingQuantity(rental)));
@@ -98,8 +119,13 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
     if (!rental) return;
     setError('');
     if (!isValidDateInput(returnDate)) return setError(t('rentals.errReturnDate'));
+    const hourly = rentalPeriod(rental) === 'HOUR';
+    if (hourly && !isValidTimeInput(returnTime)) return setError(t('rentals.errTime'));
     // Buyum berilishidan OLDIN qaytarilgan bo'lishi mumkin emas.
-    if (returnDate < rental.startDate) return setError(t('rentals.errReturnBeforeStart'));
+    const back = joinMoment(returnDate, hourly ? returnTime : null);
+    if ((minutesBetween(startMoment(rental), back) ?? 0) < 0) {
+      return setError(t('rentals.errReturnBeforeStart'));
+    }
 
     const left = remainingQuantity(rental);
     const quantity = Number(returnQty);
@@ -107,10 +133,13 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
     if (quantity > left) return setError(t('rentals.errReturnTooMany', { count: String(left) }));
 
     returnMutation.mutate(
-      { id: rental.id, dto: { returnedDate: returnDate, quantity } },
+      {
+        id: rental.id,
+        dto: { returnedDate: returnDate, ...(hourly ? { returnedTime: returnTime } : {}), quantity },
+      },
       { onSuccess: onClose, onError: (err) => setError((err as Error).message) },
     );
-  }, [rental, returnDate, returnQty, returnMutation, onClose, t]);
+  }, [rental, returnDate, returnTime, returnQty, returnMutation, onClose, t]);
 
   const handlePay = useCallback(() => {
     if (!rental) return;
@@ -136,9 +165,11 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
 
   if (!rental) return null;
 
-  const status = rentalStatus(rental);
-  const days = billedDays(rental);
-  const late = overdueDays(rental);
+  const period = rentalPeriod(rental);
+  const hourly = period === 'HOUR';
+  const stage = rentalStage(rental);
+  const units = billedUnits(rental);
+  const late = overdueUnits(rental);
   const accrued = accruedAmount(rental);
   const paid = toAmount(rental.paidAmount);
   const unpaid = unpaidAmount(rental);
@@ -147,15 +178,27 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
   const left = remainingQuantity(rental);
   const multiple = total > 1;
 
-  const tone =
-    status === 'OVERDUE' ? colors.negative : status === 'RETURNED' ? colors.textSecondary : colors.positive;
+  const returned = stage === 'DEBT' || stage === 'CLOSED';
 
+  const tone =
+    stage === 'OVERDUE'
+      ? colors.negative
+      : stage === 'DEBT'
+        ? colors.secondary
+        : stage === 'CLOSED'
+          ? colors.textSecondary
+          : colors.positive;
+
+  // Yopilgan payt: belgi bo'lmasa (faqat partiyalar) oxirgi partiya kuni.
+  const returnedOn = effectiveEnd(rental).replace('T', ' ');
   const statusText =
-    status === 'RETURNED'
-      ? t('rentals.returnedOn', { date: rental.returnedDate ?? '' })
-      : late > 0
-        ? t('rentals.lateByDays', { count: String(late) })
-        : t('rentals.dueOn', { date: rental.dueDate });
+    stage === 'DEBT'
+      ? t('rentals.debtStatus', { date: returnedOn })
+      : stage === 'CLOSED'
+        ? t('rentals.returnedOn', { date: returnedOn })
+        : late > 0
+          ? lateLabel(t, period, late)
+          : t('rentals.dueOn', { date: formatMoment(rental.dueDate, hourly ? rental.dueTime : null) });
 
   return (
     <Modal transparent visible={Boolean(rental)} animationType="slide" onRequestClose={onClose}>
@@ -180,7 +223,9 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
               <View style={styles.headText}>
                 <Text style={styles.title} numberOfLines={2}>
                   {rental.itemName}
-                  {multiple ? ` × ${total}` : ''}
+                  {multiple || (rental.unit && rental.unit !== 'DONA')
+                    ? ` × ${quantityLabel(t, total, rental.unit)}`
+                    : ''}
                 </Text>
                 <Text style={[styles.statusText, { color: tone }]} numberOfLines={1}>
                   {statusText}
@@ -223,8 +268,8 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
             <View style={styles.rows}>
               <DetailRow label={t('rentals.fieldClient')} value={rental.clientName} styles={styles} />
               <DetailRow
-                label={t('rentals.fieldDailyPrice')}
-                value={formatMoney(toAmount(rental.dailyPrice), rental.currency)}
+                label={t('rentals.fieldPrice')}
+                value={`${formatMoney(toAmount(rental.price), rental.currency)} ${perPeriodLabel(t, period)}`}
                 styles={styles}
               />
               {multiple ? (
@@ -235,15 +280,21 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
                 />
               ) : null}
               <DetailRow
-                label={t('rentals.billedDays')}
-                value={t('rentals.dayCount', { count: String(days) })}
+                label={t(hourly ? 'rentals.billedHours' : 'rentals.billedDays')}
+                value={unitCountLabel(t, period, units)}
                 styles={styles}
               />
               <DetailRow
                 label={t('rentals.period')}
-                value={`${rental.startDate} → ${rental.dueDate}`}
+                value={`${formatMoment(rental.startDate, hourly ? rental.startTime : null)} → ${formatMoment(
+                  rental.dueDate,
+                  hourly ? rental.dueTime : null,
+                )}`}
                 styles={styles}
               />
+              {rental.creatorName ? (
+                <DetailRow label={t('rentals.givenBy')} value={rental.creatorName} styles={styles} />
+              ) : null}
               {rental.note ? (
                 <DetailRow label={t('rentals.fieldNote')} value={rental.note} styles={styles} />
               ) : null}
@@ -258,7 +309,7 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
                       {t('rentals.returnedBatch', { count: String(toAmount(item.quantity)) })}
                     </Text>
                     <Text style={styles.detailValue} numberOfLines={1}>
-                      {item.returnedDate}
+                      {formatMoment(item.returnedDate, hourly ? item.returnedTime : null)}
                     </Text>
                   </View>
                 ))}
@@ -268,31 +319,37 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
             {/* ---- Amallar ---- */}
             {pane === 'info' ? (
               <View style={styles.actionsColumn}>
-                {status !== 'RETURNED' ? (
+                {allowWrite && !returned ? (
                   <Button title={t('rentals.markReturned')} onPress={() => setPane('return')} />
                 ) : null}
-                {unpaid > 0 ? (
+                {allowWrite && unpaid > 0 ? (
                   <Button
                     title={t('rentals.takePayment')}
                     variant="secondary"
                     onPress={() => setPane('payment')}
                   />
                 ) : null}
-                <View style={styles.actionsRow}>
-                  <Button
-                    title={t('common.edit')}
-                    variant="secondary"
-                    onPress={() => onEdit(rental)}
-                    style={styles.actionBtn}
-                  />
-                  <Button
-                    title={t('common.delete')}
-                    variant="secondary"
-                    onPress={handleDelete}
-                    loading={deleteMutation.isPending}
-                    style={styles.actionBtn}
-                  />
-                </View>
+                {allowWrite || allowDelete ? (
+                  <View style={styles.actionsRow}>
+                    {allowWrite ? (
+                      <Button
+                        title={t('common.edit')}
+                        variant="secondary"
+                        onPress={() => onEdit(rental)}
+                        style={styles.actionBtn}
+                      />
+                    ) : null}
+                    {allowDelete ? (
+                      <Button
+                        title={t('common.delete')}
+                        variant="secondary"
+                        onPress={handleDelete}
+                        loading={deleteMutation.isPending}
+                        style={styles.actionBtn}
+                      />
+                    ) : null}
+                  </View>
+                ) : null}
                 <Button title={t('common.close')} variant="secondary" onPress={onClose} />
               </View>
             ) : null}
@@ -309,13 +366,27 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({ rental, onClose, 
                     keyboardType="decimal-pad"
                   />
                 ) : null}
-                <Input
-                  label={t('rentals.returnDate')}
-                  value={returnDate}
-                  onChangeText={(value) => setReturnDate(formatDateInputValue(value))}
-                  keyboardType="number-pad"
-                  placeholder="2026-10-12"
-                />
+                <View style={styles.actionsRow}>
+                  <Input
+                    label={t('rentals.returnDate')}
+                    value={returnDate}
+                    onChangeText={(value) => setReturnDate(formatDateInputValue(value))}
+                    keyboardType="number-pad"
+                    placeholder="2026-10-12"
+                    containerStyle={styles.actionBtn}
+                  />
+                  {/* Soat faqat soatlik ijarada: kunlikda hisob sana bo'yicha. */}
+                  {hourly ? (
+                    <Input
+                      label={t('rentals.returnTime')}
+                      value={returnTime}
+                      onChangeText={(value) => setReturnTime(formatTimeInputValue(value))}
+                      keyboardType="number-pad"
+                      placeholder="18:00"
+                      containerStyle={styles.actionBtn}
+                    />
+                  ) : null}
+                </View>
                 <Text style={styles.note}>
                   {multiple ? t('rentals.returnHintMany') : t('rentals.returnHint')}
                 </Text>

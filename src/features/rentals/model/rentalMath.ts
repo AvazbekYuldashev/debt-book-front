@@ -1,8 +1,20 @@
 import { formatDateFromDate, isValidDateInput } from '../../../shared/lib/date';
-import { RentalResponseDTO, RentalStatus, toAmount } from '../types/rental';
+import {
+  RentalPeriod,
+  RentalResponseDTO,
+  RentalReturnItemDTO,
+  RentalStage,
+  RentalStatus,
+  normalizeRentalPeriod,
+  toAmount,
+} from '../types/rental';
 
 /**
  * Ijara hisobining YAGONA joyi. Ekranlar hisobni o'zi qilmaydi.
+ *
+ * Narx ikki xil davrda bo'ladi: KUNLIK (lesa, opalubka, to'y stullari)
+ * va SOATLIK. Hisob ikkalasida ham bir xil: davr narxi × buyum-davrlar
+ * yig'indisi. Farq faqat "davr qanday sanaladi" degan joyda.
  *
  * ============================ KUN QOIDASI ============================
  * Kun = TUN. 1-oktyabrda berilgan 3 kunlik ijaraning muddati 4-oktyabr;
@@ -17,7 +29,15 @@ import { RentalResponseDTO, RentalStatus, toAmount } from '../types/rental';
  * YAGONA istisno — eng kami bir kun: ertalab berib kechqurun qaytarilgan
  * buyum uchun 0 kun emas, 1 kun olinadi.
  *
- * MUDDATDAN KEYIN HISOB TO'XTAMAYDI: buyum qaytmaguncha har kun
+ * =========================== SOAT QOIDASI ============================
+ * Boshlangan soat — TO'LIQ soat: 14:00 da berilib 17:10 da qaytgan buyum
+ * uchun 4 soat olinadi. Eng kami bir soat. Kechikish ham shunday:
+ * muddatdan bir daqiqa o'tsa — 1 soat kechikdi.
+ *
+ * Kunlik ijarada soat HISOBGA KIRMAYDI (faqat sana), aks holda kechqurun
+ * berilgan buyum ertasi ertalab "1 kun" emas, "0.5 kun" bo'lib qolardi.
+ *
+ * MUDDATDAN KEYIN HISOB TO'XTAMAYDI: buyum qaytmaguncha har davr
  * ustiga qo'shilib boradi.
  *
  * ========================= QISMAN QAYTARISH =========================
@@ -27,16 +47,35 @@ import { RentalResponseDTO, RentalStatus, toAmount } from '../types/rental';
  *   10 stul, 1-oktyabr:  3 tasi 3-oktyabrda qaytdi  -> 3 × 2 kun
  *                        7 tasi hali mijozda        -> 7 × (bugungacha)
  *
- * Shuning uchun summa BUYUM-KUNLAR yig'indisidan chiqariladi, oddiy
- * "miqdor × kun" dan emas.
+ * Shuning uchun summa BUYUM-DAVRLAR yig'indisidan chiqariladi, oddiy
+ * "miqdor × davr" dan emas.
  *
  * Server ham AYNAN shu qoidani bajaradi
  * (Debt-Book: rental/service/RentalCalculator.java, docs/rental-api.md) —
  * aks holda telefondagi summa bilan serverdagi summa farq qiladi.
  * =====================================================================
+ *
+ * VAQT NUQTASI ("moment") — `YYYY-MM-DD` yoki `YYYY-MM-DDTHH:mm` satri,
+ * MINTAQASIZ (devor soati). Hisob kalendar va soat bo'yicha boradi;
+ * mintaqa qo'shilsa telefon bilan server orasida bir kun/soat surilardi.
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+const HOUR_MINUTES = 60;
+
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** HH:mm formatini tekshiradi (00:00 — 23:59). */
+export const isValidTimeInput = (value: string | null | undefined): value is string =>
+  typeof value === 'string' && TIME_RE.test(value);
+
+/** Foydalanuvchi kiritayotgan raqamlarni progressiv HH:mm ga formatlaydi. */
+export const formatTimeInputValue = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+};
 
 /**
  * Kalendar kunining tartib raqami.
@@ -50,16 +89,60 @@ const dayNumber = (value: string): number | null => {
   return Date.UTC(y, m - 1, d) / DAY_MS;
 };
 
+/** Vaqt nuqtasini sana va soatga ajratadi. Soat yo'q yoki buzuq bo'lsa 00:00. */
+const splitMoment = (value: string): { date: string; time: string } => {
+  const [date = '', rawTime = ''] = (value ?? '').split('T');
+  const time = rawTime.slice(0, 5);
+  return { date, time: isValidTimeInput(time) ? time : '00:00' };
+};
+
+/** Daqiqaning tartib raqami — devor soati bo'yicha, mintaqasiz. */
+const minuteNumber = (value: string): number | null => {
+  const { date, time } = splitMoment(value);
+  if (!isValidDateInput(date)) return null;
+  const [y, m, d] = date.split('-').map(Number);
+  const [hh, mm] = time.split(':').map(Number);
+  return Date.UTC(y, m - 1, d, hh, mm) / MINUTE_MS;
+};
+
+const pad2 = (value: number): string => String(value).padStart(2, '0');
+
+/** Sana va (bo'lsa) soatdan vaqt nuqtasi. */
+export const joinMoment = (date: string, time?: string | null): string =>
+  isValidTimeInput(time) ? `${date}T${time}` : date;
+
+/** Ekranda ko'rsatish uchun: "2026-10-13" yoki "2026-10-13 14:00". */
+export const formatMoment = (date: string, time?: string | null): string =>
+  isValidTimeInput(time) ? `${date} ${time}` : date;
+
 /** Bugungi sana YYYY-MM-DD ko'rinishida (qurilmaning lokal kuni). */
 export const todayString = (): string => formatDateFromDate(new Date());
+
+/** Hozirgi soat HH:mm (qurilmaning lokal vaqti). */
+export const currentTimeString = (): string => {
+  const now = new Date();
+  return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+};
+
+/** Hozirgi vaqt nuqtasi: YYYY-MM-DDTHH:mm. Hisobning "bugun"i shu. */
+export const nowString = (): string => `${todayString()}T${currentTimeString()}`;
 
 /**
  * `from` dan `to` gacha o'tgan kunlar soni. Sana noto'g'ri bo'lsa null.
  * Teskari oraliqda manfiy qiymat qaytadi — chegarani chaqiruvchi qo'yadi.
+ * Vaqt nuqtasi berilsa soati tashlab yuboriladi.
  */
 export const daysBetween = (from: string, to: string): number | null => {
-  const start = dayNumber(from);
-  const end = dayNumber(to);
+  const start = dayNumber(splitMoment(from).date);
+  const end = dayNumber(splitMoment(to).date);
+  if (start === null || end === null) return null;
+  return end - start;
+};
+
+/** Ikki vaqt nuqtasi orasidagi daqiqalar. Noto'g'ri bo'lsa null. */
+export const minutesBetween = (from: string, to: string): number | null => {
+  const start = minuteNumber(from);
+  const end = minuteNumber(to);
   if (start === null || end === null) return null;
   return end - start;
 };
@@ -70,6 +153,36 @@ export const billedDaysBetween = (from: string, to: string): number => {
   if (diff === null) return 1;
   return Math.max(1, diff);
 };
+
+/** Ikki vaqt nuqtasi orasidagi hisob soatlari — boshlangan soat to'liq, kamida 1. */
+export const billedHoursBetween = (from: string, to: string): number => {
+  const diff = minutesBetween(from, to);
+  if (diff === null) return 1;
+  return Math.max(1, Math.ceil(diff / HOUR_MINUTES));
+};
+
+/** Davrga qarab hisob birliklari (kun yoki soat) — kamida 1. */
+export const billedUnitsBetween = (period: RentalPeriod, from: string, to: string): number =>
+  period === 'HOUR' ? billedHoursBetween(from, to) : billedDaysBetween(from, to);
+
+// ---------------------------------------------------------------- vaqt nuqtalari
+
+/** Ijara davri (eski yozuvlarda maydon yo'q — kunlik). */
+export const rentalPeriod = (rental: Pick<RentalResponseDTO, 'period'>): RentalPeriod =>
+  normalizeRentalPeriod(rental.period);
+
+const isHourly = (rental: RentalResponseDTO): boolean => rentalPeriod(rental) === 'HOUR';
+
+/** Berilgan payt. Soat faqat soatlik ijarada qo'shiladi. */
+export const startMoment = (rental: RentalResponseDTO): string =>
+  joinMoment(rental.startDate, isHourly(rental) ? rental.startTime : null);
+
+/** Qaytarilishi kerak bo'lgan payt. */
+export const dueMoment = (rental: RentalResponseDTO): string =>
+  joinMoment(rental.dueDate, isHourly(rental) ? rental.dueTime : null);
+
+const batchMoment = (rental: RentalResponseDTO, batch: RentalReturnItemDTO): string =>
+  joinMoment(batch.returnedDate, isHourly(rental) ? batch.returnedTime : null);
 
 // ---------------------------------------------------------------- miqdor
 
@@ -97,31 +210,47 @@ export const remainingQuantity = (rental: RentalResponseDTO): number => {
 export const isPartiallyReturned = (rental: RentalResponseDTO): boolean =>
   !rental.returnedDate && returnedQuantity(rental) > 0;
 
-// ---------------------------------------------------------------- kunlar
+// ---------------------------------------------------------------- davrlar
 
-/** Hisob to'xtagan kun: yozuv yopilgan bo'lsa o'sha sana, aks holda bugun. */
-export const effectiveEndDate = (rental: RentalResponseDTO, today = todayString()): string => {
+/** Hisob to'xtagan payt: yozuv yopilgan bo'lsa o'sha payt, aks holda hozir. */
+export const effectiveEnd = (rental: RentalResponseDTO, now = nowString()): string => {
   // Yopilganlik belgisi birinchi: u yozuv qachon tugaganini aniq aytadi.
-  if (rental.returnedDate && isValidDateInput(rental.returnedDate)) return rental.returnedDate;
-  if (remainingQuantity(rental) > 0) return today;
+  if (rental.returnedDate && isValidDateInput(rental.returnedDate)) {
+    return joinMoment(rental.returnedDate, isHourly(rental) ? rental.returnedTime : null);
+  }
+  if (remainingQuantity(rental) > 0) return now;
 
-  const dates = (rental.returns ?? []).map((item) => item.returnedDate).filter(Boolean);
-  if (dates.length === 0) return today;
-  return dates.reduce((last, date) => (date > last ? date : last));
+  const moments = (rental.returns ?? [])
+    .filter((item) => Boolean(item.returnedDate))
+    .map((item) => batchMoment(rental, item));
+  if (moments.length === 0) return now;
+  return moments.reduce((last, moment) =>
+    (minutesBetween(last, moment) ?? 0) > 0 ? moment : last,
+  );
 };
 
 /**
- * Ko'rsatish uchun kun soni: ijara boshidan hisob to'xtagan kungacha.
+ * Ko'rsatish uchun davr soni (kun yoki soat): ijara boshidan hisob
+ * to'xtagan paytgacha.
  *
  * Qisman qaytarishda bu raqam PULNI bermaydi (har partiya o'z kunigacha
  * hisoblanadi) — u faqat "bu ijara qancha davom etdi" degan ma'noda.
  */
-export const billedDays = (rental: RentalResponseDTO, today = todayString()): number =>
-  billedDaysBetween(rental.startDate, effectiveEndDate(rental, today));
+export const billedUnits = (rental: RentalResponseDTO, now = nowString()): number =>
+  billedUnitsBetween(rentalPeriod(rental), startMoment(rental), effectiveEnd(rental, now));
 
-/** Muddatdan keyin o'tgan kunlar. Muddat kunining o'zida hali 0. */
-export const overdueDays = (rental: RentalResponseDTO, today = todayString()): number => {
-  const diff = daysBetween(rental.dueDate, effectiveEndDate(rental, today));
+/**
+ * Muddatdan keyin o'tgan davrlar. Muddat kunining (soatining) o'zida hali 0.
+ * Soatlikda boshlangan soat to'liq: bir daqiqa kechiksa ham 1 soat.
+ */
+export const overdueUnits = (rental: RentalResponseDTO, now = nowString()): number => {
+  const end = effectiveEnd(rental, now);
+  if (isHourly(rental)) {
+    const minutes = minutesBetween(dueMoment(rental), end);
+    if (minutes === null || minutes <= 0) return 0;
+    return Math.ceil(minutes / HOUR_MINUTES);
+  }
+  const diff = daysBetween(rental.dueDate, end);
   if (diff === null) return 0;
   return Math.max(0, diff);
 };
@@ -132,37 +261,46 @@ export const overdueDays = (rental: RentalResponseDTO, today = todayString()): n
  * RETURNED faqat HAMMA buyum qaytganda — qisman qaytarishdan keyin ijara
  * ochiq qoladi va qolgani uchun hisob davom etadi.
  */
-export const rentalStatus = (rental: RentalResponseDTO, today = todayString()): RentalStatus => {
+export const rentalStatus = (rental: RentalResponseDTO, now = nowString()): RentalStatus => {
   if (remainingQuantity(rental) === 0) return 'RETURNED';
-  return overdueDays(rental, today) > 0 ? 'OVERDUE' : 'ACTIVE';
+  return overdueUnits(rental, now) > 0 ? 'OVERDUE' : 'ACTIVE';
 };
 
 // ---------------------------------------------------------------- pul
 
 /**
- * Yig'ilgan ijara haqi: kunlik narx × buyum-kunlar yig'indisi.
- *
- * Har qaytarish partiyasi o'z kunigacha, qaytmagan qism esa hisob
- * to'xtagan kungacha hisoblanadi.
+ * Pulni tiyin aniqligiga keltiradi: 0.1 × 3 kabi kasrlar "0.30000000004"
+ * bo'lib qolmasin va qoldiq nolga teng bo'lganda "nasiya" deb chiqmasin.
  */
-export const accruedAmount = (rental: RentalResponseDTO, today = todayString()): number => {
-  const price = toAmount(rental.dailyPrice);
-  const end = effectiveEndDate(rental, today);
+const roundMoney = (value: number): number => Math.round(value * 100) / 100;
 
-  let itemDays = 0;
+/**
+ * Yig'ilgan ijara haqi: davr narxi × buyum-davrlar yig'indisi.
+ *
+ * Har qaytarish partiyasi o'z paytigacha, qaytmagan qism esa hisob
+ * to'xtagan paytgacha hisoblanadi.
+ */
+export const accruedAmount = (rental: RentalResponseDTO, now = nowString()): number => {
+  const period = rentalPeriod(rental);
+  const price = toAmount(rental.price);
+  const start = startMoment(rental);
+  const end = effectiveEnd(rental, now);
+
+  let itemUnits = 0;
   for (const item of rental.returns ?? []) {
-    itemDays += toAmount(item.quantity) * billedDaysBetween(rental.startDate, item.returnedDate);
+    itemUnits +=
+      toAmount(item.quantity) * billedUnitsBetween(period, start, batchMoment(rental, item));
   }
 
   const remaining = remainingQuantity(rental);
   if (remaining > 0) {
-    itemDays += remaining * billedDaysBetween(rental.startDate, end);
+    itemUnits += remaining * billedUnitsBetween(period, start, end);
   } else if ((rental.returns ?? []).length === 0) {
     // Partiyasiz yopilgan eski yozuv: butun miqdor `returnedDate` gacha.
-    itemDays += totalQuantity(rental) * billedDaysBetween(rental.startDate, end);
+    itemUnits += totalQuantity(rental) * billedUnitsBetween(period, start, end);
   }
 
-  return price * itemDays;
+  return roundMoney(price * itemUnits);
 };
 
 /**
@@ -171,10 +309,23 @@ export const accruedAmount = (rental: RentalResponseDTO, today = todayString()):
  * Manfiy qiymat KESILMAYDI: oldindan ko'proq to'lab qo'ygan bo'lsa bu
  * haqiqat va ekranda "ortiqcha to'lov" bo'lib ko'rinishi kerak.
  */
-export const unpaidAmount = (rental: RentalResponseDTO, today = todayString()): number =>
-  accruedAmount(rental, today) - toAmount(rental.paidAmount);
+export const unpaidAmount = (rental: RentalResponseDTO, now = nowString()): number =>
+  roundMoney(accruedAmount(rental, now) - toAmount(rental.paidAmount));
 
-// ---------------------------------------------------------------- sanalar
+/**
+ * Hisob bosqichi: buyum qayerda VA puli olinganmi.
+ *
+ * Buyum qaytgan, lekin puli to'liq olinmagan ijara — NASIYA (DEBT).
+ * Ijarachi uchun bu alohida ro'yxat: buyum omborga qaytdi, endi faqat
+ * pulni undirish qoldi.
+ */
+export const rentalStage = (rental: RentalResponseDTO, now = nowString()): RentalStage => {
+  const status = rentalStatus(rental, now);
+  if (status !== 'RETURNED') return status;
+  return unpaidAmount(rental, now) > 0 ? 'DEBT' : 'CLOSED';
+};
+
+// ---------------------------------------------------------------- muddat
 
 /**
  * Boshlanish sanasi + kun soni = muddat sanasi (YYYY-MM-DD).
@@ -190,9 +341,46 @@ export const dueDateFrom = (startDate: string, days: number): string | null => {
   return formatDateFromDate(new Date(y, m - 1, d + Math.floor(days)));
 };
 
+/**
+ * Davrga qarab muddat: kunlikda sana, soatlikda sana va soat.
+ *
+ * Soatlik hisob UTC tartib raqamida bajariladi va yana o'sha raqamdan
+ * o'qiladi — bu yerda timestamp lokal mintaqaga aylanmaydi, demak yozgi
+ * vaqtga o'tish soati ham bir soatni yeb qo'ymaydi. Yarim tundan o'tsa
+ * sana o'zi keyingi kunga suriladi.
+ */
+export const dueFrom = (
+  period: RentalPeriod,
+  startDate: string,
+  startTime: string | null | undefined,
+  duration: number,
+): { date: string; time: string | null } | null => {
+  if (!Number.isFinite(duration) || duration < 1) return null;
+  if (period === 'DAY') {
+    const date = dueDateFrom(startDate, duration);
+    return date ? { date, time: null } : null;
+  }
+  if (!isValidDateInput(startDate) || !isValidTimeInput(startTime)) return null;
+  const start = minuteNumber(joinMoment(startDate, startTime));
+  if (start === null) return null;
+  const due = new Date((start + Math.floor(duration) * HOUR_MINUTES) * MINUTE_MS);
+  return {
+    date: `${due.getUTCFullYear()}-${pad2(due.getUTCMonth() + 1)}-${pad2(due.getUTCDate())}`,
+    time: `${pad2(due.getUTCHours())}:${pad2(due.getUTCMinutes())}`,
+  };
+};
+
 /** Teskari amal — tahrirlash formasida kun maydonini to'ldirish uchun. */
 export const daysFromDueDate = (startDate: string, dueDate: string): number | null => {
   const diff = daysBetween(startDate, dueDate);
   if (diff === null || diff < 1) return null;
   return diff;
+};
+
+/** Ijaraning kelishilgan muddati (kun yoki soat) — tahrirlash formasi uchun. */
+export const durationOf = (rental: RentalResponseDTO): number | null => {
+  if (!isHourly(rental)) return daysFromDueDate(rental.startDate, rental.dueDate);
+  const minutes = minutesBetween(startMoment(rental), dueMoment(rental));
+  if (minutes === null || minutes < HOUR_MINUTES) return null;
+  return Math.round(minutes / HOUR_MINUTES);
 };

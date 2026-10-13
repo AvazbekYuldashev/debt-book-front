@@ -2,7 +2,8 @@ import apiClient, { setApiAuthToken } from '../../../shared/api/apiClient';
 import { AppResponse, PageResponse } from '../../../shared/types/money';
 import { normalizeCurrency } from '../../../shared/lib/currency';
 import {
-  RentalCreateDTO,
+  normalizeRentalPeriod,
+  RentalBatchCreateDTO,
   RentalFilterDTO,
   RentalPaymentDTO,
   RentalResponseDTO,
@@ -33,9 +34,12 @@ export interface GetRentalsParams {
  * satr qilib yuboradi ("50000.00"). Hisob-kitob son kutadi, shuning uchun
  * javob chegarasida bir marta normallashtiriladi — ekranlarda emas.
  */
-const normalizeRental = (raw: RentalResponseDTO): RentalResponseDTO => ({
+export const normalizeRental = (raw: RentalResponseDTO): RentalResponseDTO => ({
   ...raw,
-  dailyPrice: toAmount(raw.dailyPrice),
+  // `price` — yangi nom; eski server faqat `dailyPrice` yuboradi (u
+  // paytda hamma ijara kunlik edi).
+  price: toAmount(raw.price ?? raw.dailyPrice),
+  period: normalizeRentalPeriod(raw.period),
   paidAmount: toAmount(raw.paidAmount),
   // Miqdor yo'q bo'lsa 1: eski yozuvlarda ustun umuman bo'lmagan.
   quantity: raw.quantity === null || raw.quantity === undefined ? 1 : toAmount(raw.quantity) || 1,
@@ -80,13 +84,18 @@ export const getRentalById = async (id: string, token?: string): Promise<RentalR
 
 // ---------------------------------------------------------------- yozish
 
-export const createRental = async (
-  dto: RentalCreateDTO,
+/**
+ * Bir mijozga bir nechta buyumni birdaniga berish (bitta buyum ham shu
+ * yo'l bilan ketadi). Server hammasini bitta tranzaksiyada yozadi: biror
+ * buyum omborda yetmasa hech biri yozilmaydi.
+ */
+export const createRentalBatch = async (
+  dto: RentalBatchCreateDTO,
   token?: string
-): Promise<RentalResponseDTO> => {
+): Promise<RentalResponseDTO[]> => {
   setApiAuthToken(token);
-  const response = await apiClient.post<RentalResponseDTO>('/rental', dto);
-  return normalizeRental(response.data);
+  const response = await apiClient.post<RentalResponseDTO[]>('/rental/batch', dto);
+  return (response.data ?? []).map(normalizeRental);
 };
 
 export const updateRental = async (
