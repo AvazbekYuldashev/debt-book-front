@@ -33,11 +33,11 @@ import BusinessCatalogPane from '../../products/components/BusinessCatalogPane';
 import ContactBalanceHeader from '../components/ContactBalanceHeader';
 import TransactionRow from '../components/TransactionRow';
 import TransactionDetailModal from '../components/TransactionDetailModal';
-import RentalRow from '../../rentals/components/RentalRow';
+import ClientRentalPane from '../../rentals/components/ClientRentalPane';
 import RentalFormModal from '../../rentals/components/RentalFormModal';
 import RentalDetailModal from '../../rentals/components/RentalDetailModal';
-import { useMyRentals } from '../../rentals/hooks/useRentals';
 import type { RentalResponseDTO } from '../../rentals/types/rental';
+import type { RentalItemResponseDTO } from '../../rentals/types/rentalItem';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
 import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
 import type { VoiceCommandPrefill } from '../../voice/model/resolveVoiceCommand';
@@ -295,34 +295,25 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
   // ---- Ijara ----
   //
-  // Ijara shu ODAM bilan bo'ladigan oldi-berdining bir turi, shuning uchun
-  // u mijoz kartasida turadi — "Oldim/Berdim" bilan yonma-yon. Ro'yxat
-  // faqat shu mijozning yozuvlari bilan cheklanadi.
-  const rentalFilter = useMemo(() => ({ clientId: contactId }), [contactId]);
-  const rentalsQuery = useMyRentals(rentalFilter);
+  // Oldi-berdi SAHIFADA bo'ladi (pastga qarang: `pages`), bu yerda faqat
+  // oynalarning holati turadi. Ro'yxatlarni sahifaning o'zi yuklaydi —
+  // u ko'rilmaguncha so'rov ham yubormaydi.
   const [rentalFormVisible, setRentalFormVisible] = useState(false);
   const [editingRental, setEditingRental] = useState<RentalResponseDTO | null>(null);
   const [openedRental, setOpenedRental] = useState<RentalResponseDTO | null>(null);
+  /** Ombordan tanlangan buyum — forma shu buyum bilan ochiladi. */
+  const [presetItem, setPresetItem] = useState<RentalItemResponseDTO | null>(null);
 
-  /**
-   * Kartada eng ko'pi bilan uchta ijara ko'rinadi.
-   *
-   * Bu sahifaning ASOSIY mazmuni tarix; ijara bo'limi uzayib ketsa tarixni
-   * pastga siqib qo'yardi. To'liq ro'yxat Qarzlar ekranidagi ijara
-   * bo'limida turadi.
-   */
-  const clientRentals = useMemo(
-    () => (rentalsQuery.data?.content ?? []).slice(0, 3),
-    [rentalsQuery.data],
-  );
-
-  const openRentalForm = useCallback(() => {
+  /** Ombor qatori yoki sarlavhadagi tugma: buyum bilan yoki bo'sh forma. */
+  const openRentalForm = useCallback((item: RentalItemResponseDTO | null = null) => {
     setEditingRental(null);
+    setPresetItem(item);
     setRentalFormVisible(true);
   }, []);
 
   const handleEditRental = useCallback((rental: RentalResponseDTO) => {
     setOpenedRental(null);
+    setPresetItem(null);
     setEditingRental(rental);
     setRentalFormVisible(true);
   }, []);
@@ -330,6 +321,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const closeRentalForm = useCallback(() => {
     setRentalFormVisible(false);
     setEditingRental(null);
+    setPresetItem(null);
   }, []);
 
   /**
@@ -394,17 +386,80 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     </NestedGlass>
   );
 
-  const pages: SwipePage[] = [
-    {
-      key: 'catalog',
-      label: t('products.title'),
-      icon: 'pricetags-outline',
-      // Birinchi sahifa bo'lgani uchun `active` doim rost: kechiktirishning
-      // ma'nosi yo'q, u baribir darhol ko'rinadi.
-      render: () => (
-        <BusinessCatalogPane businessId={contact.partyId} token={profile?.jwt} active />
-      ),
+  /**
+   * Sahifa kalitlari — ro'yxatning O'ZIDAN oldin.
+   *
+   * Kech yuklash shuni talab qiladi: sahifa ochilmaguncha so'rov
+   * yubormasligi kerak, buning uchun esa qaysi sahifa boshlang'ich
+   * ekanini sahifalarni qurishdan oldin bilish kerak.
+   */
+  const pageKeys = useMemo(
+    () => [
+      ...(showCatalog ? ['catalog'] : []),
+      ...(rentalsAvailable ? ['rental'] : []),
+      'history',
+    ],
+    [showCatalog, rentalsAvailable],
+  );
+  const initialPageIndex = route.params.tab === 'history' ? pageKeys.length - 1 : 0;
+  const [openedKeys, setOpenedKeys] = useState<string[]>([]);
+  /** Sahifa ochilganmi: boshlang'ichi darhol, qolganlari surilgandan keyin. */
+  const pageOpened = useCallback(
+    (key: string) => pageKeys[initialPageIndex] === key || openedKeys.includes(key),
+    [pageKeys, initialPageIndex, openedKeys],
+  );
+
+  const handlePageChange = useCallback(
+    (index: number) => {
+      const key = pageKeys[index];
+      if (!key) return;
+      setOpenedKeys((current) => (current.includes(key) ? current : [...current, key]));
     },
+    [pageKeys],
+  );
+
+  /**
+   * Kartaning sahifalari.
+   *
+   * Narxnoma — faqat qarshi tomon BIZNES bo'lganda (uning ochiq narxi).
+   * Ijara — biznes hisobida har qanday mijoz uchun: oldi-berdi aynan shu
+   * yerda bo'ladi, narxnoma bilan bir xil joyda.
+   * Tarix — doim oxirgi sahifa.
+   */
+  const pages: SwipePage[] = [
+    ...(showCatalog
+      ? [
+          {
+            key: 'catalog',
+            label: t('products.title'),
+            icon: 'pricetags-outline' as const,
+            // Birinchi sahifa bo'lgani uchun `active` doim rost: kechiktirishning
+            // ma'nosi yo'q, u baribir darhol ko'rinadi.
+            render: () => (
+              <BusinessCatalogPane businessId={contact.partyId} token={profile?.jwt} active />
+            ),
+          },
+        ]
+      : []),
+    ...(rentalsAvailable
+      ? [
+          {
+            key: 'rental',
+            label: t('rentals.title'),
+            icon: 'cube-outline' as const,
+            render: () => (
+              <ClientRentalPane
+                clientId={contactId}
+                active={pageOpened('rental')}
+                allowWrite={allowWrite}
+                onGiveOut={openRentalForm}
+                onOpenRental={setOpenedRental}
+                onAddItem={allowWrite ? openStockForNewItem : undefined}
+              />
+            ),
+          },
+        ]
+      : []),
     { key: 'history', label: t('debts.history'), icon: 'time-outline', render: renderHistory },
   ];
 
@@ -427,51 +482,19 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           </View>
         ) : null}
 
-        {/* IJARA — tarixdan yuqorida, FAQAT biznes hisobida.
-            Bu yerda turgani ataylab: ijara ham shu odam bilan bo'ladigan
-            oldi-berdi, va uni boshqa ekrandan qidirtirish mantiqsiz edi.
-            Sarlavhadagi tugma YOZUVLI: faqat ikonka bo'lsa ko'zga
-            tashlanmasligi allaqachon sinab ko'rilgan.
-            Shaxsiy hisobda ijara bo'limi yo'q (ombor biznesniki), shuning
-            uchun bu yerda ham ko'rinmaydi. */}
-        {rentalsAvailable ? (
-        <>
-        <SectionHeader
-          icon="cube"
-          iconBadge={false}
-          title={t('rentals.title')}
-          actionLabel={allowWrite ? t('rentals.createSubmit') : undefined}
-          actionIcon={allowWrite ? 'add' : undefined}
-          actionVariant="solid"
-          onAction={allowWrite ? openRentalForm : undefined}
-        />
-
-        {clientRentals.length > 0 ? (
-          <View style={styles.rentalCard}>
-            {clientRentals.map((rental, index) => (
-              <RentalRow
-                key={rental.id}
-                item={rental}
-                isLast={index === clientRentals.length - 1}
-                showClient={false}
-                onPress={setOpenedRental}
-              />
-            ))}
-          </View>
-        ) : null}
-        </>
-        ) : null}
-
-        {showCatalog ? null : (
+        {/* Sahifalar bo'lmasa (shaxsiy hisob, oddiy kontakt) — tarix
+            yolg'iz qoladi va unga sarlavha kerak. */}
+        {pages.length > 1 ? null : (
           <SectionHeader icon="time" iconBadge={false} title={t('debts.history')} />
         )}
       </EntranceView>
 
       <EntranceView delay={90} duration={320} fromY={14} style={styles.listWrap}>
-        {showCatalog ? (
+        {pages.length > 1 ? (
           <SwipePager
             pages={pages}
-            initialPage={route.params.tab === 'history' ? pages.length - 1 : 0}
+            initialPage={initialPageIndex}
+            onPageChange={handlePageChange}
           />
         ) : (
           renderHistory()
@@ -513,6 +536,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       <RentalFormModal
         visible={rentalFormVisible}
         onClose={closeRentalForm}
+        presetItem={presetItem}
         client={contact ? { id: contact.id, name: contact.fullName } : null}
         rental={editingRental}
         onAddItem={allowWrite ? openStockForNewItem : undefined}
@@ -572,16 +596,6 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       borderRadius: radius.xxl,
       marginHorizontal: spacing.md,
       marginBottom: spacing.md,
-      overflow: 'hidden',
-      ...shadows.card,
-    },
-    // Ijara qatorlari uchun: tarix kartasi bilan bir xil sirt, lekin
-    // `flex` siz - balandligi mazmunga qarab (eng ko'pi uchta qator).
-    rentalCard: {
-      ...glass.pane,
-      borderRadius: radius.xxl,
-      marginHorizontal: spacing.md,
-      marginBottom: spacing.sm,
       overflow: 'hidden',
       ...shadows.card,
     },
