@@ -2,9 +2,10 @@
 
 Ikki tomon:
 
-- frontend — `src/features/rentals/` (shu repozitoriya) — **YOZILGAN**
-- backend — `api/debt/book/rental/` (repo: `AvazbekYuldashev/Debt-Book`) —
-  **2-versiya hali YOZILMAGAN** (pastdagi "Backend uchun ish ro'yxati")
+- frontend — `src/features/rentals/` (shu repozitoriya)
+- backend — `api/debt/book/rental/` (repo: `AvazbekYuldashev/Debt-Book`)
+
+Ikkala tomon ham 2-versiyani YOZGAN.
 
 Yo'llar `/api/v1` ostida. Bu hujjat ikkisi orasidagi shartnoma: bir tomonni
 o'zgartirganda ikkinchisi ham shu yerdan tekshirilishi kerak.
@@ -58,7 +59,8 @@ olinmagan     = round2( yig'ilgan − paidAmount )
 ```
 
 Vaqt **mintaqasiz devor soati** (`LocalDate` / `LocalTime`), biznes
-O'zbekistonda — serverdagi "hozir" `Asia/Tashkent` bo'yicha olinadi.
+O'zbekistonda — serverdagi "hozir" `Asia/Tashkent` bo'yicha olinadi
+(`RentalClock`), server JVM'i qaysi mintaqada ishlashidan qat'i nazar.
 
 Kunlik natijalar (1-oktyabrda berilgan, 3 kunlik ijara → `dueDate` = 4-oktyabr):
 
@@ -85,8 +87,8 @@ Formula ikki joyda, bir xil:
 
 - frontend — `src/features/rentals/model/rentalMath.ts` (testlar:
   `model/__tests__/rentalMath.test.ts`)
-- backend — `rental/service/RentalCalculator.java` (soatlik qism QO'SHILISHI
-  kerak, jadvallar yuqorida)
+- backend — `rental/service/RentalCalculator.java` (testlar:
+  `RentalCalculatorTest`, xuddi shu jadvallar)
 
 ### Qisman qaytarish
 
@@ -130,7 +132,7 @@ CREATE TABLE rental_item (
     creator_id      VARCHAR(36) NOT NULL,
     name            VARCHAR(255) NOT NULL,
     category        VARCHAR(128),                     -- "Qurilish", "To'y jihozlari"
-    period          VARCHAR(8)   NOT NULL DEFAULT 'DAY', -- DAY | HOUR
+    price_period    VARCHAR(8)   NOT NULL DEFAULT 'DAY', -- DAY | HOUR
     price           NUMERIC(19,2) NOT NULL,           -- 1 dona, 1 davr
     currency        VARCHAR(3)   NOT NULL DEFAULT 'UZS',
     unit            VARCHAR(32),                      -- ProductUnit: DONA, METR_KVADRAT, METR...
@@ -154,7 +156,7 @@ busy(item) = Σ (r.quantity − Σ rr.quantity)
 
 ```sql
 ALTER TABLE rental ADD COLUMN rental_item_id VARCHAR(36) REFERENCES rental_item(id);
-ALTER TABLE rental ADD COLUMN period         VARCHAR(8) NOT NULL DEFAULT 'DAY';
+ALTER TABLE rental ADD COLUMN price_period   VARCHAR(8);  -- NULL = eski yozuv = DAY
 ALTER TABLE rental ADD COLUMN start_time     TIME;   -- faqat HOUR
 ALTER TABLE rental ADD COLUMN due_time       TIME;   -- faqat HOUR
 ALTER TABLE rental ADD COLUMN returned_time  TIME;   -- faqat HOUR
@@ -166,9 +168,12 @@ ALTER TABLE rental_return ADD COLUMN returned_time TIME;  -- faqat HOUR
 `daily_price` ustuni qoladi (nomini o'zgartirish shart emas) — u endi
 "bir DAVR narxi". DTO'da `price` deb chiqadi (pastga qarang).
 
-Hammasi NULL bo'la oladigan yoki standart qiymatli ustunlar: eski yozuvlar
-o'zgarishsiz kunlik bo'lib qoladi. `ddl-auto=update` ustunlarni o'zi
-qo'shadi; indekslar serverda qo'lda bajariladi (1-versiyadagi kabi).
+Ustun nomi `price_period` (`period` emas — SQL'da kalit so'z bo'lishi
+mumkin). `rental` dagi yangi ustunlar NULL bo'la oladi: `ddl-auto=update`
+eski qatorlari bor jadvalga NOT NULL ustun qo'sha olmaydi; NULL davr =
+kunlik. Jadval va ustunlarni `ddl-auto=update` o'zi qo'shadi; indekslar
+serverda qo'lda bajariladi — `src/main/resources/db.migration/V27__rental_item.sql`
+(backend repo).
 
 ---
 
@@ -432,25 +437,16 @@ to'g'ridan-to'g'ri ko'rsatadi.
 
 ---
 
-## 5. Backend uchun ish ro'yxati
+## 5. Chiqarish
 
-1. `RentalItem` entity/repo/service/controller (`/rental-item`), busy hisobi.
-2. `rental` va `rental_return` ga yangi ustunlar; `period` bo'yicha
-   `RentalCalculator` ga soatlik hisob + testlar (1-bo'limdagi jadvallar).
-3. `POST /rental/batch` — tranzaksiya, `FOR UPDATE` qulfi, bo'sh soni tekshiruvi.
-4. `PUT /rental` — `price`/`duration`/`startTime` + eski `dailyPrice`/`days`.
-5. `POST /rental/{id}/return` — `returnedTime`.
-6. Filtr: `rentalItemId`, `status` = `OUT|DEBT|CLOSED`.
-7. Summary: `debtCount`, `outQuantity`, `outUnpaidByCurrency`, `debtByCurrency`.
-8. Biznes hisobida ro'yxat `business_id` bo'yicha (hamma a'zolar ko'radi),
-   `creatorName` javobda.
-9. Javobda `price` bilan birga `dailyPrice` ham (eski ilovalar).
+**Tartib: avval backend, keyin frontend.** Yangi ilova eski serverda
+ombor bo'limini ocholmaydi (`/rental-item` yo'q) va `/rental/batch` 404
+qaytaradi. Teskarisi xavfsiz: eski ilova yangi serverda avvalgidek
+ishlaydi (`POST /rental`, `dailyPrice`, `days` qabul qilinadi va
+qaytariladi).
 
-**Chiqarish tartibi:** avval backend, keyin frontend. Yangi ilova eski
-serverda ombor bo'limini ocholmaydi (`/rental-item` yo'q) va
-`/rental/batch` 404 qaytaradi.
-
----
+Serverda backend chiqqandan keyin bir marta (ixtiyoriy, tezlik uchun):
+`V27__rental_item.sql` dagi indekslar.
 
 ## 6. Qarz bo'limi bilan bog'lanish — HALI ULANMAGAN
 

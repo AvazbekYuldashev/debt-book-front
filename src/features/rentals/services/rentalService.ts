@@ -29,6 +29,10 @@ export interface GetRentalsParams {
   token?: string;
 }
 
+/** Soat HH:mm ko'rinishida — server "14:00:00" yuborsa ham. */
+const toHourMinute = (value: string | null | undefined): string | null =>
+  typeof value === 'string' && value.length >= 5 ? value.slice(0, 5) : null;
+
 /**
  * Backend narx va summalarni BigDecimal saqlaydi, Jackson esa ularni ba'zan
  * satr qilib yuboradi ("50000.00"). Hisob-kitob son kutadi, shuning uchun
@@ -44,9 +48,18 @@ export const normalizeRental = (raw: RentalResponseDTO): RentalResponseDTO => ({
   // Miqdor yo'q bo'lsa 1: eski yozuvlarda ustun umuman bo'lmagan.
   quantity: raw.quantity === null || raw.quantity === undefined ? 1 : toAmount(raw.quantity) || 1,
   currency: normalizeCurrency(raw.currency),
+  // Soat HH:mm bo'lishi shart (hisob shu ko'rinishni kutadi); server
+  // "14:00:00" yuborsa soniyasi kesiladi.
+  startTime: toHourMinute(raw.startTime),
+  dueTime: toHourMinute(raw.dueTime),
+  returnedTime: toHourMinute(raw.returnedTime),
   // Qaytarish partiyalari: hisob shular bo'yicha chiqadi, demak miqdor
   // satr bo'lib kelsa ham son bo'lishi shart.
-  returns: (raw.returns ?? []).map((item) => ({ ...item, quantity: toAmount(item.quantity) })),
+  returns: (raw.returns ?? []).map((item) => ({
+    ...item,
+    quantity: toAmount(item.quantity),
+    returnedTime: toHourMinute(item.returnedTime),
+  })),
 });
 
 // ---------------------------------------------------------------- o'qish
