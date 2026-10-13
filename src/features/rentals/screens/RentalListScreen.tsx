@@ -14,6 +14,7 @@ import StatusBanner from '../../../shared/ui/StatusBanner';
 import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import { canDelete, canWrite } from '../../../shared/lib/permissions';
+import { AuthContext } from '../../auth/context/AuthContext';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import type { RentalsScreenProps } from '../../../app/navigation/types';
 import type { ROUTES } from '../../../app/navigation/routes';
@@ -26,7 +27,15 @@ import RentalItemFormModal from '../components/RentalItemFormModal';
 import RentalItemDetailModal from '../components/RentalItemDetailModal';
 import { useMyRentals, useRentalItems, useRentalSummary } from '../hooks/useRentals';
 import { rentalStage } from '../model/rentalMath';
-import { groupRentalItems, rentalItemCategories } from '../model/rentalStock';
+import { groupRentalItems } from '../model/rentalStock';
+import ProductCategoryBar from '../../products/components/ProductCategoryBar';
+import {
+  createCategory,
+  deleteCategory,
+  getCategories,
+} from '../../expenses/services/categoryService';
+import type { CategoryResponseDTO } from '../../expenses/types/category';
+import { confirmAction } from '../../../shared/lib/confirm';
 import type { RentalFilterStatus, RentalResponseDTO, RentalStage } from '../types/rental';
 import type { RentalItemResponseDTO } from '../types/rentalItem';
 
@@ -86,6 +95,7 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
   const allowWrite = canWrite(workspace.activeBusinessRole);
   const allowDelete = canDelete(workspace.activeBusinessRole);
@@ -176,17 +186,88 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
   }, [listQuery.data, status]);
 
   const allItems = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
-  const categories = useMemo(() => rentalItemCategories(allItems), [allItems]);
+
+  /**
+   * Kategoriyalar narxnomadagi kabi BOSHQARILADI: alohida ro'yxat,
+   * yaratiladi va o'chiriladi, buyum esa unga bog'lanadi. Erkin matn
+   * bo'lganda "QURILISH" va "Qurilish" ikki guruhga bo'linib ketardi.
+   */
+  const [categories, setCategories] = useState<CategoryResponseDTO[]>([]);
+  const [activeCategory, setActiveCategory] = useState('');
+
+  const loadCategories = useCallback(async () => {
+    if (!profile?.jwt) {
+      setCategories([]);
+      return;
+    }
+    try {
+      const page = await getCategories({ page: 1, size: 100, type: 'RENTAL', token: profile.jwt });
+      setCategories(page.content ?? []);
+    } catch {
+      // Kategoriyalar kelmasa ombor baribir ishlaydi — filtr chiqmaydi, xolos.
+      setCategories([]);
+    }
+  }, [profile?.jwt]);
+
+  useEffect(() => {
+    void loadCategories();
+  }, [loadCategories]);
+
+  const categoryChips = useMemo(
+    () => categories.map((item) => ({ id: item.id, name: item.name })),
+    [categories],
+  );
+
+  const handleCreateCategory = useCallback(
+    async (name: string) => {
+      if (!profile?.jwt) return false;
+      try {
+        const created = await createCategory({ name, type: 'RENTAL' }, profile.jwt);
+        await loadCategories();
+        // Yangi kategoriya darhol tanlanadi — odam uni endigina yaratdi,
+        // ehtimol shunga buyum qo'shmoqchi.
+        if (created?.id) setActiveCategory(created.id);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [profile?.jwt, loadCategories],
+  );
+
+  const handleDeleteCategory = useCallback(
+    (category: { id: string; name: string }) => {
+      if (!profile?.jwt) return;
+      confirmAction(t('rentals.deleteCategoryConfirm', { name: category.name }), async () => {
+        try {
+          await deleteCategory(category.id, profile.jwt);
+          // Filtr o'chirilgan kategoriyada tursa "hammasi"ga qaytamiz,
+          // aks holda ro'yxat bo'sh ko'rinib qolardi.
+          setActiveCategory((current) => (current === category.id ? '' : current));
+          await loadCategories();
+          // Buyumlar ham qayta o'qiladi: kategoriya o'chgach ular
+          // "kategoriyasiz" bo'lib qoladi.
+          await itemsQuery.refetch();
+        } catch {
+          // Xato xabari serverdan keladi — bu yerda jim qolamiz.
+        }
+      });
+    },
+    [profile?.jwt, loadCategories, itemsQuery, t],
+  );
 
   /** Ombor: qidiruv telefonda (ro'yxat to'liq yuklangan), guruhlarga bo'lingan. */
   const stockEntries = useMemo<StockEntry[]>(() => {
     const lower = needle.toLowerCase();
+    const byCategory = activeCategory
+      ? allItems.filter((item) => (item.categoryId ?? '') === activeCategory)
+      : allItems;
     const matched = lower
-      ? allItems.filter(
+      ? byCategory.filter(
           (item) =>
             item.name.toLowerCase().includes(lower) || (item.category ?? '').toLowerCase().includes(lower),
         )
-      : allItems;
+      : byCategory;
     const groups = groupRentalItems(matched);
     // Bitta guruh bo'lsa (yoki hammasi guruhsiz) sarlavha ortiqcha.
     const withHeaders = groups.length > 1 || Boolean(groups[0]?.category);
@@ -209,7 +290,7 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
       });
     });
     return entries;
-  }, [allItems, needle, t]);
+  }, [allItems, needle, activeCategory, t]);
 
   // ---- Ijara amallari ----
 
@@ -424,6 +505,20 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
             accessibilityLabel={tab === 'stock' ? t('rentals.searchItem') : t('rentals.searchPlaceholder')}
           />
 
+          {/* Kategoriya paneli FAQAT omborda: ijaralar ro'yxati buyum
+              emas, kelishuvlar bo'yicha tuzilgan va kategoriya u yerda
+              ma'no bermaydi. Narxnomadagi panelning aynan o'zi. */}
+          {tab === 'stock' ? (
+            <ProductCategoryBar
+              categories={categoryChips}
+              value={activeCategory}
+              onChange={setActiveCategory}
+              allowManage={allowWrite}
+              onCreate={handleCreateCategory}
+              onDelete={handleDeleteCategory}
+            />
+          ) : null}
+
           {tab === 'rentals' ? (
             <ChipSelector options={statusOptions} value={status} onChange={setStatus} layout="scroll" />
           ) : null}
@@ -467,7 +562,8 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
         visible={itemFormVisible}
         onClose={handleCloseItemForm}
         item={editingItem}
-        categories={categories}
+        categories={categoryChips}
+        defaultCategoryId={activeCategory || undefined}
       />
       <RentalItemDetailModal
         item={openedItem}

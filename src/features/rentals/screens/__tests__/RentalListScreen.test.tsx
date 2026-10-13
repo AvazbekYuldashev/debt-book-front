@@ -4,11 +4,27 @@ import type { ReactTestInstance } from 'react-test-renderer';
 import RentalListScreen from '../RentalListScreen';
 import { AppThemeProvider } from '../../../../shared/theme';
 import { LanguageProvider } from '../../../../shared/i18n';
+import { AuthContext } from '../../../auth/context/AuthContext';
 import { formatDateFromDate } from '../../../../shared/lib/date';
 import type { RentalResponseDTO } from '../../types/rental';
 import type { RentalItemResponseDTO } from '../../types/rentalItem';
 
 jest.mock('../../hooks/useRentals');
+
+/**
+ * Kategoriyalar hook orqali emas, xizmat orqali keladi (narxnomadagi
+ * mexanizmning o'zi), shuning uchun alohida moklanadi.
+ */
+jest.mock('../../../expenses/services/categoryService', () => ({
+  getCategories: jest.fn(async () => ({
+    content: [
+      { id: 'cat-qurilish', name: 'Qurilish' },
+      { id: 'cat-toy', name: "To'y" },
+    ],
+  })),
+  createCategory: jest.fn(),
+  deleteCategory: jest.fn(),
+}));
 
 import {
   useCreateRentalBatch,
@@ -94,7 +110,10 @@ const show = (tab?: 'stock' | 'rentals') => {
   return render(
     <AppThemeProvider>
       <LanguageProvider>
+        {/* Kategoriyalar xizmat orqali, token bilan yuklanadi. */}
+        <AuthContext.Provider value={{ profile: { jwt: 'test-jwt' } } as never}>
         <RentalListScreen navigation={navigation} route={route} />
+        </AuthContext.Provider>
       </LanguageProvider>
     </AppThemeProvider>,
   );
@@ -181,8 +200,44 @@ describe('RentalListScreen — ombor', () => {
     show();
     await settle();
 
-    expect(screen.getByText('Qurilish')).toBeTruthy();
-    expect(screen.getByText("To'y")).toBeTruthy();
+    // Nom ikki joyda chiqadi: kategoriya panelidagi chip va guruh
+    // sarlavhasi — shuning uchun `getAllByText`.
+    expect(screen.getAllByText('Qurilish').length).toBeGreaterThan(0);
+    expect(screen.getAllByText("To'y").length).toBeGreaterThan(0);
+  });
+
+  /**
+   * KATEGORIYA FILTRI.
+   *
+   * Kategoriyalar narxnomadagi kabi boshqariladigan ro'yxatdan keladi va
+   * filtr NOM bo'yicha emas, `categoryId` bo'yicha ishlaydi: nom qayta
+   * yozilganda ham guruh buzilmasligi kerak.
+   */
+  it('kategoriya tanlanganda faqat o\'sha guruh qoladi', async () => {
+    mockItems.mockReturnValue({
+      data: [
+        stockItem({ id: 'a', name: 'Opalubka', category: 'Qurilish', categoryId: 'cat-qurilish' }),
+        stockItem({ id: 'b', name: 'Stul', category: "To'y", categoryId: 'cat-toy' }),
+      ],
+      isLoading: false,
+      isRefetching: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+    show();
+    await settle();
+
+    // Boshida ikkalasi ham ko'rinadi.
+    expect(screen.getByText('Opalubka')).toBeTruthy();
+    expect(screen.getByText('Stul')).toBeTruthy();
+
+    // Paneldagi "Qurilish" chipi bosiladi (guruh sarlavhasi emas).
+    const chips = screen.getAllByText('Qurilish');
+    fireEvent.press(chips[0]);
+    await settle();
+
+    expect(screen.getByText('Opalubka')).toBeTruthy();
+    expect(screen.queryByText('Stul')).toBeNull();
   });
 });
 

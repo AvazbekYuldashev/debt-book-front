@@ -1,11 +1,11 @@
 /**
- * Kategoriya nimaga tegishli: xarajat yoki narxnoma.
+ * Kategoriya nimaga tegishli: xarajat, narxnoma yoki ijara ombori.
  *
- * Bitta backend moduli ikkalasiga xizmat qiladi, ro'yxatlar esa HAR DOIM
+ * Bitta backend moduli uchalasiga xizmat qiladi, ro'yxatlar esa HAR DOIM
  * turi bo'yicha filtrlanadi — foydalanuvchi xarajat kategoriyasini
  * narxnomada ko'rmaydi.
  */
-export type CategoryType = 'EXPENSE' | 'PRODUCT';
+export type CategoryType = 'EXPENSE' | 'PRODUCT' | 'RENTAL';
 
 export interface CategoryResponseDTO {
   id: string;

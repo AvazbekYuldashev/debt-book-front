@@ -20,10 +20,21 @@ export interface RentalItemResponseDTO {
   businessId?: string | null;
   name: string;
   /**
-   * Guruh: "Opalubka", "Lesa", "To'y jihozlari". Ixtiyoriy — ro'yxat
-   * uzayganda buyumni tez topish uchun.
+   * Kategoriya NOMI — ko'rsatish uchun.
+   *
+   * Server uni bog'langan kategoriyadan oladi; bog'lanmagan eski
+   * yozuvlarda esa o'sha paytda yozilgan matn qoladi.
    */
   category?: string | null;
+  /**
+   * Kategoriya id'si — filtr uchun.
+   *
+   * Kategoriyalar narxnomadagi kabi BOSHQARILADI (yaratiladi, o'chiriladi,
+   * tepadagi panelda tanlanadi), shuning uchun filtr nom bo'yicha emas,
+   * id bo'yicha ketadi: "QURILISH" va "Qurilish" bitta guruh bo'lishi
+   * kerak. null = kategoriyasiz.
+   */
+  categoryId?: string | null;
   /** Narx kunlikmi yoki soatlik. */
   period: RentalPeriod;
   /** BITTA buyumning BIR DAVRLIK narxi. */
@@ -41,7 +52,8 @@ export interface RentalItemResponseDTO {
 
 export interface RentalItemCreateDTO {
   name: string;
-  category?: string;
+  /** Boshqariladigan kategoriya. Bo'sh yuborilsa kategoriyasiz saqlanadi. */
+  categoryId?: string;
   period: RentalPeriod;
   price: number;
   currency: Currency;

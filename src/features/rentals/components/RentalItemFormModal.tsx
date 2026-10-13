@@ -35,7 +35,15 @@ interface RentalItemFormModalProps {
   /** Berilsa tahrirlash rejimi. */
   item?: RentalItemResponseDTO | null;
   /** Ombordagi mavjud guruhlar — bir bosishda tanlash uchun. */
-  categories?: string[];
+  /**
+   * Boshqariladigan kategoriyalar (CategoryType.RENTAL).
+   *
+   * Narxnomadagi kabi: kategoriya yozilmaydi, ro'yxatdan tanlanadi —
+   * "QURILISH" va "Qurilish" ikki alohida guruh bo'lib qolmasligi uchun.
+   */
+  categories?: ReadonlyArray<{ id: string; name: string }>;
+  /** Filtr biror kategoriyada tursa, yangi buyum o'shanga tushadi. */
+  defaultCategoryId?: string;
 }
 
 /**
@@ -58,6 +66,7 @@ const RentalItemFormModal: React.FC<RentalItemFormModalProps> = ({
   onClose,
   item,
   categories = [],
+  defaultCategoryId,
 }) => {
   const theme = useAppTheme();
   const keyboardInset = useKeyboardInset();
@@ -70,7 +79,7 @@ const RentalItemFormModal: React.FC<RentalItemFormModalProps> = ({
   const isEdit = Boolean(item);
 
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [period, setPeriod] = useState<RentalPeriod>('DAY');
   const [price, setPrice] = useState('');
   const [currency, setCurrency] = useState<Currency>(baseCurrency);
@@ -84,7 +93,7 @@ const RentalItemFormModal: React.FC<RentalItemFormModalProps> = ({
     setError('');
     if (item) {
       setName(item.name);
-      setCategory(item.category ?? '');
+      setCategoryId(item.categoryId ?? '');
       setPeriod(item.period);
       setPrice(formatAmountInput(String(item.price)));
       setCurrency(item.currency ?? baseCurrency);
@@ -94,7 +103,7 @@ const RentalItemFormModal: React.FC<RentalItemFormModalProps> = ({
       return;
     }
     setName('');
-    setCategory('');
+    setCategoryId(defaultCategoryId ?? '');
     setPeriod('DAY');
     setPrice('');
     setCurrency(baseCurrency);
@@ -119,9 +128,13 @@ const RentalItemFormModal: React.FC<RentalItemFormModalProps> = ({
   );
 
   // Tanlangan guruh takliflar ichida ko'rinib tursin — yozib bo'lingach ham.
-  const categoryChips = useMemo(
-    () => categories.filter((value) => value.toLowerCase() !== category.trim().toLowerCase()).slice(0, 8),
-    [categories, category],
+  /** Birinchi band — kategoriyasiz: ombor kategoriyasiz ham ishlaydi. */
+  const categoryOptions = useMemo<ChipOption<string>[]>(
+    () => [
+      { value: '', label: t('rentals.noCategory') },
+      ...categories.map((item) => ({ value: item.id, label: item.name })),
+    ],
+    [categories, t],
   );
 
   const handleSubmit = useCallback(() => {
@@ -141,7 +154,7 @@ const RentalItemFormModal: React.FC<RentalItemFormModalProps> = ({
 
     const payload = {
       name: name.trim(),
-      category: category.trim() || undefined,
+      categoryId: categoryId || undefined,
       period,
       price: priceNumber,
       currency,
@@ -160,7 +173,7 @@ const RentalItemFormModal: React.FC<RentalItemFormModalProps> = ({
       return;
     }
     createMutation.mutate(payload, handlers);
-  }, [name, total, item, price, category, period, currency, unit, note, createMutation, updateMutation, onClose, t]);
+  }, [name, total, item, price, categoryId, period, currency, unit, note, createMutation, updateMutation, onClose, t]);
 
   const pending = createMutation.isPending || updateMutation.isPending;
 
@@ -190,31 +203,16 @@ const RentalItemFormModal: React.FC<RentalItemFormModalProps> = ({
               placeholder={t('rentals.itemNamePlaceholder')}
             />
 
-            <View style={styles.block}>
-              <Input
+            {categories.length > 0 ? (
+              <ChipSelector
                 label={t('rentals.itemCategory')}
-                value={category}
-                onChangeText={setCategory}
-                placeholder={t('rentals.itemCategoryPlaceholder')}
+                options={categoryOptions}
+                value={categoryId}
+                onChange={setCategoryId}
               />
-              {categoryChips.length > 0 ? (
-                <View style={styles.suggestions}>
-                  {categoryChips.map((value) => (
-                    <Pressable
-                      key={value}
-                      onPress={() => setCategory(value)}
-                      style={({ pressed }) => [styles.suggestion, pressed && styles.suggestionPressed]}
-                      accessibilityRole="button"
-                      accessibilityLabel={value}
-                    >
-                      <Text style={styles.suggestionText} numberOfLines={1}>
-                        {value}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-            </View>
+            ) : (
+              <Text style={styles.note}>{t('rentals.categoryHint')}</Text>
+            )}
 
             <ChipSelector
               options={periodOptions}

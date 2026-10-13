@@ -91,21 +91,42 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
       });
     }
 
-    // Ombor guruhlarga bo'linmaydi: mijoz kartasida ro'yxat qisqa bo'lishi
-    // kerak va kategoriya sarlavhalari uni ikki barobar uzaytirardi.
-    const stock = groupRentalItems(items).flatMap((group) => group.items);
-    result.push({
-      key: 'stock',
-      title: t('rentals.tabStock'),
-      icon: 'albums',
-      action: allowWrite,
-      data: stock.map((item, index) => ({
-        kind: 'item' as const,
-        key: item.id,
-        item,
-        isLast: index === stock.length - 1,
-      })),
+    /*
+     * Ombor KATEGORIYA bo'yicha bo'linadi — Ijara bo'limidagi ro'yxat
+     * bilan bir xil. Tekis ro'yxat o'nta buyumdan keyin o'qib bo'lmas
+     * bo'lib qoladi: "stul qaysi biri edi" degan savol tug'iladi.
+     *
+     * "Ijaraga berish" tugmasi BIRINCHI ombor guruhining sarlavhasida:
+     * u butun bo'limga tegishli va har guruhda takrorlanishi shovqin
+     * bo'lardi.
+     */
+    const groups = groupRentalItems(items);
+    groups.forEach((group, index) => {
+      result.push({
+        key: `stock:${group.category ?? ''}`,
+        title: group.category ?? t('rentals.noCategory'),
+        icon: 'albums',
+        action: allowWrite && index === 0,
+        data: group.items.map((item, itemIndex) => ({
+          kind: 'item' as const,
+          key: item.id,
+          item,
+          isLast: itemIndex === group.items.length - 1,
+        })),
+      });
     });
+
+    // Ombor umuman bo'sh bo'lsa ham bitta sarlavha kerak: tugma va
+    // "buyum yo'q" izohi o'sha yerda chiqadi.
+    if (groups.length === 0) {
+      result.push({
+        key: 'stock',
+        title: t('rentals.tabStock'),
+        icon: 'albums',
+        action: allowWrite,
+        data: [],
+      });
+    }
 
     return result;
   }, [rentals, items, allowWrite, t]);
