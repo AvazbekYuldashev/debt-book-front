@@ -11,7 +11,11 @@ import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatDateInputValue, isValidDateInput } from '../../../shared/lib/date';
-import { useRequestRental } from '../hooks/useRentals';
+import { useBusinessRentalItems, useRequestRental } from '../hooks/useRentals';
+import RentalItemRow from './RentalItemRow';
+import { groupRentalItems } from '../model/rentalStock';
+import EmptyState from '../../../shared/ui/EmptyState';
+import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import { currentTimeString, formatTimeInputValue, isValidTimeInput, todayString } from '../model/rentalMath';
 import { perPeriodLabel, periodLabel } from '../model/rentalLabels';
 import { freeQuantity } from '../model/rentalStock';
@@ -20,8 +24,15 @@ import type { RentalItemResponseDTO } from '../types/rentalItem';
 interface RentalRequestModalProps {
   /** Ijara beruvchi biznes. */
   businessId: string;
-  /** Qaysi buyum so'ralmoqda. null = oyna yopiq. */
+  /**
+   * Qaysi buyum so'ralmoqda.
+   *
+   * null bo'lsa oyna OMBOR RO'YXATI bilan ochiladi: qarz oynasidan
+   * "ijaraga olish" bosilganda buyum hali tanlanmagan bo'ladi.
+   */
   item: RentalItemResponseDTO | null;
+  /** Buyumsiz ham ochilishi uchun — ro'yxat bosqichi. */
+  visible?: boolean;
   onClose: () => void;
 }
 
@@ -35,7 +46,12 @@ interface RentalRequestModalProps {
  * Yozuv do'konning daftariga tushadi, lekin TASDIQ KUTIB turadi va
  * ombordan hech narsa band qilmaydi: ombor birovning mulki.
  */
-const RentalRequestModal: React.FC<RentalRequestModalProps> = ({ businessId, item, onClose }) => {
+const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
+  businessId,
+  item,
+  visible,
+  onClose,
+}) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const keyboardInset = useKeyboardInset();
@@ -44,6 +60,17 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({ businessId, ite
 
   const requestMutation = useRequestRental();
 
+  /**
+   * Tanlangan buyum: tashqaridan kelgani yoki ro'yxatdan bosilgani.
+   *
+   * Ikki bosqich bitta oynada: ustiga yana bir modal qalashtirish
+   * telefonda orqaga qaytishni chalkashtiradi.
+   */
+  const open = visible ?? Boolean(item);
+  const [picked, setPicked] = useState<RentalItemResponseDTO | null>(null);
+  const chosen = item ?? picked;
+  const itemsQuery = useBusinessRentalItems(businessId, { enabled: open && !chosen });
+
   const [quantity, setQuantity] = useState('1');
   const [startDate, setStartDate] = useState(todayString());
   const [startTime, setStartTime] = useState(currentTimeString());
@@ -51,21 +78,27 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({ businessId, ite
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
 
+  // Oyna yopilганda tanlov ham tozalanadi: qayta ochilganda eski
+  // buyum bilan ochilib qolmasin.
   useEffect(() => {
-    if (!item) return;
+    if (!open) setPicked(null);
+  }, [open]);
+
+  useEffect(() => {
+    if (!chosen) return;
     setQuantity('1');
     setStartDate(todayString());
     setStartTime(currentTimeString());
     setDuration('');
     setNote('');
     setError('');
-  }, [item]);
+  }, [chosen]);
 
-  const hourly = item?.period === 'HOUR';
-  const free = item ? freeQuantity(item) : 0;
+  const hourly = chosen?.period === 'HOUR';
+  const free = chosen ? freeQuantity(chosen) : 0;
 
   const handleSubmit = useCallback(() => {
-    if (!item) return;
+    if (!chosen) return;
     setError('');
 
     const count = Number(quantity.replace(',', '.'));
@@ -81,7 +114,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({ businessId, ite
     requestMutation.mutate(
       {
         businessId,
-        lines: [{ rentalItemId: item.id, quantity: count }],
+        lines: [{ rentalItemId: chosen.id, quantity: count }],
         startDate,
         ...(hourly ? { startTime } : {}),
         duration: Math.floor(length),
@@ -89,15 +122,15 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({ businessId, ite
       },
       { onSuccess: onClose, onError: (err) => setError((err as Error).message) },
     );
-  }, [item, quantity, free, duration, startDate, startTime, hourly, note, businessId, requestMutation, onClose, t]);
+  }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, requestMutation, onClose, t]);
 
-  if (!item) return null;
+  if (!open) return null;
 
-  const total = Number(quantity.replace(',', '.')) * Number(duration) * item.price;
+  const total = chosen ? Number(quantity.replace(',', '.')) * Number(duration) * chosen.price : 0;
   const showTotal = Number.isFinite(total) && total > 0;
 
   return (
-    <Modal transparent visible={Boolean(item)} animationType="slide" onRequestClose={onClose}>
+    <Modal transparent visible={open} animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.backdrop}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -109,13 +142,37 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({ businessId, ite
         >
           <View style={styles.card}>
             <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
-              {t('rentals.requestTitle', { item: item.name })}
+              {chosen ? t('rentals.requestTitle', { item: chosen.name }) : t('rentals.theirStock')}
             </Text>
 
+            {/* BIRINCHI BOSQICH: buyum tanlanmagan bo'lsa ombor ro'yxati. */}
+            {!chosen ? (
+              itemsQuery.isLoading ? (
+                <SkeletonContactList count={3} />
+              ) : (itemsQuery.data ?? []).length === 0 ? (
+                <EmptyState icon="cube-outline" title={t('rentals.stockEmptyTitle')} />
+              ) : (
+                <View style={styles.stock}>
+                  {groupRentalItems(itemsQuery.data ?? []).flatMap((group) =>
+                    group.items.map((stockItem, index) => (
+                      <RentalItemRow
+                        key={stockItem.id}
+                        item={stockItem}
+                        isLast={index === group.items.length - 1}
+                        onPress={setPicked}
+                      />
+                    )),
+                  )}
+                </View>
+              )
+            ) : null}
+
+            {chosen ? (
+              <>
             <View style={styles.priceRow}>
               <Ionicons name="pricetag-outline" size={15} color={colors.textSecondary} />
               <Text style={styles.priceText}>
-                {`${formatMoney(item.price, item.currency)} ${perPeriodLabel(t, item.period)}`}
+                {`${formatMoney(chosen.price, chosen.currency)} ${perPeriodLabel(t, chosen.period)}`}
                 {' · '}
                 {t('rentals.freeCount', { count: String(free) })}
               </Text>
@@ -130,7 +187,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({ businessId, ite
                 containerStyle={styles.pairItem}
               />
               <Input
-                label={periodLabel(t, item.period)}
+                label={periodLabel(t, chosen.period)}
                 value={duration}
                 onChangeText={(value) => setDuration(value.replace(/\D/g, '').slice(0, 4))}
                 keyboardType="number-pad"
@@ -160,7 +217,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({ businessId, ite
 
             {showTotal ? (
               <View style={styles.preview}>
-                <Text style={styles.previewTotal}>{formatMoney(total, item.currency)}</Text>
+                <Text style={styles.previewTotal}>{formatMoney(total, chosen.currency)}</Text>
                 <Text style={styles.previewHint}>{t('rentals.requestHint')}</Text>
               </View>
             ) : (
@@ -169,6 +226,9 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({ businessId, ite
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
+              </>
+            ) : null}
+
             <View style={styles.actions}>
               <Button
                 title={t('common.cancel')}
@@ -176,12 +236,14 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({ businessId, ite
                 onPress={onClose}
                 style={styles.actionBtn}
               />
-              <Button
-                title={t('rentals.requestSubmit')}
-                onPress={handleSubmit}
-                loading={requestMutation.isPending}
-                style={styles.actionBtn}
-              />
+              {chosen ? (
+                <Button
+                  title={t('rentals.requestSubmit')}
+                  onPress={handleSubmit}
+                  loading={requestMutation.isPending}
+                  style={styles.actionBtn}
+                />
+              ) : null}
             </View>
           </View>
         </ScrollView>
@@ -227,6 +289,12 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       gap: spacing.xs,
     },
     pairItem: { flex: 1 },
+    // Ombor ro'yxati karta ichida: qatorlar o'z sirtida turadi.
+    stock: {
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: radius.md,
+      overflow: 'hidden',
+    },
     preview: {
       backgroundColor: colors.surfaceMuted,
       borderRadius: radius.md,

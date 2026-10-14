@@ -328,6 +328,24 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const [presetItem, setPresetItem] = useState<RentalItemResponseDTO | null>(null);
   /** Mijoz rejimida tanlangan buyum — "ijaraga olish" so'rovi oynasi. */
   const [requestItem, setRequestItem] = useState<RentalItemResponseDTO | null>(null);
+  /**
+   * So'rov oynasi buyumsiz ham ochiladi.
+   *
+   * Qarz oynasidagi "Ijaraga olish" bosilganda buyum hali tanlanmagan —
+   * oyna o'zi ombor ro'yxatini ko'rsatadi.
+   */
+  const [requestOpen, setRequestOpen] = useState(false);
+
+  const openRentIn = useCallback(() => {
+    setModalVisible(false);
+    setRequestItem(null);
+    setRequestOpen(true);
+  }, []);
+
+  const closeRequest = useCallback(() => {
+    setRequestOpen(false);
+    setRequestItem(null);
+  }, []);
 
   /** Ombor qatori yoki sarlavhadagi tugma: buyum bilan yoki bo'sh forma. */
   const openRentalForm = useCallback((item: RentalItemResponseDTO | null = null) => {
@@ -477,7 +495,14 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
                 clientId={contactId}
                 active={pageOpened('rental')}
                 allowWrite={allowWrite}
-                onGiveOut={clientMode ? setRequestItem : openRentalForm}
+                onGiveOut={
+                  clientMode
+                    ? (stockItem) => {
+                        setRequestItem(stockItem);
+                        setRequestOpen(true);
+                      }
+                    : openRentalForm
+                }
                 onOpenRental={setOpenedRental}
                 onAddItem={allowWrite ? openStockForNewItem : undefined}
                 ownerBusinessId={clientMode ? counterpartyBusinessId : null}
@@ -572,7 +597,8 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         <RentalRequestModal
           businessId={counterpartyBusinessId}
           item={requestItem}
-          onClose={() => setRequestItem(null)}
+          visible={requestOpen}
+          onClose={closeRequest}
         />
       ) : null}
 
@@ -585,6 +611,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       />
 
       <MoneyActionModal
+        onRentIn={clientMode && counterpartyBusinessId ? openRentIn : undefined}
         visible={modalVisible}
         actionType={actionType}
         loading={creating}

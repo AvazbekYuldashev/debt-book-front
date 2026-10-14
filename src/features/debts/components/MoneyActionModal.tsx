@@ -67,6 +67,15 @@ interface MoneyActionModalProps {
   /** Narxnomadan buyurtma qilish uchun token (counterparty biznes bo'lsa). */
   token?: string;
   /**
+   * "Ijaraga olish" yo'li — faqat qarshi tomon BIZNES bo'lganda.
+   *
+   * Ijaraga BERISH mijoz kartasining o'z sahifasida qoladi (ombor
+   * meniki), OLISH esa pul yozuvi bilan bir oqimda: odam do'kondan
+   * narsa olayotganda bu yerga keladi. Oyna yopilib, so'rov formasi
+   * ochiladi — modal ustiga modal qalashtirilmaydi.
+   */
+  onRentIn?: () => void;
+  /**
    * Ovozli buyruqdan kelgan boshlang'ich qiymatlar.
    *
    * Forma har ochilishda tozalanadi, shuning uchun bu qiymatlar AYNAN o'sha
@@ -96,6 +105,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   fixedCounterpartyType,
   ownerAccountType,
   token,
+  onRentIn,
   prefill,
   onClose,
   onSubmit,
@@ -363,6 +373,25 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               onChangeText={handleAmountChange}
               placeholder="100 000"
             />
+
+            {/* Ijaraga olish — narxnoma yonida, chunki ikkalasi ham
+                "o'sha do'kondan nima olyapman" degan savolning javobi.
+                Ijaraga BERISH bu yerda yo'q: u mijoz kartasining ijara
+                sahifasida, ombor egasining qo'lida. */}
+            {onRentIn ? (
+              <Pressable
+                onPress={onRentIn}
+                style={({ pressed }) => [styles.basketBtn, pressed && styles.calcBtnPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('rentals.takeFromStock')}
+              >
+                <Ionicons name="cube-outline" size={18} color={colors.primary} />
+                <Text style={styles.basketText} numberOfLines={1}>
+                  {t('rentals.takeFromStock')}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              </Pressable>
+            ) : null}
 
             {/* Narxnomadan buyurtma — faqat qarama-qarshi tomon BIZNES bo'lganda:
                 mahsulot ham, narx ham o'sha biznesning katalogidan keladi. */}
