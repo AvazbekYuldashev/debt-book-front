@@ -36,6 +36,15 @@ interface RentalRequestModalProps {
   visible?: boolean;
   onClose: () => void;
   /**
+   * So'rov YUBORILDI.
+   *
+   * Oyna baribir bir qadam orqaga qaytadi — bu faqat "bo'ldi" degan
+   * xabar uchun: ilgari yuborilgandan keyin hech qanday belgi yo'q edi
+   * va odam yozuv yaratilganini bilmay, "ishlamadi" deb o'ylardi.
+   * Berilmasa `onClose` ishlaydi.
+   */
+  onSubmitted?: () => void;
+  /**
    * KELGAN JOYGA qaytish (qarz oynasi).
    *
    * Berilsa RO'YXAT bosqichida ham orqaga tugmasi chiqadi: odam u
@@ -60,6 +69,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   item,
   visible,
   onClose,
+  onSubmitted,
   onBack,
 }) => {
   const theme = useAppTheme();
@@ -138,9 +148,12 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
       // Yuborilgach oyna BIR QADAM orqaga qaytadi (kelgan joyiga), butun
       // oqimni yopmaydi: odam o'sha yerda pul yozuvini ham qilishi yoki
       // narxnomadan mahsulot tanlashi mumkin.
-      { onSuccess: onClose, onError: (err) => setError((err as Error).message) },
+      {
+        onSuccess: onSubmitted ?? onClose,
+        onError: (err) => setError((err as Error).message),
+      },
     );
-  }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, requestMutation, onClose, t]);
+  }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, requestMutation, onClose, onSubmitted, t]);
 
   /**
    * ORQAGA bir qadam.

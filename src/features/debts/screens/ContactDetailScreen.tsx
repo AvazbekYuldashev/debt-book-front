@@ -366,11 +366,15 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    */
   const [rentInFromMoney, setRentInFromMoney] = useState(false);
 
+  /** "So'rov yuborildi" xabari — yuborilganini bildiradigan yagona belgi. */
+  const [requestSent, setRequestSent] = useState(false);
+
   const openRentIn = useCallback(() => {
     setModalVisible(false);
     setRequestItem(null);
     setRentInFromMoney(true);
     setRequestOpen(true);
+    setRequestSent(false);
   }, []);
 
   const closeRequest = useCallback(() => {
@@ -381,6 +385,18 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       setModalVisible(true);
     }
   }, [rentInFromMoney]);
+
+  /**
+   * So'rov yuborildi.
+   *
+   * Navigatsiya bekor qilish bilan BIR XIL (bir qadam orqaga), farqi
+   * faqat xabarda: ilgari yuborilgandan keyin hech qanday belgi yo'q
+   * edi va odam yozuv yaratilganini bilmasdi.
+   */
+  const handleRequestSent = useCallback(() => {
+    closeRequest();
+    setRequestSent(true);
+  }, [closeRequest]);
 
   /** Ombor qatori yoki sarlavhadagi tugma: buyum bilan yoki bo'sh forma. */
   const openRentalForm = useCallback((item: RentalItemResponseDTO | null = null) => {
@@ -568,6 +584,17 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           </View>
         ) : null}
 
+        {requestSent ? (
+          <View style={styles.banner}>
+            <StatusBanner
+              tone="success"
+              message={t('rentals.requestSent')}
+              actionLabel={t('common.close')}
+              onAction={() => setRequestSent(false)}
+            />
+          </View>
+        ) : null}
+
         {/* Sahifalar bo'lmasa (shaxsiy hisob, oddiy kontakt) — tarix
             yolg'iz qoladi va unga sarlavha kerak. */}
         {pages.length > 1 ? null : (
@@ -634,6 +661,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           item={requestItem}
           visible={requestOpen}
           onClose={closeRequest}
+          onSubmitted={handleRequestSent}
           // Qarz oynasidan kelgan bo'lsa — o'sha yerga qaytish yo'li.
           onBack={rentInFromMoney ? closeRequest : undefined}
         />
