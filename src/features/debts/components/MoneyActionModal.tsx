@@ -76,6 +76,13 @@ interface MoneyActionModalProps {
    */
   onRentIn?: () => void;
   /**
+   * Shu do'kondan OLINGAN va hali qaytarilmagan buyumlar soni.
+   *
+   * Narxnoma qatori kabi: odam oynani ochmasdan "menda nimadir bormi"
+   * degan savolga javob olishi kerak.
+   */
+  rentInCount?: number;
+  /**
    * Ovozli buyruqdan kelgan boshlang'ich qiymatlar.
    *
    * Forma har ochilishda tozalanadi, shuning uchun bu qiymatlar AYNAN o'sha
@@ -106,6 +113,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   ownerAccountType,
   token,
   onRentIn,
+  rentInCount = 0,
   prefill,
   onClose,
   onSubmit,
@@ -387,7 +395,9 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               >
                 <Ionicons name="cube-outline" size={18} color={colors.primary} />
                 <Text style={styles.basketText} numberOfLines={1}>
-                  {t('rentals.takeFromStock')}
+                  {rentInCount > 0
+                    ? t('rentals.takenCount', { count: String(rentInCount) })
+                    : t('rentals.takeFromStock')}
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
               </Pressable>

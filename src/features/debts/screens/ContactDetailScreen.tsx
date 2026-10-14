@@ -226,7 +226,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * qo'shardi, ya'ni bitta mijozning raqami ikki ekranda ikki xil
    * chiqardi.
    */
-  const rentalTotals = useContactRentalTotals(
+  const rentalSummary = useContactRentalTotals(
     contactId,
     rentalsAvailable && clientMode ? counterpartyBusinessId ?? null : null,
   );
@@ -235,10 +235,10 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const balances = useMemo(
     () =>
       netByCurrency(
-        mergeAmounts(currencyTotals.credit, rentalTotals.credit),
-        mergeAmounts(currencyTotals.debt, rentalTotals.debt),
+        mergeAmounts(currencyTotals.credit, rentalSummary.totals.credit),
+        mergeAmounts(currencyTotals.debt, rentalSummary.totals.debt),
       ),
-    [currencyTotals, rentalTotals],
+    [currencyTotals, rentalSummary],
   );
 
   const mappedHistory = useMemo(
@@ -677,6 +677,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
       <MoneyActionModal
         onRentIn={clientMode && counterpartyBusinessId ? openRentIn : undefined}
+        rentInCount={rentalSummary.openCount}
         visible={modalVisible}
         actionType={actionType}
         loading={creating}
