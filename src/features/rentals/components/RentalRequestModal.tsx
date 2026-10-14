@@ -150,7 +150,11 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
               itemsQuery.isLoading ? (
                 <SkeletonContactList count={3} />
               ) : (itemsQuery.data ?? []).length === 0 ? (
-                <EmptyState icon="cube-outline" title={t('rentals.stockEmptyTitle')} />
+                <EmptyState
+                  icon="cube-outline"
+                  title={t('rentals.theirStock')}
+                  description={t('rentals.theirStockEmpty')}
+                />
               ) : (
                 <View style={styles.stock}>
                   {groupRentalItems(itemsQuery.data ?? []).flatMap((group) =>

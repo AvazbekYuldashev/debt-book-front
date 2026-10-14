@@ -196,10 +196,14 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   if (items.length === 0 && rentals.length === 0) {
     return (
       <NestedGlass>
+        {/* Matn KIMGA ko'rinayotganiga qarab: egasiga "buyumlaringizni
+            kiriting", mijozga esa "bu do'konda hozircha buyum yo'q" —
+            mijoz u yerga buyum qo'sha olmaydi va unga ko'rsatma berish
+            chalkashlik bo'lardi. */}
         <EmptyState
           icon="cube-outline"
-          title={t('rentals.stockEmptyTitle')}
-          description={t('rentals.stockEmptyHint')}
+          title={clientMode ? t('rentals.theirStock') : t('rentals.stockEmptyTitle')}
+          description={clientMode ? t('rentals.theirStockEmpty') : t('rentals.stockEmptyHint')}
           actionLabel={!clientMode && allowWrite && onAddItem ? t('rentals.addItem') : undefined}
           actionIcon="add"
           onAction={!clientMode && allowWrite ? onAddItem : undefined}
