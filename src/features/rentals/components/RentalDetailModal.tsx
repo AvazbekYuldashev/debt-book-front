@@ -201,6 +201,19 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
 
   const returned = stage === 'DEBT' || stage === 'CLOSED';
 
+  /**
+   * MIJOZ TOMONI: yozuv men mijoz bo'lgan ijara (ombor meniki emas).
+   *
+   * Amallar bu yerda ko'rinmaydi — buyumni qaytgan deb belgilash,
+   * tahrirlash va o'chirish ombor egasining ishi va server ularni
+   * baribir rad etadi. Ilgari tugmalar chiqib, bosilganda "kirish
+   * huquqi yo'q" xatosi berardi.
+   *
+   * Eski server `owner` ni yubormaydi — u holda avvalgidek egasi deb
+   * qaraladi (yozuv o'z daftaridan kelgan).
+   */
+  const mine = rental.owner !== false;
+
   const tone =
     stage === 'OVERDUE'
       ? colors.negative
@@ -259,7 +272,13 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                 ochadi. Hisob yopiq bo'lsa yashil "Hisob toza". */}
             <View style={[styles.hero, { backgroundColor: unpaid > 0 ? colors.negativeSoft : colors.positiveSoft }]}>
               <Text style={styles.heroLabel}>
-                {unpaid > 0 ? t('rentals.unpaid') : unpaid < 0 ? t('rentals.advance') : t('rentals.settled')}
+                {unpaid > 0
+                  ? mine
+                    ? t('rentals.unpaid')
+                    : t('rentals.toPay')
+                  : unpaid < 0
+                    ? t('rentals.advance')
+                    : t('rentals.settled')}
               </Text>
               <Text
                 style={[styles.heroValue, { color: unpaid > 0 ? colors.negative : colors.positive }]}
@@ -350,17 +369,17 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                     loading={confirmMutation.isPending}
                   />
                 ) : null}
-                {allowWrite && !returned ? (
+                {mine && allowWrite && !returned ? (
                   <Button title={t('rentals.markReturned')} onPress={() => setPane('return')} />
                 ) : null}
-                {allowWrite && unpaid > 0 ? (
+                {mine && allowWrite && unpaid > 0 ? (
                   <Button
                     title={t('rentals.takePayment')}
                     variant="secondary"
                     onPress={() => setPane('payment')}
                   />
                 ) : null}
-                {allowWrite || allowDelete ? (
+                {mine && (allowWrite || allowDelete) ? (
                   <View style={styles.actionsRow}>
                     {allowWrite ? (
                       <Button
