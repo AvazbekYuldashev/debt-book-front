@@ -168,6 +168,41 @@ export const billedUnitsBetween = (period: RentalPeriod, from: string, to: strin
 // ---------------------------------------------------------------- vaqt nuqtalari
 
 /** Ijara davri (eski yozuvlarda maydon yo'q — kunlik). */
+/**
+ * Muddat KELISHILGANMI.
+ *
+ * Kelishilmagan ijarada `dueDate` to'ldirilgan bo'lsa ham u taxmin —
+ * hisobda muddat yo'q deb qaraladi.
+ */
+export const isOpenEnded = (rental: Pick<RentalResponseDTO, 'openEnded'>): boolean =>
+  rental.openEnded === true;
+
+/**
+ * Shu ijara QARZ BALANSIGA qo'shiladimi.
+ *
+ * Qoida (egasi bilan kelishilgan):
+ *
+ *   muddat kelmagan + yakuniy sana kelishilmagan -> yo'q
+ *   muddat kelgan (yoki o'tgan)                  -> ha
+ *   muddat kelmagan, yakuniy sana kelishilgan    -> ha
+ *
+ * Mantiq: qarz — SUMMASI MA'LUM bo'lgan majburiyat. Ochiq muddatli
+ * ijara hali boshlanmagan bo'lsa (ertangi kunga yozib qo'yilgan)
+ * yakuniy summani aytib bo'lmaydi. Muddat kelishilgan bo'lsa summa
+ * ma'lum, boshlangan bo'lsa esa hisob allaqachon yurib boryapti.
+ *
+ * Muddatdan keyingi kunlar alohida shart talab qilmaydi: kechikkan
+ * ijara boshlangan bo'ladi va `accruedAmount` qaytmagan qismni
+ * bugungacha hisoblaydi — qarz o'z-o'zidan o'sib boradi.
+ *
+ * SERVER javobidagi `inBalance` ustun: bu yerdagi hisob faqat server
+ * maydonni yubormaganda (eski javob) ishlatiladi.
+ */
+export const countsInBalance = (rental: RentalResponseDTO, today = todayString()): boolean => {
+  if (typeof rental.inBalance === 'boolean') return rental.inBalance;
+  return !isOpenEnded(rental) || rental.startDate <= today;
+};
+
 export const rentalPeriod = (rental: Pick<RentalResponseDTO, 'period'>): RentalPeriod =>
   normalizeRentalPeriod(rental.period);
 
@@ -244,6 +279,8 @@ export const billedUnits = (rental: RentalResponseDTO, now = nowString()): numbe
  * Soatlikda boshlangan soat to'liq: bir daqiqa kechiksa ham 1 soat.
  */
 export const overdueUnits = (rental: RentalResponseDTO, now = nowString()): number => {
+  // Kelishilmagan muddatni o'tkazib yuborish mumkin emas.
+  if (isOpenEnded(rental)) return 0;
   const end = effectiveEnd(rental, now);
   if (isHourly(rental)) {
     const minutes = minutesBetween(dueMoment(rental), end);
@@ -379,6 +416,8 @@ export const daysFromDueDate = (startDate: string, dueDate: string): number | nu
 
 /** Ijaraning kelishilgan muddati (kun yoki soat) — tahrirlash formasi uchun. */
 export const durationOf = (rental: RentalResponseDTO): number | null => {
+  // Kelishilmagan muddatda ko'rsatadigan son yo'q.
+  if (isOpenEnded(rental)) return null;
   if (!isHourly(rental)) return daysFromDueDate(rental.startDate, rental.dueDate);
   const minutes = minutesBetween(startMoment(rental), dueMoment(rental));
   if (minutes === null || minutes < HOUR_MINUTES) return null;

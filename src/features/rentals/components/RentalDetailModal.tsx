@@ -35,6 +35,7 @@ import {
   isValidTimeInput,
   joinMoment,
   minutesBetween,
+  isOpenEnded,
   overdueUnits,
   remainingQuantity,
   rentalPeriod,
@@ -232,7 +233,9 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
         ? t('rentals.returnedOn', { date: returnedOn })
         : late > 0
           ? lateLabel(t, period, late)
-          : t('rentals.dueOn', { date: formatMoment(rental.dueDate, hourly ? rental.dueTime : null) });
+          : isOpenEnded(rental)
+            ? t('rentals.openEnded')
+            : t('rentals.dueOn', { date: formatMoment(rental.dueDate, hourly ? rental.dueTime : null) });
 
   return (
     <Modal transparent visible={Boolean(rental)} animationType="slide" onRequestClose={onClose}>

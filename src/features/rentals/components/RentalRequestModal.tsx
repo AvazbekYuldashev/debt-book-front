@@ -106,8 +106,13 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
     // Bo'shidan ko'p so'rash ma'nosiz: server ham tasdiqlash paytida rad etadi.
     if (count > free) return setError(t('rentals.errNotEnough', { count: String(free) }));
 
+    // Bo'sh muddat = kelishilmagan: do'kondan olib ketdim, qaytarish
+    // sanasini aytmadim. Do'kon baribir tasdiqlaydi.
+    const openEnded = duration.trim() === '';
     const length = Number(duration);
-    if (!Number.isFinite(length) || length < 1) return setError(t('rentals.errDays'));
+    if (!openEnded && (!Number.isFinite(length) || length < 1)) {
+      return setError(t('rentals.errDays'));
+    }
     if (!isValidDateInput(startDate)) return setError(t('rentals.errStartDate'));
     if (hourly && !isValidTimeInput(startTime)) return setError(t('rentals.errTime'));
 
@@ -117,7 +122,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
         lines: [{ rentalItemId: chosen.id, quantity: count }],
         startDate,
         ...(hourly ? { startTime } : {}),
-        duration: Math.floor(length),
+        duration: openEnded ? null : Math.floor(length),
         note: note.trim() || undefined,
       },
       { onSuccess: onClose, onError: (err) => setError((err as Error).message) },

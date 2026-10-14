@@ -448,35 +448,59 @@ qaytariladi).
 Serverda backend chiqqandan keyin bir marta (ixtiyoriy, tezlik uchun):
 `V27__rental_item.sql` dagi indekslar.
 
-## 6. Qarz bo'limi bilan bog'lanish — QOIDA KELISHILDI, ULANMAGAN
+## 6. Qarz bo'limi bilan bog'lanish — ULANDI
 
 Ijara qoldig'i mijozning QARZ BALANSIGA qo'shiladi, lekin hammasi emas:
 
 | Holat | Balansga qo'shiladimi |
 |---|---|
-| Muddat kelmagan, yakuniy sana ham belgilanmagan | **yo'q** |
+| Muddat kelmagan, yakuniy sana ham kelishilmagan | **yo'q** |
 | Muddat kelgan (yoki o'tib ketgan) | **ha** |
-| Muddat kelmagan, lekin yakuniy sana oldindan kiritilgan | **ha** |
+| Muddat kelmagan, lekin yakuniy sana kelishilgan | **ha** |
 
-Mantiq: summa QAT'IYLASHGANDA qarz bo'ladi. Ochiq muddatli ijarada
-(buyum berilgan, qachon qaytishi kelishilmagan) yakuniy summa hali
-ma'lum emas — uni balansga qo'shish yolg'on raqam bo'lardi. Muddat
-kelishilgan bo'lsa summa ma'lum va bu haqiqiy qarz.
+Mantiq: qarz — SUMMASI MA'LUM bo'lgan majburiyat. Ochiq muddatli ijara
+hali boshlanmagan bo'lsa yakuniy summani aytib bo'lmaydi.
 
-MUDDATDAN KEYINGI KUNLAR ham ikki tomonning hisobida yurib boradi:
-kechikkan ijara har kuni o'sadi va o'sgan summa balansda ko'rinadi.
+Qoida `RentalCalculator.countsInBalance` da va javobdagi `inBalance`
+maydonida. Ilovada `countsInBalance` (rentalMath.ts) ayni shu hisobni
+takrorlaydi, lekin server maydoni USTUN.
 
-Buning uchun kerak bo'ladigan ishlar:
+### Ochiq muddatli ijara
 
-1. **Ochiq muddatli ijara.** Hozir muddat MAJBURIY (`duration`), ya'ni
-   "yakuniy sana belgilanmagan" holatini ifodalab bo'lmaydi. `due_date`
-   null bo'la olishi va forma shu holatni qabul qilishi kerak.
-2. **Balansga ulash.** Mijoz balansi hisoblanganda ijara qoldig'i
-   yuqoridagi shart bo'yicha qo'shiladi — egasiga "olinishi kerak",
-   mijozga "to'lashim kerak".
-3. **Mijozning to'lovi.** Hozir to'lovni faqat egasi yozadi. Mijoz
-   "to'ladim" deb yoza olishi uchun ijara so'rovidagi kabi tasdiq
-   oqimi kerak (aks holda mijoz qarzini o'zicha yopib qo'ya olardi).
+`open_ended = true` — buyum berildi, qaytish sanasi kelishilmadi
+(lesa, opalubka: "olib ketdim, ish tugagach qaytaraman"). `due_date`
+baribir to'ldiriladi (ustun majburiy, tartiblash unga tayanadi), lekin:
+
+- kechikish hisoblanmaydi — kelishilmagan muddat o'tmaydi;
+- hisob TO'XTAMAYDI: buyum odamda turgan har kun uchun haq yig'iladi.
+
+Yaratishda `duration` null bo'lsa yozuv muddatsiz bo'ladi. Tahrirda
+muddat kiritilsa kelishilganga aylanadi; kelishilgan ijaradan muddatni
+olib tashlash tahrir orqali emas (bo'sh maydon ko'pincha "yubormadim"
+degani).
+
+### Balans qanday yig'iladi
+
+Balans SERVERDA emas, ilovada kontakt bo'yicha yig'iladi
+(`rentalBalance.ts` → `useContactBalances`), chunki pul balansi ham
+shu yerda hisoblanadi:
+
+1. `/rental/my` — men bergan ijaralar (bitta so'rov butun ro'yxatga);
+2. `/rental/with-business/{id}` — men olgan ijaralar, har biznes
+   kontakt uchun alohida (ular do'konning daftarida turadi va
+   `/rental/my` da chiqmaydi).
+
+Yo'nalish: ombor meniki bo'lsa qoldiq `credit` (olinadi), birovning
+do'konidan olgan bo'lsam `debt` (to'lanadi). Ortiqcha to'lov teskari
+tomonga tushadi. `WAITING` yozuv hisobga kirmaydi — u hali kelishuv
+emas. Bir yozuv ikki yo'nalishdan kelsa id bo'yicha bir marta
+hisoblanadi.
+
+KEYINGI QADAM (hozircha shart emas): mijoz soni ko'payganda
+ikkinchi qadam har kontaktga bittadan so'rov yuboradi. O'sha paytda
+serverda "kontakt bo'yicha ijara qoldig'i" endpointi kerak bo'ladi —
+hisob Java'da bo'lgani uchun JPQL bilan yig'ib bo'lmaydi, lekin
+javob kichik bo'ladi.
 
 ## 7. Bildirishnoma (ixtiyoriy, keyingi qadam)
 

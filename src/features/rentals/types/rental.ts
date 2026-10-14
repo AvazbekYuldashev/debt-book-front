@@ -130,6 +130,21 @@ export interface RentalResponseDTO {
   startTime?: string | null;
   /** Qaytarilishi kerak bo'lgan kun — YYYY-MM-DD. */
   dueDate: string;
+  /**
+   * MUDDAT KELISHILMAGAN: buyum berildi, qaytish sanasi aytilmadi.
+   *
+   * Bunday yozuvda `dueDate` to'ldirilgan bo'lsa ham u kelishuv emas —
+   * kechikish hisoblanmaydi va summa ma'lum bo'lmaguncha ijara qarz
+   * balansiga qo'shilmaydi. Lesa yoki opalubka odatda shunday beriladi.
+   */
+  openEnded?: boolean;
+  /**
+   * Shu ijara qarz balansiga qo'shiladimi — QOIDANI SERVER aytadi.
+   *
+   * Ilova ham o'zi hisoblay oladi (`countsInBalance`), lekin server
+   * javobi ustun: aks holda ikki joyda ikki xil raqam chiqardi.
+   */
+  inBalance?: boolean;
   /** Qaytarish soati — HH:mm, faqat soatlik ijarada. */
   dueTime?: string | null;
   /**
@@ -179,10 +194,12 @@ export interface RentalUpdateDTO {
   startDate: string;
   startTime?: string;
   /**
-   * Necha kun (yoki soat). `dueDate`ni SERVER hisoblaydi — ikkisini ham
+   * Necha kun (yoki soat); null = muddat kelishilmagan.
+   *
+   * `dueDate`ni SERVER hisoblaydi — ikkisini ham
    * yuborib bir-biriga mos kelmaydigan juftlik qoldirmaslik uchun.
    */
-  duration: number;
+  duration: number | null;
   note?: string;
 }
 
@@ -211,7 +228,7 @@ export interface RentalBatchCreateDTO {
   /** HH:mm — faqat soatlik ijarada. */
   startTime?: string;
   /** Necha kun yoki necha soat (davrga qarab). */
-  duration: number;
+  duration: number | null;
   note?: string;
   lines: RentalBatchLineDTO[];
 }
@@ -282,6 +299,6 @@ export interface RentalRequestDTO {
   startDate: string;
   /** Soatlik ijarada majburiy. */
   startTime?: string;
-  duration: number;
+  duration: number | null;
   note?: string;
 }

@@ -13,6 +13,7 @@ import {
   billedUnits,
   formatMoment,
   isPartiallyReturned,
+  isOpenEnded,
   overdueUnits,
   remainingQuantity,
   rentalPeriod,
@@ -159,9 +160,13 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
           ) : (
             <View style={[styles.badge, { backgroundColor: colors.positiveSoft }]}>
               <Text style={[styles.badgeText, { color: colors.positive }]}>
-                {t('rentals.dueOn', {
-                  date: formatMoment(item.dueDate, period === 'HOUR' ? item.dueTime : null),
-                })}
+                {/* Muddatsiz ijarada sana ko'rsatilmaydi: u kelishuv
+                    emas va "shu kungacha" deb o'qilib yolg'on bo'lardi. */}
+                {isOpenEnded(item)
+                  ? t('rentals.openEnded')
+                  : t('rentals.dueOn', {
+                      date: formatMoment(item.dueDate, period === 'HOUR' ? item.dueTime : null),
+                    })}
               </Text>
             </View>
           )}

@@ -238,7 +238,9 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
   // ---- Hisob satri: forma to'ldirilgani sayin yangilanadi ----
 
   const durationValue = Math.floor(Number(duration));
-  const validDuration = Number.isFinite(durationValue) && durationValue >= 1;
+  // Bo'sh maydon — muddatsiz ijara: muddat ham, yakuniy summa ham yo'q.
+  const openEndedInput = duration.trim() === '';
+  const validDuration = !openEndedInput && Number.isFinite(durationValue) && durationValue >= 1;
   const due = validDuration
     ? dueFrom(period, startDate, period === 'HOUR' ? startTime : null, durationValue)
     : null;
@@ -292,8 +294,11 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
     if (!isValidDateInput(startDate)) return setError(t('rentals.errStartDate'));
     if (period === 'HOUR' && !isValidTimeInput(startTime)) return setError(t('rentals.errTime'));
 
+    // BO'SH muddat = kelishilmagan ("olib ketdim, ish tugagach qaytaraman").
+    // Raqam kiritilgan bo'lsa esa u haqiqiy bo'lishi kerak.
+    const openEnded = duration.trim() === '';
     const dur = Math.floor(Number(duration));
-    if (!Number.isFinite(dur) || dur < 1) {
+    if (!openEnded && (!Number.isFinite(dur) || dur < 1)) {
       return setError(t(period === 'HOUR' ? 'rentals.errHours' : 'rentals.errDays'));
     }
 
@@ -322,7 +327,7 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
           currency: normalizeCurrency(rental.currency),
           startDate,
           ...time,
-          duration: dur,
+          duration: openEnded ? null : dur,
           note: note.trim() || undefined,
         },
         handlers,
@@ -352,7 +357,7 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
         period,
         startDate,
         ...time,
-        duration: dur,
+        duration: openEnded ? null : dur,
         note: note.trim() || undefined,
         lines: payloadLines,
       },
@@ -638,6 +643,24 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
                 keyboardType="number-pad"
               />
               <View style={styles.quickRow}>
+                {/* Muddatni BO'SHATADI: lesa yoki opalubka beradigan odam
+                    yolg'on sana yozishga majbur bo'lmasligi kerak. */}
+                <Pressable
+                  onPress={() => setDuration('')}
+                  style={({ pressed }) => [
+                    styles.quick,
+                    duration.trim() === '' && styles.quickActive,
+                    pressed && styles.pickPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('rentals.openEnded')}
+                >
+                  <Text
+                    style={[styles.quickText, duration.trim() === '' && styles.quickTextActive]}
+                  >
+                    {t('rentals.openEndedShort')}
+                  </Text>
+                </Pressable>
                 {QUICK_DURATIONS[period].map((value) => (
                   <Pressable
                     key={value}
@@ -663,6 +686,10 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
             <Input label={t('rentals.fieldNote')} value={note} onChangeText={setNote} />
 
             {/* ---- Hisob: saqlashdan oldingi oxirgi tekshiruv ---- */}
+            {/* Muddatsiz ijarada JAMI ko'rsatilmaydi: u hali yo'q.
+                O'ylab topilgan raqam ko'rsatishdan ko'ra hisob qanday
+                yurishini aytish to'g'ri. */}
+            {openEndedInput ? <Text style={styles.note}>{t('rentals.openEndedHint')}</Text> : null}
             {preview && due ? (
               <View style={styles.preview}>
                 {preview.rows.map((row) => (
