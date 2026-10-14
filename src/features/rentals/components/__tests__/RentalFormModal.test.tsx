@@ -41,6 +41,23 @@ const submit = () => {
 
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 20)); });
 
+/**
+ * Buyum TANLASH OYNASIDAN olinadi.
+ *
+ * Ilgari ro'yxat formaning ichida tekis turardi va test shunchaki
+ * buyum nomiga bosardi. Endi oqim "Narxnomadan tanlash" bilan bir xil:
+ * punkt -> oyna -> miqdor -> qo'llash.
+ */
+const pickItems = async (picks: [string, string][]) => {
+  fireEvent.press(screen.getByLabelText('Ombordan tanlash'));
+  await settle();
+  for (const [name, quantity] of picks) {
+    fireEvent.changeText(screen.getByLabelText(`${name} miqdor`), quantity);
+  }
+  fireEvent.press(screen.getByText("Tanlovni qo'llash"));
+  await settle();
+};
+
 beforeEach(() => {
   createMutate.mockReset();
   (useCreateRentalBatch as jest.Mock).mockReturnValue({ mutate: createMutate, isPending: false });
@@ -64,8 +81,7 @@ describe('RentalFormModal', () => {
     show();
     await settle();
 
-    fireEvent.press(screen.getByLabelText('Lesa'));
-    fireEvent.changeText(screen.getByDisplayValue('1'), '60');
+    await pickItems([['Lesa', '60']]);
     fireEvent.press(screen.getByLabelText('3 kun'));
     submit();
 
@@ -77,10 +93,7 @@ describe('RentalFormModal', () => {
     show();
     await settle();
 
-    fireEvent.press(screen.getByLabelText('Lesa'));
-    fireEvent.changeText(screen.getByDisplayValue('1'), '40');
-    fireEvent.press(screen.getByLabelText('Opalubka'));
-    fireEvent.changeText(screen.getByDisplayValue('1'), '120');
+    await pickItems([['Lesa', '40'], ['Opalubka', '120']]);
     fireEvent.press(screen.getByLabelText('3 kun'));
     submit();
 
@@ -105,8 +118,13 @@ describe('RentalFormModal', () => {
     fireEvent.press(screen.getByRole('radio', { name: 'Soatlik' }));
     await settle();
 
-    expect(screen.queryByLabelText('Lesa')).toBeNull();
-    expect(screen.getByLabelText('Beton aralashtirgich')).toBeTruthy();
     expect(screen.getByText('Berilgan soat')).toBeTruthy();
+
+    // Tanlash oynasida ham faqat SOATLIK buyumlar: kunlik va soatlik
+    // bitta ijarada aralashmaydi.
+    fireEvent.press(screen.getByLabelText('Ombordan tanlash'));
+    await settle();
+    expect(screen.queryByLabelText('Lesa miqdor')).toBeNull();
+    expect(screen.getByLabelText('Beton aralashtirgich miqdor')).toBeTruthy();
   });
 });

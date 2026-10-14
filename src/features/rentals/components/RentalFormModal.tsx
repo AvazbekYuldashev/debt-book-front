@@ -39,6 +39,7 @@ import {
 } from '../model/rentalMath';
 import { freeQuantity, itemsForPeriod } from '../model/rentalStock';
 import { periodLabel, perPeriodLabel, quantityLabel, unitCountLabel } from '../model/rentalLabels';
+import RentalItemBasketModal, { type RentalPick } from './RentalItemBasketModal';
 import { RENTAL_PERIODS, type RentalPeriod, type RentalResponseDTO } from '../types/rental';
 import type { RentalItemResponseDTO } from '../types/rentalItem';
 
@@ -123,6 +124,7 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
   const [contactSearch, setContactSearch] = useState('');
   const [period, setPeriod] = useState<RentalPeriod>('DAY');
   const [lines, setLines] = useState<Line[]>([]);
+  const [basketOpen, setBasketOpen] = useState(false);
   const [itemSearch, setItemSearch] = useState('');
   const [startDate, setStartDate] = useState(todayString());
   const [startTime, setStartTime] = useState(currentTimeString());
@@ -219,6 +221,35 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
       .sort((a, b) => Number(freeQuantity(b) > 0) - Number(freeQuantity(a) > 0) || a.name.localeCompare(b.name))
       .slice(0, ITEM_LIMIT);
   }, [allItems, period, lines, itemSearch]);
+
+  /**
+   * Tanlash oynasidan kelgan natija.
+   *
+   * Narx SAQLANADI: odam formada chegirma yozgan bo'lsa, oynaga kirib
+   * chiqqani uchun u yo'qolmasligi kerak. Yangi buyumga ombordagi narx
+   * qo'yiladi.
+   */
+  const applyBasket = useCallback(
+    (picks: RentalPick[]) => {
+      setLines((current) => {
+        const priceById = new Map(current.map((line) => [line.itemId, line.price]));
+        return picks.map((pick) => ({
+          itemId: pick.itemId,
+          quantity: formatQuantity(pick.quantity),
+          price:
+            priceById.get(pick.itemId) ??
+            formatAmountInput(String(itemById.get(pick.itemId)?.price ?? '')),
+        }));
+      });
+      setBasketOpen(false);
+    },
+    [itemById],
+  );
+
+  const basketInitial = useMemo<RentalPick[]>(
+    () => lines.map((line) => ({ itemId: line.itemId, quantity: parseQuantity(line.quantity) || 0 })),
+    [lines],
+  );
 
   const addLine = useCallback((item: RentalItemResponseDTO) => {
     setLines((current) => [
@@ -546,8 +577,12 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
                   );
                 })}
 
-                {/* Ombordan tanlash. Omborda shu davrdagi buyum yo'q bo'lsa —
-                    qo'shishga yo'naltiriladi. */}
+                {/* OMBORDAN TANLASH o'z oynasida.
+
+                    Ilgari buyumlar shu yerda tekis ro'yxat bo'lib turardi:
+                    forma cho'zilib ketar, kategoriya ko'rinmas, buyum ko'p
+                    bo'lsa kerakli narsani topish qiyin edi. Endi bu punkt
+                    "Narxnomadan tanlash" bilan bir xil oqim. */}
                 {periodItemsCount === 0 && !itemsQuery.isLoading ? (
                   <View style={styles.note}>
                     <Text style={styles.noteText}>{t('rentals.stockEmptyForPeriod')}</Text>
@@ -559,51 +594,25 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
                   </View>
                 ) : (
                   <>
-                    {periodItemsCount > ITEM_LIMIT ? (
-                      <SearchField
-                        value={itemSearch}
-                        onChangeText={setItemSearch}
-                        placeholder={t('rentals.searchItem')}
-                        accessibilityLabel={t('rentals.searchItem')}
-                      />
-                    ) : null}
-                    {pickable.map((item) => {
-                      const free = freeQuantity(item);
-                      return (
-                        <Pressable
-                          key={item.id}
-                          onPress={() => addLine(item)}
-                          disabled={free <= 0}
-                          style={({ pressed }) => [
-                            styles.pickRow,
-                            styles.pickRowLine,
-                            pressed && styles.pickPressed,
-                            free <= 0 && styles.pickDisabled,
-                          ]}
-                          accessibilityRole="button"
-                          accessibilityLabel={item.name}
-                          accessibilityState={{ disabled: free <= 0 }}
-                        >
-                          <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-                          <View style={styles.pickText}>
-                            <Text style={styles.pickName} numberOfLines={1}>
-                              {item.name}
-                            </Text>
-                            <Text style={styles.pickMeta} numberOfLines={1}>
-                              {formatMoney(item.price, item.currency)} {perPeriodLabel(t, item.period)}
-                            </Text>
-                          </View>
-                          <Text
-                            style={[styles.pickFree, { color: free > 0 ? colors.positive : colors.negative }]}
-                            numberOfLines={1}
-                          >
-                            {free > 0
-                              ? t('rentals.freeCount', { count: quantityLabel(t, free, item.unit) })
-                              : t('rentals.stockAllBusy')}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
+                    <Pressable
+                      onPress={() => setBasketOpen(true)}
+                      style={({ pressed }) => [styles.pickRow, pressed && styles.pickPressed]}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('rentals.basketOpen')}
+                    >
+                      <Ionicons name="cube-outline" size={18} color={colors.primary} />
+                      <View style={styles.pickText}>
+                        <Text style={styles.pickName} numberOfLines={1}>
+                          {t('rentals.basketOpen')}
+                        </Text>
+                        <Text style={styles.pickMeta} numberOfLines={1}>
+                          {lines.length > 0
+                            ? t('rentals.basketSelected', { count: String(lines.length) })
+                            : t('rentals.basketNone')}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                    </Pressable>
                     {onAddItem ? (
                       <Pressable onPress={onAddItem} accessibilityRole="button" style={styles.addItemLink}>
                         <Text style={styles.changeLink}>{t('rentals.addItemToStock')}</Text>
@@ -734,6 +743,17 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Tanlash oynasi FORMA ICHIDA turadi: u formaning holatini
+          o'zgartiradi va formadan tashqarida bo'lsa tanlov yo'qolardi. */}
+      <RentalItemBasketModal
+        visible={basketOpen}
+        items={allItems}
+        period={period}
+        initial={basketInitial}
+        onClose={() => setBasketOpen(false)}
+        onConfirm={applyBasket}
+      />
     </Modal>
   );
 };
