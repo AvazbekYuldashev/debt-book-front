@@ -448,27 +448,35 @@ qaytariladi).
 Serverda backend chiqqandan keyin bir marta (ixtiyoriy, tezlik uchun):
 `V27__rental_item.sql` dagi indekslar.
 
-## 6. Qarz bo'limi bilan bog'lanish — HALI ULANMAGAN
+## 6. Qarz bo'limi bilan bog'lanish — QOIDA KELISHILDI, ULANMAGAN
 
-Nasiya endi ijara modulining O'ZIDA ko'rinadi (`DEBT` filtri va paneldagi
-"Nasiyadagi pul"). Lekin `money` jadvaliga hech narsa yozilmaydi, ya'ni
-Qarzlar ekranidagi mijoz balansida ijara haqi KO'RINMAYDI.
+Ijara qoldig'i mijozning QARZ BALANSIGA qo'shiladi, lekin hammasi emas:
 
-Ulashning ikki yo'li bor va qaysi birini tanlash ma'lumot modeliga
-qaytarib bo'lmaydigan ta'sir qiladi — shuning uchun qaror so'ralmaguncha
-hech biri bajarilmadi:
+| Holat | Balansga qo'shiladimi |
+|---|---|
+| Muddat kelmagan, yakuniy sana ham belgilanmagan | **yo'q** |
+| Muddat kelgan (yoki o'tib ketgan) | **ha** |
+| Muddat kelmagan, lekin yakuniy sana oldindan kiritilgan | **ha** |
 
-1. **Hisoblab ko'rsatish.** `money` ga yozuv tushmaydi, mijoz balansi
-   hisoblanganda ijara qoldig'i qo'shiladi. Ortga qaytarish oson, lekin
-   qarzlar bo'limidagi hisob-kitob mantiqi o'zgaradi.
-2. **Haqiqiy qarz yozuvi.** Buyum qaytarilganda (summa qat'iylashganda)
-   `money` ga oddiy qarz yozuvi tushadi. Qarzlar bo'limi tegilmaydi, lekin
-   ikki jadval bir pulni ko'rsatib qolmasligi uchun ijara to'lovlari
-   o'sha yozuv bilan bog'lanishi kerak — aks holda bir qarz ikki marta
-   sanaladi.
+Mantiq: summa QAT'IYLASHGANDA qarz bo'ladi. Ochiq muddatli ijarada
+(buyum berilgan, qachon qaytishi kelishilmagan) yakuniy summa hali
+ma'lum emas — uni balansga qo'shish yolg'on raqam bo'lardi. Muddat
+kelishilgan bo'lsa summa ma'lum va bu haqiqiy qarz.
 
-Frontend ikkalasiga ham tayyor: har o'zgarishdan keyin `contacts` va
-`contact-balances` so'rovlarini yangilaydi (`hooks/useRentals.ts`).
+MUDDATDAN KEYINGI KUNLAR ham ikki tomonning hisobida yurib boradi:
+kechikkan ijara har kuni o'sadi va o'sgan summa balansda ko'rinadi.
+
+Buning uchun kerak bo'ladigan ishlar:
+
+1. **Ochiq muddatli ijara.** Hozir muddat MAJBURIY (`duration`), ya'ni
+   "yakuniy sana belgilanmagan" holatini ifodalab bo'lmaydi. `due_date`
+   null bo'la olishi va forma shu holatni qabul qilishi kerak.
+2. **Balansga ulash.** Mijoz balansi hisoblanganda ijara qoldig'i
+   yuqoridagi shart bo'yicha qo'shiladi — egasiga "olinishi kerak",
+   mijozga "to'lashim kerak".
+3. **Mijozning to'lovi.** Hozir to'lovni faqat egasi yozadi. Mijoz
+   "to'ladim" deb yoza olishi uchun ijara so'rovidagi kabi tasdiq
+   oqimi kerak (aks holda mijoz qarzini o'zicha yopib qo'ya olardi).
 
 ## 7. Bildirishnoma (ixtiyoriy, keyingi qadam)
 
