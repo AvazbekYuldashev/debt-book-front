@@ -133,6 +133,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       })),
     );
     setMoneyFormKey((key) => key + 1);
+    setRentInSessionCount(0);
     setModalVisible(true);
   }, []);
 
@@ -227,7 +228,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * qo'shardi, ya'ni bitta mijozning raqami ikki ekranda ikki xil
    * chiqardi.
    */
-  const rentalSummary = useContactRentalTotals(
+  const rentalTotals = useContactRentalTotals(
     contactId,
     rentalsAvailable && clientMode ? counterpartyBusinessId ?? null : null,
   );
@@ -236,10 +237,10 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const balances = useMemo(
     () =>
       netByCurrency(
-        mergeAmounts(currencyTotals.credit, rentalSummary.totals.credit),
-        mergeAmounts(currencyTotals.debt, rentalSummary.totals.debt),
+        mergeAmounts(currencyTotals.credit, rentalTotals.credit),
+        mergeAmounts(currencyTotals.debt, rentalTotals.debt),
       ),
-    [currencyTotals, rentalSummary],
+    [currencyTotals, rentalTotals],
   );
 
   const mappedHistory = useMemo(
@@ -303,6 +304,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       setActionType(next.actionType);
       setVoicePrefill(next.prefill);
       setMoneyFormKey((key) => key + 1);
+      setRentInSessionCount(0);
       setModalVisible(true);
     },
     [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue],
@@ -317,9 +319,22 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    */
   const [moneyFormKey, setMoneyFormKey] = useState(0);
 
+  /**
+   * SHU OQIMDA ijaraga olingan buyumlar soni.
+   *
+   * Narxnoma qatoridagi son kabi: u shu formada qilingan ishni
+   * ko'rsatadi, tarixni emas. Ilgari bu yerda mijozdagi BARCHA
+   * qaytarilmagan yozuvlar sanalardi va hech narsa olmagan odam
+   * "7 ta buyum olingan" degan yozuvni ko'rardi.
+   *
+   * Har yangi oqimda noldan boshlanadi.
+   */
+  const [rentInSessionCount, setRentInSessionCount] = useState(0);
+
   const openModal = useCallback((type: MoneyActionType) => {
     setActionType(type);
     setMoneyFormKey((key) => key + 1);
+    setRentInSessionCount(0);
     setModalVisible(true);
   }, []);
 
@@ -408,6 +423,8 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const handleRequestSent = useCallback(() => {
     closeRequest();
     setRequestSent(true);
+    // Bitta so'rov = bitta buyum: forma har safar bitta buyum yuboradi.
+    setRentInSessionCount((count) => count + 1);
   }, [closeRequest]);
 
   /** Ombor qatori yoki sarlavhadagi tugma: buyum bilan yoki bo'sh forma. */
@@ -689,7 +706,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
       <MoneyActionModal
         onRentIn={clientMode && counterpartyBusinessId ? openRentIn : undefined}
-        rentInCount={rentalSummary.openCount}
+        rentInCount={rentInSessionCount}
         resetKey={moneyFormKey}
         visible={modalVisible}
         actionType={actionType}

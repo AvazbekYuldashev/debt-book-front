@@ -46,8 +46,8 @@ describe('kontaktning ijara qoldig\'i', () => {
 
     const { result } = renderHook(() => useContactRentalTotals('c1', SHOP));
 
-    expect(result.current.totals.debt.UZS).toBeGreaterThan(0);
-    expect(result.current.totals.credit.UZS).toBeUndefined();
+    expect(result.current.debt.UZS).toBeGreaterThan(0);
+    expect(result.current.credit.UZS).toBeUndefined();
   });
 
   it('ombor egasi tomonida xuddi shu pul HAQ bo\'ladi', () => {
@@ -58,8 +58,8 @@ describe('kontaktning ijara qoldig\'i', () => {
 
     const { result } = renderHook(() => useContactRentalTotals('c1', null));
 
-    expect(result.current.totals.credit.UZS).toBeGreaterThan(0);
-    expect(result.current.totals.debt.UZS).toBeUndefined();
+    expect(result.current.credit.UZS).toBeGreaterThan(0);
+    expect(result.current.debt.UZS).toBeUndefined();
   });
 
   it('boshqa kontaktning ijarasi bu kontaktga qo\'shilmaydi', () => {
@@ -69,20 +69,7 @@ describe('kontaktning ijara qoldig\'i', () => {
 
     const { result } = renderHook(() => useContactRentalTotals('c1', SHOP));
 
-    expect(result.current.totals.debt.UZS).toBeUndefined();
-  });
-
-  it("qaytarilmagan yozuvlar SONI ham qaytadi", () => {
-    // Qarz oynasidagi qator shu sonni ko'rsatadi — odam oynani ochmasdan
-    // "menda nimadir bormi" degan savolga javob oladi.
-    (useRentalsWithBusiness as jest.Mock).mockReturnValue({
-      data: [rental(), rental({ id: 'r2' }), rental({ id: 'r3', returnedDate: '2026-01-05' })],
-    });
-
-    const { result } = renderHook(() => useContactRentalTotals('c1', SHOP));
-
-    // Qaytarilgani sanalmaydi: savol "nechta narsa mendan ketgan".
-    expect(result.current.openCount).toBe(2);
+    expect(result.current.debt.UZS).toBeUndefined();
   });
 
   it("ijara pul balansining USTIGA qo'shiladi", () => {
@@ -92,8 +79,8 @@ describe('kontaktning ijara qoldig\'i', () => {
     // Sarlavha aynan shu amalni bajaradi: pul + ijara -> sof balans.
     const money = { credit: { UZS: 20_123 }, debt: {} };
     const net = netByCurrency(
-      mergeAmounts(money.credit, result.current.totals.credit),
-      mergeAmounts(money.debt, result.current.totals.debt),
+      mergeAmounts(money.credit, result.current.credit),
+      mergeAmounts(money.debt, result.current.debt),
     );
 
     // Ijara qarzi haqdan ayriladi — ilgari u umuman hisobga kirmasdi.

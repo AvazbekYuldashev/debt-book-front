@@ -5,14 +5,6 @@ import { useMyRentals, useRentalsWithBusiness } from './useRentals';
 
 const EMPTY: CurrencyTotals = { credit: {}, debt: {} };
 
-export interface ContactRentalSummary {
-  totals: CurrencyTotals;
-  /** Hali qaytarilmagan ijara yozuvlari soni. */
-  openCount: number;
-}
-
-const NOTHING: ContactRentalSummary = { totals: EMPTY, openCount: 0 };
-
 /**
  * BITTA kontaktning ijara qoldig'i — kartaning balans sarlavhasi uchun.
  *
@@ -31,7 +23,7 @@ export function useContactRentalTotals(
   contactId: string,
   /** Qarshi tomon biznes bo'lsa uning id'si — ombor o'shaniki. */
   ownerBusinessId: string | null,
-): ContactRentalSummary {
+): CurrencyTotals {
   const clientMode = Boolean(ownerBusinessId);
   const filter = useMemo(() => ({ clientId: contactId }), [contactId]);
 
@@ -41,16 +33,9 @@ export function useContactRentalTotals(
   const data = clientMode ? theirRentals.data : ownRentals.data;
 
   return useMemo(() => {
-    if (!data) return NOTHING;
+    if (!data) return EMPTY;
     // Mijoz rejimida endpoint massiv, egasinikida sahifa qaytaradi.
     const rentals = Array.isArray(data) ? data : data.content ?? [];
-    return {
-      totals: rentalTotalsByContact(rentals)[contactId] ?? EMPTY,
-      // Qaytarilgani sanalmaydi: "nechta narsa mendan ketgan" degan
-      // savolga javob kerak, tarix emas.
-      openCount: rentals.filter(
-        (rental) => rental.clientId === contactId && !rental.returnedDate,
-      ).length,
-    };
+    return rentalTotalsByContact(rentals)[contactId] ?? EMPTY;
   }, [data, contactId]);
 }
