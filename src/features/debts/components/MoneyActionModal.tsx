@@ -83,6 +83,17 @@ interface MoneyActionModalProps {
    */
   rentInCount?: number;
   /**
+   * Forma QACHON tozalanishi kerakligini aytadi.
+   *
+   * Ilgari oyna `visible` har rost bo'lganda tozalanardi. Lekin u
+   * vaqtincha yopilishi ham mumkin — ijara oqimiga o'tganda — va
+   * qaytganda odam yozgan summa ham, savatdagi mahsulotlar ham
+   * yo'qolardi. Endi tozalash FAQAT bu qiymat o'zgarganda bo'ladi:
+   * chaqiruvchi uni yangi oqim boshlanganda o'zgartiradi, qaytishda
+   * esa tegmaydi.
+   */
+  resetKey?: number | string;
+  /**
    * Ovozli buyruqdan kelgan boshlang'ich qiymatlar.
    *
    * Forma har ochilishda tozalanadi, shuning uchun bu qiymatlar AYNAN o'sha
@@ -114,6 +125,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   token,
   onRentIn,
   rentInCount = 0,
+  resetKey = 0,
   prefill,
   onClose,
   onSubmit,
@@ -146,8 +158,9 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
    */
   const [orderItems, setOrderItems] = useState<MoneyItemCreateDTO[]>([]);
 
-  // Har ochilishda toza forma — yopilish yo'lidan (bekor/hardware back/muvaffaqiyat)
-  // qat'i nazar eski qiymatlar qolib ketmaydi.
+  // Yangi oqim boshlanganda toza forma — yopilish yo'lidan (bekor/hardware
+  // back/muvaffaqiyat) qat'i nazar eski qiymatlar qolib ketmaydi. Vaqtincha
+  // yopilib qaytish esa tozalamaydi (izohi `resetKey` da).
   useEffect(() => {
     if (!visible) return;
     setAmount(prefill?.amount ? formatAmountInput(String(prefill.amount)) : '');
@@ -162,7 +175,8 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     // Qatorlar ham tiklanadi: ularsiz yozuv "shuncha so'm" bo'lib qolib,
     // nima sotib olingani ko'rinmasdi.
     setOrderItems(prefill?.items ?? []);
-  }, [visible, baseCurrency, prefill]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey, baseCurrency, prefill]);
 
   const effectiveType = fixedCounterpartyType ?? targetType;
   const effectiveCounterpartyId = (fixedCounterpartyId ?? counterpartyId).trim();

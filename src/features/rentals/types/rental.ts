@@ -167,6 +167,8 @@ export interface RentalResponseDTO {
   canConfirmPayment?: boolean;
   /** Mijozga: "pul berdim" tugmasi chiqadimi. */
   canPay?: boolean;
+  /** Mijozga: o'z tasdiqlanmagan so'rovini qaytarib olish mumkinmi. */
+  canWithdraw?: boolean;
   /** Tasdiq holati: mijoz yozgan yozuv egasi tasdiqlaguncha WAITING. */
   approval?: RentalApproval | null;
   /** Yozuv MENING daftarimdami (ombor egasimanmi). */

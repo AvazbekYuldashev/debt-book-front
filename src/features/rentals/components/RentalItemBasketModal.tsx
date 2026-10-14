@@ -25,8 +25,14 @@ export interface RentalPick {
 interface RentalItemBasketModalProps {
   visible: boolean;
   items: RentalItemResponseDTO[];
-  /** Kunlik va soatlik buyum bitta ijarada aralashmaydi. */
-  period: RentalPeriod;
+  /**
+   * Kunlik va soatlik buyum bitta ijarada aralashmaydi.
+   *
+   * Berilmasa HAMMASI ko'rsatiladi: mijoz davrni oldindan bilmaydi,
+   * u buyumni tanlaydi va davr o'sha buyumdan chiqadi. Aralashtirib
+   * yuborilsa chaqiruvchi tomon xatoni aytadi.
+   */
+  period?: RentalPeriod;
   /** Formada allaqachon turgan qatorlar. */
   initial?: RentalPick[];
   onClose: () => void;
@@ -84,7 +90,10 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
   }, [visible, initial]);
 
   /** Faqat shu davrdagi buyumlar: kunlik va soatlik aralashmaydi. */
-  const periodItems = useMemo(() => itemsForPeriod(items, period), [items, period]);
+  const periodItems = useMemo(
+    () => (period ? itemsForPeriod(items, period) : items),
+    [items, period],
+  );
   const categories = useMemo(() => rentalItemCategories(periodItems), [periodItems]);
 
   const visibleItems = useMemo(() => {

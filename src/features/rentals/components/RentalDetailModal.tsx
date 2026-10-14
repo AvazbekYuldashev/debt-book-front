@@ -470,6 +470,17 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                     <Text style={styles.note}>{t('rentals.paymentWaitingHint')}</Text>
                   </View>
                 ) : null}
+                {/* MIJOZ o'z tasdiqlanmagan so'rovini qaytarib oladi.
+                    Aks holda noto'g'ri yozilgan so'rov do'kon javob
+                    bermaguncha osilib qolar va qarzda ko'rinib turardi. */}
+                {!mine && rental.canWithdraw ? (
+                  <Button
+                    title={t('rentals.withdraw')}
+                    variant="secondary"
+                    onPress={handleDelete}
+                    loading={deleteMutation.isPending}
+                  />
+                ) : null}
                 {mine && (allowWrite || allowDelete) ? (
                   <View style={styles.actionsRow}>
                     {allowWrite ? (

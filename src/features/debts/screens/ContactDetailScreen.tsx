@@ -132,6 +132,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         },
       })),
     );
+    setMoneyFormKey((key) => key + 1);
     setModalVisible(true);
   }, []);
 
@@ -301,13 +302,24 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       setSettlementQueue(rest);
       setActionType(next.actionType);
       setVoicePrefill(next.prefill);
+      setMoneyFormKey((key) => key + 1);
       setModalVisible(true);
     },
     [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue],
   );
 
+  /**
+   * Forma tozalanadigan payt.
+   *
+   * Yangi oqim boshlanganda o'zgaradi; ijara oqimidan QAYTGANDA esa
+   * tegilmaydi — aks holda odam yozgan summa va savatdagi mahsulotlar
+   * yo'qolardi.
+   */
+  const [moneyFormKey, setMoneyFormKey] = useState(0);
+
   const openModal = useCallback((type: MoneyActionType) => {
     setActionType(type);
+    setMoneyFormKey((key) => key + 1);
     setModalVisible(true);
   }, []);
 
@@ -678,6 +690,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       <MoneyActionModal
         onRentIn={clientMode && counterpartyBusinessId ? openRentIn : undefined}
         rentInCount={rentalSummary.openCount}
+        resetKey={moneyFormKey}
         visible={modalVisible}
         actionType={actionType}
         loading={creating}
