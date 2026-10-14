@@ -44,8 +44,6 @@ interface ClientRentalPaneProps {
 interface StockSection {
   key: string;
   title: string;
-  /** Birinchi bo'lim sarlavhasida "Ijaraga berish" tugmasi turadi. */
-  action: boolean;
   data: { item: RentalItemResponseDTO; isLast: boolean }[];
 }
 
@@ -64,9 +62,14 @@ interface StockSection {
  * nima bor edi" savoli tug'iladi, va qaytmagan buyum birinchi ko'zga
  * tashlanishi kerak.
  *
- * Ombor qatoriga bosilsa ijara formasi O'SHA buyum bilan ochiladi —
- * ro'yxatdan qayta qidirish shart emas. Sarlavhadagi tugma esa bo'sh
- * forma ochadi: bir mijozga bir nechta buyum birdaniga beriladi.
+ * "IJARAGA BERISH" tugmasi BIRINCHI sahifada — ombor sahifasida emas.
+ * Ombor bu yerda ma'lumotnoma: "menda nima bor, nechtasi bo'sh". Amal
+ * esa shu odamga tegishli va uning yozuvlari yonida turishi kerak —
+ * tugma ombor sarlavhasida turganda "qaysi buyumga bosyapman" degan
+ * savol tug'ilardi, holbuki u bo'sh forma ochadi.
+ *
+ * Ombor qatoriga bosilsa ijara formasi baribir O'SHA buyum bilan
+ * ochiladi — tez yo'l saqlanib qoldi.
  */
 const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   clientId,
@@ -113,19 +116,24 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
    */
   const stockSections = useMemo<StockSection[]>(
     () =>
-      groupRentalItems(items).map((group, index) => ({
+      groupRentalItems(items).map((group) => ({
         key: `stock:${group.category ?? ''}`,
         title: group.category ?? t('rentals.noCategory'),
-        // Tugma faqat BIRINCHI sarlavhada: u butun bo'limga tegishli va
-        // har guruhda takrorlanishi shovqin bo'lardi.
-        action: allowWrite && !clientMode && index === 0,
         data: group.items.map((item, itemIndex) => ({
           item,
           isLast: itemIndex === group.items.length - 1,
         })),
       })),
-    [items, allowWrite, clientMode, t],
+    [items, t],
   );
+
+  /**
+   * Ijaraga BERISH faqat ombor egasida.
+   *
+   * Mijoz ham yozuv yarata oladi, lekin boshqa yo'l bilan: ombor
+   * qatoriga bosib so'rov yuboradi va do'kon tasdiqlaydi.
+   */
+  const canGiveOut = allowWrite && !clientMode;
 
   const loading = rentalsQuery.isLoading || itemsQuery.isLoading;
 
@@ -139,6 +147,10 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
           icon="cube-outline"
           title={clientMode ? t('rentals.atMe') : t('rentals.atThisClient')}
           description={t('rentals.noRentalsHere')}
+          // Bo'sh sahifada yagona ma'noli amal — shu.
+          actionLabel={canGiveOut ? t('rentals.createSubmit') : undefined}
+          actionIcon="add"
+          onAction={canGiveOut ? () => onGiveOut(null) : undefined}
         />
       );
     }
@@ -153,6 +165,21 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
       <FlatList
         data={rentals}
         keyExtractor={(rental) => rental.id}
+        // Tugma ro'yxat BILAN birga suriladi: ekran tepasiga yopishib
+        // turgan tugma uzun ro'yxatda joyni yeb qo'yardi.
+        ListHeaderComponent={
+          canGiveOut ? (
+            <SectionHeader
+              icon="cube"
+              iconBadge={false}
+              title={t('rentals.atThisClient')}
+              actionLabel={t('rentals.createSubmit')}
+              actionIcon="add"
+              actionVariant="solid"
+              onAction={() => onGiveOut(null)}
+            />
+          ) : null
+        }
         renderItem={({ item: rental, index }) => (
           <View style={styles.rowSlice}>
             <RentalRow
@@ -167,7 +194,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
         showsVerticalScrollIndicator={false}
       />
     );
-  }, [loading, rentals, clientMode, styles, onOpenRental, t]);
+  }, [loading, rentals, clientMode, canGiveOut, styles, onGiveOut, onOpenRental, t]);
 
   const renderStock = useCallback(() => {
     if (loading) return <SkeletonContactList count={3} />;
@@ -208,10 +235,6 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
             icon="albums"
             iconBadge={false}
             title={(section as StockSection).title}
-            actionLabel={(section as StockSection).action ? t('rentals.createSubmit') : undefined}
-            actionIcon={(section as StockSection).action ? 'add' : undefined}
-            actionVariant="solid"
-            onAction={(section as StockSection).action ? () => onGiveOut(null) : undefined}
           />
         )}
         stickySectionHeadersEnabled={false}

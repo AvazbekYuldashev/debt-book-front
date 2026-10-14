@@ -49,6 +49,7 @@ const item = (over: Partial<RentalItemResponseDTO> = {}): RentalItemResponseDTO 
 });
 
 const empty = { data: undefined, isLoading: false };
+const giveOut = jest.fn();
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 20)); });
 
 const show = async () => {
@@ -114,10 +115,65 @@ describe('mijoz kartasidagi ijara — ikki sahifa', () => {
     expect(screen.getByText('Opalubka')).toBeTruthy();
   });
 
-  it("mijozga ombor qo'shish tugmasi chiqmaydi — ombor uniki emas", async () => {
+  it("mijozga 'Ijaraga berish' chiqmaydi — ombor uniki emas", async () => {
     (useBusinessRentalItems as jest.Mock).mockReturnValue({ data: [], isLoading: false });
     await show();
 
     expect(screen.queryByText('Ijaraga berish')).toBeNull();
+  });
+});
+
+/**
+ * "IJARAGA BERISH" TUGMASI BUYUMLAR sahifasida, omborda emas.
+ *
+ * Ombor bu yerda ma'lumotnoma ("menda nima bor, nechtasi bo'sh"), amal
+ * esa shu odamga tegishli. Tugma ombor sarlavhasida turganda "qaysi
+ * buyumga bosyapman" degan savol tug'ilardi — holbuki u bo'sh forma
+ * ochadi.
+ */
+describe("ombor egasi tomonida 'Ijaraga berish'", () => {
+  const showOwner = async () => {
+    render(
+      <AppThemeProvider>
+        <LanguageProvider>
+          <ClientRentalPane
+            clientId="c1"
+            active
+            allowWrite
+            onGiveOut={giveOut}
+            onOpenRental={jest.fn()}
+          />
+        </LanguageProvider>
+      </AppThemeProvider>,
+    );
+    await settle();
+  };
+
+  beforeEach(() => {
+    giveOut.mockReset();
+    (useMyRentals as jest.Mock).mockReturnValue({
+      data: { content: [rental({ owner: true })] },
+      isLoading: false,
+    });
+    (useRentalItems as jest.Mock).mockReturnValue({ data: [item()], isLoading: false });
+  });
+
+  it('tugma BUYUMLAR sahifasida turadi', async () => {
+    await showOwner();
+
+    fireEvent.press(screen.getByText('Ijaraga berish'));
+
+    // Bo'sh forma ochiladi: bir mijozga bir nechta buyum beriladi.
+    expect(giveOut).toHaveBeenCalledWith(null);
+  });
+  it('tugma BITTA joyda — ombor sarlavhalarida takrorlanmaydi', async () => {
+    await showOwner();
+
+    // Ikkala sahifa ham bir vaqtda chiziladi (gorizontal ro'yxat), shuning
+    // uchun "ko'rinmaydi" deb emas, SONI bilan tekshiriladi: ombor
+    // sarlavhasiga qaytib qo'shilsa ikkita bo'lib qolardi.
+    expect(screen.getAllByText('Ijaraga berish')).toHaveLength(1);
+    // Ombor sahifasi o'zi joyida: kategoriya qatori chiziladi.
+    expect(screen.getByText('Opalubka')).toBeTruthy();
   });
 });
