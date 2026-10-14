@@ -382,13 +382,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     }
   }, [rentInFromMoney]);
 
-  /** So'rov yuborilgach qaytariladigan joy yo'q — ish bitdi. */
-  const finishRequest = useCallback(() => {
-    setRequestOpen(false);
-    setRequestItem(null);
-    setRentInFromMoney(false);
-  }, []);
-
   /** Ombor qatori yoki sarlavhadagi tugma: buyum bilan yoki bo'sh forma. */
   const openRentalForm = useCallback((item: RentalItemResponseDTO | null = null) => {
     setEditingRental(null);
@@ -641,7 +634,8 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           item={requestItem}
           visible={requestOpen}
           onClose={closeRequest}
-          onSubmitted={finishRequest}
+          // Qarz oynasidan kelgan bo'lsa — o'sha yerga qaytish yo'li.
+          onBack={rentInFromMoney ? closeRequest : undefined}
         />
       ) : null}
 

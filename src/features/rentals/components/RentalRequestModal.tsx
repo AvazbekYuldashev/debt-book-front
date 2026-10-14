@@ -36,13 +36,13 @@ interface RentalRequestModalProps {
   visible?: boolean;
   onClose: () => void;
   /**
-   * So'rov YUBORILDI.
+   * KELGAN JOYGA qaytish (qarz oynasi).
    *
-   * `onClose` dan ataylab ajratilgan: bekor qilgan odamni kelgan
-   * joyiga qaytarish kerak, muvaffaqiyatdan keyin esa qaytarmaslik —
-   * ish bitdi. Berilmasa `onClose` ishlaydi.
+   * Berilsa RO'YXAT bosqichida ham orqaga tugmasi chiqadi: odam u
+   * yerdan "Narxnomadan tanlash" ga o'tmoqchi bo'lishi mumkin va
+   * buning uchun butun oqimni yopishi shart emas.
    */
-  onSubmitted?: () => void;
+  onBack?: () => void;
 }
 
 /**
@@ -60,7 +60,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   item,
   visible,
   onClose,
-  onSubmitted,
+  onBack,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -135,25 +135,28 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
         duration: openEnded ? null : Math.floor(length),
         note: note.trim() || undefined,
       },
-      {
-        onSuccess: onSubmitted ?? onClose,
-        onError: (err) => setError((err as Error).message),
-      },
+      // Yuborilgach oyna BIR QADAM orqaga qaytadi (kelgan joyiga), butun
+      // oqimni yopmaydi: odam o'sha yerda pul yozuvini ham qilishi yoki
+      // narxnomadan mahsulot tanlashi mumkin.
+      { onSuccess: onClose, onError: (err) => setError((err as Error).message) },
     );
-  }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, requestMutation, onClose, onSubmitted, t]);
+  }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, requestMutation, onClose, t]);
 
   /**
-   * ORQAGA — ro'yxatga qaytish.
+   * ORQAGA bir qadam.
    *
-   * Faqat buyum SHU OYNADA tanlangan bo'lsa ma'noli: tashqaridan
-   * (ombor qatoriga bosib) kelganda qaytadigan ro'yxat yo'q va
-   * "orqaga" oynani yopishdan boshqa narsa qilmasdi.
+   * Formadan RO'YXATGA, ro'yxatdan esa KELGAN JOYGA (qarz oynasiga).
+   * Buyum tashqaridan berilgan bo'lsa (ombor qatoriga bosib kelgan)
+   * ro'yxat bosqichi umuman bo'lmagan — u holda to'g'ridan-to'g'ri
+   * kelgan joyga qaytiladi.
    */
-  const canGoBack = !item && Boolean(picked);
-  const goBack = useCallback(() => {
+  const toList = useCallback(() => {
     setPicked(null);
     setError('');
   }, []);
+
+  const goBack = !item && picked ? toList : onBack;
+  const canGoBack = Boolean(goBack);
 
   if (!open) return null;
 
@@ -168,7 +171,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
       transparent
       visible={open}
       animationType="slide"
-      onRequestClose={canGoBack ? goBack : onClose}
+      onRequestClose={goBack ?? onClose}
     >
       <KeyboardAvoidingView
         style={styles.backdrop}

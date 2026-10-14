@@ -10,8 +10,8 @@ jest.mock('../../hooks/useRentals');
 import { useBusinessRentalItems, useRequestRental } from '../../hooks/useRentals';
 
 const onClose = jest.fn();
-const onSubmitted = jest.fn();
 const requestMutate = jest.fn();
+const onBack = jest.fn();
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 20)); });
 
 const item = (over: Partial<RentalItemResponseDTO> = {}): RentalItemResponseDTO => ({
@@ -27,7 +27,7 @@ const item = (over: Partial<RentalItemResponseDTO> = {}): RentalItemResponseDTO 
 });
 
 /** Oyna ro'yxat bosqichida ochiladi — qarz oynasidagi "Ijaraga olish" kabi. */
-const show = async () => {
+const show = async (withBack = true) => {
   render(
     <AppThemeProvider>
       <LanguageProvider>
@@ -36,7 +36,7 @@ const show = async () => {
           item={null}
           visible
           onClose={onClose}
-          onSubmitted={onSubmitted}
+          onBack={withBack ? onBack : undefined}
         />
       </LanguageProvider>
     </AppThemeProvider>,
@@ -46,8 +46,8 @@ const show = async () => {
 
 beforeEach(() => {
   onClose.mockReset();
-  onSubmitted.mockReset();
   requestMutate.mockReset();
+  onBack.mockReset();
   (useRequestRental as jest.Mock).mockReturnValue({ mutate: requestMutate, isPending: false });
   (useBusinessRentalItems as jest.Mock).mockReturnValue({
     data: [item(), item({ id: 'stul', name: 'Stul' })],
@@ -94,24 +94,47 @@ describe("ijaraga olish — bosqichlar", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("ro'yxat bosqichida orqaga tugmasi yo'q — qaytadigan joy yo'q", async () => {
+  it("ro'yxat bosqichidan KELGAN JOYGA qaytiladi", async () => {
+    // Odam u yerdan "Narxnomadan tanlash" ga o'tmoqchi bo'lishi mumkin —
+    // buning uchun butun oqimni yopishi shart emas.
     await show();
+
+    fireEvent.press(screen.getByLabelText('Orqaga'));
+
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("qaytadigan joy bo'lmasa orqaga tugmasi chiqmaydi", async () => {
+    await show(false);
 
     expect(screen.queryByLabelText('Orqaga')).toBeNull();
   });
 
-  it("'Bekor qilish' KELGAN JOYGA qaytaradi, yuborish esa yo'q", async () => {
-    // Bekor qilgan odam qarz oynasiga qaytadi (u yerda summa yozib
-    // qo'ygan bo'lishi mumkin); so'rov yuborilgach qaytadigan joy yo'q.
+  it("formadagi orqaga RO'YXATGA qaytaradi, kelgan joyga emas", async () => {
+    await show();
+    fireEvent.press(screen.getByLabelText(/^Lesa:/));
+    await settle();
+
+    fireEvent.press(screen.getByLabelText('Orqaga'));
+    await settle();
+
+    expect(screen.getByText('Stul')).toBeTruthy();
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
+  it("'Bekor qilish' KELGAN JOYGA qaytaradi", async () => {
+    // Odam qarz oynasida summa yozib qo'ygan bo'lishi mumkin.
     await show();
 
     fireEvent.press(screen.getByText('Bekor qilish'));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(onSubmitted).not.toHaveBeenCalled();
   });
 
-  it("yuborilgach `onSubmitted` chaqiriladi, `onClose` emas", async () => {
+  it("so'rov yuborilgach ham BIR QADAM orqaga qaytadi", async () => {
+    // Butun oqim yopilmaydi: odam o'sha yerda pul yozuvini ham qilishi
+    // yoki narxnomadan mahsulot tanlashi mumkin.
     await show();
     fireEvent.press(screen.getByLabelText(/^Lesa:/));
     await settle();
@@ -123,7 +146,6 @@ describe("ijaraga olish — bosqichlar", () => {
     const handlers = requestMutate.mock.calls[0][1];
     act(() => handlers.onSuccess());
 
-    expect(onSubmitted).toHaveBeenCalledTimes(1);
-    expect(onClose).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
