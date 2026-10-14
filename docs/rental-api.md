@@ -502,6 +502,33 @@ serverda "kontakt bo'yicha ijara qoldig'i" endpointi kerak bo'ladi —
 hisob Java'da bo'lgani uchun JPQL bilan yig'ib bo'lmaydi, lekin
 javob kichik bo'ladi.
 
+### Mijozning to'lovi
+
+Pulni mijoz beradi, shuning uchun yozuvni ham u boshlaydi — lekin summa
+`pending_payment` da KUTIB turadi va hisobga faqat egasi tasdiqlagach
+qo'shiladi: aks holda mijoz o'z qarzini o'zi yopib qo'ya olardi.
+
+| Kim | Yo'l | Natija |
+|---|---|---|
+| Egasi | `POST /rental/{id}/payment` | darhol `paid_amount` ga qo'shiladi |
+| Mijoz | `POST /rental/{id}/payment-request` | `pending_payment` ga yoziladi |
+| Egasi | `POST /rental/{id}/payment-confirm` | kutayotgan summa hisobga o'tadi |
+| Egasi | `POST /rental/{id}/payment-reject` | kutayotgan summa o'chadi |
+
+Chegaralar: tasdiqlanmagan (WAITING) ijaraga to'lov yozilmaydi —
+kelishuvning o'zi hali yo'q; bir vaqtda bitta kutayotgan to'lov, aks
+holda ro'yxat tasdiqlanmagan summalar bilan to'lib ketardi; bog'liqlik
+KONTAKT qatori orqali tekshiriladi (`owns` o'tmaydi, chunki yozuv
+do'konning daftarida turadi).
+
+Javobdagi maydonlar: `pendingPayment`, `canPay` (mijozga "Pul berdim"
+tugmasi), `canConfirmPayment` (egasiga tasdiq/rad tugmalari).
+Kutayotgan to'lov BALANSNI KAMAYTIRMAYDI: `paid_amount` o'zgarmagan,
+demak qoldiq ham o'sha.
+
+Rad etish ataylab bor: tasdiqlashning juftisiz yolg'on yozilgan summa
+kartada abadiy osilib qolardi.
+
 ## 7. Bildirishnoma (ixtiyoriy, keyingi qadam)
 
 Muddati bugun (soatlikda — shu soatda) tugaydigan va kechikkan ijaralar
