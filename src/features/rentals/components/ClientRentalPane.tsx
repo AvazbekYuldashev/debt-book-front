@@ -1,8 +1,9 @@
 import React, { useCallback, useMemo } from 'react';
-import { SectionList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, SectionList, StyleSheet, View } from 'react-native';
 import EmptyState from '../../../shared/ui/EmptyState';
 import SectionHeader from '../../../shared/ui/SectionHeader';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
+import SwipePager, { type SwipePage } from '../../../shared/ui/SwipePager';
 import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
@@ -39,30 +40,29 @@ interface ClientRentalPaneProps {
   ownerBusinessId?: string | null;
 }
 
-type Row =
-  | { kind: 'rental'; key: string; rental: RentalResponseDTO; isLast: boolean }
-  | { kind: 'item'; key: string; item: RentalItemResponseDTO; isLast: boolean };
-
-interface Section {
+/** Ombor sahifasidagi kategoriya bo'limi. */
+interface StockSection {
   key: string;
   title: string;
-  icon: 'cube' | 'albums';
-  /** Ombor sarlavhasida "Ijaraga berish" tugmasi turadi. */
-  action?: boolean;
-  data: Row[];
+  /** Birinchi bo'lim sarlavhasida "Ijaraga berish" tugmasi turadi. */
+  action: boolean;
+  data: { item: RentalItemResponseDTO; isLast: boolean }[];
 }
 
 /**
- * Mijoz kartasidagi IJARA sahifasi.
+ * Mijoz kartasidagi IJARA sahifasi — ikkita surilib o'tiladigan sahifa.
  *
- * Oldi-berdi shu yerda bo'ladi — narxnoma sahifasi bilan bir xil joyda:
- * odam mijozni ochadi va o'sha yerdayoq "nima berdim, nima qaytmadi" ni
- * ko'rib, ombordan yangisini beradi. Ilgari buning uchun boshqa
- * ekrandan qidirish kerak edi.
+ * BIRINCHI: shu odamdagi buyumlar. IKKINCHI: ombor.
  *
- * Tepada SHU ODAMDAGI buyumlar, pastda OMBOR. Tartib ataylab shunday:
- * yangi buyum berishdan oldin odatda "bunda nima bor edi" savoli
- * tug'iladi, va qaytmagan buyum ko'z oldida turishi kerak.
+ * Ilgari ikkalasi bitta uzun ro'yxatda, biri ikkinchisining ostida
+ * turardi: ombordagi buyumni ko'rish uchun mijozdagi hamma yozuvdan
+ * o'tib tushish kerak edi va "qaysi ro'yxatga qarayapman" degan savol
+ * doim tug'ilardi. Endi ikkisi teng huquqli sahifa, tepadagi tugmalar
+ * esa ayni paytda "qayerdaman" ko'rsatkichi.
+ *
+ * Tartib ataylab shunday: yangi buyum berishdan oldin odatda "bunda
+ * nima bor edi" savoli tug'iladi, va qaytmagan buyum birinchi ko'zga
+ * tashlanishi kerak.
  *
  * Ombor qatoriga bosilsa ijara formasi O'SHA buyum bilan ochiladi —
  * ro'yxatdan qayta qidirish shart emas. Sarlavhadagi tugma esa bo'sh
@@ -106,149 +106,151 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   }, [rentalsQuery.data]);
   const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
 
-  const sections = useMemo<Section[]>(() => {
-    const result: Section[] = [];
-
-    if (rentals.length > 0) {
-      result.push({
-        key: 'rentals',
-        title: clientMode ? t('rentals.atMe') : t('rentals.atThisClient'),
-        icon: 'cube',
-        data: rentals.map((rental, index) => ({
-          kind: 'rental' as const,
-          key: rental.id,
-          rental,
-          isLast: index === rentals.length - 1,
-        })),
-      });
-    }
-
-    /*
-     * Ombor KATEGORIYA bo'yicha bo'linadi — Ijara bo'limidagi ro'yxat
-     * bilan bir xil. Tekis ro'yxat o'nta buyumdan keyin o'qib bo'lmas
-     * bo'lib qoladi: "stul qaysi biri edi" degan savol tug'iladi.
-     *
-     * "Ijaraga berish" tugmasi BIRINCHI ombor guruhining sarlavhasida:
-     * u butun bo'limga tegishli va har guruhda takrorlanishi shovqin
-     * bo'lardi.
-     */
-    const groups = groupRentalItems(items);
-    groups.forEach((group, index) => {
-      result.push({
+  /*
+   * Ombor KATEGORIYA bo'yicha bo'linadi — Ijara bo'limidagi ro'yxat
+   * bilan bir xil. Tekis ro'yxat o'nta buyumdan keyin o'qib bo'lmas
+   * bo'lib qoladi: "stul qaysi biri edi" degan savol tug'iladi.
+   */
+  const stockSections = useMemo<StockSection[]>(
+    () =>
+      groupRentalItems(items).map((group, index) => ({
         key: `stock:${group.category ?? ''}`,
-        title: group.category ?? (clientMode ? t('rentals.theirStock') : t('rentals.noCategory')),
-        icon: 'albums',
-        action: allowWrite && index === 0,
+        title: group.category ?? t('rentals.noCategory'),
+        // Tugma faqat BIRINCHI sarlavhada: u butun bo'limga tegishli va
+        // har guruhda takrorlanishi shovqin bo'lardi.
+        action: allowWrite && !clientMode && index === 0,
         data: group.items.map((item, itemIndex) => ({
-          kind: 'item' as const,
-          key: item.id,
           item,
           isLast: itemIndex === group.items.length - 1,
         })),
-      });
-    });
-
-    // Ombor umuman bo'sh bo'lsa ham bitta sarlavha kerak: tugma va
-    // "buyum yo'q" izohi o'sha yerda chiqadi.
-    if (groups.length === 0) {
-      result.push({
-        key: 'stock',
-        title: t('rentals.tabStock'),
-        icon: 'albums',
-        action: allowWrite,
-        data: [],
-      });
-    }
-
-    return result;
-  }, [rentals, items, allowWrite, clientMode, t]);
-
-  const renderItem = useCallback(
-    ({ item: row }: { item: Row }) => (
-      <View style={styles.rowSlice}>
-        {row.kind === 'rental' ? (
-          <RentalRow item={row.rental} isLast={row.isLast} showClient={false} onPress={onOpenRental} />
-        ) : (
-          <RentalItemRow
-            item={row.item}
-            isLast={row.isLast}
-            // Mijoz rejimida yozish huquqi biznesga emas, o'ziga tegishli:
-            // u do'kondan olish uchun so'rov yuboradi, ombor esa
-            // tasdiqlanmaguncha o'zgarmaydi.
-            onPress={clientMode || allowWrite ? onGiveOut : undefined}
-          />
-        )}
-      </View>
-    ),
-    [styles, onOpenRental, onGiveOut, allowWrite, clientMode],
+      })),
+    [items, allowWrite, clientMode, t],
   );
 
-  if (rentalsQuery.isLoading || itemsQuery.isLoading) {
-    return (
-      <NestedGlass>
-        <SkeletonContactList count={4} />
-      </NestedGlass>
-    );
-  }
+  const loading = rentalsQuery.isLoading || itemsQuery.isLoading;
 
-  // Ombor bo'sh bo'lsa ijara berib ham bo'lmaydi — yagona ma'noli amal
-  // buyum qo'shish, shuning uchun ro'yxat o'rniga o'sha taklif chiqadi.
-  if (items.length === 0 && rentals.length === 0) {
-    return (
-      <NestedGlass>
-        {/* Matn KIMGA ko'rinayotganiga qarab: egasiga "buyumlaringizni
-            kiriting", mijozga esa "bu do'konda hozircha buyum yo'q" —
-            mijoz u yerga buyum qo'sha olmaydi va unga ko'rsatma berish
-            chalkashlik bo'lardi. */}
+  // ---------------------------------------------------------------- sahifalar
+
+  const renderRentals = useCallback(() => {
+    if (loading) return <SkeletonContactList count={4} />;
+    if (rentals.length === 0) {
+      return (
         <EmptyState
           icon="cube-outline"
+          title={clientMode ? t('rentals.atMe') : t('rentals.atThisClient')}
+          description={t('rentals.noRentalsHere')}
+        />
+      );
+    }
+    /*
+     * Ro'yxat VIRTUALIZATSIYALANGAN va o'zi suriladi.
+     *
+     * Oddiy View bo'lsa: sahifa balandligi sahifalagich tomonidan
+     * belgilangani uchun uzun ro'yxat pastdan KESILIB qolardi - tashqi
+     * ScrollView gorizontal, ya'ni vertikal surilmaydi.
+     */
+    return (
+      <FlatList
+        data={rentals}
+        keyExtractor={(rental) => rental.id}
+        renderItem={({ item: rental, index }) => (
+          <View style={styles.rowSlice}>
+            <RentalRow
+              item={rental}
+              isLast={index === rentals.length - 1}
+              showClient={false}
+              onPress={onOpenRental}
+            />
+          </View>
+        )}
+        contentContainerStyle={styles.listCard}
+        showsVerticalScrollIndicator={false}
+      />
+    );
+  }, [loading, rentals, clientMode, styles, onOpenRental, t]);
+
+  const renderStock = useCallback(() => {
+    if (loading) return <SkeletonContactList count={3} />;
+    if (stockSections.length === 0) {
+      /* Matn KIMGA ko'rinayotganiga qarab: egasiga "buyumlaringizni
+         kiriting", mijozga esa "bu do'konda hozircha buyum yo'q" —
+         mijoz u yerga buyum qo'sha olmaydi va unga ko'rsatma berish
+         chalkashlik bo'lardi. */
+      return (
+        <EmptyState
+          icon="albums-outline"
           title={clientMode ? t('rentals.theirStock') : t('rentals.stockEmptyTitle')}
           description={clientMode ? t('rentals.theirStockEmpty') : t('rentals.stockEmptyHint')}
           actionLabel={!clientMode && allowWrite && onAddItem ? t('rentals.addItem') : undefined}
           actionIcon="add"
           onAction={!clientMode && allowWrite ? onAddItem : undefined}
         />
-      </NestedGlass>
-    );
-  }
-
-  return (
-    <NestedGlass>
+      );
+    }
+    return (
       <SectionList
-        sections={sections}
-        keyExtractor={(row) => row.key}
-        renderItem={renderItem}
+        sections={stockSections}
+        keyExtractor={(row) => row.item.id}
+        renderItem={({ item: row }) => (
+          <View style={styles.rowSlice}>
+            <RentalItemRow
+              item={row.item}
+              isLast={row.isLast}
+              // Mijoz rejimida yozish huquqi biznesga emas, o'ziga tegishli:
+              // u do'kondan olish uchun so'rov yuboradi, ombor esa
+              // tasdiqlanmaguncha o'zgarmaydi.
+              onPress={clientMode || allowWrite ? onGiveOut : undefined}
+            />
+          </View>
+        )}
         renderSectionHeader={({ section }) => (
           <SectionHeader
-            icon={(section as Section).icon}
+            icon="albums"
             iconBadge={false}
-            title={(section as Section).title}
-            actionLabel={
-              (section as Section).action
-                ? clientMode
-                  ? undefined
-                  : t('rentals.createSubmit')
-                : undefined
-            }
-            actionIcon={(section as Section).action && !clientMode ? 'add' : undefined}
+            title={(section as StockSection).title}
+            actionLabel={(section as StockSection).action ? t('rentals.createSubmit') : undefined}
+            actionIcon={(section as StockSection).action ? 'add' : undefined}
             actionVariant="solid"
-            onAction={(section as Section).action && !clientMode ? () => onGiveOut(null) : undefined}
+            onAction={(section as StockSection).action ? () => onGiveOut(null) : undefined}
           />
         )}
-        renderSectionFooter={({ section }) =>
-          (section as Section).data.length === 0 ? (
-            <Text style={styles.emptyNote}>{t('rentals.stockEmptyShort')}</Text>
-          ) : null
-        }
         stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.listCard}
         showsVerticalScrollIndicator={false}
       />
+    );
+  }, [loading, stockSections, clientMode, allowWrite, onAddItem, onGiveOut, styles, t]);
+
+  /**
+   * Sahifa nomlari TOMONGA qarab: mijozga "Mendagi buyumlar" va
+   * "Ularning ombori", ombor egasiga esa "Shu mijozda" va "Ombor".
+   */
+  const pages = useMemo<SwipePage[]>(
+    () => [
+      {
+        key: 'mine',
+        label: clientMode ? t('rentals.atMe') : t('rentals.atThisClient'),
+        icon: 'cube-outline',
+        render: renderRentals,
+      },
+      {
+        key: 'stock',
+        label: clientMode ? t('rentals.theirStock') : t('rentals.tabStock'),
+        icon: 'albums-outline',
+        render: renderStock,
+      },
+    ],
+    [clientMode, renderRentals, renderStock, t],
+  );
+
+  return (
+    <NestedGlass>
+      <SwipePager pages={pages} />
     </NestedGlass>
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
+const createStyles = ({ spacing, glass }: ThemeValue) =>
   StyleSheet.create({
     listCard: {
       paddingBottom: spacing.md,
@@ -257,15 +259,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     rowSlice: {
       backgroundColor: glass.surface.backgroundColor,
       marginHorizontal: spacing.md,
-    },
-    emptyNote: {
-      ...typography.caption,
-      fontSize: 12,
-      color: colors.textSecondary,
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: radius.md,
-      marginHorizontal: spacing.md,
-      padding: spacing.sm,
     },
   });
 
