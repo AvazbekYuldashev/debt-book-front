@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Modal from '../../../shared/ui/AppModal';
 import Input from '../../../shared/ui/Input';
@@ -130,13 +130,34 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
     );
   }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, requestMutation, onClose, t]);
 
+  /**
+   * ORQAGA — ro'yxatga qaytish.
+   *
+   * Faqat buyum SHU OYNADA tanlangan bo'lsa ma'noli: tashqaridan
+   * (ombor qatoriga bosib) kelganda qaytadigan ro'yxat yo'q va
+   * "orqaga" oynani yopishdan boshqa narsa qilmasdi.
+   */
+  const canGoBack = !item && Boolean(picked);
+  const goBack = useCallback(() => {
+    setPicked(null);
+    setError('');
+  }, []);
+
   if (!open) return null;
 
   const total = chosen ? Number(quantity.replace(',', '.')) * Number(duration) * chosen.price : 0;
   const showTotal = Number.isFinite(total) && total > 0;
 
   return (
-    <Modal transparent visible={open} animationType="slide" onRequestClose={onClose}>
+    /* Qurilmaning ORQAGA tugmasi ham bir qadam orqaga qaytaradi, butun
+       oqimni yopmaydi: tanlashdan keyin yopilib ketsa odam hammasini
+       boshidan boshlashga majbur bo'lardi. */
+    <Modal
+      transparent
+      visible={open}
+      animationType="slide"
+      onRequestClose={canGoBack ? goBack : onClose}
+    >
       <KeyboardAvoidingView
         style={styles.backdrop}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -147,9 +168,22 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
-              {chosen ? t('rentals.requestTitle', { item: chosen.name }) : t('rentals.theirStock')}
-            </Text>
+            <View style={styles.titleRow}>
+              {canGoBack ? (
+                <Pressable
+                  onPress={goBack}
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.backBtn, pressed && styles.backPressed]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.back')}
+                >
+                  <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+                </Pressable>
+              ) : null}
+              <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
+                {chosen ? t('rentals.requestTitle', { item: chosen.name }) : t('rentals.theirStock')}
+              </Text>
+            </View>
 
             {/* BIRINCHI BOSQICH: buyum tanlanmagan bo'lsa ombor ro'yxati. */}
             {!chosen ? (
@@ -276,8 +310,19 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       padding: spacing.md,
       gap: spacing.sm,
     },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xxs,
+    },
+    backBtn: {
+      marginLeft: -spacing.xxs,
+      padding: spacing.xxs,
+    },
+    backPressed: { opacity: 0.6 },
     title: {
       ...typography.heading2,
+      flexShrink: 1,
       fontSize: 18,
       color: colors.textPrimary,
     },
