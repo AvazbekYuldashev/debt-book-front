@@ -35,6 +35,14 @@ interface RentalRequestModalProps {
   /** Buyumsiz ham ochilishi uchun — ro'yxat bosqichi. */
   visible?: boolean;
   onClose: () => void;
+  /**
+   * So'rov YUBORILDI.
+   *
+   * `onClose` dan ataylab ajratilgan: bekor qilgan odamni kelgan
+   * joyiga qaytarish kerak, muvaffaqiyatdan keyin esa qaytarmaslik —
+   * ish bitdi. Berilmasa `onClose` ishlaydi.
+   */
+  onSubmitted?: () => void;
 }
 
 /**
@@ -52,6 +60,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   item,
   visible,
   onClose,
+  onSubmitted,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -126,9 +135,12 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
         duration: openEnded ? null : Math.floor(length),
         note: note.trim() || undefined,
       },
-      { onSuccess: onClose, onError: (err) => setError((err as Error).message) },
+      {
+        onSuccess: onSubmitted ?? onClose,
+        onError: (err) => setError((err as Error).message),
+      },
     );
-  }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, requestMutation, onClose, t]);
+  }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, requestMutation, onClose, onSubmitted, t]);
 
   /**
    * ORQAGA — ro'yxatga qaytish.

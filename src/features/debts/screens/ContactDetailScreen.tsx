@@ -356,15 +356,37 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    */
   const [requestOpen, setRequestOpen] = useState(false);
 
+  /**
+   * So'rov oynasi QARZ OYNASIDAN ochildimi.
+   *
+   * Bekor qilgan odam o'sha yerga qaytishi kerak: u pul summasini
+   * yozib qo'ygan bo'lishi mumkin va oyna yopilib ketsa hammasini
+   * boshqatdan kiritardi. (Qarz oynasi mount'da qoladi, shuning uchun
+   * yozilgani joyida turadi.)
+   */
+  const [rentInFromMoney, setRentInFromMoney] = useState(false);
+
   const openRentIn = useCallback(() => {
     setModalVisible(false);
     setRequestItem(null);
+    setRentInFromMoney(true);
     setRequestOpen(true);
   }, []);
 
   const closeRequest = useCallback(() => {
     setRequestOpen(false);
     setRequestItem(null);
+    if (rentInFromMoney) {
+      setRentInFromMoney(false);
+      setModalVisible(true);
+    }
+  }, [rentInFromMoney]);
+
+  /** So'rov yuborilgach qaytariladigan joy yo'q — ish bitdi. */
+  const finishRequest = useCallback(() => {
+    setRequestOpen(false);
+    setRequestItem(null);
+    setRentInFromMoney(false);
   }, []);
 
   /** Ombor qatori yoki sarlavhadagi tugma: buyum bilan yoki bo'sh forma. */
@@ -619,6 +641,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           item={requestItem}
           visible={requestOpen}
           onClose={closeRequest}
+          onSubmitted={finishRequest}
         />
       ) : null}
 

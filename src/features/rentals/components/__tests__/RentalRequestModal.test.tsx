@@ -10,6 +10,8 @@ jest.mock('../../hooks/useRentals');
 import { useBusinessRentalItems, useRequestRental } from '../../hooks/useRentals';
 
 const onClose = jest.fn();
+const onSubmitted = jest.fn();
+const requestMutate = jest.fn();
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 20)); });
 
 const item = (over: Partial<RentalItemResponseDTO> = {}): RentalItemResponseDTO => ({
@@ -29,7 +31,13 @@ const show = async () => {
   render(
     <AppThemeProvider>
       <LanguageProvider>
-        <RentalRequestModal businessId="biz-1" item={null} visible onClose={onClose} />
+        <RentalRequestModal
+          businessId="biz-1"
+          item={null}
+          visible
+          onClose={onClose}
+          onSubmitted={onSubmitted}
+        />
       </LanguageProvider>
     </AppThemeProvider>,
   );
@@ -38,7 +46,9 @@ const show = async () => {
 
 beforeEach(() => {
   onClose.mockReset();
-  (useRequestRental as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+  onSubmitted.mockReset();
+  requestMutate.mockReset();
+  (useRequestRental as jest.Mock).mockReturnValue({ mutate: requestMutate, isPending: false });
   (useBusinessRentalItems as jest.Mock).mockReturnValue({
     data: [item(), item({ id: 'stul', name: 'Stul' })],
     isLoading: false,
@@ -88,5 +98,32 @@ describe("ijaraga olish — bosqichlar", () => {
     await show();
 
     expect(screen.queryByLabelText('Orqaga')).toBeNull();
+  });
+
+  it("'Bekor qilish' KELGAN JOYGA qaytaradi, yuborish esa yo'q", async () => {
+    // Bekor qilgan odam qarz oynasiga qaytadi (u yerda summa yozib
+    // qo'ygan bo'lishi mumkin); so'rov yuborilgach qaytadigan joy yo'q.
+    await show();
+
+    fireEvent.press(screen.getByText('Bekor qilish'));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSubmitted).not.toHaveBeenCalled();
+  });
+
+  it("yuborilgach `onSubmitted` chaqiriladi, `onClose` emas", async () => {
+    await show();
+    fireEvent.press(screen.getByLabelText(/^Lesa:/));
+    await settle();
+
+    // Muddat bo'sh qoldirilsa ijara muddatsiz bo'ladi — forma to'liq.
+    fireEvent.press(screen.getByText('Ijaraga olish'));
+
+    // Mutatsiya muvaffaqiyatli tugadi deb faraz qilamiz.
+    const handlers = requestMutate.mock.calls[0][1];
+    act(() => handlers.onSuccess());
+
+    expect(onSubmitted).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
   });
 });
