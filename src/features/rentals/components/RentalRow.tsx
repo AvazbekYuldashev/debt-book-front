@@ -9,7 +9,6 @@ import { formatQuantity } from '../../../shared/lib/quantity';
 import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 import { normalizeApproval, type RentalResponseDTO } from '../types/rental';
 import {
-  accruedAmount,
   billedUnits,
   formatMoment,
   isPartiallyReturned,
@@ -44,9 +43,16 @@ interface RentalRowProps {
  * va hech narsa to'lanmagan ijarada ular BIR XIL bo'lib, bitta son ikki
  * marta yozilgandek ko'rinardi. Yig'ilgan summa kartada qoladi.
  *
- * So'z TOMONGA qarab: ombor egasiga "Olinmagan", mijozga "To'lashim
- * kerak". Mijozga egasining tilida gapirish ("olinmagan" — kim
- * olmagan?) ro'yxatni o'qib bo'lmas qilib qo'yardi.
+ * SO'Z — ilovaning qarz lug'ati: HAQ (menga tegishli pul) yoki QARZ
+ * (men to'laydigan pul), hisob yopilgan bo'lsa nol. Aynan shu ikki so'z
+ * kontakt sarlavhasida ham turadi ("Hozirgi haq"), shuning uchun endi
+ * sarlavha bilan qator bitta tilda gapiradi — ilgari ro'yxat "olinmagan"
+ * derdi va mijoz uchun bu "kim olmagan?" degan savol edi.
+ *
+ * Yo'nalish EGALIKDAN chiqadi: ombor meniki bo'lsa to'lanmagan ijara
+ * menga tegishli (haq), birovniki bo'lsa men to'layman (qarz). Ortiqcha
+ * to'lov esa buni teskari aylantiradi — shu bitta shart ikkala tomonni
+ * ham, ikkala yo'nalishni ham qamrab oladi.
  *
  * Kun soni va kechikish bitta qatorda belgi ("chip") bo'lib turadi:
  * odam ro'yxatni ko'zdan kechirganda avval KECHIKKANLARNI qidiradi.
@@ -62,7 +68,6 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
   const stage = rentalStage(item);
   const units = billedUnits(item);
   const late = overdueUnits(item);
-  const accrued = accruedAmount(item);
   const unpaid = unpaidAmount(item);
 
   /**
@@ -91,6 +96,14 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
 
   /** Ombor meniki bo'lsa pul OLINADI, birovniki bo'lsa TO'LANADI. */
   const mine = item.owner !== false;
+
+  /*
+   * Bu pul MENGA tegishlimi (haq) yoki men to'laymanmi (qarz).
+   *
+   * `rentalBalance.ts` dagi shart bilan AYNI BIR XIL: qator qanday
+   * yozsa, balansga ham shunday tushadi.
+   */
+  const credit = unpaid > 0 === mine;
 
   /**
    * Rang bosqichga qarab: kechikkan — qizil, NASIYA (buyum qaytgan, puli
@@ -187,27 +200,24 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
         ortiqcha o'ylantirardi.
       */}
       <View style={styles.side}>
-        {/* Tasdiq kutayotgan yozuvda summa SO'NIQ: u hali kelishuv emas,
-            balansga ham kirmaydi. Qizil raqam uni haqiqiy qarzdek
-            ko'rsatib, "Kutilmoqda" belgisiga qarama-qarshi chiqardi. */}
+        {/* Hisob yopilgan bo'lsa NOL yoziladi, yig'ilgan summa emas:
+            "hamma narsa to'landi" degani aynan nol, boshqa raqam esa
+            yana nimadir qolgandek o'qiladi. */}
         <Text
           style={[
             styles.accrued,
-            waiting && styles.pendingAmount,
-            !waiting && unpaid !== 0 && { color: unpaid > 0 ? colors.negative : colors.positive },
+            unpaid !== 0 && { color: credit ? colors.positive : colors.negative },
           ]}
           numberOfLines={1}
         >
-          {formatMoney(unpaid !== 0 ? Math.abs(unpaid) : accrued, item.currency)}
+          {formatMoney(Math.abs(unpaid), item.currency)}
         </Text>
         <Text style={styles.unpaid} numberOfLines={1}>
           {unpaid === 0
             ? t('rentals.settled')
-            : unpaid > 0
-              ? mine
-                ? t('rentals.unpaid')
-                : t('rentals.toPay')
-              : t('rentals.advance')}
+            : credit
+              ? t('money.badgeCredit')
+              : t('money.badgeDebt')}
         </Text>
       </View>
     </Pressable>
@@ -286,11 +296,6 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       fontWeight: '800',
       color: colors.textPrimary,
       fontVariant: ['tabular-nums'],
-    },
-    // Tasdiqlanmagan summa: o'qiladi, lekin e'tibor tortmaydi.
-    pendingAmount: {
-      color: colors.textSecondary,
-      fontWeight: '700',
     },
     // Raqam ostidagi SO'Z: rang raqamda, bu yerda emas — ikkisi ham
     // rangli bo'lsa qator chaqnab ketardi.

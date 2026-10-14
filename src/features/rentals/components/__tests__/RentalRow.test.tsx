@@ -41,12 +41,12 @@ const show = async (item: RentalResponseDTO) => {
 };
 
 /**
- * Qatordagi O'NG USTUN.
+ * Qatordagi O'NG USTUN — ilovaning qarz lug'atida.
  *
- * Ilgari u ikki raqam ko'rsatardi — yig'ilgan va qoldiq — va hech narsa
- * to'lanmagan ijarada ular bir xil bo'lib, bitta son ikki marta
- * yozilgandek ko'rinardi. So'z esa har doim egasining tilida edi
- * ("olinmagan"), mijoz uchun esa bu "kim olmagan?" degan savol.
+ * HAQ (menga tegishli pul), QARZ (men to'laydigan) yoki nol. Aynan shu
+ * ikki so'z kontakt sarlavhasida ham turadi, ya'ni sarlavha bilan qator
+ * bitta tilda gapiradi. Ilgari qator "olinmagan" derdi — mijoz uchun bu
+ * "kim olmagan?" degan savol edi.
  */
 describe('ijara qatori — qoldiq ustuni', () => {
   it("bitta raqam ko'rsatadi, takrorlamaydi", async () => {
@@ -56,25 +56,29 @@ describe('ijara qatori — qoldiq ustuni', () => {
     expect(screen.getAllByText("23 333 so'm")).toHaveLength(1);
   });
 
-  it("ombor egasiga 'Olinmagan' deydi", async () => {
+  it("ombor egasiga to'lanmagan ijara HAQ bo'lib ko'rinadi", async () => {
     await show(rental());
 
-    expect(screen.getByText('Olinmagan')).toBeTruthy();
-    expect(screen.queryByText("To'lashim kerak")).toBeNull();
+    // Pul unga tegishli — kontakt sarlavhasidagi "Hozirgi haq" bilan bir xil.
+    expect(screen.getByText('Haq')).toBeTruthy();
+    expect(screen.queryByText('Qarz')).toBeNull();
   });
 
-  it("mijozga 'To'lashim kerak' deydi", async () => {
+  it("mijozga xuddi shu ijara QARZ bo'lib ko'rinadi", async () => {
     await show(rental({ owner: false }));
 
-    expect(screen.getByText("To'lashim kerak")).toBeTruthy();
-    expect(screen.queryByText('Olinmagan')).toBeNull();
+    expect(screen.getByText('Qarz')).toBeTruthy();
+    expect(screen.queryByText('Haq')).toBeNull();
   });
 
-  it("to'liq to'langan ijarada qoldiq emas, jami turadi", async () => {
+  it("to'liq to'langan ijarada NOL turadi", async () => {
     await show(rental({ paidAmount: 23_333 }));
 
+    // "Hammasi to'landi" degani aynan nol; boshqa raqam yana nimadir
+    // qolgandek o'qilardi.
     expect(screen.getByText('Hisob toza')).toBeTruthy();
-    expect(screen.getByText("23 333 so'm")).toBeTruthy();
+    expect(screen.getByText("0 so'm")).toBeTruthy();
+    expect(screen.queryByText("23 333 so'm")).toBeNull();
   });
 
   it("qisman to'langanda QOLDIQ ko'rsatiladi, yig'ilgan emas", async () => {
@@ -84,11 +88,18 @@ describe('ijara qatori — qoldiq ustuni', () => {
     expect(screen.queryByText("23 333 so'm")).toBeNull();
   });
 
-  it("ortiqcha to'lov alohida so'z bilan chiqadi", async () => {
+  it("oldindan to'lagan mijozga bu HAQ bo'lib ko'rinadi", async () => {
+    // Ortiqcha to'lov yo'nalishni teskari aylantiradi: endi do'kon qarzdor.
+    await show(rental({ owner: false, paidAmount: 30_000 }));
+
+    expect(screen.getByText('Haq')).toBeTruthy();
+    expect(screen.getByText("6 667 so'm")).toBeTruthy();
+  });
+
+  it("ortiqcha to'lov ombor egasida QARZ bo'ladi", async () => {
     await show(rental({ paidAmount: 30_000 }));
 
-    expect(screen.getByText("Ortiqcha to'lov")).toBeTruthy();
-    expect(screen.getByText("6 667 so'm")).toBeTruthy();
+    expect(screen.getByText('Qarz')).toBeTruthy();
   });
 
   it('muddatsiz ijarada sana emas, "Muddat belgilanmagan" turadi', async () => {
