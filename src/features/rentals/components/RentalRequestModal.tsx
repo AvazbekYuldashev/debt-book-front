@@ -10,7 +10,8 @@ import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatMoney } from '../../../shared/lib/money';
-import { formatDateInputValue, isValidDateInput } from '../../../shared/lib/date';
+import { isValidDateInput } from '../../../shared/lib/date';
+import DateField from '../../../shared/ui/DateField';
 import { useBusinessRentalItems, useRequestRental } from '../hooks/useRentals';
 import RentalItemRow from './RentalItemRow';
 import { groupRentalItems } from '../model/rentalStock';
@@ -204,12 +205,10 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
               />
             </View>
 
-            <Input
+            <DateField
               label={t('rentals.fieldStartDate')}
               value={startDate}
-              onChangeText={(value) => setStartDate(formatDateInputValue(value))}
-              keyboardType="number-pad"
-              placeholder="2026-10-13"
+              onChange={setStartDate}
             />
 
             {hourly ? (

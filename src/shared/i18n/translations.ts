@@ -386,6 +386,13 @@ const uz: Dict = {
   // davomiylik (buildDurationLabel): o'zbekchada sondan keyin birlik ko'plik olmaydi
   'duration.years': '{count} yil',
   'duration.months': '{count} oy',
+
+  // sana tanlagich (DateField)
+  'date.months': 'Yanvar,Fevral,Mart,Aprel,May,Iyun,Iyul,Avgust,Sentabr,Oktabr,Noyabr,Dekabr',
+  'date.weekShort': 'Du,Se,Ch,Pa,Ju,Sh,Ya',
+  'date.today': 'Bugun',
+  'date.prevMonth': 'Oldingi oy',
+  'date.nextMonth': 'Keyingi oy',
   'duration.days': '{count} kun',
   'duration.label': '{value}lik',
   'expenses.noFilter': "Filtr o'rnatilmagan",
@@ -1228,6 +1235,13 @@ const ru: Dict = {
   // davomiylik (buildDurationLabel): qisqartmalar — ko'plik shakli kerak emas
   'duration.years': '{count} г.',
   'duration.months': '{count} мес.',
+
+  // выбор даты (DateField)
+  'date.months': 'Январь,Февраль,Март,Апрель,Май,Июнь,Июль,Август,Сентябрь,Октябрь,Ноябрь,Декабрь',
+  'date.weekShort': 'Пн,Вт,Ср,Чт,Пт,Сб,Вс',
+  'date.today': 'Сегодня',
+  'date.prevMonth': 'Предыдущий месяц',
+  'date.nextMonth': 'Следующий месяц',
   'duration.days': '{count} дн.',
   'duration.label': 'за {value}',
   'expenses.noFilter': 'Фильтр не задан',
@@ -2068,6 +2082,13 @@ const en: Dict = {
   // davomiylik (buildDurationLabel): qisqartmalar — ko'plik shakli kerak emas
   'duration.years': '{count} yr',
   'duration.months': '{count} mo',
+
+  // date picker (DateField)
+  'date.months': 'January,February,March,April,May,June,July,August,September,October,November,December',
+  'date.weekShort': 'Mo,Tu,We,Th,Fr,Sa,Su',
+  'date.today': 'Today',
+  'date.prevMonth': 'Previous month',
+  'date.nextMonth': 'Next month',
   'duration.days': '{count} d',
   'duration.label': '{value}',
   'expenses.noFilter': 'No filter set',

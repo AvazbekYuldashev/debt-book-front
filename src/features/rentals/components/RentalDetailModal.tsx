@@ -17,7 +17,8 @@ import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatAmountInput, formatMoney, parseAmountInput } from '../../../shared/lib/money';
-import { formatDateInputValue, isValidDateInput } from '../../../shared/lib/date';
+import { isValidDateInput } from '../../../shared/lib/date';
+import DateField from '../../../shared/ui/DateField';
 import { confirmAction } from '../../../shared/lib/confirm';
 import {
   useConfirmRental,
@@ -507,12 +508,12 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                   />
                 ) : null}
                 <View style={styles.actionsRow}>
-                  <Input
+                  {/* Qaytish sanasi ham tanlanadi: u ham hisobga
+                      to'g'ridan-to'g'ri kiradi. */}
+                  <DateField
                     label={t('rentals.returnDate')}
                     value={returnDate}
-                    onChangeText={(value) => setReturnDate(formatDateInputValue(value))}
-                    keyboardType="number-pad"
-                    placeholder="2026-10-12"
+                    onChange={setReturnDate}
                     containerStyle={styles.actionBtn}
                   />
                   {/* Soat faqat soatlik ijarada: kunlikda hisob sana bo'yicha. */}

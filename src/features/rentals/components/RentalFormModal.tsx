@@ -22,7 +22,8 @@ import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatAmountInput, formatMoney, parseAmountInput } from '../../../shared/lib/money';
 import { formatQuantity } from '../../../shared/lib/quantity';
 import { normalizeCurrency } from '../../../shared/lib/currency';
-import { formatDateInputValue, isValidDateInput } from '../../../shared/lib/date';
+import { isValidDateInput } from '../../../shared/lib/date';
+import DateField from '../../../shared/ui/DateField';
 import { ContactsContext, type Contact } from '../../debts/context/ContactsContext';
 import { useCreateRentalBatch, useRentalItems, useUpdateRental } from '../hooks/useRentals';
 import {
@@ -615,12 +616,13 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
 
             {/* ---- Muddat ---- */}
             <View style={styles.pairRow}>
-              <Input
+              {/* Sana TANLANADI: ijarada u pulning o'zi (kun soni
+                  shundan chiqadi) va bitta xato raqam butun hisobni
+                  surib yuborardi. */}
+              <DateField
                 label={t('rentals.fieldStartDate')}
                 value={startDate}
-                onChangeText={(value) => setStartDate(formatDateInputValue(value))}
-                keyboardType="number-pad"
-                placeholder="2026-10-12"
+                onChange={setStartDate}
                 containerStyle={styles.pairItem}
               />
               {period === 'HOUR' ? (
