@@ -39,9 +39,14 @@ interface RentalRowProps {
 /**
  * Ro'yxatdagi bitta ijara.
  *
- * Chapda buyum nomi va kimdaligi; o'ngda yig'ilgan summa va uning ostida
- * hali olinmagan qoldiq. Eng muhim raqam — QOLDIQ, shuning uchun u
- * rangli: olinmagan bo'lsa qizil, hisob yopilgan bo'lsa ko'rinmaydi.
+ * Chapda buyum nomi va kimdaligi; o'ngda QOLDIQ — bitta raqam va uning
+ * ostida nima degani. Ilgari ikki raqam turardi (yig'ilgan va qoldiq)
+ * va hech narsa to'lanmagan ijarada ular BIR XIL bo'lib, bitta son ikki
+ * marta yozilgandek ko'rinardi. Yig'ilgan summa kartada qoladi.
+ *
+ * So'z TOMONGA qarab: ombor egasiga "Olinmagan", mijozga "To'lashim
+ * kerak". Mijozga egasining tilida gapirish ("olinmagan" — kim
+ * olmagan?) ro'yxatni o'qib bo'lmas qilib qo'yardi.
  *
  * Kun soni va kechikish bitta qatorda belgi ("chip") bo'lib turadi:
  * odam ro'yxatni ko'zdan kechirganda avval KECHIKKANLARNI qidiradi.
@@ -83,6 +88,9 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
    * hisoblanmayapti, ya'ni egasi uchun "bajarilmagan ish".
    */
   const waiting = normalizeApproval(item.approval) === 'WAITING';
+
+  /** Ombor meniki bo'lsa pul OLINADI, birovniki bo'lsa TO'LANADI. */
+  const mine = item.owner !== false;
 
   /**
    * Rang bosqichga qarab: kechikkan — qizil, NASIYA (buyum qaytgan, puli
@@ -173,26 +181,34 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
         </View>
       </View>
 
+      {/*
+        O'ngda BITTA raqam: hal qilinmagan qoldiq. Hisob yopilgan bo'lsa
+        o'rniga jami yig'ilgan summa turadi — "0" yozib qo'yish odamni
+        ortiqcha o'ylantirardi.
+      */}
       <View style={styles.side}>
-        <Text style={styles.accrued} numberOfLines={1}>
-          {formatMoney(accrued, item.currency)}
+        {/* Tasdiq kutayotgan yozuvda summa SO'NIQ: u hali kelishuv emas,
+            balansga ham kirmaydi. Qizil raqam uni haqiqiy qarzdek
+            ko'rsatib, "Kutilmoqda" belgisiga qarama-qarshi chiqardi. */}
+        <Text
+          style={[
+            styles.accrued,
+            waiting && styles.pendingAmount,
+            !waiting && unpaid !== 0 && { color: unpaid > 0 ? colors.negative : colors.positive },
+          ]}
+          numberOfLines={1}
+        >
+          {formatMoney(unpaid !== 0 ? Math.abs(unpaid) : accrued, item.currency)}
         </Text>
-        {/* Qoldiq nolga teng bo'lsa qator chizilmaydi: hisob toza bo'lsa
-            ekranda "0" turishi odamni ortiqcha o'ylantiradi. */}
-        {unpaid !== 0 ? (
-          <Text
-            style={[styles.unpaid, { color: unpaid > 0 ? colors.negative : colors.positive }]}
-            numberOfLines={1}
-          >
-            {unpaid > 0
-              ? t('rentals.unpaidShort', { value: formatMoney(unpaid, item.currency) })
-              : t('rentals.advanceShort', { value: formatMoney(Math.abs(unpaid), item.currency) })}
-          </Text>
-        ) : (
-          <Text style={styles.settled} numberOfLines={1}>
-            {t('rentals.settled')}
-          </Text>
-        )}
+        <Text style={styles.unpaid} numberOfLines={1}>
+          {unpaid === 0
+            ? t('rentals.settled')
+            : unpaid > 0
+              ? mine
+                ? t('rentals.unpaid')
+                : t('rentals.toPay')
+              : t('rentals.advance')}
+        </Text>
       </View>
     </Pressable>
   );
@@ -271,13 +287,14 @@ const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
       color: colors.textPrimary,
       fontVariant: ['tabular-nums'],
     },
-    unpaid: {
-      ...typography.caption,
-      fontSize: 12,
+    // Tasdiqlanmagan summa: o'qiladi, lekin e'tibor tortmaydi.
+    pendingAmount: {
+      color: colors.textSecondary,
       fontWeight: '700',
-      fontVariant: ['tabular-nums'],
     },
-    settled: {
+    // Raqam ostidagi SO'Z: rang raqamda, bu yerda emas — ikkisi ham
+    // rangli bo'lsa qator chaqnab ketardi.
+    unpaid: {
       ...typography.caption,
       fontSize: 12,
       fontWeight: '600',
