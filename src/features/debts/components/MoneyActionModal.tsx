@@ -76,10 +76,12 @@ interface MoneyActionModalProps {
    */
   onRentIn?: () => void;
   /**
-   * Shu do'kondan OLINGAN va hali qaytarilmagan buyumlar soni.
+   * Shu do'kondan olingan va hali QAYTARILMAGAN buyumlar soni.
    *
-   * Narxnoma qatori kabi: odam oynani ochmasdan "menda nimadir bormi"
-   * degan savolga javob olishi kerak.
+   * Odam oynani ochmasdan "menda nimadir bormi" degan savolga javob
+   * olishi kerak. Qator sarlavhasiga QO'YILMAYDI: u yerda amal nomi
+   * turadi va son u bilan qo'shilib ketsa, shu formada qilingan ish
+   * bo'lib o'qilardi ("7 ta buyum olingan" — hozir oldimmi?).
    */
   rentInCount?: number;
   /**
@@ -408,11 +410,17 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
                 accessibilityLabel={t('rentals.takeFromStock')}
               >
                 <Ionicons name="cube-outline" size={18} color={colors.primary} />
-                <Text style={styles.basketText} numberOfLines={1}>
-                  {rentInCount > 0
-                    ? t('rentals.takenCount', { count: String(rentInCount) })
-                    : t('rentals.takeFromStock')}
-                </Text>
+                <View style={styles.basketLines}>
+                  <Text style={styles.basketText} numberOfLines={1}>
+                    {t('rentals.takeFromStock')}
+                  </Text>
+                  {/* Son — HOLAT, amal emas: shuning uchun ostida va so'niq. */}
+                  {rentInCount > 0 ? (
+                    <Text style={styles.basketSub} numberOfLines={1}>
+                      {t('rentals.atMeCount', { count: String(rentInCount) })}
+                    </Text>
+                  ) : null}
+                </View>
                 <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
               </Pressable>
             ) : null}
@@ -535,11 +543,20 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       borderColor: colors.border,
       backgroundColor: colors.surfaceMuted,
     },
+    // Ikki qatorli punkt: amal nomi va uning ostida holat.
+    basketLines: {
+      flex: 1,
+      minWidth: 0,
+    },
     basketText: {
       ...typography.button,
-      flex: 1,
       fontSize: 14,
       color: colors.textPrimary,
+    },
+    basketSub: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textSecondary,
     },
     backdrop: {
       flex: 1,
