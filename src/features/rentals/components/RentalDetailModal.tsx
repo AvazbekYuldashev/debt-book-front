@@ -23,6 +23,8 @@ import {
   useConfirmRental,
   useDeleteRental,
   usePayRental,
+  useRequestRentalPayment,
+  useResolveRentalPayment,
   useReturnRental,
 } from '../hooks/useRentals';
 import {
@@ -91,7 +93,19 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const returnMutation = useReturnRental();
+  /*
+   * Yozuv MENING daftarimdami.
+   *
+   * Mijoz tomonida egasining amallari ko'rinmasligi kerak (server ham
+   * rad etadi), to'lov yo'li esa teskari bo'ladi.
+   */
+  const mine = rental?.owner !== false;
+
   const payMutation = usePayRental();
+  // Mijozning to'lovi: yozadi va tasdiq kutadi.
+  const payRequestMutation = useRequestRentalPayment();
+  // Egasining javobi: tasdiqlash yoki rad etish.
+  const payResolveMutation = useResolveRentalPayment();
   const deleteMutation = useDeleteRental();
   const confirmMutation = useConfirmRental();
 
@@ -148,17 +162,45 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
     );
   }, [rental, returnDate, returnTime, returnQty, returnMutation, onClose, t]);
 
+  /**
+   * To'lov yozish.
+   *
+   * YO'L yozuv kimning ekaniga qarab boshqa: egasi o'z daftarida pul
+   * olganini darhol yozadi, mijoz esa "pul berdim" deb yozadi va summa
+   * egasi tasdiqlagunicha hisobga kirmaydi — aks holda mijoz o'z
+   * qarzini o'zi yopib qo'ya olardi.
+   */
   const handlePay = useCallback(() => {
     if (!rental) return;
     setError('');
     const amount = parseAmountInput(payAmount);
     if (!amount) return setError(t('rentals.errPayAmount'));
 
-    payMutation.mutate(
-      { id: rental.id, dto: { amount, date: todayString() } },
-      { onSuccess: onClose, onError: (err) => setError((err as Error).message) },
-    );
-  }, [rental, payAmount, payMutation, onClose, t]);
+    const handlers = {
+      onSuccess: onClose,
+      onError: (err: unknown) => setError((err as Error).message),
+    };
+    const payload = { id: rental.id, dto: { amount, date: todayString() } };
+
+    if (mine) {
+      payMutation.mutate(payload, handlers);
+    } else {
+      payRequestMutation.mutate(payload, handlers);
+    }
+  }, [rental, payAmount, mine, payMutation, payRequestMutation, onClose, t]);
+
+  /** Egasi mijozning to'loviga javob beradi. */
+  const handleResolvePayment = useCallback(
+    (accept: boolean) => {
+      if (!rental) return;
+      setError('');
+      payResolveMutation.mutate(
+        { id: rental.id, accept },
+        { onError: (err) => setError((err as Error).message) },
+      );
+    },
+    [rental, payResolveMutation],
+  );
 
   /**
    * So'rovni tasdiqlash — faqat ombor egasida.
@@ -213,7 +255,6 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
    * Eski server `owner` ni yubormaydi — u holda avvalgidek egasi deb
    * qaraladi (yozuv o'z daftaridan kelgan).
    */
-  const mine = rental.owner !== false;
 
   const tone =
     stage === 'OVERDUE'
@@ -382,6 +423,52 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                     onPress={() => setPane('payment')}
                   />
                 ) : null}
+                {/* MIJOZ tomoni: pulni u beradi, demak yozuvni ham u
+                    boshlaydi. Summa egasi tasdiqlagunicha hisobga
+                    kirmaydi. */}
+                {!mine && rental.canPay && unpaid > 0 ? (
+                  <Button
+                    title={t('rentals.iPaid')}
+                    variant="secondary"
+                    onPress={() => setPane('payment')}
+                  />
+                ) : null}
+                {/* Egasiga: mijoz yozgan summa va javob tugmalari. Rad
+                    etish tasdiqlash bilan birga turadi — yolg'on yozuv
+                    kartada abadiy osilib qolmasligi kerak. */}
+                {rental.canConfirmPayment && rental.pendingPayment ? (
+                  <View style={styles.pending}>
+                    <Text style={styles.pendingTitle}>{t('rentals.paymentFromClient')}</Text>
+                    <Text style={styles.pendingAmount}>
+                      {formatMoney(rental.pendingPayment, rental.currency)}
+                    </Text>
+                    <View style={styles.actionsRow}>
+                      <Button
+                        title={t('rentals.paymentReject')}
+                        variant="secondary"
+                        onPress={() => handleResolvePayment(false)}
+                        loading={payResolveMutation.isPending}
+                        style={styles.actionBtn}
+                      />
+                      <Button
+                        title={t('rentals.paymentAccept')}
+                        onPress={() => handleResolvePayment(true)}
+                        loading={payResolveMutation.isPending}
+                        style={styles.actionBtn}
+                      />
+                    </View>
+                  </View>
+                ) : null}
+                {/* Mijozga: yozuvim qabul qilinishini kutyapman. */}
+                {!mine && rental.pendingPayment ? (
+                  <View style={styles.pending}>
+                    <Text style={styles.pendingTitle}>{t('rentals.paymentWaiting')}</Text>
+                    <Text style={styles.pendingAmount}>
+                      {formatMoney(rental.pendingPayment, rental.currency)}
+                    </Text>
+                    <Text style={styles.note}>{t('rentals.paymentWaitingHint')}</Text>
+                  </View>
+                ) : null}
                 {mine && (allowWrite || allowDelete) ? (
                   <View style={styles.actionsRow}>
                     {allowWrite ? (
@@ -463,12 +550,14 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
             {pane === 'payment' ? (
               <View style={styles.pane}>
                 <Input
-                  label={t('rentals.payAmount')}
+                  label={mine ? t('rentals.payAmount') : t('rentals.iPaidTitle')}
                   value={payAmount}
                   onChangeText={(value) => setPayAmount(formatAmountInput(value))}
                   keyboardType="decimal-pad"
                 />
-                <Text style={styles.note}>{t('rentals.payHint')}</Text>
+                <Text style={styles.note}>
+                  {mine ? t('rentals.payHint') : t('rentals.paymentWaitingHint')}
+                </Text>
                 <View style={styles.actionsRow}>
                   <Button
                     title={t('common.cancel')}
@@ -477,9 +566,9 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                     style={styles.actionBtn}
                   />
                   <Button
-                    title={t('rentals.takePayment')}
+                    title={mine ? t('rentals.takePayment') : t('rentals.iPaid')}
                     onPress={handlePay}
-                    loading={payMutation.isPending}
+                    loading={payMutation.isPending || payRequestMutation.isPending}
                     style={styles.actionBtn}
                   />
                 </View>
@@ -641,6 +730,25 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     actionBtn: {
       flex: 1,
+    },
+    // Kutayotgan to'lov: alohida sirtda, chunki u HALI hisobda emas.
+    pending: {
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: radius.md,
+      padding: spacing.sm,
+      gap: spacing.xs,
+    },
+    pendingTitle: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    pendingAmount: {
+      ...typography.body,
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      fontVariant: ['tabular-nums'],
     },
     note: {
       ...typography.caption,

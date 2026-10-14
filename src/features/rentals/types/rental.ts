@@ -156,6 +156,17 @@ export interface RentalResponseDTO {
   returnedTime?: string | null;
   /** Qaytarish partiyalari — summa shular bo'yicha qayta hisoblanadi. */
   returns?: RentalReturnItemDTO[];
+  /**
+   * MIJOZ YOZGAN, EGASI TASDIQLAMAGAN to'lov. null = yo'q.
+   *
+   * Hisobga kirmaydi: `paidAmount` o'zgarmaydi va qarz qoldig'i ham
+   * kamaymaydi. Tasdiqlangach backend uni `paidAmount` ga qo'shadi.
+   */
+  pendingPayment?: number | null;
+  /** Egasiga: kutayotgan to'lovni tasdiqlash/rad etish tugmalari. */
+  canConfirmPayment?: boolean;
+  /** Mijozga: "pul berdim" tugmasi chiqadimi. */
+  canPay?: boolean;
   /** Tasdiq holati: mijoz yozgan yozuv egasi tasdiqlaguncha WAITING. */
   approval?: RentalApproval | null;
   /** Yozuv MENING daftarimdami (ombor egasimanmi). */

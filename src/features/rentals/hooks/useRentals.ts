@@ -10,6 +10,9 @@ import {
   getRentalsWithBusiness,
   getRentalSummary,
   payRental,
+  requestRentalPayment,
+  confirmRentalPayment,
+  rejectRentalPayment,
   requestRental,
   returnRental,
   updateRental,
@@ -202,6 +205,32 @@ export const usePayRental = () => {
 
   return useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: RentalPaymentDTO }) => payRental(id, dto, token),
+    onSuccess: invalidate,
+  });
+};
+
+/** Mijoz: "pul berdim" — do'kon tasdiqlashini kutadi. */
+export const useRequestRentalPayment = () => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+  const invalidate = useRentalInvalidate();
+
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: RentalPaymentDTO }) =>
+      requestRentalPayment(id, dto, token),
+    onSuccess: invalidate,
+  });
+};
+
+/** Egasi: mijozning to'lovini tasdiqlaydi yoki rad etadi. */
+export const useResolveRentalPayment = () => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+  const invalidate = useRentalInvalidate();
+
+  return useMutation({
+    mutationFn: ({ id, accept }: { id: string; accept: boolean }) =>
+      accept ? confirmRentalPayment(id, token) : rejectRentalPayment(id, token),
     onSuccess: invalidate,
   });
 };

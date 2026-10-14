@@ -40,6 +40,9 @@ const toHourMinute = (value: string | null | undefined): string | null =>
  * javob chegarasida bir marta normallashtiriladi — ekranlarda emas.
  */
 export const normalizeRental = (raw: RentalResponseDTO): RentalResponseDTO => ({
+  // Server `null` yuboradi, ilova esa "yo'q" ni null deb biladi; satr
+  // ko'rinishida kelsa ham songa aylantiramiz (pul maydonlari kabi).
+  pendingPayment: raw.pendingPayment == null ? null : toAmount(raw.pendingPayment),
   ...raw,
   // `price` — yangi nom; eski server faqat `dailyPrice` yuboradi (u
   // paytda hamma ijara kunlik edi).
@@ -179,6 +182,42 @@ export const payRental = async (
 ): Promise<RentalResponseDTO> => {
   setApiAuthToken(token);
   const response = await apiClient.post<RentalResponseDTO>(`/rental/${id}/payment`, dto);
+  return normalizeRental(response.data);
+};
+
+/**
+ * MIJOZ "pul berdim" deb yozadi — tasdiq kutadi.
+ *
+ * Egasining yo'li alohida (`payRental`): u o'z daftarida pul olganini
+ * yozadi va tasdiq kutishi kerak emas.
+ */
+export const requestRentalPayment = async (
+  id: string,
+  dto: RentalPaymentDTO,
+  token?: string
+): Promise<RentalResponseDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.post<RentalResponseDTO>(`/rental/${id}/payment-request`, dto);
+  return normalizeRental(response.data);
+};
+
+/** Egasi mijozning to'lovini tasdiqlaydi — summa hisobga qo'shiladi. */
+export const confirmRentalPayment = async (
+  id: string,
+  token?: string
+): Promise<RentalResponseDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.post<RentalResponseDTO>(`/rental/${id}/payment-confirm`);
+  return normalizeRental(response.data);
+};
+
+/** Egasi rad etadi — summa hisobga kirmaydi. */
+export const rejectRentalPayment = async (
+  id: string,
+  token?: string
+): Promise<RentalResponseDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.post<RentalResponseDTO>(`/rental/${id}/payment-reject`);
   return normalizeRental(response.data);
 };
 
