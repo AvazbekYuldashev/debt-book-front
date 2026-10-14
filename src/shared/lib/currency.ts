@@ -98,6 +98,21 @@ export interface CurrencyNet {
  * AYLANTIRILMAYDI: so'm hisobi alohida, dollar hisobi alohida. Faqat nolga teng
  * bo'lmaganlari, barqaror (CURRENCIES) tartibda qaytadi.
  */
+/**
+ * Ikki valyuta xaritasini qo'shadi (pul + ijara kabi ikki manba).
+ *
+ * Yangi obyekt qaytaradi: kirish qiymatlari ko'pincha kesh ichida
+ * turadi va ularni joyida o'zgartirish keshni buzardi.
+ */
+export const mergeAmounts = (a: CurrencyAmounts, b: CurrencyAmounts): CurrencyAmounts => {
+  const result: CurrencyAmounts = { ...a };
+  for (const cur of CURRENCIES) {
+    const extra = b[cur] ?? 0;
+    if (extra !== 0) result[cur] = (result[cur] ?? 0) + extra;
+  }
+  return result;
+};
+
 export const netByCurrency = (credit: CurrencyAmounts, debt: CurrencyAmounts): CurrencyNet[] => {
   const result: CurrencyNet[] = [];
   for (const cur of CURRENCIES) {

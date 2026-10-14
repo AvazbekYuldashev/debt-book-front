@@ -25,7 +25,8 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import type { DebtsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
 import { MoneyActionType } from '../../../shared/types/money';
-import { netByCurrency } from '../../../shared/lib/currency';
+import { mergeAmounts, netByCurrency } from '../../../shared/lib/currency';
+import { useContactRentalTotals } from '../../rentals/hooks/useContactRentalTotals';
 import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
 import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { useI18n } from '../../../shared/i18n';
@@ -171,11 +172,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
   const contact = useMemo(() => contacts.find((item) => item.id === contactId), [contacts, contactId]);
 
-  // Har valyuta balansi MUSTAQIL — so'm alohida, dollar alohida (kurs aralashmaydi).
-  const balances = useMemo(
-    () => netByCurrency(currencyTotals.credit, currencyTotals.debt),
-    [currencyTotals],
-  );
 
   // Telegram uslubida: kontakt ochilganda AYNAN SHU kontaktdan kelgan o'qilmagan
   // bildirishnomalar o'qilgan deb belgilanadi — ro'yxatdagi badge tozalanadi.
@@ -220,6 +216,30 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * o'z ish maydonimda bu rejim yoqilmaydi.
    */
   const clientMode = workspace.mode !== 'business' && Boolean(counterpartyBusinessId);
+
+  /*
+   * Balansga IJARA ham kiradi.
+   *
+   * Sarlavhadagi raqam pul tarixidan chiqardi va ijarani ko'rmasdi:
+   * odam darhol ostida "Qarz 23 333" deb turgan qatorni ko'rar, tepada
+   * esa o'sha pul yo'q edi. Ro'yxatdagi balans ijarani allaqachon
+   * qo'shardi, ya'ni bitta mijozning raqami ikki ekranda ikki xil
+   * chiqardi.
+   */
+  const rentalTotals = useContactRentalTotals(
+    contactId,
+    rentalsAvailable && clientMode ? counterpartyBusinessId ?? null : null,
+  );
+
+  // Har valyuta balansi MUSTAQIL — so'm alohida, dollar alohida (kurs aralashmaydi).
+  const balances = useMemo(
+    () =>
+      netByCurrency(
+        mergeAmounts(currencyTotals.credit, rentalTotals.credit),
+        mergeAmounts(currencyTotals.debt, rentalTotals.debt),
+      ),
+    [currencyTotals, rentalTotals],
+  );
 
   const mappedHistory = useMemo(
     () => history.map((item) => mapTransaction(item, owner, selectedCounterparty || undefined)),

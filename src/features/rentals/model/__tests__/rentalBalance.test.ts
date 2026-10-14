@@ -98,11 +98,12 @@ describe('rentalTotalsByContact', () => {
     expect(totals.c1).toBeUndefined();
   });
 
-  it('tasdiq kutayotgan yozuv hisobga kirmaydi', () => {
-    // Mijozning so'rovi hali kelishuv emas — do'kon tasdiqlashi kerak.
+  it('tasdiq kutayotgan yozuv ham hisobga kiradi', () => {
+    // Ro'yxatda u "Qarz" bo'lib turadi — balans unga qarshi gapirmasligi
+    // kerak. Tasdiqlanmaganini "Kutilmoqda" belgisi aytadi.
     const totals = rentalTotalsByContact([rental({ approval: 'WAITING' })], NOW);
 
-    expect(totals.c1).toBeUndefined();
+    expect(totals.c1.credit.UZS).toBe(200_000);
   });
 
   it("bitta mijozning bir nechta ijarasi qo'shilib boradi", () => {

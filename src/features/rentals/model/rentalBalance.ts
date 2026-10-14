@@ -23,6 +23,13 @@ import { countsInBalance, nowString, unpaidAmount } from './rentalMath';
  * MENGA qarzdor (`credit`), men birovning do'konidan olgan bo'lsam
  * qarz MENDA (`debt`).
  *
+ * TASDIQ KUTAYOTGAN yozuv ham kiradi. Avval chiqarib tashlangandi -
+ * "kelishuv emas" degan mantiq bilan. Lekin ro'yxatda o'sha yozuv
+ * "Qarz" bo'lib turadi, ya'ni sarlavha o'z ostidagi qatorga qarshi
+ * gapirardi. Ikki tomon ham AYNI shu hisobni yuritadi (yozuv ikkalasiga
+ * ham ko'rinadi), shuning uchun raqamlar baribir bir xil chiqadi;
+ * tasdiqlanmaganini esa "Kutilmoqda" belgisi aytib turadi.
+ *
  * To'langan pul chiqarib tashlangan (`unpaidAmount` = yig'ilgan −
  * to'langan), ya'ni "nechta buyumga necha kunning puli to'langan" shu
  * raqamda allaqachon hisobga olingan. Ortiqcha to'lov (manfiy qoldiq)
@@ -48,8 +55,6 @@ export function rentalTotalsByContact(
       if (seen.has(rental.id)) continue;
       seen.add(rental.id);
     }
-    // Tasdiq kutayotgan yozuv hali kelishuv emas — balansga kirmaydi.
-    if (rental.approval === 'WAITING') continue;
     if (!countsInBalance(rental, today)) continue;
 
     const unpaid = unpaidAmount(rental, now);
