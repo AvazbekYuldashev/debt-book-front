@@ -293,8 +293,24 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const handleCreate = useCallback(
     async (payload: MoneyActionPayload) => {
       if (!contact) return;
+      /*
+       * IJARA tarixda ham ko'rinsin.
+       *
+       * Yozuvning o'zi ijara bo'limida turadi, lekin qarz tarixida
+       * summa izohsiz raqam bo'lib qolardi: "93 332 so'm" - nimaga
+       * ekani ko'rinmasdi. Narxnomadan tanlanganda mahsulotlar yozuv
+       * bilan ketadi, ijarada esa yozib qo'yish kerak.
+       */
+      const rentalNote = rentalDrafts.map((entry) => entry.label).join(', ');
+      const description = rentalNote
+        ? [payload.description.trim(), `${t('rentals.title')}: ${rentalNote}`]
+            .filter(Boolean)
+            .join(' · ')
+        : payload.description;
+
       const ok = await createMoney(actionType, {
         ...payload,
+        description,
         targetPartyType: contact.partyType,
         targetPartyId: contact.partyId,
         targetPhone: contact.partyType === 'PROFILE' ? contact.phone : undefined,
@@ -350,7 +366,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       setModalVisible(true);
     },
     [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue,
-      rentalDrafts, requestRentalMutation],
+      rentalDrafts, requestRentalMutation, t],
   );
 
   /**
