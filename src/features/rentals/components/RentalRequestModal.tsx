@@ -206,8 +206,21 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
         (sum, row) => sum + row.pick.quantity * row.item.price * (row.pick.duration ?? 1),
         0,
       );
+      /*
+       * Izoh TAFSILOTLI: nomi, soni, muddati va summasi.
+       *
+       * Tranzaksiya kartasida ijara uchun "Chek" bloki yo'q (u
+       * narxnoma qatorlaridan quriladi), shuning uchun tushuntirish
+       * izohga yoziladi - aks holda kartada izohsiz raqam turardi.
+       */
       const label = rows
-        .map((row) => `${row.item.name} × ${formatQuantity(row.pick.quantity)}`)
+        .map((row) => {
+          const span = row.pick.duration
+            ? ` · ${unitCountLabel(t, periodOf(row.item), row.pick.duration)}`
+            : ` · ${t('rentals.openEndedShort')}`;
+          const sum = row.pick.quantity * row.item.price * (row.pick.duration ?? 1);
+          return `${row.item.name} × ${formatQuantity(row.pick.quantity)}${span} — ${formatMoney(sum, row.item.currency)}`;
+        })
         .join(', ');
 
       picked.push({ draft, total: groupTotal, label });
