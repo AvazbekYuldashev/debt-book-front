@@ -39,6 +39,7 @@ import RentalFormModal from '../../rentals/components/RentalFormModal';
 import RentalDetailModal from '../../rentals/components/RentalDetailModal';
 import RentalRequestModal from '../../rentals/components/RentalRequestModal';
 import type { RentalResponseDTO } from '../../rentals/types/rental';
+import { accruedAmount } from '../../rentals/model/rentalMath';
 import type { RentalItemResponseDTO } from '../../rentals/types/rentalItem';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
 import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
@@ -134,6 +135,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     );
     setMoneyFormKey((key) => key + 1);
     setRentInSessionCount(0);
+    setRentInSessionAmount(0);
     setModalVisible(true);
   }, []);
 
@@ -305,6 +307,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       setVoicePrefill(next.prefill);
       setMoneyFormKey((key) => key + 1);
       setRentInSessionCount(0);
+      setRentInSessionAmount(0);
       setModalVisible(true);
     },
     [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue],
@@ -330,11 +333,21 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * Har yangi oqimda noldan boshlanadi.
    */
   const [rentInSessionCount, setRentInSessionCount] = useState(0);
+  /**
+   * Shu oqimda olingan ijaralarning summasi — faqat KO'RSATISH uchun.
+   *
+   * Qarz maydoniga qo'shilmaydi: ijara o'z yozuvini yaratadi va u
+   * allaqachon balansga kiradi (rentalTotalsByContact). Qo'shilsa
+   * bitta pul ikki marta sanalardi - narxnoma tanlovidan farqi shu:
+   * u yerda yozuv hali yo'q, forma uni endi yaratadi.
+   */
+  const [rentInSessionAmount, setRentInSessionAmount] = useState(0);
 
   const openModal = useCallback((type: MoneyActionType) => {
     setActionType(type);
     setMoneyFormKey((key) => key + 1);
     setRentInSessionCount(0);
+    setRentInSessionAmount(0);
     setModalVisible(true);
   }, []);
 
@@ -420,12 +433,17 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * faqat xabarda: ilgari yuborilgandan keyin hech qanday belgi yo'q
    * edi va odam yozuv yaratilganini bilmasdi.
    */
-  const handleRequestSent = useCallback(() => {
-    closeRequest();
-    setRequestSent(true);
-    // Bitta so'rov = bitta buyum: forma har safar bitta buyum yuboradi.
-    setRentInSessionCount((count) => count + 1);
-  }, [closeRequest]);
+  const handleRequestSent = useCallback(
+    (created: RentalResponseDTO[]) => {
+      closeRequest();
+      setRequestSent(true);
+      setRentInSessionCount((count) => count + created.length);
+      setRentInSessionAmount(
+        (sum) => sum + created.reduce((total, rental) => total + accruedAmount(rental), 0),
+      );
+    },
+    [closeRequest],
+  );
 
   /** Ombor qatori yoki sarlavhadagi tugma: buyum bilan yoki bo'sh forma. */
   const openRentalForm = useCallback((item: RentalItemResponseDTO | null = null) => {
@@ -707,6 +725,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       <MoneyActionModal
         onRentIn={clientMode && counterpartyBusinessId ? openRentIn : undefined}
         rentInCount={rentInSessionCount}
+        rentInAmount={rentInSessionAmount}
         resetKey={moneyFormKey}
         visible={modalVisible}
         actionType={actionType}

@@ -20,6 +20,7 @@ import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import { currentTimeString, formatTimeInputValue, isValidTimeInput, todayString } from '../model/rentalMath';
 import { perPeriodLabel, periodLabel } from '../model/rentalLabels';
 import { freeQuantity } from '../model/rentalStock';
+import type { RentalResponseDTO } from '../types/rental';
 import type { RentalItemResponseDTO } from '../types/rentalItem';
 
 interface RentalRequestModalProps {
@@ -43,7 +44,7 @@ interface RentalRequestModalProps {
    * va odam yozuv yaratilganini bilmay, "ishlamadi" deb o'ylardi.
    * Berilmasa `onClose` ishlaydi.
    */
-  onSubmitted?: () => void;
+  onSubmitted?: (created: RentalResponseDTO[]) => void;
   /**
    * KELGAN JOYGA qaytish (qarz oynasi).
    *
@@ -149,7 +150,9 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
       // oqimni yopmaydi: odam o'sha yerda pul yozuvini ham qilishi yoki
       // narxnomadan mahsulot tanlashi mumkin.
       {
-        onSuccess: onSubmitted ?? onClose,
+        // Yaratilgan yozuvlar qaytariladi: chaqiruvchi ularning summasini
+        // ko'rsatadi (qarz maydoniga QO'SHMAYDI - u allaqachon qarz).
+        onSuccess: (created) => (onSubmitted ? onSubmitted(created) : onClose()),
         onError: (err) => setError((err as Error).message),
       },
     );

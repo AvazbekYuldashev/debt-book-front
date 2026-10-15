@@ -29,7 +29,7 @@ import {
 } from '../../../shared/types/money';
 import { accountTypeFromParty, flowForAccounts } from '../model/resolveMoneyFlow';
 import { CURRENCY_LABEL, CURRENCY_SYMBOL } from '../../../shared/lib/currency';
-import { formatAmountInput, parseAmountInput } from '../../../shared/lib/money';
+import { formatAmountInput, formatMoney, parseAmountInput } from '../../../shared/lib/money';
 import { useCurrency } from '../context/CurrencyContext';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -85,6 +85,14 @@ interface MoneyActionModalProps {
    */
   rentInCount?: number;
   /**
+   * Shu oqimda olingan ijaralarning summasi — faqat KO'RSATISH uchun.
+   *
+   * `Miqdor` maydoniga qo'shilmaydi: ijara o'z yozuvini yaratadi va
+   * allaqachon qarz balansiga kiradi. Qo'shilsa bitta pul ikki marta
+   * sanalardi. Narxnomadan farqi shu: u yerda yozuv hali yo'q.
+   */
+  rentInAmount?: number;
+  /**
    * Forma QACHON tozalanishi kerakligini aytadi.
    *
    * Ilgari oyna `visible` har rost bo'lganda tozalanardi. Lekin u
@@ -127,6 +135,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   token,
   onRentIn,
   rentInCount = 0,
+  rentInAmount = 0,
   resetKey = 0,
   prefill,
   onClose,
@@ -418,6 +427,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
                   {rentInCount > 0 ? (
                     <Text style={styles.basketSub} numberOfLines={1}>
                       {t('rentals.atMeCount', { count: String(rentInCount) })}
+                      {rentInAmount > 0 ? ` · ${formatMoney(rentInAmount, currency)}` : ''}
                     </Text>
                   ) : null}
                 </View>
