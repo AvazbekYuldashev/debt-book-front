@@ -93,6 +93,13 @@ interface MoneyActionModalProps {
    */
   rentInAmount?: number;
   /**
+   * Tanlangan ijarani formadan OLIB TASHLASH.
+   *
+   * Tanlov yozuv yaratmaydi, demak uni qaytarib olish ham mumkin
+   * bo'lishi kerak - savatdagi miqdorni nolga tushirgandek.
+   */
+  onClearRentIn?: () => void;
+  /**
    * Forma QACHON tozalanishi kerakligini aytadi.
    *
    * Ilgari oyna `visible` har rost bo'lganda tozalanardi. Lekin u
@@ -136,6 +143,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   onRentIn,
   rentInCount = 0,
   rentInAmount = 0,
+  onClearRentIn,
   resetKey = 0,
   prefill,
   onClose,
@@ -178,17 +186,19 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
    * yoziladi. Bu egasining qarori: u ijarani oddiy qarz qatori qilib
    * yuritishni tanladi.
    *
-   * Faqat O'SISH qo'shiladi: oyna qayta chizilganda yoki orqaga
-   * qaytganda summa yana qo'shilib ketmasligi kerak.
+   * FARQ qo'llanadi, yig'indi emas: oyna qayta chizilganda summa yana
+   * qo'shilib ketmasligi kerak. Tanlov bekor qilinsa farq MANFIY
+   * bo'ladi va summa ayriladi - qo'lda yozilgan qism joyida qoladi.
    */
   const lastRentInAmount = useRef(0);
   useEffect(() => {
-    const added = rentInAmount - lastRentInAmount.current;
+    const delta = rentInAmount - lastRentInAmount.current;
     lastRentInAmount.current = rentInAmount;
-    if (added <= 0) return;
+    if (delta === 0) return;
     setAmount((current) => {
       const base = parseAmountInput(current) ?? 0;
-      return formatAmountInput(String(base + added));
+      const next = Math.max(0, base + delta);
+      return next > 0 ? formatAmountInput(String(next)) : '';
     });
   }, [rentInAmount]);
 
@@ -456,7 +466,18 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
                     </Text>
                   ) : null}
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                  {rentInCount > 0 && onClearRentIn ? (
+                    <Pressable
+                      onPress={onClearRentIn}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('rentals.clearPicked')}
+                    >
+                      <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                    </Pressable>
+                  ) : (
+                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                  )}
               </Pressable>
             ) : null}
 

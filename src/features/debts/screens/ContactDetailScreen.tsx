@@ -470,6 +470,13 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * faqat xabarda: ilgari yuborilgandan keyin hech qanday belgi yo'q
    * edi va odam yozuv yaratilganini bilmasdi.
    */
+  /** Tanlangan ijarani formadan olib tashlash — yozuv hali yo'q. */
+  const clearRentIn = useCallback(() => {
+    setRentalDrafts([]);
+    setRentInSessionCount(0);
+    setRentInSessionAmount(0);
+  }, []);
+
   const handleRentalPicked = useCallback(
     (draft: RentalRequestDTO, total: number) => {
       closeRequest();
@@ -761,6 +768,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         onRentIn={clientMode && counterpartyBusinessId ? openRentIn : undefined}
         rentInCount={rentInSessionCount}
         rentInAmount={rentInSessionAmount}
+        onClearRentIn={clearRentIn}
         resetKey={moneyFormKey}
         visible={modalVisible}
         actionType={actionType}
