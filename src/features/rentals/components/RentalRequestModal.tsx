@@ -353,7 +353,10 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
         initial={picks}
         askDuration
         reserved={reserved}
+        // "x" — formaga qaytaradi (tanlov bo'lsa), "Bekor qilish" esa
+        // butun ijara oqimini yopadi.
         onClose={() => (picks.length > 0 ? setBasketOpen(false) : onClose())}
+        onCancel={onClose}
         onConfirm={(next) => {
           setPicks(next);
           setBasketOpen(false);

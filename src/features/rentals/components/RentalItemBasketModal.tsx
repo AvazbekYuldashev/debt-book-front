@@ -58,7 +58,18 @@ interface RentalItemBasketModalProps {
    * yana "4 ta" ola olmasligi kerak - omborda jami 4 ta bor.
    */
   reserved?: Record<string, number>;
+  /** "x" — bir qadam orqaga (formaga yoki kelgan joyga). */
   onClose: () => void;
+  /**
+   * "Bekor qilish" — BUTUN oqimni tashlash.
+   *
+   * `onClose` dan ataylab ajratilgan: savat formaning ichidagi qadam,
+   * shuning uchun "x" formaga qaytaradi. "Bekor qilish" esa odam
+   * kutganidek butun ijara oqimini yopadi - ilgari ikkisi bitta yo'l
+   * edi va formadan kirilganda bekor qilish hech narsa qilmagandek
+   * ko'rinardi.
+   */
+  onCancel?: () => void;
   onConfirm: (picks: RentalPick[]) => void;
 }
 
@@ -90,6 +101,7 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
   askDuration = false,
   reserved = EMPTY_RESERVED,
   onClose,
+  onCancel,
   onConfirm,
 }) => {
   const { t } = useI18n();
@@ -409,7 +421,7 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
             <Button
               title={t('common.cancel')}
               variant="secondary"
-              onPress={onClose}
+              onPress={onCancel ?? onClose}
               style={styles.actionBtn}
             />
             <Button

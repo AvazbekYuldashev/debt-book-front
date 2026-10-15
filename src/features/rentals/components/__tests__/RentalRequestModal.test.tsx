@@ -156,6 +156,24 @@ describe('ijaraga olish oqimi', () => {
     expect(onPicked).not.toHaveBeenCalled();
   });
 
+  it("tanlovdan KEYIN ham 'Bekor qilish' oqimni yopadi", async () => {
+    // Savat formaning ichidagi qadam: "x" formaga qaytaradi, "Bekor
+    // qilish" esa odam kutganidek butun oqimni tashlaydi. Ilgari
+    // ikkisi bitta yo'l edi va bekor qilish hech narsa qilmagandek
+    // ko'rinardi.
+    await show();
+    await pick('Lesa');
+
+    // Formadan savatga qaytamiz.
+    fireEvent.press(screen.getByLabelText('Orqaga'));
+    await settle();
+
+    const buttons = screen.getAllByText('Bekor qilish');
+    fireEvent.press(buttons[buttons.length - 1]);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("bo'sh sonidan ko'p olishga yo'l qo'ymaydi", async () => {
     (useBusinessRentalItems as jest.Mock).mockReturnValue({
       data: [item({ totalQuantity: 4, busyQuantity: 3 })],
