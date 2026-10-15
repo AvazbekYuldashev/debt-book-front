@@ -48,6 +48,17 @@ interface RentalRequestModalProps {
   onPicked?: (draft: RentalRequestDTO, total: number, label: string) => void;
   /** Kelgan joyga qaytish (qarz oynasi). */
   onBack?: () => void;
+  /**
+   * Shu oqimda ALLAQACHON tanlangan miqdorlar (itemId -> soni).
+   *
+   * Bo'sh sonidan ayriladi va tepada eslatma bo'lib chiqadi: odam
+   * "nima olgan edim" degan savolga javob olishi kerak, chunki har
+   * kirish YANGI tanlov (shu bilan bir buyumni turli muddatga olish
+   * mumkin bo'ladi).
+   */
+  reserved?: Record<string, number>;
+  /** Allaqachon tanlanganlarning matni — tepadagi eslatma uchun. */
+  reservedLabel?: string;
 }
 
 /**
@@ -72,6 +83,8 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   onClose,
   onPicked,
   onBack,
+  reserved,
+  reservedLabel,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -248,6 +261,15 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                 </Text>
               </View>
 
+              {/* Avvalgi tanlovlar: odam "nima olgan edim" degan savolga
+                  javob olishi kerak. Har kirish YANGI tanlov - shu bilan
+                  bir buyumni turli muddatga olish mumkin bo'ladi. */}
+              {reservedLabel ? (
+                <Text style={styles.reserved} numberOfLines={2}>
+                  {t('rentals.alreadyPicked', { items: reservedLabel })}
+                </Text>
+              ) : null}
+
               {/* Tanlangan buyumlar: nomi, soni va narxi. Miqdor tanlash
                   oynasida o'zgaradi — forma qisqa qoladi. */}
               <Pressable
@@ -330,6 +352,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
         items={stock}
         initial={picks}
         askDuration
+        reserved={reserved}
         onClose={() => (picks.length > 0 ? setBasketOpen(false) : onClose())}
         onConfirm={(next) => {
           setPicks(next);
@@ -389,6 +412,14 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       flex: 1,
       fontSize: 14,
       color: colors.textPrimary,
+    },
+    reserved: {
+      ...typography.caption,
+      fontSize: 12,
+      color: colors.textSecondary,
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: radius.md,
+      padding: spacing.sm,
     },
     lineRow: {
       flexDirection: 'row',

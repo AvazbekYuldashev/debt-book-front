@@ -381,6 +381,22 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * bitta pul ikki marta sanalardi - narxnoma tanlovidan farqi shu:
    * u yerda yozuv hali yo'q, forma uni endi yaratadi.
    */
+  /** Tanlangan buyumlar soni — savatda bo'shdan ayriladi. */
+  const rentInReserved = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const entry of rentalDrafts) {
+      for (const line of entry.draft.lines) {
+        map[line.rentalItemId] = (map[line.rentalItemId] ?? 0) + line.quantity;
+      }
+    }
+    return map;
+  }, [rentalDrafts]);
+
+  const rentInReservedLabel = useMemo(
+    () => rentalDrafts.map((entry) => entry.label).join(', '),
+    [rentalDrafts],
+  );
+
   const rentInSessionAmount = useMemo(
     () => rentalDrafts.reduce((sum, item) => sum + item.total, 0),
     [rentalDrafts],
@@ -755,6 +771,8 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           visible={requestOpen}
           onClose={closeRequest}
           onPicked={handleRentalPicked}
+          reserved={rentInReserved}
+          reservedLabel={rentInReservedLabel || undefined}
           // Qarz oynasidan kelgan bo'lsa — o'sha yerga qaytish yo'li.
           onBack={rentInFromMoney ? closeRequest : undefined}
         />

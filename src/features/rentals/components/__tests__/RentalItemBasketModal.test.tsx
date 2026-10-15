@@ -117,6 +117,34 @@ describe('ijara buyumlarini tanlash', () => {
     expect(screen.getByDisplayValue('7')).toBeTruthy();
   });
 
+  it("allaqachon tanlangani BO'SHDAN ayriladi", async () => {
+    // Lesa: jami 4, bandi 1 -> bo'sh 3. Shu oqimda 2 tasi olingan
+    // bo'lsa, qaytib kirganda faqat 1 ta qolishi kerak - aks holda
+    // odam omborda yo'q narsani olib qo'yardi.
+    render(
+      <AppThemeProvider>
+        <LanguageProvider>
+          <RentalItemBasketModal
+            visible
+            items={stock}
+            period="DAY"
+            reserved={{ lesa: 2 }}
+            onClose={jest.fn()}
+            onConfirm={onConfirm}
+          />
+        </LanguageProvider>
+      </AppThemeProvider>,
+    );
+    await settle();
+
+    for (let i = 0; i < 5; i += 1) {
+      fireEvent.press(screen.getByLabelText("Lesa miqdor ko'paytirish"));
+    }
+    fireEvent.press(screen.getByText("Tanlovni qo'llash"));
+
+    expect(onConfirm).toHaveBeenCalledWith([{ itemId: 'lesa', quantity: 1, duration: null }]);
+  });
+
   it('tanlanmagan buyum natijaga tushmaydi', async () => {
     await show();
 

@@ -51,11 +51,20 @@ interface RentalItemBasketModalProps {
    * bir mijozga bir martada beradi va muddatni o'sha yerda yozadi.
    */
   askDuration?: boolean;
+  /**
+   * Shu oqimda ALLAQACHON tanlangan miqdorlar (itemId -> soni).
+   *
+   * Bo'sh sonidan ayriladi: odam "2 ta lesa" ni tanlab, qaytib kirib
+   * yana "4 ta" ola olmasligi kerak - omborda jami 4 ta bor.
+   */
+  reserved?: Record<string, number>;
   onClose: () => void;
   onConfirm: (picks: RentalPick[]) => void;
 }
 
 const ALL = '';
+/** Har render'da bir xil bo'sh havola — keraksiz effekt qo'zg'atmaslik uchun. */
+const EMPTY_RESERVED: Record<string, number> = {};
 /** Bitta bosishda o'zgaradigan miqdor. Kasr kerak bo'lsa maydonga yoziladi. */
 const STEP = 1;
 
@@ -79,6 +88,7 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
   period,
   initial,
   askDuration = false,
+  reserved = EMPTY_RESERVED,
   onClose,
   onConfirm,
 }) => {
@@ -139,10 +149,17 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
     [quantities],
   );
 
+  /** Bo'sh soni: ombordagidan shu oqimda tanlangani ayriladi. */
+  const freeOf = useCallback(
+    (stockItem: RentalItemResponseDTO) =>
+      Math.max(0, freeQuantity(stockItem) - (reserved[stockItem.id] ?? 0)),
+    [reserved],
+  );
+
   const setQuantity = useCallback(
     (item: RentalItemResponseDTO, next: number) => {
       // Ombordagidan ko'p berib bo'lmaydi — server ham rad etadi.
-      const capped = Math.min(next, freeQuantity(item));
+      const capped = Math.min(next, freeOf(item));
       setQuantities((prev) => {
         const copy = { ...prev };
         if (capped <= 0) delete copy[item.id];
@@ -150,7 +167,7 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
         return copy;
       });
     },
-    [],
+    [freeOf],
   );
 
   const readDuration = useCallback(
@@ -199,7 +216,7 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
     return visibleItems.map((item) => {
       const quantity = readQuantity(item.id);
       const days = readDuration(item.id);
-      const free = freeQuantity(item);
+      const free = freeOf(item);
       const full = quantity >= free;
 
       /** Bitta stepper: "− qiymat +". Ikkisi ham bir xil ko'rinishda. */
