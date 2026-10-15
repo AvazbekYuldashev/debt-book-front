@@ -461,8 +461,15 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               >
                 <Ionicons name="cube-outline" size={18} color={colors.primary} />
                 <View style={styles.basketLines}>
+                  {/* Tanlov bo'lsa qator "YANA olish" deb o'qiladi: u yangi
+                      tanlov ochadi, avvalgisi esa pastda alohida qator
+                      bo'lib turadi. Ilgari "Ijaraga olish" deb turar va
+                      bosilganda bo'sh savat chiqib, odam "tanlaganim
+                      qani?" deb o'ylardi. */}
                   <Text style={styles.basketText} numberOfLines={1}>
-                    {t('rentals.takeFromStock')}
+                    {rentInPicks.length > 0
+                      ? t('rentals.takeMore')
+                      : t('rentals.takeFromStock')}
                   </Text>
                   {/* Son — HOLAT, amal emas: shuning uchun ostida va so'niq. */}
                   {rentInPicks.length > 0 ? (
