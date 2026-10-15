@@ -45,7 +45,15 @@ interface RentalRequestModalProps {
    * esa "Qarz berish" bosilganda saqlanadi. Shu bilan bitta pul ikki
    * marta hisoblanmaydi (ijara qoldig'i + pul yozuvi).
    */
-  onPicked?: (draft: RentalRequestDTO, total: number, label: string) => void;
+  onPicked?: (picked: { draft: RentalRequestDTO; total: number; label: string }[]) => void;
+  /**
+   * Avvalgi TANLOV — savat shu bilan ochiladi.
+   *
+   * Narxnoma savati kabi: qayta kirilganda tanlov joyida turadi va
+   * o'zgartiriladi. Ilgari har kirish noldan boshlanardi va odam
+   * "tanlaganim qani?" deb o'ylardi.
+   */
+  initialPicks?: RentalPick[];
   /** Kelgan joyga qaytish (qarz oynasi). */
   onBack?: () => void;
   /**
@@ -56,9 +64,6 @@ interface RentalRequestModalProps {
    * kirish YANGI tanlov (shu bilan bir buyumni turli muddatga olish
    * mumkin bo'ladi).
    */
-  reserved?: Record<string, number>;
-  /** Allaqachon tanlanganlarning matni — tepadagi eslatma uchun. */
-  reservedLabel?: string;
 }
 
 /**
@@ -83,8 +88,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   onClose,
   onPicked,
   onBack,
-  reserved,
-  reservedLabel,
+  initialPicks,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -108,13 +112,18 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   useEffect(() => {
     if (!open) return;
     // Har ochilishda toza boshlanadi: eski tanlov bilan ochilib qolmasin.
-    setPicks(item ? [{ itemId: item.id, quantity: 1, duration: null }] : []);
-    setBasketOpen(!item);
+    const seeded = item
+      ? [{ itemId: item.id, quantity: 1, duration: null }]
+      : initialPicks ?? [];
+    setPicks(seeded);
+    // Tanlov bor bo'lsa FORMA ochiladi: odam uni ko'rib, kerak bo'lsa
+    // savatga kirib o'zgartiradi.
+    setBasketOpen(!item && seeded.length === 0);
     setStartDate(todayString());
     setStartTime(currentTimeString());
     setNote('');
     setError('');
-  }, [open, item]);
+  }, [open, item, initialPicks]);
 
   const itemById = useMemo(
     () => new Map(stock.map((stockItem) => [stockItem.id, stockItem])),
@@ -183,6 +192,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
       groups.set(key, [...(groups.get(key) ?? []), row]);
     }
 
+    const picked: { draft: RentalRequestDTO; total: number; label: string }[] = [];
     for (const rows of groups.values()) {
       const draft: RentalRequestDTO = {
         businessId,
@@ -200,9 +210,13 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
         .map((row) => `${row.item.name} × ${formatQuantity(row.pick.quantity)}`)
         .join(', ');
 
-      // Yozuv YARATILMAYDI: u "Qarz berish" bilan birga saqlanadi.
-      onPicked?.(draft, groupTotal, label);
+      picked.push({ draft, total: groupTotal, label });
     }
+
+    // Yozuv YARATILMAYDI: u "Qarz berish" bilan birga saqlanadi.
+    // Hammasi BIRVARAKAY: chaqiruvchi avvalgi tanlovni shu bilan
+    // almashtiradi, ustiga qo'shmaydi.
+    onPicked?.(picked);
     onClose();
   }, [
     chosen,
@@ -260,15 +274,6 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                   {t('rentals.takeFromStock')}
                 </Text>
               </View>
-
-              {/* Avvalgi tanlovlar: odam "nima olgan edim" degan savolga
-                  javob olishi kerak. Har kirish YANGI tanlov - shu bilan
-                  bir buyumni turli muddatga olish mumkin bo'ladi. */}
-              {reservedLabel ? (
-                <Text style={styles.reserved} numberOfLines={2}>
-                  {t('rentals.alreadyPicked', { items: reservedLabel })}
-                </Text>
-              ) : null}
 
               {/* Tanlangan buyumlar: nomi, soni va narxi. Miqdor tanlash
                   oynasida o'zgaradi — forma qisqa qoladi. */}
@@ -352,7 +357,6 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
         items={stock}
         initial={picks}
         askDuration
-        reserved={reserved}
         // "x" — formaga qaytaradi (tanlov bo'lsa), "Bekor qilish" esa
         // butun ijara oqimini yopadi.
         onClose={() => (picks.length > 0 ? setBasketOpen(false) : onClose())}

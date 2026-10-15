@@ -381,19 +381,21 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * bitta pul ikki marta sanalardi - narxnoma tanlovidan farqi shu:
    * u yerda yozuv hali yo'q, forma uni endi yaratadi.
    */
-  /** Tanlangan buyumlar soni — savatda bo'shdan ayriladi. */
-  const rentInReserved = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const entry of rentalDrafts) {
-      for (const line of entry.draft.lines) {
-        map[line.rentalItemId] = (map[line.rentalItemId] ?? 0) + line.quantity;
-      }
-    }
-    return map;
-  }, [rentalDrafts]);
-
-  const rentInReservedLabel = useMemo(
-    () => rentalDrafts.map((entry) => entry.label).join(', '),
+  /**
+   * Savat qayta ochilganda shu tanlov bilan ochiladi.
+   *
+   * Loyihalar qatorlardan yig'ilgan, shuning uchun teskari aylantirish
+   * ham shu yerda: har qatorning muddati o'z loyihasidan olinadi.
+   */
+  const rentInPicksForBasket = useMemo(
+    () =>
+      rentalDrafts.flatMap((entry) =>
+        entry.draft.lines.map((line) => ({
+          itemId: line.rentalItemId,
+          quantity: line.quantity,
+          duration: entry.draft.duration ?? null,
+        })),
+      ),
     [rentalDrafts],
   );
 
@@ -491,13 +493,18 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * faqat xabarda: ilgari yuborilgandan keyin hech qanday belgi yo'q
    * edi va odam yozuv yaratilganini bilmasdi.
    */
+  /**
+   * Tanlov savatdan keldi — avvalgisini ALMASHTIRADI.
+   *
+   * Narxnoma savati kabi: oyna butun tanlovni qaytaradi, shuning uchun
+   * ustiga qo'shilsa takrorlanib ketardi.
+   */
   const handleRentalPicked = useCallback(
-    (draft: RentalRequestDTO, total: number, label: string) => {
+    (picked: { draft: RentalRequestDTO; total: number; label: string }[]) => {
       closeRequest();
-      setRentalDrafts((drafts) => [
-        ...drafts,
-        { id: `${Date.now()}-${drafts.length}`, draft, total, label },
-      ]);
+      setRentalDrafts(
+        picked.map((entry, index) => ({ id: `rent-${index}`, ...entry })),
+      );
     },
     [closeRequest],
   );
@@ -771,8 +778,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           visible={requestOpen}
           onClose={closeRequest}
           onPicked={handleRentalPicked}
-          reserved={rentInReserved}
-          reservedLabel={rentInReservedLabel || undefined}
+          initialPicks={rentInPicksForBasket}
           // Qarz oynasidan kelgan bo'lsa — o'sha yerga qaytish yo'li.
           onBack={rentInFromMoney ? closeRequest : undefined}
         />

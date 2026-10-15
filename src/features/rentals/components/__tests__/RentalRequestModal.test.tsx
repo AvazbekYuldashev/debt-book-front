@@ -105,8 +105,9 @@ describe('ijaraga olish oqimi', () => {
     submit();
 
     expect(onPicked).toHaveBeenCalledTimes(1);
-    const [draft] = onPicked.mock.calls[0];
-    expect(draft.lines).toEqual([
+    const [picked] = onPicked.mock.calls[0];
+    expect(picked).toHaveLength(1);
+    expect(picked[0].draft.lines).toEqual([
       { rentalItemId: 'lesa', quantity: 1 },
       { rentalItemId: 'stul', quantity: 2 },
     ]);
@@ -118,8 +119,8 @@ describe('ijaraga olish oqimi', () => {
 
     submit();
 
-    const [, total] = onPicked.mock.calls[0];
-    expect(total).toBe(2 * 23_333 * 3);
+    const [picked] = onPicked.mock.calls[0];
+    expect(picked[0].total).toBe(2 * 23_333 * 3);
   });
 
   it('tanlov YUBORILMAYDI — forma bilan birga saqlanadi', async () => {
@@ -174,6 +175,29 @@ describe('ijaraga olish oqimi', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('qayta ochilganda TANLOV joyida turadi', async () => {
+    // Narxnoma savati kabi: oyna avvalgi tanlov bilan ochiladi va
+    // forma ko'rinadi - odam "tanlaganim qani?" demasligi kerak.
+    render(
+      <AppThemeProvider>
+        <LanguageProvider>
+          <RentalRequestModal
+            businessId="biz-1"
+            item={null}
+            visible
+            onClose={onClose}
+            onPicked={onPicked}
+            initialPicks={[{ itemId: 'lesa', quantity: 2, duration: 3 }]}
+          />
+        </LanguageProvider>
+      </AppThemeProvider>,
+    );
+    await settle();
+
+    // Savat emas, FORMA ochildi va tanlov ko'rinib turibdi.
+    expect(screen.getByText(/Lesa × 2/)).toBeTruthy();
+  });
+
   it("bo'sh sonidan ko'p olishga yo'l qo'ymaydi", async () => {
     (useBusinessRentalItems as jest.Mock).mockReturnValue({
       data: [item({ totalQuantity: 4, busyQuantity: 3 })],
@@ -185,7 +209,7 @@ describe('ijaraga olish oqimi', () => {
     await pick('Lesa', 5);
     submit();
 
-    const [draft] = onPicked.mock.calls[0];
-    expect(draft.lines).toEqual([{ rentalItemId: 'lesa', quantity: 1 }]);
+    const [picked] = onPicked.mock.calls[0];
+    expect(picked[0].draft.lines).toEqual([{ rentalItemId: 'lesa', quantity: 1 }]);
   });
 });
