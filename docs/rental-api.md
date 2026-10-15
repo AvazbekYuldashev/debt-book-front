@@ -529,6 +529,42 @@ demak qoldiq ham o'sha.
 Rad etish ataylab bor: tasdiqlashning juftisiz yolg'on yozilgan summa
 kartada abadiy osilib qolardi.
 
+### KEYINGI QADAM: tranzaksiya kartasida ijara CHEKI
+
+Hozir ijara pul yozuvining IZOHIGA matn bo'lib tushadi:
+"Ijara: ASDFSDF x 2 · 2 kun — 93 332 so'm". Mahsulotlardagi kabi
+tuzilgan "Chek" bloki esa yo'q.
+
+Sababi: chek `money_item` jadvalidan quriladi (mahsulot id'si bilan,
+narxni server o'z narxnomasidan qayta hisoblaydi). Ijara buyumlari
+boshqa jadvalda (`rental_item`) va u yerga tushmaydi.
+
+To'liq qilish uchun kerak bo'ladigan ishlar:
+
+1. **Migratsiya V32** — `rental` ga `money_id VARCHAR(36)` (nullable,
+   indeks). Yozuv qaysi pul yozuvi bilan birga yaratilganini aytadi.
+2. **Backend**
+   - `RentalEntity.moneyId`;
+   - `RentalRequestDTO.moneyId` (ixtiyoriy) va `request()` uni yozadi;
+   - `GET /api/v1/rental/by-money/{moneyId}` — o'sha yozuvga tegishli
+     ijaralar (ko'rish huquqi: pul yozuvining ikki tomoni).
+3. **Frontend**
+   - `requestRental` chaqirig'iga `moneyId` qo'shiladi. TARTIB:
+     avval pul yozuvi saqlanadi (id oladi), keyin ijara so'rovlari -
+     hozirgi oqim allaqachon shunday;
+   - tranzaksiya kartasida (`TransactionDetailModal`) ijara qatorlari
+     "Chek" blokidagi kabi chiqadi: nomi, miqdor x narx x muddat va
+     JAMI;
+   - mahsulot cheki bilan BIR XIL ko'rinish - odam ikkala holatda
+     bitta narsani ko'rishi kerak.
+4. **Testlar**
+   - backend: `by-money` faqat o'z tomoniga ko'rinadi;
+   - frontend: karta ijara qatorlarini va jamini chiqaradi.
+
+Nega `money_item` ga yozilmaydi: u narxni MAHSULOT narxnomasidan
+qayta hisoblaydi va ijara buyumi u yerda yo'q. Bog'lanish (`money_id`)
+esa ikkala hisobni ham o'z joyida qoldiradi.
+
 ## 7. Bildirishnoma (ixtiyoriy, keyingi qadam)
 
 Muddati bugun (soatlikda — shu soatda) tugaydigan va kechikkan ijaralar
