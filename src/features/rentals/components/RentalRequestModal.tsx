@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Modal from '../../../shared/ui/AppModal';
 import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
+import DateField from '../../../shared/ui/DateField';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
@@ -12,66 +13,57 @@ import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatQuantity } from '../../../shared/lib/quantity';
 import { isValidDateInput } from '../../../shared/lib/date';
-import DateField from '../../../shared/ui/DateField';
 import { useBusinessRentalItems } from '../hooks/useRentals';
-import RentalItemRow from './RentalItemRow';
-import { groupRentalItems } from '../model/rentalStock';
-import EmptyState from '../../../shared/ui/EmptyState';
-import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
-import { currentTimeString, formatTimeInputValue, isValidTimeInput, todayString } from '../model/rentalMath';
-import { perPeriodLabel, periodLabel } from '../model/rentalLabels';
-import { freeQuantity } from '../model/rentalStock';
-import type { RentalRequestDTO } from '../types/rental';
+import RentalItemBasketModal, { type RentalPick } from './RentalItemBasketModal';
+import {
+  currentTimeString,
+  formatTimeInputValue,
+  isValidTimeInput,
+  rentalPeriod as periodOf,
+  todayString,
+} from '../model/rentalMath';
+import { periodLabel } from '../model/rentalLabels';
+import type { RentalPeriod, RentalRequestDTO } from '../types/rental';
 import type { RentalItemResponseDTO } from '../types/rentalItem';
 
 interface RentalRequestModalProps {
   /** Ijara beruvchi biznes. */
   businessId: string;
   /**
-   * Qaysi buyum so'ralmoqda.
+   * Oldindan tanlangan buyum.
    *
-   * null bo'lsa oyna OMBOR RO'YXATI bilan ochiladi: qarz oynasidan
+   * null bo'lsa oyna TANLASH OYNASI bilan ochiladi: qarz oynasidan
    * "ijaraga olish" bosilganda buyum hali tanlanmagan bo'ladi.
    */
   item: RentalItemResponseDTO | null;
-  /** Buyumsiz ham ochilishi uchun — ro'yxat bosqichi. */
   visible?: boolean;
   onClose: () => void;
   /**
-   * So'rov YUBORILDI.
-   *
-   * Oyna baribir bir qadam orqaga qaytadi — bu faqat "bo'ldi" degan
-   * xabar uchun: ilgari yuborilgandan keyin hech qanday belgi yo'q edi
-   * va odam yozuv yaratilganini bilmay, "ishlamadi" deb o'ylardi.
-   * Berilmasa `onClose` ishlaydi.
-   */
-  /**
-   * Buyum TANLANDI — yozuv hali YARATILMAYDI.
+   * Buyumlar TANLANDI — yozuv hali YARATILMAYDI.
    *
    * Narxnoma savati bilan bir xil: tanlov formani to'ldiradi, yozuv
-   * esa "Qarz berish" bosilganda ikkalasi birga saqlanadi. Shu bilan
-   * bitta pul ikki marta hisoblanmaydi (ijara qoldig'i + pul yozuvi).
+   * esa "Qarz berish" bosilganda saqlanadi. Shu bilan bitta pul ikki
+   * marta hisoblanmaydi (ijara qoldig'i + pul yozuvi).
    */
   onPicked?: (draft: RentalRequestDTO, total: number, label: string) => void;
-  /**
-   * KELGAN JOYGA qaytish (qarz oynasi).
-   *
-   * Berilsa RO'YXAT bosqichida ham orqaga tugmasi chiqadi: odam u
-   * yerdan "Narxnomadan tanlash" ga o'tmoqchi bo'lishi mumkin va
-   * buning uchun butun oqimni yopishi shart emas.
-   */
+  /** Kelgan joyga qaytish (qarz oynasi). */
   onBack?: () => void;
 }
 
 /**
  * MIJOZ tomonidan yoziladigan ijara: "men shu do'kondan shuni oldim".
  *
- * Egasining formasidan ATAYLAB sodda: mijoz tanlaydigan narsa faqat
- * NECHTA va QANCHA MUDDATGA. Narx ombordagi narx bo'yicha olinadi —
- * chegirma egasining ishi va uni mijoz o'zi yozib qo'ya olmaydi.
+ * IKKI BOSQICH: avval ombordan buyum tanlanadi, keyin muddat/sana.
+ * Tanlash narxnoma savati bilan AYNI oyna ko'rinishida — qidiruv,
+ * kategoriya chiplari va har qator yonida miqdor. Ilgari u oddiy
+ * ro'yxat edi: bir vaqtda bitta buyum, qidiruvsiz, kategoriyasiz va
+ * tanlangan buyumni qaytarib olish yo'li yo'q edi.
  *
- * Yozuv do'konning daftariga tushadi, lekin TASDIQ KUTIB turadi va
- * ombordan hech narsa band qilmaydi: ombor birovning mulki.
+ * Narx mijozga ko'rsatiladi, lekin u YOZA OLMAYDI: chegirma egasining
+ * ishi. Miqdor esa tanlash oynasida belgilanadi.
+ *
+ * Kunlik va soatlik buyum bitta ijarada aralashmaydi — server ham
+ * shuni talab qiladi, shuning uchun bu yerda ham tekshiriladi.
  */
 const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   businessId,
@@ -87,244 +79,256 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-
-  /**
-   * Tanlangan buyum: tashqaridan kelgani yoki ro'yxatdan bosilgani.
-   *
-   * Ikki bosqich bitta oynada: ustiga yana bir modal qalashtirish
-   * telefonda orqaga qaytishni chalkashtiradi.
-   */
   const open = visible ?? Boolean(item);
-  const [picked, setPicked] = useState<RentalItemResponseDTO | null>(null);
-  const chosen = item ?? picked;
-  const itemsQuery = useBusinessRentalItems(businessId, { enabled: open && !chosen });
+  const itemsQuery = useBusinessRentalItems(businessId, { enabled: open });
+  const stock = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
 
-  const [quantity, setQuantity] = useState('1');
+  const [picks, setPicks] = useState<RentalPick[]>([]);
+  /** Buyum tashqaridan kelmagan bo'lsa oyna TANLASHDAN boshlanadi. */
+  const [basketOpen, setBasketOpen] = useState(false);
+
   const [startDate, setStartDate] = useState(todayString());
   const [startTime, setStartTime] = useState(currentTimeString());
   const [duration, setDuration] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
 
-  // Oyna yopilганda tanlov ham tozalanadi: qayta ochilganda eski
-  // buyum bilan ochilib qolmasin.
   useEffect(() => {
-    if (!open) setPicked(null);
-  }, [open]);
-
-  useEffect(() => {
-    if (!chosen) return;
-    setQuantity('1');
+    if (!open) return;
+    // Har ochilishda toza boshlanadi: eski tanlov bilan ochilib qolmasin.
+    setPicks(item ? [{ itemId: item.id, quantity: 1 }] : []);
+    setBasketOpen(!item);
     setStartDate(todayString());
     setStartTime(currentTimeString());
     setDuration('');
     setNote('');
     setError('');
-  }, [chosen]);
+  }, [open, item]);
 
-  const hourly = chosen?.period === 'HOUR';
-  const free = chosen ? freeQuantity(chosen) : 0;
+  const itemById = useMemo(
+    () => new Map(stock.map((stockItem) => [stockItem.id, stockItem])),
+    [stock],
+  );
+
+  /** Tanlangan buyumlar — ombordagi ma'lumoti bilan. */
+  const chosen = useMemo(
+    () =>
+      picks
+        .map((pick) => ({ pick, item: itemById.get(pick.itemId) ?? (item?.id === pick.itemId ? item : undefined) }))
+        .filter((row): row is { pick: RentalPick; item: RentalItemResponseDTO } => Boolean(row.item)),
+    [picks, itemById, item],
+  );
+
+  /** Davr BIRINCHI buyumdan olinadi: hammasi bir xil bo'lishi shart. */
+  const period: RentalPeriod = chosen.length > 0 ? periodOf(chosen[0].item) : 'DAY';
+  const hourly = period === 'HOUR';
+  const mixedPeriod = chosen.some((row) => periodOf(row.item) !== period);
+
+  const openEnded = duration.trim() === '';
+  const units = openEnded ? 1 : Math.floor(Number(duration));
+  const total = useMemo(
+    () =>
+      chosen.reduce((sum, row) => sum + row.pick.quantity * row.item.price, 0) *
+      (Number.isFinite(units) && units > 0 ? units : 0),
+    [chosen, units],
+  );
+
+  const currency = chosen[0]?.item.currency;
 
   const handleSubmit = useCallback(() => {
-    if (!chosen) return;
     setError('');
+    if (chosen.length === 0) return setError(t('rentals.errNoItems'));
+    // Kunlik va soatlik bitta ijarada aralashmaydi — server ham rad etadi.
+    if (mixedPeriod) return setError(t('rentals.errPeriodMix'));
 
-    const count = Number(quantity.replace(',', '.'));
-    if (!Number.isFinite(count) || count <= 0) return setError(t('rentals.errQuantity'));
-    // Bo'shidan ko'p so'rash ma'nosiz: server ham tasdiqlash paytida rad etadi.
-    if (count > free) return setError(t('rentals.errNotEnough', { count: String(free) }));
+    for (const row of chosen) {
+      const free = row.item.totalQuantity - (row.item.busyQuantity ?? 0);
+      if (row.pick.quantity > free) {
+        return setError(
+          t('rentals.errNotEnough', { item: row.item.name, free: formatQuantity(free) }),
+        );
+      }
+    }
 
-    // Bo'sh muddat = kelishilmagan: do'kondan olib ketdim, qaytarish
-    // sanasini aytmadim. Do'kon baribir tasdiqlaydi.
-    const openEnded = duration.trim() === '';
     const length = Number(duration);
     if (!openEnded && (!Number.isFinite(length) || length < 1)) {
-      return setError(t('rentals.errDays'));
+      return setError(t(hourly ? 'rentals.errHours' : 'rentals.errDays'));
     }
     if (!isValidDateInput(startDate)) return setError(t('rentals.errStartDate'));
     if (hourly && !isValidTimeInput(startTime)) return setError(t('rentals.errTime'));
 
     const draft: RentalRequestDTO = {
       businessId,
-      lines: [{ rentalItemId: chosen.id, quantity: count }],
+      lines: chosen.map((row) => ({ rentalItemId: row.item.id, quantity: row.pick.quantity })),
       startDate,
       ...(hourly ? { startTime } : {}),
       duration: openEnded ? null : Math.floor(length),
       note: note.trim() || undefined,
     };
 
+    const label = chosen
+      .map((row) => `${row.item.name} × ${formatQuantity(row.pick.quantity)}`)
+      .join(', ');
+
     // Yozuv YARATILMAYDI: u "Qarz berish" bilan birga saqlanadi.
-    onPicked?.(
-      draft,
-      count * (openEnded ? 1 : Math.floor(length)) * chosen.price,
-      `${chosen.name} × ${formatQuantity(count)}`,
-    );
+    onPicked?.(draft, total, label);
     onClose();
-  }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, onPicked, onClose, t]);
+  }, [
+    chosen,
+    mixedPeriod,
+    duration,
+    openEnded,
+    hourly,
+    startDate,
+    startTime,
+    note,
+    businessId,
+    total,
+    onPicked,
+    onClose,
+    t,
+  ]);
 
   /**
-   * ORQAGA bir qadam.
+   * ORQAGA bir qadam: formadan TANLASHGA, tanlashdan kelgan joyga.
    *
-   * Formadan RO'YXATGA, ro'yxatdan esa KELGAN JOYGA (qarz oynasiga).
-   * Buyum tashqaridan berilgan bo'lsa (ombor qatoriga bosib kelgan)
-   * ro'yxat bosqichi umuman bo'lmagan — u holda to'g'ridan-to'g'ri
-   * kelgan joyga qaytiladi.
+   * Buyum tashqaridan berilgan bo'lsa tanlash bosqichi bo'lmagan va
+   * to'g'ridan-to'g'ri kelgan joyga qaytiladi.
    */
-  const toList = useCallback(() => {
-    setPicked(null);
-    setError('');
-  }, []);
-
-  const goBack = !item && picked ? toList : onBack;
-  const canGoBack = Boolean(goBack);
+  const goBack = !item && picks.length > 0 ? () => setBasketOpen(true) : onBack;
 
   if (!open) return null;
 
-  const total = chosen ? Number(quantity.replace(',', '.')) * Number(duration) * chosen.price : 0;
-  const showTotal = Number.isFinite(total) && total > 0;
-
   return (
-    /* Qurilmaning ORQAGA tugmasi ham bir qadam orqaga qaytaradi, butun
-       oqimni yopmaydi: tanlashdan keyin yopilib ketsa odam hammasini
-       boshidan boshlashga majbur bo'lardi. */
-    <Modal
-      transparent
-      visible={open}
-      animationType="slide"
-      onRequestClose={goBack ?? onClose}
-    >
-      <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: theme.spacing.lg + keyboardInset }]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+    <>
+      {/* Qurilmaning ORQAGA tugmasi ham bir qadam orqaga qaytaradi. */}
+      <Modal transparent visible={open} animationType="slide" onRequestClose={goBack ?? onClose}>
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.card}>
-            <View style={styles.titleRow}>
-              {canGoBack ? (
-                <Pressable
-                  onPress={goBack}
-                  hitSlop={8}
-                  style={({ pressed }) => [styles.backBtn, pressed && styles.backPressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('common.back')}
-                >
-                  <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
-                </Pressable>
-              ) : null}
-              <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
-                {chosen ? t('rentals.requestTitle', { item: chosen.name }) : t('rentals.theirStock')}
-              </Text>
-            </View>
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: theme.spacing.lg + keyboardInset },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.card}>
+              <View style={styles.titleRow}>
+                {goBack ? (
+                  <Pressable
+                    onPress={goBack}
+                    hitSlop={8}
+                    style={({ pressed }) => [styles.backBtn, pressed && styles.backPressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('common.back')}
+                  >
+                    <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+                  </Pressable>
+                ) : null}
+                <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
+                  {t('rentals.takeFromStock')}
+                </Text>
+              </View>
 
-            {/* BIRINCHI BOSQICH: buyum tanlanmagan bo'lsa ombor ro'yxati. */}
-            {!chosen ? (
-              itemsQuery.isLoading ? (
-                <SkeletonContactList count={3} />
-              ) : (itemsQuery.data ?? []).length === 0 ? (
-                <EmptyState
-                  icon="cube-outline"
-                  title={t('rentals.theirStock')}
-                  description={t('rentals.theirStockEmpty')}
-                />
-              ) : (
-                <View style={styles.stock}>
-                  {groupRentalItems(itemsQuery.data ?? []).flatMap((group) =>
-                    group.items.map((stockItem, index) => (
-                      <RentalItemRow
-                        key={stockItem.id}
-                        item={stockItem}
-                        isLast={index === group.items.length - 1}
-                        onPress={setPicked}
-                      />
-                    )),
-                  )}
+              {/* Tanlangan buyumlar: nomi, soni va narxi. Miqdor tanlash
+                  oynasida o'zgaradi — forma qisqa qoladi. */}
+              <Pressable
+                onPress={() => setBasketOpen(true)}
+                style={({ pressed }) => [styles.pickBtn, pressed && styles.backPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('rentals.basketOpen')}
+              >
+                <Ionicons name="cube-outline" size={18} color={colors.primary} />
+                <Text style={styles.pickBtnText} numberOfLines={1}>
+                  {chosen.length > 0
+                    ? t('rentals.basketSelected', { count: String(chosen.length) })
+                    : t('rentals.basketOpen')}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              </Pressable>
+
+              {chosen.map((row) => (
+                <View key={row.item.id} style={styles.lineRow}>
+                  <Text style={styles.lineName} numberOfLines={1}>
+                    {`${row.item.name} × ${formatQuantity(row.pick.quantity)}`}
+                  </Text>
+                  <Text style={styles.linePrice} numberOfLines={1}>
+                    {formatMoney(row.item.price, row.item.currency)}
+                  </Text>
                 </View>
-              )
-            ) : null}
+              ))}
 
-            {chosen ? (
-              <>
-            <View style={styles.priceRow}>
-              <Ionicons name="pricetag-outline" size={15} color={colors.textSecondary} />
-              <Text style={styles.priceText}>
-                {`${formatMoney(chosen.price, chosen.currency)} ${perPeriodLabel(t, chosen.period)}`}
-                {' · '}
-                {t('rentals.freeCount', { count: String(free) })}
-              </Text>
-            </View>
+              <View style={styles.pairRow}>
+                <Input
+                  label={periodLabel(t, period)}
+                  value={duration}
+                  onChangeText={(value) => setDuration(value.replace(/\D/g, '').slice(0, 4))}
+                  keyboardType="number-pad"
+                  containerStyle={styles.pairItem}
+                />
+                {hourly ? (
+                  <Input
+                    label={t('rentals.fieldStartTime')}
+                    value={startTime}
+                    onChangeText={(value) => setStartTime(formatTimeInputValue(value))}
+                    keyboardType="number-pad"
+                    placeholder="14:00"
+                    containerStyle={styles.pairItem}
+                  />
+                ) : null}
+              </View>
 
-            <View style={styles.pairRow}>
-              <Input
-                label={t('rentals.fieldQuantity')}
-                value={quantity}
-                onChangeText={(value) => setQuantity(value.replace(/[^\d.]/g, '').slice(0, 7))}
-                keyboardType="decimal-pad"
-                containerStyle={styles.pairItem}
+              <DateField
+                label={t('rentals.fieldStartDate')}
+                value={startDate}
+                onChange={setStartDate}
               />
-              <Input
-                label={periodLabel(t, chosen.period)}
-                value={duration}
-                onChangeText={(value) => setDuration(value.replace(/\D/g, '').slice(0, 4))}
-                keyboardType="number-pad"
-                containerStyle={styles.pairItem}
-              />
-            </View>
 
-            <DateField
-              label={t('rentals.fieldStartDate')}
-              value={startDate}
-              onChange={setStartDate}
-            />
+              <Input label={t('rentals.fieldNote')} value={note} onChangeText={setNote} />
 
-            {hourly ? (
-              <Input
-                label={t('rentals.fieldStartTime')}
-                value={startTime}
-                onChangeText={(value) => setStartTime(formatTimeInputValue(value))}
-                keyboardType="number-pad"
-                placeholder="14:00"
-              />
-            ) : null}
-
-            <Input label={t('rentals.fieldNote')} value={note} onChangeText={setNote} />
-
-            {showTotal ? (
               <View style={styles.preview}>
-                <Text style={styles.previewTotal}>{formatMoney(total, chosen.currency)}</Text>
+                {total > 0 ? (
+                  <Text style={styles.previewTotal}>{formatMoney(total, currency)}</Text>
+                ) : null}
                 <Text style={styles.previewHint}>{t('rentals.requestHint')}</Text>
               </View>
-            ) : (
-              <Text style={styles.note}>{t('rentals.requestHint')}</Text>
-            )}
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+              {error ? <Text style={styles.error}>{error}</Text> : null}
 
-              </>
-            ) : null}
-
-            <View style={styles.actions}>
-              <Button
-                title={t('common.cancel')}
-                variant="secondary"
-                onPress={onClose}
-                style={styles.actionBtn}
-              />
-              {chosen ? (
+              <View style={styles.actions}>
+                <Button
+                  title={t('common.cancel')}
+                  variant="secondary"
+                  onPress={onClose}
+                  style={styles.actionBtn}
+                />
                 <Button
                   title={t('rentals.requestSubmit')}
                   onPress={handleSubmit}
-                      style={styles.actionBtn}
+                  style={styles.actionBtn}
                 />
-              ) : null}
+              </View>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Tanlash narxnoma savati bilan AYNI oyna. */}
+      <RentalItemBasketModal
+        visible={open && basketOpen}
+        items={stock}
+        initial={picks}
+        onClose={() => (picks.length > 0 ? setBasketOpen(false) : onClose())}
+        onConfirm={(next) => {
+          setPicks(next);
+          setBasketOpen(false);
+          setError('');
+        }}
+      />
+    </>
   );
 };
 
@@ -360,28 +364,47 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       fontSize: 18,
       color: colors.textPrimary,
     },
-    priceRow: {
+    pickBtn: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
     },
-    priceText: {
+    pickBtnText: {
+      ...typography.button,
+      flex: 1,
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    lineRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      paddingHorizontal: spacing.sm,
+    },
+    lineName: {
       ...typography.caption,
+      flex: 1,
       fontSize: 12,
       color: colors.textSecondary,
-      flexShrink: 1,
+    },
+    linePrice: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      fontVariant: ['tabular-nums'],
     },
     pairRow: {
       flexDirection: 'row',
       gap: spacing.xs,
     },
     pairItem: { flex: 1 },
-    // Ombor ro'yxati karta ichida: qatorlar o'z sirtida turadi.
-    stock: {
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: radius.md,
-      overflow: 'hidden',
-    },
     preview: {
       backgroundColor: colors.surfaceMuted,
       borderRadius: radius.md,
@@ -399,14 +422,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.caption,
       fontSize: 12,
       color: colors.textSecondary,
-    },
-    note: {
-      ...typography.caption,
-      fontSize: 12,
-      color: colors.textSecondary,
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: radius.md,
-      padding: spacing.sm,
     },
     error: {
       ...typography.caption,

@@ -1,4 +1,5 @@
 import React from 'react';
+import { TextInput } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import RentalRequestModal from '../RentalRequestModal';
 import { AppThemeProvider } from '../../../../shared/theme';
@@ -26,7 +27,7 @@ const item = (over: Partial<RentalItemResponseDTO> = {}): RentalItemResponseDTO 
   ...over,
 });
 
-/** Oyna ro'yxat bosqichida ochiladi — qarz oynasidagi "Ijaraga olish" kabi. */
+/** Oyna TANLASH bosqichida ochiladi — qarz oynasidagi "Ijaraga olish" kabi. */
 const show = async (withBack = true) => {
   render(
     <AppThemeProvider>
@@ -45,109 +46,129 @@ const show = async (withBack = true) => {
   await settle();
 };
 
+/** Savatdan buyum olib, formaga o'tish. */
+const pick = async (name: string, times = 1) => {
+  for (let i = 0; i < times; i += 1) {
+    fireEvent.press(screen.getByLabelText(`${name} ko'paytirish`));
+  }
+  fireEvent.press(screen.getByText("Tanlovni qo'llash"));
+  await settle();
+};
+
+/** Sarlavha ham, tugma ham "Ijaraga olish" — tugma oxirida turadi. */
+const submit = () => {
+  const matches = screen.getAllByText('Ijaraga olish');
+  fireEvent.press(matches[matches.length - 1]);
+};
+
 beforeEach(() => {
   onClose.mockReset();
   onPicked.mockReset();
   onBack.mockReset();
   (useBusinessRentalItems as jest.Mock).mockReturnValue({
-    data: [item(), item({ id: 'stul', name: 'Stul' })],
+    data: [item(), item({ id: 'stul', name: 'Stul', price: 5_000, totalQuantity: 50 })],
     isLoading: false,
   });
 });
 
 /**
- * IKKI BOSQICHLI oyna: avval ombor ro'yxati, keyin forma.
+ * MIJOZNING IJARA OQIMI: savatdan tanlash, keyin muddat/sana.
  *
- * Buyum tanlangandan keyin ro'yxatga QAYTISH yo'li bo'lishi shart —
- * ilgari faqat "Bekor qilish" bor edi va noto'g'ri buyum bosgan odam
- * butun oqimni yopib, boshidan boshlashga majbur bo'lardi.
+ * Tanlash narxnoma savati bilan ayni oyna: qidiruv, kategoriya va har
+ * qator yonida miqdor. Ilgari oddiy ro'yxat edi — bir vaqtda bitta
+ * buyum va tanlanganini qaytarib olish yo'li yo'q edi.
+ *
+ * Yozuv bu yerda YARATILMAYDI: u "Qarz berish" bilan birga saqlanadi,
+ * aks holda ijara ham darhol qarz bo'lib, summa Miqdorda ham turib,
+ * bitta pul ikki marta sanalardi.
  */
-describe("ijaraga olish — bosqichlar", () => {
-  it("avval ombor ro'yxati ochiladi", async () => {
+describe('ijaraga olish oqimi', () => {
+  it('avval SAVAT ochiladi — qidiruv va miqdor bilan', async () => {
     await show();
 
-    expect(screen.getByText('Lesa')).toBeTruthy();
-    expect(screen.getByText('Stul')).toBeTruthy();
+    expect(screen.getByLabelText('Buyum nomi yoki guruh')).toBeTruthy();
+    expect(screen.getByLabelText("Lesa ko'paytirish")).toBeTruthy();
+    expect(screen.getByLabelText('Stul kamaytirish')).toBeTruthy();
   });
 
-  it('buyum bosilsa forma ochiladi', async () => {
+  it("bir NECHTA buyum bitta so'rov bo'lib ketadi", async () => {
     await show();
 
-    fireEvent.press(screen.getByLabelText(/^Lesa:/));
+    fireEvent.press(screen.getByLabelText("Lesa ko'paytirish"));
+    fireEvent.press(screen.getByLabelText("Stul ko'paytirish"));
+    fireEvent.press(screen.getByLabelText("Stul ko'paytirish"));
+    fireEvent.press(screen.getByText("Tanlovni qo'llash"));
     await settle();
 
-    expect(screen.getByText('Nechta')).toBeTruthy();
-    // Ro'yxat bosqichi tugadi: ikkinchi buyum endi ko'rinmaydi.
-    expect(screen.queryByText('Stul')).toBeNull();
-  });
-
-  it("formadan ro'yxatga QAYTIB bo'ladi", async () => {
-    await show();
-    fireEvent.press(screen.getByLabelText(/^Lesa:/));
-    await settle();
-
-    fireEvent.press(screen.getByLabelText('Orqaga'));
-    await settle();
-
-    // Ro'yxat qaytdi, oyna yopilmadi.
-    expect(screen.getByText('Stul')).toBeTruthy();
-    expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it("ro'yxat bosqichidan KELGAN JOYGA qaytiladi", async () => {
-    // Odam u yerdan "Narxnomadan tanlash" ga o'tmoqchi bo'lishi mumkin —
-    // buning uchun butun oqimni yopishi shart emas.
-    await show();
-
-    fireEvent.press(screen.getByLabelText('Orqaga'));
-
-    expect(onBack).toHaveBeenCalledTimes(1);
-    expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it("qaytadigan joy bo'lmasa orqaga tugmasi chiqmaydi", async () => {
-    await show(false);
-
-    expect(screen.queryByLabelText('Orqaga')).toBeNull();
-  });
-
-  it("formadagi orqaga RO'YXATGA qaytaradi, kelgan joyga emas", async () => {
-    await show();
-    fireEvent.press(screen.getByLabelText(/^Lesa:/));
-    await settle();
-
-    fireEvent.press(screen.getByLabelText('Orqaga'));
-    await settle();
-
-    expect(screen.getByText('Stul')).toBeTruthy();
-    expect(onBack).not.toHaveBeenCalled();
-  });
-
-  it("'Bekor qilish' KELGAN JOYGA qaytaradi", async () => {
-    // Odam qarz oynasida summa yozib qo'ygan bo'lishi mumkin.
-    await show();
-
-    fireEvent.press(screen.getByText('Bekor qilish'));
-
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it("tanlov YUBORILMAYDI — forma bilan birga saqlanadi", async () => {
-    // Narxnoma savati bilan bir xil: tanlov formani to'ldiradi, yozuv
-    // esa "Qarz berish" bosilganda yaratiladi. Aks holda ijara ham
-    // darhol qarz bo'lib, summa Miqdorda ham turib, ikki marta
-    // sanalardi.
-    await show();
-    fireEvent.press(screen.getByLabelText(/^Lesa:/));
-    await settle();
-
-    // Muddat bo'sh qoldirilsa ijara muddatsiz bo'ladi — forma to'liq.
-    fireEvent.press(screen.getByText('Ijaraga olish'));
+    submit();
 
     expect(onPicked).toHaveBeenCalledTimes(1);
     const [draft] = onPicked.mock.calls[0];
-    expect(draft.lines).toEqual([{ rentalItemId: 'lesa', quantity: 1 }]);
+    expect(draft.lines).toEqual([
+      { rentalItemId: 'lesa', quantity: 1 },
+      { rentalItemId: 'stul', quantity: 2 },
+    ]);
+  });
+
+  it('summa tanlangan buyumlar va muddatdan chiqadi', async () => {
+    await show();
+    await pick('Lesa', 2);
+
+    // 2 × 23 333 × 3 kun. `Input` da accessibilityLabel yo'q, shuning
+    // uchun formadagi birinchi maydon (muddat) turi bo'yicha topiladi.
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '3');
+    submit();
+
+    const [, total] = onPicked.mock.calls[0];
+    expect(total).toBe(2 * 23_333 * 3);
+  });
+
+  it('tanlov YUBORILMAYDI — forma bilan birga saqlanadi', async () => {
+    await show();
+    await pick('Lesa');
+
+    submit();
+
+    expect(onPicked).toHaveBeenCalledTimes(1);
     // Oyna bir qadam orqaga qaytadi.
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("formadan SAVATGA qaytib, tanlovni o'zgartirib bo'ladi", async () => {
+    await show();
+    await pick('Lesa');
+
+    fireEvent.press(screen.getByLabelText('Orqaga'));
+    await settle();
+
+    // Savat qaytdi va avvalgi tanlov joyida.
+    expect(screen.getByDisplayValue('1')).toBeTruthy();
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
+  it("savat bosqichida 'Bekor qilish' KELGAN JOYGA qaytaradi", async () => {
+    await show();
+
+    // Forma ham, savat ham bir vaqtda chiziladi — savatniki oxirgisi.
+    const buttons = screen.getAllByText('Bekor qilish');
+    fireEvent.press(buttons[buttons.length - 1]);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onPicked).not.toHaveBeenCalled();
+  });
+
+  it("bo'sh sonidan ko'p olishga yo'l qo'ymaydi", async () => {
+    (useBusinessRentalItems as jest.Mock).mockReturnValue({
+      data: [item({ totalQuantity: 4, busyQuantity: 3 })],
+      isLoading: false,
+    });
+    await show();
+
+    // Bo'sh 1 ta: beshta bosilsa ham savat 1 da to'xtaydi.
+    await pick('Lesa', 5);
+    submit();
+
+    const [draft] = onPicked.mock.calls[0];
+    expect(draft.lines).toEqual([{ rentalItemId: 'lesa', quantity: 1 }]);
   });
 });
