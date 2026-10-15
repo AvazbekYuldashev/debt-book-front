@@ -1,5 +1,4 @@
 import React from 'react';
-import { TextInput } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import RentalRequestModal from '../RentalRequestModal';
 import { AppThemeProvider } from '../../../../shared/theme';
@@ -47,9 +46,12 @@ const show = async (withBack = true) => {
 };
 
 /** Savatdan buyum olib, formaga o'tish. */
-const pick = async (name: string, times = 1) => {
+const pick = async (name: string, times = 1, days = 0) => {
   for (let i = 0; i < times; i += 1) {
-    fireEvent.press(screen.getByLabelText(`${name} ko'paytirish`));
+    fireEvent.press(screen.getByLabelText(`${name} miqdor ko'paytirish`));
+  }
+  for (let i = 0; i < days; i += 1) {
+    fireEvent.press(screen.getByLabelText(`${name} Kunlik ko'paytirish`));
   }
   fireEvent.press(screen.getByText("Tanlovni qo'llash"));
   await settle();
@@ -87,16 +89,16 @@ describe('ijaraga olish oqimi', () => {
     await show();
 
     expect(screen.getByLabelText('Buyum nomi yoki guruh')).toBeTruthy();
-    expect(screen.getByLabelText("Lesa ko'paytirish")).toBeTruthy();
-    expect(screen.getByLabelText('Stul kamaytirish')).toBeTruthy();
+    expect(screen.getByLabelText("Lesa miqdor ko'paytirish")).toBeTruthy();
+    expect(screen.getByLabelText('Stul miqdor kamaytirish')).toBeTruthy();
   });
 
   it("bir NECHTA buyum bitta so'rov bo'lib ketadi", async () => {
     await show();
 
-    fireEvent.press(screen.getByLabelText("Lesa ko'paytirish"));
-    fireEvent.press(screen.getByLabelText("Stul ko'paytirish"));
-    fireEvent.press(screen.getByLabelText("Stul ko'paytirish"));
+    fireEvent.press(screen.getByLabelText("Lesa miqdor ko'paytirish"));
+    fireEvent.press(screen.getByLabelText("Stul miqdor ko'paytirish"));
+    fireEvent.press(screen.getByLabelText("Stul miqdor ko'paytirish"));
     fireEvent.press(screen.getByText("Tanlovni qo'llash"));
     await settle();
 
@@ -112,11 +114,8 @@ describe('ijaraga olish oqimi', () => {
 
   it('summa tanlangan buyumlar va muddatdan chiqadi', async () => {
     await show();
-    await pick('Lesa', 2);
+    await pick('Lesa', 2, 3);
 
-    // 2 × 23 333 × 3 kun. `Input` da accessibilityLabel yo'q, shuning
-    // uchun formadagi birinchi maydon (muddat) turi bo'yicha topiladi.
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '3');
     submit();
 
     const [, total] = onPicked.mock.calls[0];

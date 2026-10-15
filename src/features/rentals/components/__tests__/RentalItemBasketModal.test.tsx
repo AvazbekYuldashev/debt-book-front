@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import RentalItemBasketModal from '../RentalItemBasketModal';
+import RentalItemBasketModal, { type RentalPick } from '../RentalItemBasketModal';
 import { AppThemeProvider } from '../../../../shared/theme';
 import { LanguageProvider } from '../../../../shared/i18n';
 import type { RentalItemResponseDTO } from '../../types/rentalItem';
@@ -28,7 +28,7 @@ const stock = [
   item({ id: 'mikser', name: 'Mikser', period: 'HOUR', category: 'QURILISH' }),
 ];
 
-const show = async (initial?: { itemId: string; quantity: number }[]) => {
+const show = async (initial?: RentalPick[]) => {
   render(
     <AppThemeProvider>
       <LanguageProvider>
@@ -91,11 +91,11 @@ describe('ijara buyumlarini tanlash', () => {
   it('"+" miqdorni oshiradi va tanlov qaytariladi', async () => {
     await show();
 
-    fireEvent.press(screen.getByLabelText("Lesa ko'paytirish"));
-    fireEvent.press(screen.getByLabelText("Lesa ko'paytirish"));
+    fireEvent.press(screen.getByLabelText("Lesa  miqdor ko'paytirish"));
+    fireEvent.press(screen.getByLabelText("Lesa  miqdor ko'paytirish"));
     fireEvent.press(screen.getByText("Tanlovni qo'llash"));
 
-    expect(onConfirm).toHaveBeenCalledWith([{ itemId: 'lesa', quantity: 2 }]);
+    expect(onConfirm).toHaveBeenCalledWith([{ itemId: 'lesa', quantity: 2, duration: null }]);
   });
 
   it("bo'sh sonidan oshirib bo'lmaydi", async () => {
@@ -103,16 +103,16 @@ describe('ijara buyumlarini tanlash', () => {
 
     // Lesa: jami 4, bandi 1 -> bo'sh 3. Beshta bosilsa ham 3 da to'xtaydi.
     for (let i = 0; i < 5; i += 1) {
-      fireEvent.press(screen.getByLabelText("Lesa ko'paytirish"));
+      fireEvent.press(screen.getByLabelText("Lesa  miqdor ko'paytirish"));
     }
     fireEvent.press(screen.getByText("Tanlovni qo'llash"));
 
-    expect(onConfirm).toHaveBeenCalledWith([{ itemId: 'lesa', quantity: 3 }]);
+    expect(onConfirm).toHaveBeenCalledWith([{ itemId: 'lesa', quantity: 3, duration: null }]);
   });
 
   it('oyna formadagi tanlov bilan ochiladi', async () => {
     // Aks holda tuzatmoqchi bo'lgan odam hammasini boshqatdan yig'ardi.
-    await show([{ itemId: 'opalubka', quantity: 7 }]);
+    await show([{ itemId: 'opalubka', quantity: 7, duration: null }]);
 
     expect(screen.getByDisplayValue('7')).toBeTruthy();
   });
@@ -120,7 +120,7 @@ describe('ijara buyumlarini tanlash', () => {
   it('tanlanmagan buyum natijaga tushmaydi', async () => {
     await show();
 
-    fireEvent.press(screen.getByLabelText('Stul kamaytirish'));
+    fireEvent.press(screen.getByLabelText('Stul  miqdor kamaytirish'));
     fireEvent.press(screen.getByText("Tanlovni qo'llash"));
 
     expect(onConfirm).toHaveBeenCalledWith([]);

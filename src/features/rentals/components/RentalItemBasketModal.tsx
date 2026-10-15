@@ -12,14 +12,22 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatQuantity } from '../../../shared/lib/quantity';
 import { freeQuantity, itemsForPeriod, rentalItemCategories } from '../model/rentalStock';
-import { perPeriodLabel } from '../model/rentalLabels';
+import { periodLabel, perPeriodLabel } from '../model/rentalLabels';
 import type { RentalPeriod } from '../types/rental';
 import type { RentalItemResponseDTO } from '../types/rentalItem';
 
-/** Tanlangan buyum: qaysi va nechta. */
+/** Tanlangan buyum: qaysi, nechta va necha muddatga. */
 export interface RentalPick {
   itemId: string;
   quantity: number;
+  /**
+   * Necha kun (yoki soat). null = muddat kelishilmagan.
+   *
+   * HAR BUYUMGA ALOHIDA: bir odam lesani o'n kunga, mikserni bir kunga
+   * olishi mumkin. Umumiy muddat bo'lsa ikkinchisini alohida yozuv
+   * qilib yurishga majbur bo'lardi.
+   */
+  duration: number | null;
 }
 
 interface RentalItemBasketModalProps {
@@ -35,6 +43,14 @@ interface RentalItemBasketModalProps {
   period?: RentalPeriod;
   /** Formada allaqachon turgan qatorlar. */
   initial?: RentalPick[];
+  /**
+   * Har buyumga MUDDAT ham so'ralsinmi.
+   *
+   * Mijoz tomonida ha: bir odam lesani o'n kunga, mikserni bir kunga
+   * olishi mumkin. Ombor egasining formasida esa muddat bitta - u
+   * bir mijozga bir martada beradi va muddatni o'sha yerda yozadi.
+   */
+  askDuration?: boolean;
   onClose: () => void;
   onConfirm: (picks: RentalPick[]) => void;
 }
@@ -62,6 +78,7 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
   items,
   period,
   initial,
+  askDuration = false,
   onClose,
   onConfirm,
 }) => {
@@ -72,8 +89,9 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>(ALL);
-  // itemId -> miqdor (matn: foydalanuvchi 1.5 kabi kasr yozishi mumkin).
+  // itemId -> miqdor va muddat (matn: kasr miqdor yozilishi mumkin).
   const [quantities, setQuantities] = useState<Record<string, string>>({});
+  const [durations, setDurations] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!visible) return;
@@ -83,10 +101,14 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
     // tanlangan qatorlarni tuzatmoqchi bo'lgan odam hammasini
     // boshqatdan yig'ishga majbur bo'lardi.
     const seeded: Record<string, string> = {};
+    const seededDuration: Record<string, string> = {};
     for (const pick of initial ?? []) {
-      if (pick.quantity > 0) seeded[pick.itemId] = formatQuantity(pick.quantity);
+      if (pick.quantity <= 0) continue;
+      seeded[pick.itemId] = formatQuantity(pick.quantity);
+      if (pick.duration != null) seededDuration[pick.itemId] = String(pick.duration);
     }
     setQuantities(seeded);
+    setDurations(seededDuration);
   }, [visible, initial]);
 
   /** Faqat shu davrdagi buyumlar: kunlik va soatlik aralashmaydi. */
@@ -131,14 +153,40 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
     [],
   );
 
+  const readDuration = useCallback(
+    (id: string): number | null => {
+      const raw = durations[id];
+      if (!raw) return null;
+      const parsed = Math.floor(Number(raw));
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    },
+    [durations],
+  );
+
+  /** Muddat bo'sh qolsa ijara MUDDATSIZ bo'ladi — nol emas. */
+  const setDuration = useCallback((id: string, next: number) => {
+    setDurations((prev) => {
+      const copy = { ...prev };
+      if (next <= 0) delete copy[id];
+      else copy[id] = String(Math.floor(next));
+      return copy;
+    });
+  }, []);
+
   const selected = useMemo(
     () => periodItems.filter((item) => readQuantity(item.id) > 0),
     [periodItems, readQuantity],
   );
 
   const handleConfirm = useCallback(() => {
-    onConfirm(selected.map((item) => ({ itemId: item.id, quantity: readQuantity(item.id) })));
-  }, [selected, readQuantity, onConfirm]);
+    onConfirm(
+      selected.map((item) => ({
+        itemId: item.id,
+        quantity: readQuantity(item.id),
+        duration: readDuration(item.id),
+      })),
+    );
+  }, [selected, readQuantity, readDuration, onConfirm]);
 
   const renderBody = () => {
     if (periodItems.length === 0) {
@@ -150,8 +198,69 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
 
     return visibleItems.map((item) => {
       const quantity = readQuantity(item.id);
+      const days = readDuration(item.id);
       const free = freeQuantity(item);
       const full = quantity >= free;
+
+      /** Bitta stepper: "− qiymat +". Ikkisi ham bir xil ko'rinishda. */
+      const stepper = (
+        label: string,
+        value: string,
+        onMinus: () => void,
+        onPlus: () => void,
+        onType: (next: string) => void,
+        plusDisabled = false,
+      ) => (
+        <View style={styles.stepper}>
+          <Pressable
+            onPress={onMinus}
+            disabled={!value}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.stepBtn,
+              pressed && styles.pressed,
+              !value && styles.stepDisabled,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.name} ${label} ${t('basket.decrease')}`}
+          >
+            <Ionicons name="remove" size={16} color={value ? colors.primary : colors.textSecondary} />
+          </Pressable>
+
+          {/* Matn maydoni: kasr miqdorni ("1.5 m²") tugma bilan emas,
+              yozib kiritish kerak bo'ladi. */}
+          <TextInput
+            style={styles.qtyInput}
+            value={value}
+            onChangeText={onType}
+            placeholder="0"
+            placeholderTextColor={colors.textSecondary}
+            keyboardType="decimal-pad"
+            inputMode="decimal"
+            accessibilityLabel={`${item.name} ${label}`}
+          />
+
+          <Pressable
+            onPress={onPlus}
+            disabled={plusDisabled}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.stepBtn,
+              pressed && styles.pressed,
+              plusDisabled && styles.stepDisabled,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.name} ${label} ${t('basket.increase')}`}
+          >
+            <Ionicons
+              name="add"
+              size={16}
+              color={plusDisabled ? colors.textSecondary : colors.primary}
+            />
+          </Pressable>
+        </View>
+      );
+
       return (
         <View key={item.id} style={[styles.row, quantity > 0 && styles.rowActive]}>
           <View style={styles.info}>
@@ -160,64 +269,47 @@ const RentalItemBasketModal: React.FC<RentalItemBasketModalProps> = ({
             </Text>
             <Text style={styles.meta} numberOfLines={1}>
               {`${formatMoney(item.price, item.currency)} ${perPeriodLabel(t, item.period)}`}
-            </Text>
-            <Text
-              style={[styles.free, { color: free > 0 ? colors.positive : colors.negative }]}
-              numberOfLines={1}
-            >
-              {t('rentals.freeCount', { count: formatQuantity(free) })}
+              {' · '}
+              <Text style={{ color: free > 0 ? colors.positive : colors.negative }}>
+                {t('rentals.freeCount', { count: formatQuantity(free) })}
+              </Text>
             </Text>
           </View>
 
-          <View style={styles.stepper}>
-            <Pressable
-              onPress={() => setQuantity(item, quantity - STEP)}
-              disabled={quantity <= 0}
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.stepBtn,
-                pressed && styles.pressed,
-                quantity <= 0 && styles.stepDisabled,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={`${item.name} ${t('basket.decrease')}`}
-            >
-              <Ionicons
-                name="remove"
-                size={16}
-                color={quantity <= 0 ? colors.textSecondary : colors.primary}
-              />
-            </Pressable>
+          {/*
+            IKKI stepper: nechta va necha muddatga.
 
-            {/* Matn maydoni: "1.5 m²" kabi kasr miqdorni tugma bilan emas,
-                yozib kiritish kerak bo'ladi. */}
-            <TextInput
-              style={styles.qtyInput}
-              value={quantities[item.id] ?? ''}
-              onChangeText={(value) =>
-                setQuantities((prev) => ({ ...prev, [item.id]: value.replace(/[^\d.,]/g, '') }))
-              }
-              placeholder="0"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="decimal-pad"
-              inputMode="decimal"
-              accessibilityLabel={`${item.name} ${t('basket.quantity')}`}
-            />
+            Muddat HAR BUYUMGA alohida - bir odam lesani o'n kunga,
+            mikserni bir kunga olishi mumkin. Bo'sh qoldirilsa ijara
+            muddatsiz bo'ladi.
+          */}
+          <View style={styles.steppers}>
+            <View style={styles.stepperCell}>
+              <Text style={styles.stepperLabel}>{t('rentals.fieldQuantity')}</Text>
+              {stepper(
+                t('basket.quantity'),
+                quantities[item.id] ?? '',
+                () => setQuantity(item, quantity - STEP),
+                () => setQuantity(item, quantity + STEP),
+                (next) =>
+                  setQuantities((prev) => ({ ...prev, [item.id]: next.replace(/[^\d.,]/g, '') })),
+                full,
+              )}
+            </View>
 
-            <Pressable
-              onPress={() => setQuantity(item, quantity + STEP)}
-              disabled={full}
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.stepBtn,
-                pressed && styles.pressed,
-                full && styles.stepDisabled,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={`${item.name} ${t('basket.increase')}`}
-            >
-              <Ionicons name="add" size={16} color={full ? colors.textSecondary : colors.primary} />
-            </Pressable>
+            {askDuration ? (
+            <View style={styles.stepperCell}>
+              <Text style={styles.stepperLabel}>{periodLabel(t, item.period)}</Text>
+              {stepper(
+                periodLabel(t, item.period),
+                durations[item.id] ?? '',
+                () => setDuration(item.id, (days ?? 0) - STEP),
+                () => setDuration(item.id, (days ?? 0) + STEP),
+                (next) =>
+                  setDurations((prev) => ({ ...prev, [item.id]: next.replace(/\D/g, '') })),
+              )}
+            </View>
+            ) : null}
           </View>
         </View>
       );
@@ -364,13 +456,25 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       fontWeight: '700',
     },
     list: { flexGrow: 0 },
+    // Qator ikki qavat: tepada nomi, pastda ikkita stepper.
     row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
+      gap: spacing.xs,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.sm,
       borderRadius: radius.md,
+    },
+    steppers: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    stepperCell: {
+      flex: 1,
+      gap: 2,
+    },
+    stepperLabel: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.textSecondary,
     },
     // Tanlangan qator ajralib turadi: uzun ro'yxatda nima olinganini
     // pastga tushmasdan ko'rish kerak.
@@ -385,11 +489,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.caption,
       fontSize: 12,
       color: colors.textSecondary,
-    },
-    free: {
-      ...typography.caption,
-      fontSize: 12,
-      fontWeight: '700',
     },
     stepper: {
       flexDirection: 'row',

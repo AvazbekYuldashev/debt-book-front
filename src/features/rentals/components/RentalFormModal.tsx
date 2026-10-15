@@ -247,7 +247,13 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
   );
 
   const basketInitial = useMemo<RentalPick[]>(
-    () => lines.map((line) => ({ itemId: line.itemId, quantity: parseQuantity(line.quantity) || 0 })),
+    () =>
+      lines.map((line) => ({
+        itemId: line.itemId,
+        quantity: parseQuantity(line.quantity) || 0,
+        // Egasining formasida muddat BITTA — pastdagi maydonda.
+        duration: null,
+      })),
     [lines],
   );
 

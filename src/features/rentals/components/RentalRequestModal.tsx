@@ -22,7 +22,7 @@ import {
   rentalPeriod as periodOf,
   todayString,
 } from '../model/rentalMath';
-import { periodLabel } from '../model/rentalLabels';
+import { unitCountLabel } from '../model/rentalLabels';
 import type { RentalPeriod, RentalRequestDTO } from '../types/rental';
 import type { RentalItemResponseDTO } from '../types/rentalItem';
 
@@ -89,18 +89,16 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
 
   const [startDate, setStartDate] = useState(todayString());
   const [startTime, setStartTime] = useState(currentTimeString());
-  const [duration, setDuration] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!open) return;
     // Har ochilishda toza boshlanadi: eski tanlov bilan ochilib qolmasin.
-    setPicks(item ? [{ itemId: item.id, quantity: 1 }] : []);
+    setPicks(item ? [{ itemId: item.id, quantity: 1, duration: null }] : []);
     setBasketOpen(!item);
     setStartDate(todayString());
     setStartTime(currentTimeString());
-    setDuration('');
     setNote('');
     setError('');
   }, [open, item]);
@@ -124,13 +122,19 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   const hourly = period === 'HOUR';
   const mixedPeriod = chosen.some((row) => periodOf(row.item) !== period);
 
-  const openEnded = duration.trim() === '';
-  const units = openEnded ? 1 : Math.floor(Number(duration));
+  /**
+   * Summa HAR BUYUM bo'yicha: miqdor × narx × muddat.
+   *
+   * Muddat kiritilmagan bo'lsa bir davr hisoblanadi — hisob keyin
+   * kundan kunga o'sib boradi va yakuniy summa hozir ma'lum emas.
+   */
   const total = useMemo(
     () =>
-      chosen.reduce((sum, row) => sum + row.pick.quantity * row.item.price, 0) *
-      (Number.isFinite(units) && units > 0 ? units : 0),
-    [chosen, units],
+      chosen.reduce(
+        (sum, row) => sum + row.pick.quantity * row.item.price * (row.pick.duration ?? 1),
+        0,
+      ),
+    [chosen],
   );
 
   const currency = chosen[0]?.item.currency;
@@ -150,40 +154,51 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
       }
     }
 
-    const length = Number(duration);
-    if (!openEnded && (!Number.isFinite(length) || length < 1)) {
-      return setError(t(hourly ? 'rentals.errHours' : 'rentals.errDays'));
-    }
     if (!isValidDateInput(startDate)) return setError(t('rentals.errStartDate'));
     if (hourly && !isValidTimeInput(startTime)) return setError(t('rentals.errTime'));
 
-    const draft: RentalRequestDTO = {
-      businessId,
-      lines: chosen.map((row) => ({ rentalItemId: row.item.id, quantity: row.pick.quantity })),
-      startDate,
-      ...(hourly ? { startTime } : {}),
-      duration: openEnded ? null : Math.floor(length),
-      note: note.trim() || undefined,
-    };
+    /*
+     * MUDDATI BIR XIL buyumlar bitta so'rovga yig'iladi.
+     *
+     * Bitta yozuvda bitta muddat bo'ladi (server shunday), shuning
+     * uchun turli muddatlar alohida so'rov bo'lib ketadi - odam uchun
+     * esa bu bitta amal bo'lib qoladi.
+     */
+    const groups = new Map<string, typeof chosen>();
+    for (const row of chosen) {
+      const key = String(row.pick.duration ?? '');
+      groups.set(key, [...(groups.get(key) ?? []), row]);
+    }
 
-    const label = chosen
-      .map((row) => `${row.item.name} × ${formatQuantity(row.pick.quantity)}`)
-      .join(', ');
+    for (const rows of groups.values()) {
+      const draft: RentalRequestDTO = {
+        businessId,
+        lines: rows.map((row) => ({ rentalItemId: row.item.id, quantity: row.pick.quantity })),
+        startDate,
+        ...(hourly ? { startTime } : {}),
+        duration: rows[0].pick.duration,
+        note: note.trim() || undefined,
+      };
+      const groupTotal = rows.reduce(
+        (sum, row) => sum + row.pick.quantity * row.item.price * (row.pick.duration ?? 1),
+        0,
+      );
+      const label = rows
+        .map((row) => `${row.item.name} × ${formatQuantity(row.pick.quantity)}`)
+        .join(', ');
 
-    // Yozuv YARATILMAYDI: u "Qarz berish" bilan birga saqlanadi.
-    onPicked?.(draft, total, label);
+      // Yozuv YARATILMAYDI: u "Qarz berish" bilan birga saqlanadi.
+      onPicked?.(draft, groupTotal, label);
+    }
     onClose();
   }, [
     chosen,
     mixedPeriod,
-    duration,
-    openEnded,
     hourly,
     startDate,
     startTime,
     note,
     businessId,
-    total,
     onPicked,
     onClose,
     t,
@@ -254,6 +269,9 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                 <View key={row.item.id} style={styles.lineRow}>
                   <Text style={styles.lineName} numberOfLines={1}>
                     {`${row.item.name} × ${formatQuantity(row.pick.quantity)}`}
+                    {row.pick.duration
+                      ? ` · ${unitCountLabel(t, periodOf(row.item), row.pick.duration)}`
+                      : ` · ${t('rentals.openEndedShort')}`}
                   </Text>
                   <Text style={styles.linePrice} numberOfLines={1}>
                     {formatMoney(row.item.price, row.item.currency)}
@@ -261,25 +279,15 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                 </View>
               ))}
 
-              <View style={styles.pairRow}>
+              {hourly ? (
                 <Input
-                  label={periodLabel(t, period)}
-                  value={duration}
-                  onChangeText={(value) => setDuration(value.replace(/\D/g, '').slice(0, 4))}
+                  label={t('rentals.fieldStartTime')}
+                  value={startTime}
+                  onChangeText={(value) => setStartTime(formatTimeInputValue(value))}
                   keyboardType="number-pad"
-                  containerStyle={styles.pairItem}
+                  placeholder="14:00"
                 />
-                {hourly ? (
-                  <Input
-                    label={t('rentals.fieldStartTime')}
-                    value={startTime}
-                    onChangeText={(value) => setStartTime(formatTimeInputValue(value))}
-                    keyboardType="number-pad"
-                    placeholder="14:00"
-                    containerStyle={styles.pairItem}
-                  />
-                ) : null}
-              </View>
+              ) : null}
 
               <DateField
                 label={t('rentals.fieldStartDate')}
@@ -321,6 +329,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
         visible={open && basketOpen}
         items={stock}
         initial={picks}
+        askDuration
         onClose={() => (picks.length > 0 ? setBasketOpen(false) : onClose())}
         onConfirm={(next) => {
           setPicks(next);
