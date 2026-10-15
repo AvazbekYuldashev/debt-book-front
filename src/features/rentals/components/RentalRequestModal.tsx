@@ -10,6 +10,7 @@ import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatMoney } from '../../../shared/lib/money';
+import { formatQuantity } from '../../../shared/lib/quantity';
 import { isValidDateInput } from '../../../shared/lib/date';
 import DateField from '../../../shared/ui/DateField';
 import { useBusinessRentalItems } from '../hooks/useRentals';
@@ -51,7 +52,7 @@ interface RentalRequestModalProps {
    * esa "Qarz berish" bosilganda ikkalasi birga saqlanadi. Shu bilan
    * bitta pul ikki marta hisoblanmaydi (ijara qoldig'i + pul yozuvi).
    */
-  onPicked?: (draft: RentalRequestDTO, total: number) => void;
+  onPicked?: (draft: RentalRequestDTO, total: number, label: string) => void;
   /**
    * KELGAN JOYGA qaytish (qarz oynasi).
    *
@@ -153,7 +154,11 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
     };
 
     // Yozuv YARATILMAYDI: u "Qarz berish" bilan birga saqlanadi.
-    onPicked?.(draft, count * (openEnded ? 1 : Math.floor(length)) * chosen.price);
+    onPicked?.(
+      draft,
+      count * (openEnded ? 1 : Math.floor(length)) * chosen.price,
+      `${chosen.name} × ${formatQuantity(count)}`,
+    );
     onClose();
   }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, onPicked, onClose, t]);
 

@@ -40,6 +40,14 @@ import RentalFormModal from '../../rentals/components/RentalFormModal';
 import RentalDetailModal from '../../rentals/components/RentalDetailModal';
 import RentalRequestModal from '../../rentals/components/RentalRequestModal';
 import type { RentalRequestDTO, RentalResponseDTO } from '../../rentals/types/rental';
+
+/** Hali saqlanmagan ijara: so'rov + ko'rsatish uchun nom va summa. */
+interface RentalDraft {
+  id: string;
+  draft: RentalRequestDTO;
+  total: number;
+  label: string;
+}
 import type { RentalItemResponseDTO } from '../../rentals/types/rentalItem';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
 import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
@@ -134,8 +142,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       })),
     );
     setMoneyFormKey((key) => key + 1);
-    setRentInSessionCount(0);
-    setRentInSessionAmount(0);
     setRentalDrafts([]);
     setModalVisible(true);
   }, []);
@@ -280,7 +286,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * qarz balansiga o'sha zahoti kirardi; summa esa Miqdorga ham
    * qo'shilgani uchun bitta pul ikki marta sanalardi.
    */
-  const [rentalDrafts, setRentalDrafts] = useState<RentalRequestDTO[]>([]);
+  const [rentalDrafts, setRentalDrafts] = useState<RentalDraft[]>([]);
   // Hook keshni o'zi yangilaydi: ijara sahifasi darhol to'g'ri ko'rinadi.
   const requestRentalMutation = useRequestRental();
 
@@ -304,7 +310,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
        */
       for (const draft of rentalDrafts) {
         try {
-          await requestRentalMutation.mutateAsync(draft);
+          await requestRentalMutation.mutateAsync(draft.draft);
         } catch {
           // Pul allaqachon saqlangan - butun amalni yiqitmaymiz.
           // Ijara sahifasida yo'qligi ko'rinadi va qayta yozilishi mumkin.
@@ -340,9 +346,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       setActionType(next.actionType);
       setVoicePrefill(next.prefill);
       setMoneyFormKey((key) => key + 1);
-      setRentInSessionCount(0);
-      setRentInSessionAmount(0);
-      setRentalDrafts([]);
+          setRentalDrafts([]);
       setModalVisible(true);
     },
     [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue,
@@ -368,7 +372,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    *
    * Har yangi oqimda noldan boshlanadi.
    */
-  const [rentInSessionCount, setRentInSessionCount] = useState(0);
+
   /**
    * Shu oqimda olingan ijaralarning summasi — faqat KO'RSATISH uchun.
    *
@@ -377,13 +381,14 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * bitta pul ikki marta sanalardi - narxnoma tanlovidan farqi shu:
    * u yerda yozuv hali yo'q, forma uni endi yaratadi.
    */
-  const [rentInSessionAmount, setRentInSessionAmount] = useState(0);
+  const rentInSessionAmount = useMemo(
+    () => rentalDrafts.reduce((sum, item) => sum + item.total, 0),
+    [rentalDrafts],
+  );
 
   const openModal = useCallback((type: MoneyActionType) => {
     setActionType(type);
     setMoneyFormKey((key) => key + 1);
-    setRentInSessionCount(0);
-    setRentInSessionAmount(0);
     setRentalDrafts([]);
     setModalVisible(true);
   }, []);
@@ -470,22 +475,21 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * faqat xabarda: ilgari yuborilgandan keyin hech qanday belgi yo'q
    * edi va odam yozuv yaratilganini bilmasdi.
    */
-  /** Tanlangan ijarani formadan olib tashlash — yozuv hali yo'q. */
-  const clearRentIn = useCallback(() => {
-    setRentalDrafts([]);
-    setRentInSessionCount(0);
-    setRentInSessionAmount(0);
-  }, []);
-
   const handleRentalPicked = useCallback(
-    (draft: RentalRequestDTO, total: number) => {
+    (draft: RentalRequestDTO, total: number, label: string) => {
       closeRequest();
-      setRentalDrafts((drafts) => [...drafts, draft]);
-      setRentInSessionCount((count) => count + 1);
-      setRentInSessionAmount((sum) => sum + total);
+      setRentalDrafts((drafts) => [
+        ...drafts,
+        { id: `${Date.now()}-${drafts.length}`, draft, total, label },
+      ]);
     },
     [closeRequest],
   );
+
+  /** Bitta tanlovni olib tashlash — qolganlari joyida qoladi. */
+  const removeRentalDraft = useCallback((id: string) => {
+    setRentalDrafts((drafts) => drafts.filter((item) => item.id !== id));
+  }, []);
 
   /** Ombor qatori yoki sarlavhadagi tugma: buyum bilan yoki bo'sh forma. */
   const openRentalForm = useCallback((item: RentalItemResponseDTO | null = null) => {
@@ -766,9 +770,9 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
       <MoneyActionModal
         onRentIn={clientMode && counterpartyBusinessId ? openRentIn : undefined}
-        rentInCount={rentInSessionCount}
+        rentInPicks={rentalDrafts.map(({ id, label, total }) => ({ id, label, total }))}
         rentInAmount={rentInSessionAmount}
-        onClearRentIn={clearRentIn}
+        onRemoveRentIn={removeRentalDraft}
         resetKey={moneyFormKey}
         visible={modalVisible}
         actionType={actionType}

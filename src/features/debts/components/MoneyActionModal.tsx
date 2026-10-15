@@ -85,6 +85,14 @@ interface MoneyActionModalProps {
    */
   rentInCount?: number;
   /**
+   * Tanlangan, lekin hali SAQLANMAGAN ijaralar.
+   *
+   * Har biri alohida qator bo'lib chiqadi va alohida o'chiriladi -
+   * savatdagi miqdorni bitta mahsulotga nolga tushirgandek. Ilgari
+   * bitta "x" hammasini birdan o'chirardi.
+   */
+  rentInPicks?: { id: string; label: string; total: number }[];
+  /**
    * Shu oqimda olingan ijaralarning YIG'INDI summasi.
    *
    * Qiymat oshganda farqi `Miqdor` maydoniga qo'shiladi — narxnomadan
@@ -92,13 +100,8 @@ interface MoneyActionModalProps {
    * ikki marta qo'shilib ketmaydi (qayta render farqni qaytarmaydi).
    */
   rentInAmount?: number;
-  /**
-   * Tanlangan ijarani formadan OLIB TASHLASH.
-   *
-   * Tanlov yozuv yaratmaydi, demak uni qaytarib olish ham mumkin
-   * bo'lishi kerak - savatdagi miqdorni nolga tushirgandek.
-   */
-  onClearRentIn?: () => void;
+  /** Bitta tanlovni olib tashlash. */
+  onRemoveRentIn?: (id: string) => void;
   /**
    * Forma QACHON tozalanishi kerakligini aytadi.
    *
@@ -132,6 +135,9 @@ interface MoneyActionModalProps {
  * yerda; a'zolarni yuklash BusinessMemberPicker'ga, domen mantiq
  * resolveMoneyFlow use-case'iga ajratilgan.
  */
+/** Har render'da bir xil bo'sh havola — keraksiz effekt qo'zg'atmaslik uchun. */
+const EMPTY_PICKS: { id: string; label: string; total: number }[] = [];
+
 const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   visible,
   actionType,
@@ -141,9 +147,9 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   ownerAccountType,
   token,
   onRentIn,
-  rentInCount = 0,
+  rentInPicks = EMPTY_PICKS,
   rentInAmount = 0,
-  onClearRentIn,
+  onRemoveRentIn,
   resetKey = 0,
   prefill,
   onClose,
@@ -459,27 +465,39 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
                     {t('rentals.takeFromStock')}
                   </Text>
                   {/* Son — HOLAT, amal emas: shuning uchun ostida va so'niq. */}
-                  {rentInCount > 0 ? (
+                  {rentInPicks.length > 0 ? (
                     <Text style={styles.basketSub} numberOfLines={1}>
-                      {t('rentals.atMeCount', { count: String(rentInCount) })}
+                      {t('rentals.atMeCount', { count: String(rentInPicks.length) })}
                       {rentInAmount > 0 ? ` · ${formatMoney(rentInAmount, currency)}` : ''}
                     </Text>
                   ) : null}
                 </View>
-                  {rentInCount > 0 && onClearRentIn ? (
-                    <Pressable
-                      onPress={onClearRentIn}
-                      hitSlop={8}
-                      accessibilityRole="button"
-                      accessibilityLabel={t('rentals.clearPicked')}
-                    >
-                      <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
-                    </Pressable>
-                  ) : (
-                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                  )}
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
               </Pressable>
             ) : null}
+
+            {/* Har tanlov ALOHIDA qator: bittasini olib tashlash uchun
+                butun tanlovni bekor qilish shart emas. */}
+            {rentInPicks.map((pick) => (
+              <View key={pick.id} style={styles.pickRow}>
+                <Text style={styles.pickLabel} numberOfLines={1}>
+                  {pick.label}
+                </Text>
+                <Text style={styles.pickAmount} numberOfLines={1}>
+                  {formatMoney(pick.total, currency)}
+                </Text>
+                {onRemoveRentIn ? (
+                  <Pressable
+                    onPress={() => onRemoveRentIn(pick.id)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${pick.label} ${t('rentals.clearPicked')}`}
+                  >
+                    <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                  </Pressable>
+                ) : null}
+              </View>
+            ))}
 
             {/* Narxnomadan buyurtma — faqat qarama-qarshi tomon BIZNES bo'lganda:
                 mahsulot ham, narx ham o'sha biznesning katalogidan keladi. */}
@@ -608,6 +626,28 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       ...typography.button,
       fontSize: 14,
       color: colors.textPrimary,
+    },
+    // Tanlangan ijara qatori: qatorning o'zidan ko'ra past darajada.
+    pickRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginTop: -spacing.sm,
+      marginBottom: spacing.md,
+      paddingHorizontal: spacing.sm,
+    },
+    pickLabel: {
+      ...typography.caption,
+      flex: 1,
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    pickAmount: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      fontVariant: ['tabular-nums'],
     },
     basketSub: {
       ...typography.caption,
