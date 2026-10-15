@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -85,11 +85,11 @@ interface MoneyActionModalProps {
    */
   rentInCount?: number;
   /**
-   * Shu oqimda olingan ijaralarning summasi — faqat KO'RSATISH uchun.
+   * Shu oqimda olingan ijaralarning YIG'INDI summasi.
    *
-   * `Miqdor` maydoniga qo'shilmaydi: ijara o'z yozuvini yaratadi va
-   * allaqachon qarz balansiga kiradi. Qo'shilsa bitta pul ikki marta
-   * sanalardi. Narxnomadan farqi shu: u yerda yozuv hali yo'q.
+   * Qiymat oshganda farqi `Miqdor` maydoniga qo'shiladi — narxnomadan
+   * tanlangandek. Yig'indi beriladi, farq emas: shu bilan bitta yozuv
+   * ikki marta qo'shilib ketmaydi (qayta render farqni qaytarmaydi).
    */
   rentInAmount?: number;
   /**
@@ -169,6 +169,29 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
    */
   const [orderItems, setOrderItems] = useState<MoneyItemCreateDTO[]>([]);
 
+  /**
+   * IJARA SUMMASI miqdorga qo'shiladi.
+   *
+   * Narxnoma tanlovidan farqi bor: u yozuv yaratmaydi, forma uni endi
+   * yaratadi. Ijara esa o'z yozuvini darhol yaratgan va qarz balansida
+   * ham turadi - demak "Qarz berish" bosilsa o'sha pul ikkinchi marta
+   * yoziladi. Bu egasining qarori: u ijarani oddiy qarz qatori qilib
+   * yuritishni tanladi.
+   *
+   * Faqat O'SISH qo'shiladi: oyna qayta chizilganda yoki orqaga
+   * qaytganda summa yana qo'shilib ketmasligi kerak.
+   */
+  const lastRentInAmount = useRef(0);
+  useEffect(() => {
+    const added = rentInAmount - lastRentInAmount.current;
+    lastRentInAmount.current = rentInAmount;
+    if (added <= 0) return;
+    setAmount((current) => {
+      const base = parseAmountInput(current) ?? 0;
+      return formatAmountInput(String(base + added));
+    });
+  }, [rentInAmount]);
+
   // Yangi oqim boshlanganda toza forma — yopilish yo'lidan (bekor/hardware
   // back/muvaffaqiyat) qat'i nazar eski qiymatlar qolib ketmaydi. Vaqtincha
   // yopilib qaytish esa tozalamaydi (izohi `resetKey` da).
@@ -186,6 +209,8 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     // Qatorlar ham tiklanadi: ularsiz yozuv "shuncha so'm" bo'lib qolib,
     // nima sotib olingani ko'rinmasdi.
     setOrderItems(prefill?.items ?? []);
+    // Yangi oqim: ijara summasi ham noldan sanaladi.
+    lastRentInAmount.current = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey, baseCurrency, prefill]);
 
