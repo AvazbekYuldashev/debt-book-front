@@ -27,6 +27,7 @@ import { ROUTES } from '../../../app/navigation/routes';
 import { MoneyActionType } from '../../../shared/types/money';
 import { mergeAmounts, netByCurrency } from '../../../shared/lib/currency';
 import { useContactRentalTotals } from '../../rentals/hooks/useContactRentalTotals';
+import { useRequestRental } from '../../rentals/hooks/useRentals';
 import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
 import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { useI18n } from '../../../shared/i18n';
@@ -38,8 +39,7 @@ import ClientRentalPane from '../../rentals/components/ClientRentalPane';
 import RentalFormModal from '../../rentals/components/RentalFormModal';
 import RentalDetailModal from '../../rentals/components/RentalDetailModal';
 import RentalRequestModal from '../../rentals/components/RentalRequestModal';
-import type { RentalResponseDTO } from '../../rentals/types/rental';
-import { accruedAmount } from '../../rentals/model/rentalMath';
+import type { RentalRequestDTO, RentalResponseDTO } from '../../rentals/types/rental';
 import type { RentalItemResponseDTO } from '../../rentals/types/rentalItem';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
 import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
@@ -136,6 +136,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     setMoneyFormKey((key) => key + 1);
     setRentInSessionCount(0);
     setRentInSessionAmount(0);
+    setRentalDrafts([]);
     setModalVisible(true);
   }, []);
 
@@ -271,6 +272,18 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     }, [loadScreenData]),
   );
 
+  /**
+   * Hali SAQLANMAGAN ijara so'rovlari.
+   *
+   * "Qarz berish" bosilganda pul yozuvi bilan BIRGA yuboriladi -
+   * narxnoma savati bilan bir xil. Ilgari so'rov darhol yaratilar va
+   * qarz balansiga o'sha zahoti kirardi; summa esa Miqdorga ham
+   * qo'shilgani uchun bitta pul ikki marta sanalardi.
+   */
+  const [rentalDrafts, setRentalDrafts] = useState<RentalRequestDTO[]>([]);
+  // Hook keshni o'zi yangilaydi: ijara sahifasi darhol to'g'ri ko'rinadi.
+  const requestRentalMutation = useRequestRental();
+
   const handleCreate = useCallback(
     async (payload: MoneyActionPayload) => {
       if (!contact) return;
@@ -281,6 +294,27 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         targetPhone: contact.partyType === 'PROFILE' ? contact.phone : undefined,
       });
       if (!ok) return;
+
+      /*
+       * Ijara so'rovlari pul yozuvi SAQLANGANDAN KEYIN yuboriladi.
+       *
+       * Tartib muhim: pul saqlanmasa (xato, bekor) ijara ham
+       * yaratilmasligi kerak - aks holda odam ko'rmagan yozuv
+       * daftarga tushib qolardi.
+       */
+      for (const draft of rentalDrafts) {
+        try {
+          await requestRentalMutation.mutateAsync(draft);
+        } catch {
+          // Pul allaqachon saqlangan - butun amalni yiqitmaymiz.
+          // Ijara sahifasida yo'qligi ko'rinadi va qayta yozilishi mumkin.
+        }
+      }
+      if (rentalDrafts.length > 0) {
+        setRentalDrafts([]);
+        setRequestSent(true);
+      }
+
       setModalVisible(false);
 
       /**
@@ -308,9 +342,11 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       setMoneyFormKey((key) => key + 1);
       setRentInSessionCount(0);
       setRentInSessionAmount(0);
+      setRentalDrafts([]);
       setModalVisible(true);
     },
-    [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue],
+    [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue,
+      rentalDrafts, requestRentalMutation],
   );
 
   /**
@@ -348,6 +384,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     setMoneyFormKey((key) => key + 1);
     setRentInSessionCount(0);
     setRentInSessionAmount(0);
+    setRentalDrafts([]);
     setModalVisible(true);
   }, []);
 
@@ -433,14 +470,12 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * faqat xabarda: ilgari yuborilgandan keyin hech qanday belgi yo'q
    * edi va odam yozuv yaratilganini bilmasdi.
    */
-  const handleRequestSent = useCallback(
-    (created: RentalResponseDTO[]) => {
+  const handleRentalPicked = useCallback(
+    (draft: RentalRequestDTO, total: number) => {
       closeRequest();
-      setRequestSent(true);
-      setRentInSessionCount((count) => count + created.length);
-      setRentInSessionAmount(
-        (sum) => sum + created.reduce((total, rental) => total + accruedAmount(rental), 0),
-      );
+      setRentalDrafts((drafts) => [...drafts, draft]);
+      setRentInSessionCount((count) => count + 1);
+      setRentInSessionAmount((sum) => sum + total);
     },
     [closeRequest],
   );
@@ -708,7 +743,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           item={requestItem}
           visible={requestOpen}
           onClose={closeRequest}
-          onSubmitted={handleRequestSent}
+          onPicked={handleRentalPicked}
           // Qarz oynasidan kelgan bo'lsa — o'sha yerga qaytish yo'li.
           onBack={rentInFromMoney ? closeRequest : undefined}
         />

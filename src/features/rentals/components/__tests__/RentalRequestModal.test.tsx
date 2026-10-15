@@ -7,10 +7,10 @@ import type { RentalItemResponseDTO } from '../../types/rentalItem';
 
 jest.mock('../../hooks/useRentals');
 
-import { useBusinessRentalItems, useRequestRental } from '../../hooks/useRentals';
+import { useBusinessRentalItems } from '../../hooks/useRentals';
 
 const onClose = jest.fn();
-const requestMutate = jest.fn();
+const onPicked = jest.fn();
 const onBack = jest.fn();
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 20)); });
 
@@ -36,6 +36,7 @@ const show = async (withBack = true) => {
           item={null}
           visible
           onClose={onClose}
+          onPicked={onPicked}
           onBack={withBack ? onBack : undefined}
         />
       </LanguageProvider>
@@ -46,9 +47,8 @@ const show = async (withBack = true) => {
 
 beforeEach(() => {
   onClose.mockReset();
-  requestMutate.mockReset();
+  onPicked.mockReset();
   onBack.mockReset();
-  (useRequestRental as jest.Mock).mockReturnValue({ mutate: requestMutate, isPending: false });
   (useBusinessRentalItems as jest.Mock).mockReturnValue({
     data: [item(), item({ id: 'stul', name: 'Stul' })],
     isLoading: false,
@@ -132,9 +132,11 @@ describe("ijaraga olish — bosqichlar", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("so'rov yuborilgach ham BIR QADAM orqaga qaytadi", async () => {
-    // Butun oqim yopilmaydi: odam o'sha yerda pul yozuvini ham qilishi
-    // yoki narxnomadan mahsulot tanlashi mumkin.
+  it("tanlov YUBORILMAYDI — forma bilan birga saqlanadi", async () => {
+    // Narxnoma savati bilan bir xil: tanlov formani to'ldiradi, yozuv
+    // esa "Qarz berish" bosilganda yaratiladi. Aks holda ijara ham
+    // darhol qarz bo'lib, summa Miqdorda ham turib, ikki marta
+    // sanalardi.
     await show();
     fireEvent.press(screen.getByLabelText(/^Lesa:/));
     await settle();
@@ -142,10 +144,10 @@ describe("ijaraga olish — bosqichlar", () => {
     // Muddat bo'sh qoldirilsa ijara muddatsiz bo'ladi — forma to'liq.
     fireEvent.press(screen.getByText('Ijaraga olish'));
 
-    // Mutatsiya muvaffaqiyatli tugadi deb faraz qilamiz.
-    const handlers = requestMutate.mock.calls[0][1];
-    act(() => handlers.onSuccess());
-
+    expect(onPicked).toHaveBeenCalledTimes(1);
+    const [draft] = onPicked.mock.calls[0];
+    expect(draft.lines).toEqual([{ rentalItemId: 'lesa', quantity: 1 }]);
+    // Oyna bir qadam orqaga qaytadi.
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

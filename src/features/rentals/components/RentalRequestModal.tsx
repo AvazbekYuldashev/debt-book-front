@@ -12,7 +12,7 @@ import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatMoney } from '../../../shared/lib/money';
 import { isValidDateInput } from '../../../shared/lib/date';
 import DateField from '../../../shared/ui/DateField';
-import { useBusinessRentalItems, useRequestRental } from '../hooks/useRentals';
+import { useBusinessRentalItems } from '../hooks/useRentals';
 import RentalItemRow from './RentalItemRow';
 import { groupRentalItems } from '../model/rentalStock';
 import EmptyState from '../../../shared/ui/EmptyState';
@@ -20,7 +20,7 @@ import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import { currentTimeString, formatTimeInputValue, isValidTimeInput, todayString } from '../model/rentalMath';
 import { perPeriodLabel, periodLabel } from '../model/rentalLabels';
 import { freeQuantity } from '../model/rentalStock';
-import type { RentalResponseDTO } from '../types/rental';
+import type { RentalRequestDTO } from '../types/rental';
 import type { RentalItemResponseDTO } from '../types/rentalItem';
 
 interface RentalRequestModalProps {
@@ -44,7 +44,14 @@ interface RentalRequestModalProps {
    * va odam yozuv yaratilganini bilmay, "ishlamadi" deb o'ylardi.
    * Berilmasa `onClose` ishlaydi.
    */
-  onSubmitted?: (created: RentalResponseDTO[]) => void;
+  /**
+   * Buyum TANLANDI — yozuv hali YARATILMAYDI.
+   *
+   * Narxnoma savati bilan bir xil: tanlov formani to'ldiradi, yozuv
+   * esa "Qarz berish" bosilganda ikkalasi birga saqlanadi. Shu bilan
+   * bitta pul ikki marta hisoblanmaydi (ijara qoldig'i + pul yozuvi).
+   */
+  onPicked?: (draft: RentalRequestDTO, total: number) => void;
   /**
    * KELGAN JOYGA qaytish (qarz oynasi).
    *
@@ -70,7 +77,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   item,
   visible,
   onClose,
-  onSubmitted,
+  onPicked,
   onBack,
 }) => {
   const theme = useAppTheme();
@@ -79,7 +86,6 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const requestMutation = useRequestRental();
 
   /**
    * Tanlangan buyum: tashqaridan kelgani yoki ro'yxatdan bosilgani.
@@ -137,26 +143,19 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
     if (!isValidDateInput(startDate)) return setError(t('rentals.errStartDate'));
     if (hourly && !isValidTimeInput(startTime)) return setError(t('rentals.errTime'));
 
-    requestMutation.mutate(
-      {
-        businessId,
-        lines: [{ rentalItemId: chosen.id, quantity: count }],
-        startDate,
-        ...(hourly ? { startTime } : {}),
-        duration: openEnded ? null : Math.floor(length),
-        note: note.trim() || undefined,
-      },
-      // Yuborilgach oyna BIR QADAM orqaga qaytadi (kelgan joyiga), butun
-      // oqimni yopmaydi: odam o'sha yerda pul yozuvini ham qilishi yoki
-      // narxnomadan mahsulot tanlashi mumkin.
-      {
-        // Yaratilgan yozuvlar qaytariladi: chaqiruvchi ularning summasini
-        // ko'rsatadi (qarz maydoniga QO'SHMAYDI - u allaqachon qarz).
-        onSuccess: (created) => (onSubmitted ? onSubmitted(created) : onClose()),
-        onError: (err) => setError((err as Error).message),
-      },
-    );
-  }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, requestMutation, onClose, onSubmitted, t]);
+    const draft: RentalRequestDTO = {
+      businessId,
+      lines: [{ rentalItemId: chosen.id, quantity: count }],
+      startDate,
+      ...(hourly ? { startTime } : {}),
+      duration: openEnded ? null : Math.floor(length),
+      note: note.trim() || undefined,
+    };
+
+    // Yozuv YARATILMAYDI: u "Qarz berish" bilan birga saqlanadi.
+    onPicked?.(draft, count * (openEnded ? 1 : Math.floor(length)) * chosen.price);
+    onClose();
+  }, [chosen, quantity, free, duration, startDate, startTime, hourly, note, businessId, onPicked, onClose, t]);
 
   /**
    * ORQAGA bir qadam.
@@ -313,8 +312,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                 <Button
                   title={t('rentals.requestSubmit')}
                   onPress={handleSubmit}
-                  loading={requestMutation.isPending}
-                  style={styles.actionBtn}
+                      style={styles.actionBtn}
                 />
               ) : null}
             </View>
