@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { FlatList, type ListRenderItem, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import MoneyActionModal, { MoneyActionPayload } from '../components/MoneyActionModal';
+import { rentalRowsFor } from '../model/rentalRows';
 import { Ionicons } from '@expo/vector-icons';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import EmptyState from '../../../shared/ui/EmptyState';
@@ -248,6 +249,13 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    */
   const canRentIn =
     Boolean(counterpartyBusinessId) && counterpartyBusinessId !== workspace.activeBusinessId;
+
+  // Qaysi ijara qatori ko'rinishi — yo'nalish va hisob turiga bog'liq.
+  const rentalRows = rentalRowsFor({
+    actionType,
+    business: workspace.mode === 'business',
+    canRentIn,
+  });
 
   /*
    * IJARA BALANSGA QO'SHILMAYDI — pul yozuvi uni allaqachon olib yuradi.
@@ -881,9 +889,9 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       />
 
       <MoneyActionModal
-        onRentIn={canRentIn ? openRentIn('take') : undefined}
-        // Ijaraga BERISH — o'z omborim bo'lsa (biznes hisobi).
-        onRentOut={workspace.mode === 'business' ? openRentIn('give') : undefined}
+        // Qoida `rentalRows` da — u yerda testi bilan izohi ham bor.
+        onRentIn={rentalRows.rentIn ? openRentIn('take') : undefined}
+        onRentOut={rentalRows.rentOut ? openRentIn('give') : undefined}
         rentInPicks={rentalDrafts.map(({ id, label, total }) => ({ id, label, total }))}
         rentInAmount={rentInSessionAmount}
         onRemoveRentIn={removeRentalDraft}
