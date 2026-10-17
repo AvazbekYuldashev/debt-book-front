@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../../auth/context/AuthContext';
+import { useAccountContext } from '../../../shared/hooks/useAccountContext';
 import {
   confirmRental,
   createRentalBatch,
@@ -37,6 +38,20 @@ import type { RentalItemCreateDTO, RentalItemUpdateDTO } from '../types/rentalIt
 const RENTAL_KEY = 'rental';
 
 /**
+ * Kesh kaliti ISH MAYDONIGA bog'lanadi.
+ *
+ * Ilgari kalit faqat `'rental'` edi, so'rov esa `X-Business-ID`
+ * sarlavhasi bilan ketardi: hisob almashtirilganda sarlavha o'zgarar,
+ * KALIT esa o'zgarmas - va ekranda oldingi biznesning ijaralari qolib
+ * ketardi. Pul balansi allaqachon shu yo'l bilan ajratilgan
+ * (`['contact-balances', accountKey, ...]`).
+ */
+const useRentalKey = (): [string, string] => {
+  const { accountKey } = useAccountContext();
+  return [RENTAL_KEY, accountKey];
+};
+
+/**
  * Ijara so'rovlari. `gap` moduli bilan bir xil qolip: har bir hook
  * tokenni kontekstdan o'zi oladi, yozish amallaridan keyin butun bo'lim
  * yangilanadi.
@@ -50,9 +65,10 @@ const RENTAL_KEY = 'rental';
 export const useRentalSummary = (filter: RentalFilterDTO = {}) => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;
+  const rentalKey = useRentalKey();
 
   return useQuery({
-    queryKey: [RENTAL_KEY, 'summary', filter],
+    queryKey: [...rentalKey, 'summary', filter],
     queryFn: () => getRentalSummary(filter, token),
     enabled: Boolean(token),
   });
@@ -65,9 +81,10 @@ export const useRentalSummary = (filter: RentalFilterDTO = {}) => {
 export const useMyRentals = (filter: RentalFilterDTO = {}, options: { enabled?: boolean } = {}) => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;
+  const rentalKey = useRentalKey();
 
   return useQuery({
-    queryKey: [RENTAL_KEY, 'my', filter],
+    queryKey: [...rentalKey, 'my', filter],
     queryFn: () => getMyRentals({ filter, token }),
     enabled: Boolean(token) && options.enabled !== false,
   });
@@ -76,9 +93,10 @@ export const useMyRentals = (filter: RentalFilterDTO = {}, options: { enabled?: 
 export const useRental = (id: string) => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;
+  const rentalKey = useRentalKey();
 
   return useQuery({
-    queryKey: [RENTAL_KEY, 'one', id],
+    queryKey: [...rentalKey, 'one', id],
     queryFn: () => getRentalById(id, token),
     enabled: Boolean(token) && Boolean(id),
   });
@@ -118,9 +136,10 @@ const useRentalInvalidate = () => {
 export const useRentalsWithBusiness = (businessId: string, options: { enabled?: boolean } = {}) => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;
+  const rentalKey = useRentalKey();
 
   return useQuery({
-    queryKey: [RENTAL_KEY, 'with-business', businessId],
+    queryKey: [...rentalKey, 'with-business', businessId],
     queryFn: () => getRentalsWithBusiness(businessId, token),
     enabled: Boolean(token) && Boolean(businessId) && options.enabled !== false,
   });
@@ -130,9 +149,10 @@ export const useRentalsWithBusiness = (businessId: string, options: { enabled?: 
 export const useBusinessRentalItems = (businessId: string, options: { enabled?: boolean } = {}) => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;
+  const rentalKey = useRentalKey();
 
   return useQuery({
-    queryKey: [RENTAL_KEY, 'items', 'by-business', businessId],
+    queryKey: [...rentalKey, 'items', 'by-business', businessId],
     queryFn: () => getBusinessRentalItems(businessId, token),
     enabled: Boolean(token) && Boolean(businessId) && options.enabled !== false,
   });
@@ -255,9 +275,10 @@ export const useDeleteRental = () => {
 export const useRentalItems = (options: { enabled?: boolean } = {}) => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;
+  const rentalKey = useRentalKey();
 
   return useQuery({
-    queryKey: [RENTAL_KEY, 'items'],
+    queryKey: [...rentalKey, 'items'],
     queryFn: () => getRentalItems(token),
     enabled: Boolean(token) && options.enabled !== false,
   });
