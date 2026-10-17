@@ -92,6 +92,21 @@ describe('to\'lov yo\'li', () => {
     expect(ownerPay).not.toHaveBeenCalled();
   });
 
+  it("karta QARZ emas, yig'ilgan HAQNI ko'rsatadi", async () => {
+    /*
+     * Ilgari tepada "To'lash kerak" turardi va odam pulini bergandan
+     * keyin ham qizil raqamni ko'rib "hali ham qarz" deb yozardi.
+     * Haq - ma'lumot; qarz esa Qarzlar bo'limida.
+     */
+    show(rental({ paidAmount: 0 }));
+    await settle();
+
+    expect(screen.getByText("Yig'ilgan ijara haqi")).toBeTruthy();
+    expect(screen.getByText("Pul Qarzlar bo'limida yuritiladi")).toBeTruthy();
+    expect(screen.queryByText("To'lash kerak")).toBeNull();
+    expect(screen.queryByText("To'lanmagan")).toBeNull();
+  });
+
   it("mijozda ham to'lov yo'li yo'q", async () => {
     show(rental({ owner: false, canPay: true }));
     await settle();
