@@ -565,6 +565,38 @@ Nega `money_item` ga yozilmaydi: u narxni MAHSULOT narxnomasidan
 qayta hisoblaydi va ijara buyumi u yerda yo'q. Bog'lanish (`money_id`)
 esa ikkala hisobni ham o'z joyida qoldiradi.
 
+### Tranzaksiya CHEKI — keyingi qadam, reja tayyor
+
+Narxnomadan tanlangan mahsulotlar tranzaksiya kartasida "Chek" bloki
+bo'lib chiqadi (nomi, miqdori, narxi, Jami). Ijara buyumlari u yerga
+tushmaydi: chek `money_item` qatorlaridan quriladi, ular esa mahsulot
+id'siga bog'langan.
+
+Hozircha ijara tafsiloti pul yozuvining IZOHIGA yoziladi:
+"Ijara: ASDFSDF × 2 · 2 kun — 93 332 so'm". Bu raqamni tushuntiradi,
+lekin chek emas.
+
+To'liq chek uchun kerak:
+
+1. **Migratsiya.** `money_item` ga ijara qatorini yozish imkoni:
+   `rental_item_id` (nullable), `duration`, `period`. Mahsulot qatori
+   bilan bitta jadvalda qoladi — chek ikkalasini birga ko'rsatadi.
+   `product_id` va `rental_item_id` dan AYNAN BITTASI to'ldiriladi
+   (CHECK cheklovi): qator yo mahsulot, yo ijara.
+2. **Server.** Yozuv yaratishda ijara qatori qabul qilinadi; narx
+   `rental_item` dan O'QILADI (mijozning hisobiga ishonilmaydi, xuddi
+   narxnomadagidek). Javobda nom va summa bilan qaytadi.
+3. **Ilova.** `MoneyItemCreateDTO` ijara qatorini ham qabul qiladi;
+   `handleCreate` ijara loyihalarini o'sha qatorlarga aylantiradi;
+   tranzaksiya kartasidagi chek bloki ijara qatorini ham chizadi
+   (miqdor × narx × muddat).
+4. **Testlar.** Server: narx o'z jadvalidan olinishi va ikkala id
+   birga kelmasligi. Ilova: chek blokida ijara qatori ko'rinishi.
+
+MUHIM: ijara yozuvining O'ZI baribir `rental` jadvalida qoladi — chek
+faqat KO'RSATISH uchun. Ikki joyda pul hisoblanib qolmasligi kerak
+(buning qoidasi 6-bo'limda).
+
 ## 7. Bildirishnoma (ixtiyoriy, keyingi qadam)
 
 Muddati bugun (soatlikda — shu soatda) tugaydigan va kechikkan ijaralar
