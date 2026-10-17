@@ -4,7 +4,7 @@ import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
-import BackButton from '../../../shared/ui/BackButton';
+import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import ChipSelector, { type ChipOption } from '../../../shared/ui/ChipSelector';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
@@ -484,8 +484,13 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
       <AmbientBackground />
 
       <EntranceView style={styles.header} duration={300} fromY={12}>
+        {/* Sarlavha MAHSULOTLAR bilan bir xil: Ijara ham pastki
+            panelning o'z bo'limi, ichki sahifa emas. Ilgari orqaga
+            tugmasi turardi — u stack ildizida hech qayerga olib
+            bormaydi, hisob almashtirgich va bildirishnoma esa
+            yo'qolgandi. */}
+        <ScreenTopBar />
         <View style={styles.titleRow}>
-          <BackButton onPress={() => navigation.goBack()} />
           <View style={styles.titleWrap}>
             <Text style={styles.title} numberOfLines={1}>
               {t('rentals.title')}

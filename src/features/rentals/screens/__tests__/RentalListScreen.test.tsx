@@ -9,6 +9,13 @@ import { formatDateFromDate } from '../../../../shared/lib/date';
 import type { RentalResponseDTO } from '../../types/rental';
 import type { RentalItemResponseDTO } from '../../types/rentalItem';
 
+/**
+ * Yuqori qator (ish maydoni almashtirgichi va bildirishnoma) navigatsiya
+ * obyektini talab qiladi. Bu test RO'YXAT haqida, shuning uchun umumiy
+ * sarlavha o'rniga bo'shliq qo'yiladi — u o'z joyida sinaladi.
+ */
+jest.mock('../../../../app/components/ScreenTopBar', () => () => null);
+
 jest.mock('../../hooks/useRentals');
 
 /**
