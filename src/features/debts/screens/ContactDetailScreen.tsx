@@ -746,6 +746,9 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
                 onGiveOut={
                   clientMode
                     ? (stockItem) => {
+                        // Ijara sahifasidan kelganda yo'nalish OLISH:
+                        // ombor do'konniki va tasdiq kutiladi.
+                        setRentKind('take');
                         setRequestItem(stockItem);
                         setRequestOpen(true);
                       }

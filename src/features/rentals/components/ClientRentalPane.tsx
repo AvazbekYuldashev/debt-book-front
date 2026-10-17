@@ -128,12 +128,14 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   );
 
   /**
-   * Ijaraga BERISH faqat ombor egasida.
+   * Amal tugmasi IKKALA tomonda ham bor — faqat nomi teskari.
    *
-   * Mijoz ham yozuv yarata oladi, lekin boshqa yo'l bilan: ombor
-   * qatoriga bosib so'rov yuboradi va do'kon tasdiqlaydi.
+   * Egasi BERADI, mijoz esa OLADI. Ilgari tugma faqat egasida bor edi
+   * va mijoz kartasi bo'sh ko'rinardi: ikki tomon bir xil sahifani
+   * ochib, biri amalni topa olmasdi.
    */
-  const canGiveOut = allowWrite && !clientMode;
+  const canAct = clientMode || allowWrite;
+  const actionLabel = clientMode ? t('rentals.takeFromStock') : t('rentals.createSubmit');
 
   const loading = rentalsQuery.isLoading || itemsQuery.isLoading;
 
@@ -148,9 +150,9 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
           title={clientMode ? t('rentals.atMe') : t('rentals.atThisClient')}
           description={t('rentals.noRentalsHere')}
           // Bo'sh sahifada yagona ma'noli amal — shu.
-          actionLabel={canGiveOut ? t('rentals.createSubmit') : undefined}
+          actionLabel={canAct ? actionLabel : undefined}
           actionIcon="add"
-          onAction={canGiveOut ? () => onGiveOut(null) : undefined}
+          onAction={canAct ? () => onGiveOut(null) : undefined}
         />
       );
     }
@@ -168,12 +170,12 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
         // Tugma ro'yxat BILAN birga suriladi: ekran tepasiga yopishib
         // turgan tugma uzun ro'yxatda joyni yeb qo'yardi.
         ListHeaderComponent={
-          canGiveOut ? (
+          canAct ? (
             <SectionHeader
               icon="cube"
               iconBadge={false}
-              title={t('rentals.atThisClient')}
-              actionLabel={t('rentals.createSubmit')}
+              title={clientMode ? t('rentals.atMe') : t('rentals.atThisClient')}
+              actionLabel={actionLabel}
               actionIcon="add"
               actionVariant="solid"
               onAction={() => onGiveOut(null)}
@@ -194,7 +196,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
         showsVerticalScrollIndicator={false}
       />
     );
-  }, [loading, rentals, clientMode, canGiveOut, styles, onGiveOut, onOpenRental, t]);
+  }, [loading, rentals, clientMode, canAct, actionLabel, styles, onGiveOut, onOpenRental, t]);
 
   const renderStock = useCallback(() => {
     if (loading) return <SkeletonContactList count={3} />;

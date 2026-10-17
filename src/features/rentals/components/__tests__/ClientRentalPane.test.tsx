@@ -60,7 +60,7 @@ const show = async () => {
           clientId="c1"
           active
           allowWrite={false}
-          onGiveOut={jest.fn()}
+          onGiveOut={giveOut}
           onOpenRental={jest.fn()}
           ownerBusinessId={SHOP}
         />
@@ -115,11 +115,24 @@ describe('mijoz kartasidagi ijara — ikki sahifa', () => {
     expect(screen.getByText('Opalubka')).toBeTruthy();
   });
 
-  it("mijozga 'Ijaraga berish' chiqmaydi — ombor uniki emas", async () => {
-    (useBusinessRentalItems as jest.Mock).mockReturnValue({ data: [], isLoading: false });
+  it("mijozda tugma 'Ijaraga OLISH' bo'ladi, berish emas", async () => {
+    // Ikki tomon bir xil sahifani ochadi, amal esa teskari: egasi
+    // beradi, mijoz oladi. Ilgari mijoz tomonida tugma umuman yo'q edi
+    // va sahifa bo'sh ko'rinardi.
     await show();
 
+    expect(screen.getAllByText('Ijaraga olish').length).toBeGreaterThan(0);
     expect(screen.queryByText('Ijaraga berish')).toBeNull();
+  });
+
+  it('mijoz tugmasi TANLASH oqimini ochadi', async () => {
+    await show();
+
+    const buttons = screen.getAllByText('Ijaraga olish');
+    fireEvent.press(buttons[0]);
+
+    // Bo'sh forma: bir nechta buyum birdaniga olinadi.
+    expect(giveOut).toHaveBeenCalledWith(null);
   });
 });
 
