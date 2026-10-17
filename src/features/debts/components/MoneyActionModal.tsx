@@ -76,6 +76,13 @@ interface MoneyActionModalProps {
    */
   onRentIn?: () => void;
   /**
+   * O'Z omboridan IJARAGA BERISH.
+   *
+   * Ijaraga berish ham qarz berish: buyum odamga ketadi va puli menga
+   * qarz bo'lib qoladi. Shuning uchun u ham shu oynadan boshlanadi.
+   */
+  onRentOut?: () => void;
+  /**
    * Shu do'kondan olingan va hali QAYTARILMAGAN buyumlar soni.
    *
    * Odam oynani ochmasdan "menda nimadir bormi" degan savolga javob
@@ -147,6 +154,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   ownerAccountType,
   token,
   onRentIn,
+  onRentOut,
   rentInPicks = EMPTY_PICKS,
   rentInAmount = 0,
   onRemoveRentIn,
@@ -448,10 +456,27 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               placeholder="100 000"
             />
 
+            {/* IJARAGA BERISH — o'z omboridan. Ijaraga berish ham qarz
+                berish: buyum odamga ketadi, puli qarz bo'lib qoladi. */}
+            {onRentOut ? (
+              <Pressable
+                onPress={onRentOut}
+                style={({ pressed }) => [styles.basketBtn, pressed && styles.calcBtnPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('rentals.createTitle')}
+              >
+                <Ionicons name="cube-outline" size={18} color={colors.primary} />
+                <View style={styles.basketLines}>
+                  <Text style={styles.basketText} numberOfLines={1}>
+                    {t('rentals.createTitle')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              </Pressable>
+            ) : null}
+
             {/* Ijaraga olish — narxnoma yonida, chunki ikkalasi ham
-                "o'sha do'kondan nima olyapman" degan savolning javobi.
-                Ijaraga BERISH bu yerda yo'q: u mijoz kartasining ijara
-                sahifasida, ombor egasining qo'lida. */}
+                "o'sha do'kondan nima olyapman" degan savolning javobi. */}
             {onRentIn ? (
               <Pressable
                 onPress={onRentIn}

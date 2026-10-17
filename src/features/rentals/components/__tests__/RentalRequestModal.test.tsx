@@ -7,7 +7,7 @@ import type { RentalItemResponseDTO } from '../../types/rentalItem';
 
 jest.mock('../../hooks/useRentals');
 
-import { useBusinessRentalItems } from '../../hooks/useRentals';
+import { useBusinessRentalItems, useRentalItems } from '../../hooks/useRentals';
 
 const onClose = jest.fn();
 const onPicked = jest.fn();
@@ -67,6 +67,7 @@ beforeEach(() => {
   onClose.mockReset();
   onPicked.mockReset();
   onBack.mockReset();
+  (useRentalItems as jest.Mock).mockReturnValue({ data: [], isLoading: false });
   (useBusinessRentalItems as jest.Mock).mockReturnValue({
     data: [item(), item({ id: 'stul', name: 'Stul', price: 5_000, totalQuantity: 50 })],
     isLoading: false,
@@ -196,6 +197,42 @@ describe('ijaraga olish oqimi', () => {
 
     // Savat emas, FORMA ochildi va tanlov ko'rinib turibdi.
     expect(screen.getByText(/Lesa × 2/)).toBeTruthy();
+  });
+
+  it("O'Z omboridan berish ham shu oynada", async () => {
+    // Ijaraga berish ham qarz berish: buyum odamga ketadi, puli qarz
+    // bo'lib qoladi. Ombor boshqa endpointdan keladi.
+    (useRentalItems as jest.Mock).mockReturnValue({
+      data: [item({ name: 'Opalubka', price: 3_000 })],
+      isLoading: false,
+    });
+    render(
+      <AppThemeProvider>
+        <LanguageProvider>
+          <RentalRequestModal
+            businessId=""
+            item={null}
+            visible
+            ownStock
+            onClose={onClose}
+            onPicked={onPicked}
+          />
+        </LanguageProvider>
+      </AppThemeProvider>,
+    );
+    await settle();
+
+    fireEvent.press(screen.getByLabelText("Opalubka miqdor ko'paytirish"));
+    fireEvent.press(screen.getByText("Tanlovni qo'llash"));
+    await settle();
+
+    // Sarlavha ham, tugma ham BERISH haqida.
+    const buttons = screen.getAllByText('Ijaraga berish');
+    fireEvent.press(buttons[buttons.length - 1]);
+
+    const [picked] = onPicked.mock.calls[0];
+    expect(picked[0].draft.lines).toEqual([{ rentalItemId: 'lesa', quantity: 1 }]);
+    expect(picked[0].period).toBe('DAY');
   });
 
   it("bo'sh sonidan ko'p olishga yo'l qo'ymaydi", async () => {

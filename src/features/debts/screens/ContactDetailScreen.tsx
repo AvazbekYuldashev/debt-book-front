@@ -27,7 +27,7 @@ import { ROUTES } from '../../../app/navigation/routes';
 import { MoneyActionType } from '../../../shared/types/money';
 import { mergeAmounts, netByCurrency } from '../../../shared/lib/currency';
 import { useContactRentalTotals } from '../../rentals/hooks/useContactRentalTotals';
-import { useRequestRental } from '../../rentals/hooks/useRentals';
+import { useCreateRentalBatch, useRequestRental } from '../../rentals/hooks/useRentals';
 import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
 import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { useI18n } from '../../../shared/i18n';
@@ -39,14 +39,22 @@ import ClientRentalPane from '../../rentals/components/ClientRentalPane';
 import RentalFormModal from '../../rentals/components/RentalFormModal';
 import RentalDetailModal from '../../rentals/components/RentalDetailModal';
 import RentalRequestModal from '../../rentals/components/RentalRequestModal';
-import type { RentalRequestDTO, RentalResponseDTO } from '../../rentals/types/rental';
+import type { RentalPeriod, RentalRequestDTO, RentalResponseDTO } from '../../rentals/types/rental';
 
-/** Hali saqlanmagan ijara: so'rov + ko'rsatish uchun nom va summa. */
+/**
+ * Hali saqlanmagan ijara: so'rov + ko'rsatish uchun nom va summa.
+ *
+ * `give` — O'Z omboridan berish (ijaraga berish ham qarz berish).
+ * `take` — birovning omboridan olish; u do'kon tasdig'ini kutadi.
+ */
 interface RentalDraft {
   id: string;
+  kind: 'give' | 'take';
   draft: RentalRequestDTO;
   total: number;
   label: string;
+  /** Berishda `createBatch` uchun shart: bitta yozuv bitta davrda. */
+  period: RentalPeriod;
 }
 import type { RentalItemResponseDTO } from '../../rentals/types/rentalItem';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
@@ -303,6 +311,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const [rentalDrafts, setRentalDrafts] = useState<RentalDraft[]>([]);
   // Hook keshni o'zi yangilaydi: ijara sahifasi darhol to'g'ri ko'rinadi.
   const requestRentalMutation = useRequestRental();
+  const createBatchMutation = useCreateRentalBatch();
 
   const handleCreate = useCallback(
     async (payload: MoneyActionPayload) => {
@@ -342,9 +351,29 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
        * yaratilmasligi kerak - aks holda odam ko'rmagan yozuv
        * daftarga tushib qolardi.
        */
-      for (const draft of rentalDrafts) {
+      for (const entry of rentalDrafts) {
         try {
-          await requestRentalMutation.mutateAsync(draft.draft);
+          if (entry.kind === 'give') {
+            // O'Z omborimdan berish: tasdiq kutilmaydi, yozuv darhol
+            // tayyor - ombor ham meniki, qaror ham meniki.
+            await createBatchMutation.mutateAsync({
+              clientId: contactId,
+              period: entry.period,
+              startDate: entry.draft.startDate,
+              ...(entry.draft.startTime ? { startTime: entry.draft.startTime } : {}),
+              duration: entry.draft.duration,
+              note: entry.draft.note,
+              // Narx YUBORILMAYDI — server uni OMBORDAN o'qiydi. Nol
+              // yuborilsa u haqiqiy narx bo'lib, ijara bepul bo'lib
+              // qolardi.
+              lines: entry.draft.lines.map((line) => ({
+                rentalItemId: line.rentalItemId,
+                quantity: line.quantity,
+              })),
+            });
+          } else {
+            await requestRentalMutation.mutateAsync(entry.draft);
+          }
         } catch {
           // Pul allaqachon saqlangan - butun amalni yiqitmaymiz.
           // Ijara sahifasida yo'qligi ko'rinadi va qayta yozilishi mumkin.
@@ -384,7 +413,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       setModalVisible(true);
     },
     [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue,
-      rentalDrafts, requestRentalMutation, t],
+      rentalDrafts, requestRentalMutation, createBatchMutation],
   );
 
   /**
@@ -499,17 +528,28 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * yozilgani joyida turadi.)
    */
   const [rentInFromMoney, setRentInFromMoney] = useState(false);
+  /**
+   * Oyna qaysi yo'nalishda ochildi.
+   *
+   * "Qarz berish" da o'z omborimdan BERAMAN, "Qarz olish" da esa
+   * birovnikidan OLAMAN - ikkisi bitta oynada, ombor boshqa.
+   */
+  const [rentKind, setRentKind] = useState<'give' | 'take'>('take');
 
   /** "So'rov yuborildi" xabari — yuborilganini bildiradigan yagona belgi. */
   const [requestSent, setRequestSent] = useState(false);
 
-  const openRentIn = useCallback(() => {
-    setModalVisible(false);
-    setRequestItem(null);
-    setRentInFromMoney(true);
-    setRequestOpen(true);
-    setRequestSent(false);
-  }, []);
+  const openRentIn = useCallback(
+    (kind: 'give' | 'take') => () => {
+      setRentKind(kind);
+      setModalVisible(false);
+      setRequestItem(null);
+      setRentInFromMoney(true);
+      setRequestOpen(true);
+      setRequestSent(false);
+    },
+    [],
+  );
 
   const closeRequest = useCallback(() => {
     setRequestOpen(false);
@@ -534,13 +574,20 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * ustiga qo'shilsa takrorlanib ketardi.
    */
   const handleRentalPicked = useCallback(
-    (picked: { draft: RentalRequestDTO; total: number; label: string }[]) => {
+    (
+      picked: {
+        draft: RentalRequestDTO;
+        total: number;
+        label: string;
+        period: RentalPeriod;
+      }[],
+    ) => {
       closeRequest();
       setRentalDrafts(
-        picked.map((entry, index) => ({ id: `rent-${index}`, ...entry })),
+        picked.map((entry, index) => ({ id: `rent-${index}`, kind: rentKind, ...entry })),
       );
     },
-    [closeRequest],
+    [closeRequest, rentKind],
   );
 
   /** Bitta tanlovni olib tashlash — qolganlari joyida qoladi. */
@@ -805,9 +852,10 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         onAddItem={allowWrite ? openStockForNewItem : undefined}
       />
 
-      {canRentIn && counterpartyBusinessId ? (
+      {requestOpen ? (
         <RentalRequestModal
-          businessId={counterpartyBusinessId}
+          ownStock={rentKind === 'give'}
+          businessId={counterpartyBusinessId ?? ''}
           item={requestItem}
           visible={requestOpen}
           onClose={closeRequest}
@@ -827,7 +875,9 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       />
 
       <MoneyActionModal
-        onRentIn={canRentIn ? openRentIn : undefined}
+        onRentIn={canRentIn ? openRentIn('take') : undefined}
+        // Ijaraga BERISH — o'z omborim bo'lsa (biznes hisobi).
+        onRentOut={workspace.mode === 'business' ? openRentIn('give') : undefined}
         rentInPicks={rentalDrafts.map(({ id, label, total }) => ({ id, label, total }))}
         rentInAmount={rentInSessionAmount}
         onRemoveRentIn={removeRentalDraft}

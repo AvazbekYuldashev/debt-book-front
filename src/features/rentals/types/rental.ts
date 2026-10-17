@@ -220,8 +220,13 @@ export interface RentalUpdateDTO {
 export interface RentalBatchLineDTO {
   rentalItemId: string;
   quantity: number;
-  /** Ombordagi narxdan farq qilishi mumkin (chegirma, doimiy mijoz). */
-  price: number;
+  /**
+   * Ombordagi narxdan farq qilishi mumkin (chegirma, doimiy mijoz).
+   *
+   * Berilmasa server OMBORDAGI narxni oladi. Nol YUBORILMASIN: server
+   * uni haqiqiy narx deb qabul qiladi va ijara bepul bo'lib qolardi.
+   */
+  price?: number;
 }
 
 /**

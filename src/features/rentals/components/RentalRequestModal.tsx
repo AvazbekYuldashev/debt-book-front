@@ -13,7 +13,7 @@ import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatQuantity } from '../../../shared/lib/quantity';
 import { isValidDateInput } from '../../../shared/lib/date';
-import { useBusinessRentalItems } from '../hooks/useRentals';
+import { useBusinessRentalItems, useRentalItems } from '../hooks/useRentals';
 import RentalItemBasketModal, { type RentalPick } from './RentalItemBasketModal';
 import {
   currentTimeString,
@@ -45,7 +45,9 @@ interface RentalRequestModalProps {
    * esa "Qarz berish" bosilganda saqlanadi. Shu bilan bitta pul ikki
    * marta hisoblanmaydi (ijara qoldig'i + pul yozuvi).
    */
-  onPicked?: (picked: { draft: RentalRequestDTO; total: number; label: string }[]) => void;
+  onPicked?: (
+    picked: { draft: RentalRequestDTO; total: number; label: string; period: RentalPeriod }[],
+  ) => void;
   /**
    * Avvalgi TANLOV — savat shu bilan ochiladi.
    *
@@ -56,6 +58,14 @@ interface RentalRequestModalProps {
   initialPicks?: RentalPick[];
   /** Kelgan joyga qaytish (qarz oynasi). */
   onBack?: () => void;
+  /**
+   * O'Z omboridan berish (ijaraga BERISH).
+   *
+   * Ijaraga berish ham qarz berish: buyum odamga ketadi va puli menga
+   * qarz bo'lib qoladi. Shuning uchun oqim bir xil - farqi faqat
+   * ombor qayerdanligi va sarlavhada.
+   */
+  ownStock?: boolean;
   /**
    * Shu oqimda ALLAQACHON tanlangan miqdorlar (itemId -> soni).
    *
@@ -89,6 +99,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   onPicked,
   onBack,
   initialPicks,
+  ownStock = false,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -97,7 +108,11 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const open = visible ?? Boolean(item);
-  const itemsQuery = useBusinessRentalItems(businessId, { enabled: open });
+  // Ombor MENIKI bo'lsa boshqa endpoint: do'konning ochiq ro'yxati emas,
+  // o'z ish maydonimdagi buyumlar.
+  const theirStock = useBusinessRentalItems(businessId, { enabled: open && !ownStock });
+  const myStock = useRentalItems({ enabled: open && ownStock });
+  const itemsQuery = ownStock ? myStock : theirStock;
   const stock = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
 
   const [picks, setPicks] = useState<RentalPick[]>([]);
@@ -192,7 +207,12 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
       groups.set(key, [...(groups.get(key) ?? []), row]);
     }
 
-    const picked: { draft: RentalRequestDTO; total: number; label: string }[] = [];
+    const picked: {
+      draft: RentalRequestDTO;
+      total: number;
+      label: string;
+      period: RentalPeriod;
+    }[] = [];
     for (const rows of groups.values()) {
       const draft: RentalRequestDTO = {
         businessId,
@@ -223,7 +243,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
         })
         .join(', ');
 
-      picked.push({ draft, total: groupTotal, label });
+      picked.push({ draft, total: groupTotal, label, period });
     }
 
     // Yozuv YARATILMAYDI: u "Qarz berish" bilan birga saqlanadi.
@@ -284,7 +304,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                   </Pressable>
                 ) : null}
                 <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
-                  {t('rentals.takeFromStock')}
+                  {ownStock ? t('rentals.createTitle') : t('rentals.takeFromStock')}
                 </Text>
               </View>
 
@@ -341,7 +361,9 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                 {total > 0 ? (
                   <Text style={styles.previewTotal}>{formatMoney(total, currency)}</Text>
                 ) : null}
-                <Text style={styles.previewHint}>{t('rentals.requestHint')}</Text>
+                <Text style={styles.previewHint}>
+                  {ownStock ? t('rentals.giveHint') : t('rentals.requestHint')}
+                </Text>
               </View>
 
               {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -354,7 +376,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                   style={styles.actionBtn}
                 />
                 <Button
-                  title={t('rentals.requestSubmit')}
+                  title={ownStock ? t('rentals.createSubmit') : t('rentals.requestSubmit')}
                   onPress={handleSubmit}
                   style={styles.actionBtn}
                 />
