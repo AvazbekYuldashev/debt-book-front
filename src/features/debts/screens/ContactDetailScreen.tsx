@@ -228,6 +228,20 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    */
   const clientMode = workspace.mode !== 'business' && Boolean(counterpartyBusinessId);
 
+  /**
+   * IJARAGA OLISH yo'li qachon chiqadi.
+   *
+   * Qarshi tomon BIZNES bo'lsa — hisob shaxsiymi yoki biznesmi,
+   * ahamiyatsiz: biznes ham boshqa do'kondan lesa ijaraga olishi mumkin
+   * va buni daftariga yozishi kerak. Ilgari bu yo'l faqat shaxsiy
+   * hisobda bor edi va biznes egasi o'zi olgan ijarani yoza olmasdi.
+   *
+   * O'Z omboridan "olish" esa yo'q: u oddiy berish va uning o'z yo'li
+   * bor (server ham buni rad etadi).
+   */
+  const canRentIn =
+    Boolean(counterpartyBusinessId) && counterpartyBusinessId !== workspace.activeBusinessId;
+
   /*
    * Balansga IJARA ham kiradi.
    *
@@ -791,7 +805,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         onAddItem={allowWrite ? openStockForNewItem : undefined}
       />
 
-      {clientMode && counterpartyBusinessId ? (
+      {canRentIn && counterpartyBusinessId ? (
         <RentalRequestModal
           businessId={counterpartyBusinessId}
           item={requestItem}
@@ -813,7 +827,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       />
 
       <MoneyActionModal
-        onRentIn={clientMode && counterpartyBusinessId ? openRentIn : undefined}
+        onRentIn={canRentIn ? openRentIn : undefined}
         rentInPicks={rentalDrafts.map(({ id, label, total }) => ({ id, label, total }))}
         rentInAmount={rentInSessionAmount}
         onRemoveRentIn={removeRentalDraft}
