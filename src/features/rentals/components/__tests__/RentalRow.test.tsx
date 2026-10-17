@@ -5,6 +5,21 @@ import { AppThemeProvider } from '../../../../shared/theme';
 import { LanguageProvider } from '../../../../shared/i18n';
 import type { RentalResponseDTO } from '../../types/rental';
 
+/**
+ * Sanalar BUGUNGA nisbatan.
+ *
+ * Qotib qolgan sana bilan test vaqt o'tishi bilan yiqilardi: ijara
+ * hisobi haqiqiy soatdan yuradi, shuning uchun "2026-10-15" dan bir
+ * necha kun o'tgach summa ikkilanib ketardi.
+ */
+const iso = (shiftDays: number): string => {
+  const date = new Date();
+  date.setDate(date.getDate() + shiftDays);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`;
+};
+
 const rental = (over: Partial<RentalResponseDTO> = {}): RentalResponseDTO =>
   ({
     id: 'r1',
@@ -16,8 +31,9 @@ const rental = (over: Partial<RentalResponseDTO> = {}): RentalResponseDTO =>
     price: 23_333,
     currency: 'UZS',
     unit: 'DONA',
-    startDate: '2026-10-15',
-    dueDate: '2026-10-16',
+    // Bugun boshlangan, ertaga qaytariladi: hisob AYNAN bir kun.
+    startDate: iso(0),
+    dueDate: iso(1),
     paidAmount: 0,
     returns: [],
     approval: 'CONFIRMED',

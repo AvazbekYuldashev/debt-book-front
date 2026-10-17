@@ -105,6 +105,21 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({
                         {item.unit ? ` ${t(`products.unit.${item.unit}`)}` : ''}
                         {' × '}
                         {formatMoney(item.unitPrice, normalizeCurrency(item.currency))}
+                        {/* Ijara qatorida summa MUDDATGA ham ko'paygan —
+                            aks holda "23 333 × 2 = 93 332" tushunarsiz
+                            bo'lardi. */}
+                        {item.rentalItemId
+                          ? ` × ${
+                              item.duration
+                                ? t(
+                                    item.period === 'HOUR'
+                                      ? 'rentals.hourCount'
+                                      : 'rentals.dayCount',
+                                    { count: String(item.duration) },
+                                  )
+                                : t('rentals.openEndedShort')
+                            }`
+                          : ''}
                       </Text>
                     </View>
                     <Text style={styles.receiptTotal} numberOfLines={1}>

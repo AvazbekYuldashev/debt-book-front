@@ -30,6 +30,16 @@ export type PartyType = 'PROFILE' | 'BUSINESS_ACCOUNT';
 export interface MoneyItemDTO {
   id: string;
   productId?: string | null;
+  /**
+   * Ijara buyumi — qator narxnomadan emas, ombordan.
+   *
+   * To'la bo'lsa summa MUDDATGA ham ko'paygan, shuning uchun chekda
+   * "× 2 kun" ham ko'rsatiladi: aks holda "23 333 × 2 = 93 332" degan
+   * tushunarsiz satr chiqardi.
+   */
+  rentalItemId?: string | null;
+  duration?: number | null;
+  period?: 'DAY' | 'HOUR' | null;
   name: string;
   code?: string | null;
   unitPrice: number;
@@ -39,10 +49,19 @@ export interface MoneyItemDTO {
   lineTotal: number;
 }
 
-/** Buyurtma yuborish uchun: narxni server narxnomadan o'zi oladi. */
+/**
+ * Buyurtma yuborish uchun: narxni server o'zi oladi (narxnomadan yoki
+ * ijara omboridan).
+ *
+ * `productId` va `rentalItemId` dan AYNAN BITTASI beriladi — server ham
+ * shuni talab qiladi: qator yo mahsulot, yo ijara.
+ */
 export interface MoneyItemCreateDTO {
-  productId: string;
+  productId?: string;
+  rentalItemId?: string;
   quantity: number;
+  /** Ijara muddati: necha kun (yoki soat). null = kelishilmagan. */
+  duration?: number | null;
 }
 
 export interface MoneyResponseDTO {
