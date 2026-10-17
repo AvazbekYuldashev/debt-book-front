@@ -25,8 +25,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import type { DebtsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
 import { MoneyActionType } from '../../../shared/types/money';
-import { mergeAmounts, netByCurrency } from '../../../shared/lib/currency';
-import { useContactRentalTotals } from '../../rentals/hooks/useContactRentalTotals';
+import { netByCurrency } from '../../../shared/lib/currency';
 import { useCreateRentalBatch, useRequestRental } from '../../rentals/hooks/useRentals';
 import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
 import { canDelete, canWrite } from '../../../shared/lib/permissions';
@@ -251,7 +250,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     Boolean(counterpartyBusinessId) && counterpartyBusinessId !== workspace.activeBusinessId;
 
   /*
-   * Balansga IJARA ham kiradi.
+   * IJARA BALANSGA QO'SHILMAYDI — pul yozuvi uni allaqachon olib yuradi.
    *
    * Sarlavhadagi raqam pul tarixidan chiqardi va ijarani ko'rmasdi:
    * odam darhol ostida "Qarz 23 333" deb turgan qatorni ko'rar, tepada
@@ -259,19 +258,23 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * qo'shardi, ya'ni bitta mijozning raqami ikki ekranda ikki xil
    * chiqardi.
    */
-  const rentalTotals = useContactRentalTotals(
-    contactId,
-    rentalsAvailable && clientMode ? counterpartyBusinessId ?? null : null,
-  );
-
+  /*
+   * Ilgari ijara qoldig'i balansga QO'SHILARDI. O'shanda ijara o'z
+   * yozuvini yaratar va pul yozuvi bilan bog'liq emas edi.
+   *
+   * Endi ijara "Qarz berish" bilan BIRGA saqlanadi va summasi pul
+   * yozuviga kiradi (chek satri bo'lib ham ko'rinadi). Ikkalasini ham
+   * qo'shish bitta pulni ikki marta sanardi: odam 2 ta lesani 2 kunga
+   * olib, pulini to'lagach ham qarz ko'rinib turardi - pul bir
+   * daftarga, qarz boshqasiga yozilgani uchun.
+   *
+   * Endi YAGONA daftar: Qarzlar. Ijara sahifasi esa buyum va muddatni
+   * kuzatadi - qancha ketgan, nechtasi qaytgan.
+   */
   // Har valyuta balansi MUSTAQIL — so'm alohida, dollar alohida (kurs aralashmaydi).
   const balances = useMemo(
-    () =>
-      netByCurrency(
-        mergeAmounts(currencyTotals.credit, rentalTotals.credit),
-        mergeAmounts(currencyTotals.debt, rentalTotals.debt),
-      ),
-    [currencyTotals, rentalTotals],
+    () => netByCurrency(currencyTotals.credit, currencyTotals.debt),
+    [currencyTotals],
   );
 
   const mappedHistory = useMemo(

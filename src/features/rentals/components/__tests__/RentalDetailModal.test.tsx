@@ -78,31 +78,26 @@ beforeEach(() => {
  * qaytarardi. Shu test o'sha xatoni qaytib kelishiga yo'l qo'ymaydi.
  */
 describe('to\'lov yo\'li', () => {
-  it("egasiga 'Pul oldim' chiqadi va u darhol yoziladi", async () => {
+  it("PUL bu yerda yozilmaydi — u Qarzlar bo'limida", async () => {
+    /*
+     * Ijara summasi "Qarz berish" bilan birga pul yozuviga kiradi.
+     * Kartada ikkinchi to'lov yo'li bo'lsa pul BOSHQA daftarga
+     * tushardi: odam 2 ta lesani olib, pulini to'lagandan keyin ham
+     * qarz ko'rinib turardi — aynan shu xato ro'y berdi.
+     */
     show(rental());
     await settle();
 
-    fireEvent.press(screen.getByText('Pul oldim'));
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '50000');
-    const buttons = screen.getAllByText('Pul oldim');
-    fireEvent.press(buttons[buttons.length - 1]);
-
-    expect(ownerPay).toHaveBeenCalledTimes(1);
-    expect(clientPay).not.toHaveBeenCalled();
+    expect(screen.queryByText('Pul oldim')).toBeNull();
+    expect(ownerPay).not.toHaveBeenCalled();
   });
 
-  it("mijozga 'Pul berdim' chiqadi va u TASDIQ so'rovi bo'lib ketadi", async () => {
+  it("mijozda ham to'lov yo'li yo'q", async () => {
     show(rental({ owner: false, canPay: true }));
     await settle();
 
-    fireEvent.press(screen.getByText('Pul berdim'));
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '50000');
-    const buttons = screen.getAllByText('Pul berdim');
-    fireEvent.press(buttons[buttons.length - 1]);
-
-    // Egasining yo'li EMAS: u 403 qaytarardi.
-    expect(clientPay).toHaveBeenCalledTimes(1);
-    expect(ownerPay).not.toHaveBeenCalled();
+    expect(screen.queryByText('Pul berdim')).toBeNull();
+    expect(clientPay).not.toHaveBeenCalled();
   });
 
   it('mijoz tomonida egasining amallari ko\'rinmaydi', async () => {

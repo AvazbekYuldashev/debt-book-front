@@ -417,23 +417,17 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                 {mine && allowWrite && !returned ? (
                   <Button title={t('rentals.markReturned')} onPress={() => setPane('return')} />
                 ) : null}
-                {mine && allowWrite && unpaid > 0 ? (
-                  <Button
-                    title={t('rentals.takePayment')}
-                    variant="secondary"
-                    onPress={() => setPane('payment')}
-                  />
-                ) : null}
+                {/*
+                  PUL BU YERDA YOZILMAYDI — u Qarzlar bo'limida.
+                  Ijara summasi "Qarz berish" bilan birga pul yozuviga
+                  kiradi, shuning uchun bu yerda ikkinchi marta to'lov
+                  yozish pulni BOSHQA daftarga tushirardi: odam
+                  to'lagandan keyin ham qarz ko'rinib turardi.
+                */}
                 {/* MIJOZ tomoni: pulni u beradi, demak yozuvni ham u
                     boshlaydi. Summa egasi tasdiqlagunicha hisobga
                     kirmaydi. */}
-                {!mine && rental.canPay && unpaid > 0 ? (
-                  <Button
-                    title={t('rentals.iPaid')}
-                    variant="secondary"
-                    onPress={() => setPane('payment')}
-                  />
-                ) : null}
+
                 {/* Egasiga: mijoz yozgan summa va javob tugmalari. Rad
                     etish tasdiqlash bilan birga turadi — yolg'on yozuv
                     kartada abadiy osilib qolmasligi kerak. */}

@@ -14,9 +14,6 @@ import {
 import { extractCurrencyTotals } from '../../../shared/lib/money';
 import { parseBackendDate } from '../../../shared/lib/date';
 import { AccountType, MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../../../shared/types/money';
-import { getMyRentals, getRentalsWithBusiness } from '../../rentals/services/rentalService';
-import { mergeRentalTotals, rentalTotalsByContact } from '../../rentals/model/rentalBalance';
-import type { RentalResponseDTO } from '../../rentals/types/rental';
 
 // Har kontaktning valyuta bo'yicha credit/debt yig'indisi va oxirgi amal vaqti.
 export interface ContactBalances {
@@ -29,10 +26,6 @@ const MAX_CONCURRENCY = 5;
 // Bitta kontaktning tarixi uchun sahifalash chegarasi (cheksiz siklga qarshi himoya).
 const MAX_HISTORY_PAGES = 20;
 const HISTORY_PAGE_SIZE = 100;
-// Ijara yozuvlari bitta ro'yxat uchun: sahifa kattaroq, chunki har
-// yozuv kichik va bizga HAMMASI kerak (qoldiq kun bo'yicha o'sadi).
-const RENTAL_PAGE_SIZE = 200;
-const MAX_RENTAL_PAGES = 10;
 
 // Har render'da bir xil bo'sh havola qaytarish — keraksiz re-render/effekt qo'zg'atmaslik uchun.
 const EMPTY_TOTALS: ContactBalances['totalsByContact'] = {};
@@ -179,67 +172,6 @@ async function resolveContactBalance(
   return { totals, latestTs };
 }
 
-/**
- * Ijara qoldig'ini kontakt bo'yicha yig'adi.
- *
- * Ijara ham qarz, shuning uchun balansda ko'rinishi kerak: aks holda
- * "mijozda 2 mln qarz bor" degan raqam faqat pulni ko'rsatib, buyum
- * uchun yig'ilgan haqni tashlab ketardi.
- *
- * Bitta so'rov butun ro'yxatga: kontaktga bittadan so'rov yuborish
- * ~130 mijozda ro'yxatni ikki baravar sekinlashtirardi. Qaytgan-yu
- * to'lanmagan ("nasiya") yozuvlar ham kerak, shuning uchun filtr bo'sh.
- */
-async function loadRentalTotals(
-  contacts: Contact[],
-  token: string,
-): Promise<Record<string, CurrencyTotals>> {
-  const rentals: RentalResponseDTO[] = [];
-
-  // 1) MEN BERGAN ijaralar — bitta so'rov butun ro'yxatga.
-  let page = 1;
-  while (page <= MAX_RENTAL_PAGES) {
-    const result = await getMyRentals({ filter: {}, page, size: RENTAL_PAGE_SIZE, token });
-    rentals.push(...(result.content ?? []));
-    if (result.last || page >= (result.totalPages ?? page)) break;
-    page += 1;
-  }
-
-  /*
-   * 2) MEN OLGAN ijaralar.
-   *
-   * Ular DO'KONNING daftarida turadi (`business_id` o'shaning id'si),
-   * shuning uchun `/rental/my` da chiqmaydi — har do'kondan alohida
-   * so'rash kerak. Qarz ikki tomonda ham ko'rinishi shart: men to'lamagan
-   * ijara haqi mening balansimda ham turishi kerak.
-   *
-   * Faqat BIZNES kontaktlar so'raladi (ijara ombori faqat bizneslarda
-   * bo'ladi) va xatosi yutiladi: bitta do'kon javob bermasa qolgan
-   * balans baribir to'g'ri chiqishi kerak.
-   */
-  const shops = contacts
-    .filter((contact) => contact.partyType === 'BUSINESS_ACCOUNT' && contact.partyId?.trim())
-    .map((contact) => contact.partyId.trim());
-
-  const queue = [...new Set(shops)];
-  const runWorker = async (): Promise<void> => {
-    while (queue.length) {
-      const businessId = queue.shift();
-      if (!businessId) return;
-      try {
-        rentals.push(...(await getRentalsWithBusiness(businessId, token)));
-      } catch {
-        // Shu do'konning ijarasi hisobga kirmaydi — qolgani buzilmaydi.
-      }
-    }
-  };
-  await Promise.all(
-    Array.from({ length: Math.min(MAX_CONCURRENCY, queue.length) }, () => runWorker()),
-  );
-
-  return rentalTotalsByContact(rentals);
-}
-
 // Barcha kontaktlar balansini cheklangan paralellik (worker pool) bilan yuklaydi.
 async function loadContactBalances(
   contacts: Contact[],
@@ -272,29 +204,14 @@ async function loadContactBalances(
   return { totalsByContact, latestDateByContact };
 }
 
-/**
- * Pul balansi + ijara qoldig'i.
+/*
+ * IJARA BU YERDA QO'SHILMAYDI.
  *
- * Ijara XATOSI pul balansini yo'qotmasligi kerak: ijara moduli
- * ishlamasa ham (eski server, ruxsat yo'q) ro'yxat ilgarigidek
- * ko'rinib turishi shart — shuning uchun xato yutiladi.
+ * Ilgari qo'shilardi: o'shanda ijara o'z yozuvini yaratar va pul
+ * yozuvi bilan bog'liq emas edi. Endi ijara "Qarz berish" bilan birga
+ * saqlanadi va summasi pul yozuviga kiradi — ikkalasini ham qo'shish
+ * bitta pulni ikki marta sanardi.
  */
-async function loadAllBalances(
-  contacts: Contact[],
-  token: string,
-  accountType: AccountType | undefined,
-  actor: Actor,
-): Promise<ContactBalances> {
-  const [money, rental] = await Promise.all([
-    loadContactBalances(contacts, token, accountType, actor),
-    loadRentalTotals(contacts, token).catch(() => ({} as Record<string, CurrencyTotals>)),
-  ]);
-
-  return {
-    totalsByContact: mergeRentalTotals(money.totalsByContact, rental),
-    latestDateByContact: money.latestDateByContact,
-  };
-}
 
 /**
  * Kontaktlar ro'yxati uchun balans va oxirgi amal sanalarini yuklaydi.
@@ -325,7 +242,7 @@ export function useContactBalances(contacts: Contact[]) {
     // siyrak sug'urta. WS'siz esa 20s "real-time'ga yaqin" rejim saqlanadi.
     refetchInterval: realtimeConnected ? 120_000 : 20_000,
     refetchOnWindowFocus: false,
-    queryFn: () => loadAllBalances(contacts, profile!.jwt!, accountType, actor),
+    queryFn: () => loadContactBalances(contacts, profile!.jwt!, accountType, actor),
     // Refresh'dan keyin oxirgi ma'lum balansni DARHOL ko'rsatamiz.
     // updatedAt=0 -> React Query uni eskirgan deb biladi va fonda qayta yuklaydi:
     // ya'ni darhol ko'rinadi, so'ng jimgina yangilanadi ("0 so'm" chaqnashi yo'q).
