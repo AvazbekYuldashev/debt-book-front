@@ -15,6 +15,7 @@ import {
   useRentalItems,
   useRentalsWithBusiness,
 } from '../hooks/useRentals';
+import { rentalStage } from '../model/rentalMath';
 import { groupRentalItems } from '../model/rentalStock';
 import type { RentalResponseDTO } from '../types/rental';
 import type { RentalItemResponseDTO } from '../types/rentalItem';
@@ -101,11 +102,23 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   const rentalsQuery = clientMode ? theirRentals : ownRentals;
   const itemsQuery = clientMode ? theirItems : ownItems;
 
+  /**
+   * Sahifa HOZIR turgan buyumlarni ko'rsatadi, tarixni emas.
+   *
+   * Sarlavhasi "Mendagi buyumlar" (yoki "Shu mijozda") — ya'ni savol
+   * "ayni damda nima turibdi". Qaytgan ijara bu savolga javob emas:
+   * ro'yxat o'sib boraverar va odam qaytargan narsasini har safar
+   * ko'rib, "yana qaytarishim kerakmi" deb o'ylardi.
+   *
+   * Yozuv O'CHMAYDI — u Ijara bo'limidagi "Yopilgan" filtrida tarix
+   * bo'lib qoladi.
+   */
   const rentals = useMemo(() => {
     const data = rentalsQuery.data;
     if (!data) return [];
     // Mijoz rejimida endpoint massiv, egasinikida sahifa qaytaradi.
-    return Array.isArray(data) ? data : data.content ?? [];
+    const all = Array.isArray(data) ? data : data.content ?? [];
+    return all.filter((rental) => rentalStage(rental) !== 'CLOSED');
   }, [rentalsQuery.data]);
   const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
 

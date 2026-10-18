@@ -99,6 +99,32 @@ describe('mijoz kartasidagi ijara — ikki sahifa', () => {
     expect(screen.getByText('Lesa')).toBeTruthy();
   });
 
+  /**
+   * Sahifa HOZIR turgan buyumlarni ko'rsatadi.
+   *
+   * Qaytgan ijara "mendagi buyumlar" savoliga javob emas: ro'yxat
+   * o'sib boraverar va odam qaytargan narsasini har safar ko'rib
+   * turardi. Yozuvning o'zi o'chmaydi — u Ijara bo'limidagi
+   * "Yopilgan" filtrida tarix bo'lib qoladi.
+   */
+  it('QAYTGAN ijara mendagi buyumlar ro\'yxatida turmaydi', async () => {
+    (useRentalsWithBusiness as jest.Mock).mockReturnValue({
+      data: [
+        rental({ id: 'r-out', itemName: 'Lesa' }),
+        rental({ id: 'r-back', itemName: 'Opalubka', returnedDate: '2026-10-16' }),
+      ],
+      isLoading: false,
+    });
+
+    await show();
+
+    expect(screen.getByText('Lesa')).toBeTruthy();
+    // "Opalubka" ombor sahifasida ham bor, shuning uchun QATOR emas,
+    // qaytgan yozuvning o'zi yo'qligini tekshiramiz: qaytgan ijara
+    // belgisi chiqmasligi kerak.
+    expect(screen.queryByText('Qaytarildi')).toBeNull();
+  });
+
   it('ikkinchi sahifada OMBOR turadi', async () => {
     await show();
 
