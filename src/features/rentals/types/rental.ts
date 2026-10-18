@@ -48,7 +48,13 @@ export type RentalStatus = 'ACTIVE' | 'OVERDUE' | 'RETURNED';
  * narsa: buyum qaytib puli ham olingan bo'lsa ish tugagan (CLOSED), puli
  * olinmagan bo'lsa bu NASIYA (DEBT) — uni alohida ro'yxatda kuzatadi.
  */
-export type RentalStage = 'ACTIVE' | 'OVERDUE' | 'DEBT' | 'CLOSED';
+/**
+ * Buyum QAYERDA: mijozda, kechikkan yoki qaytgan.
+ *
+ * `DEBT` (nasiya) olib tashlandi — izohi `rentalMath.rentalStage` da.
+ * Pul bosqichga ta'sir qilmaydi, u Qarzlar daftarida yuradi.
+ */
+export type RentalStage = 'ACTIVE' | 'OVERDUE' | 'CLOSED';
 
 /**
  * Ro'yxat filtridagi holat.

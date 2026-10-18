@@ -42,23 +42,28 @@ import type { RentalItemResponseDTO } from '../types/rentalItem';
 /** Ekranning ikki bo'limi: OMBOR (nima bor, nechtasi bo'sh) va berilgan IJARALAR. */
 type Tab = 'stock' | 'rentals';
 
-/** Ijaralar filtri. 'ALL' — odatiy: hammasi ko'rinadi. */
-type StatusFilter = 'ALL' | Extract<RentalFilterStatus, 'OUT' | 'OVERDUE' | 'DEBT' | 'CLOSED'>;
+/**
+ * Ijaralar filtri. 'ALL' — odatiy: hammasi ko'rinadi.
+ *
+ * 'DEBT' (nasiya) olib tashlandi: bosqich sifatida u endi yo'q
+ * (izohi `rentalMath.rentalStage` da), demak filtr doim bo'sh
+ * ro'yxat qaytarardi.
+ */
+type StatusFilter = 'ALL' | Extract<RentalFilterStatus, 'OUT' | 'OVERDUE' | 'CLOSED'>;
 
 /** Qidiruv shu uzunlikdan boshlab serverga yuboriladi. */
 const SEARCH_MIN = 2;
 
 /** Filtr qaysi bosqichlarni o'z ichiga oladi — server eski bo'lsa ham ro'yxat to'g'ri chiqsin. */
 const STAGES_OF: Record<StatusFilter, RentalStage[]> = {
-  ALL: ['ACTIVE', 'OVERDUE', 'DEBT', 'CLOSED'],
+  ALL: ['ACTIVE', 'OVERDUE', 'CLOSED'],
   OUT: ['ACTIVE', 'OVERDUE'],
   OVERDUE: ['OVERDUE'],
-  DEBT: ['DEBT'],
   CLOSED: ['CLOSED'],
 };
 
-/** Ro'yxat tartibi: kechikkan, mijozdagi, nasiya, yopilgan. */
-const STAGE_WEIGHT: Record<RentalStage, number> = { OVERDUE: 0, ACTIVE: 1, DEBT: 2, CLOSED: 3 };
+/** Ro'yxat tartibi: kechikkan, mijozdagi, yopilgan. */
+const STAGE_WEIGHT: Record<RentalStage, number> = { OVERDUE: 0, ACTIVE: 1, CLOSED: 2 };
 
 /** Ombor ro'yxatidagi qator: guruh sarlavhasi yoki buyum. */
 type StockEntry =
@@ -160,7 +165,6 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
       { value: 'ALL', label: t('rentals.filterAll') },
       { value: 'OUT', label: t('rentals.filterActive') },
       { value: 'OVERDUE', label: t('rentals.filterOverdue') },
-      { value: 'DEBT', label: t('rentals.filterDebt') },
       { value: 'CLOSED', label: t('rentals.filterClosed') },
     ],
     [t],

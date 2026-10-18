@@ -210,7 +210,7 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
   const left = remainingQuantity(rental);
   const multiple = total > 1;
 
-  const returned = stage === 'DEBT' || stage === 'CLOSED';
+  const returned = stage === 'CLOSED';
 
   /**
    * MIJOZ TOMONI: yozuv men mijoz bo'lgan ijara (ombor meniki emas).
@@ -227,24 +227,20 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
   const tone =
     stage === 'OVERDUE'
       ? colors.negative
-      : stage === 'DEBT'
-        ? colors.secondary
-        : stage === 'CLOSED'
-          ? colors.textSecondary
-          : colors.positive;
+      : stage === 'CLOSED'
+        ? colors.textSecondary
+        : colors.positive;
 
   // Yopilgan payt: belgi bo'lmasa (faqat partiyalar) oxirgi partiya kuni.
   const returnedOn = effectiveEnd(rental).replace('T', ' ');
   const statusText =
-    stage === 'DEBT'
-      ? t('rentals.debtStatus', { date: returnedOn })
-      : stage === 'CLOSED'
-        ? t('rentals.returnedOn', { date: returnedOn })
-        : late > 0
-          ? lateLabel(t, period, late)
-          : isOpenEnded(rental)
-            ? t('rentals.openEnded')
-            : t('rentals.dueOn', { date: formatMoment(rental.dueDate, hourly ? rental.dueTime : null) });
+    stage === 'CLOSED'
+      ? t('rentals.returnedOn', { date: returnedOn })
+      : late > 0
+        ? lateLabel(t, period, late)
+        : isOpenEnded(rental)
+          ? t('rentals.openEnded')
+          : t('rentals.dueOn', { date: formatMoment(rental.dueDate, hourly ? rental.dueTime : null) });
 
   return (
     <Modal transparent visible={Boolean(rental)} animationType="slide" onRequestClose={onClose}>

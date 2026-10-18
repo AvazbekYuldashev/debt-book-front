@@ -14,20 +14,19 @@ interface RentalSummaryCardProps {
 }
 
 /**
- * Ijara bo'limining yuqori paneli — ijarachining uchta savoliga javob:
+ * Ijara bo'limining yuqori paneli — ijarachining ikki savoliga javob:
  *
- *   1. Nechta ijara ochiq, qanchasi kechikkan, nechtasi nasiyada?
+ *   1. Nechta ijara ochiq va qanchasi kechikkan?
  *   2. Mijozlardagi buyumlardan qancha pul OLINISHI KERAK?
- *   3. Buyumi qaytib, puli olinmagan — NASIYA qancha?
  *
- * Ikki pul raqami ATAYIN alohida: birinchisi hali o'sib boradi (buyum
- * mijozda), ikkinchisi qotib qolgan qarz — uni undirish kerak.
+ * NASIYA ustuni va "Nasiyadagi pul" OLIB TASHLANDI. Ular "buyum
+ * qaytgan, puli olinmagan" degan bosqichga tayanardi, u esa endi yo'q
+ * (izohi `rentalMath.rentalStage` da): ilovada ijara to'lovini
+ * yozadigan yo'l qolmagani uchun har qaytgan ijara nasiya bo'lib
+ * ko'rinardi.
  *
  * Valyutalar ALOHIDA qator bo'lib turadi, chunki so'm bilan dollarni
  * qo'shib bo'lmaydi (gap kassadagi qoida bilan bir xil).
- *
- * Eski server ikki yangi maydonni yubormasa, avvalgidek bitta
- * "Olinmagan pul" ko'rsatiladi.
  */
 const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({ summary, loading = false }) => {
   const theme = useAppTheme();
@@ -35,23 +34,20 @@ const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({ summary, loading 
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const split = Boolean(summary?.outUnpaidByCurrency || summary?.debtByCurrency);
-
+  /*
+   * Olinishi kerak bo'lgan pul YAGONA raqam.
+   *
+   * Ilgari u ikkiga bo'linardi: mijozdagilar va nasiya. Nasiya
+   * yo'qolgach bo'linishning ma'nosi qolmadi — `unpaidByCurrency`
+   * ikkalasini ham o'z ichiga oladi.
+   */
   const outMoney = useMemo(
-    () =>
-      Object.entries(
-        parseCurrencyAmounts(split ? summary?.outUnpaidByCurrency : summary?.unpaidByCurrency),
-      ),
-    [split, summary?.outUnpaidByCurrency, summary?.unpaidByCurrency],
-  );
-  const debtMoney = useMemo(
-    () => Object.entries(parseCurrencyAmounts(summary?.debtByCurrency)),
-    [summary?.debtByCurrency],
+    () => Object.entries(parseCurrencyAmounts(summary?.unpaidByCurrency)),
+    [summary?.unpaidByCurrency],
   );
 
   const active = summary?.activeCount ?? 0;
   const overdue = summary?.overdueCount ?? 0;
-  const debt = summary?.debtCount ?? 0;
 
   const dash = loading ? '—' : null;
 
@@ -74,35 +70,16 @@ const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({ summary, loading 
           styles={styles}
           colors={colors}
         />
-        <View style={styles.divider} />
-        <Count
-          icon="wallet-outline"
-          label={t('rentals.debtCount')}
-          value={dash ?? String(debt)}
-          tone={debt > 0 ? colors.secondary : undefined}
-          styles={styles}
-          colors={colors}
-        />
       </View>
 
       <View style={styles.moneyRow}>
         <MoneyBlock
-          label={split ? t('rentals.toCollect') : t('rentals.unpaidTotal')}
+          label={t('rentals.unpaidTotal')}
           entries={outMoney}
           empty={dash ?? t('rentals.allCollected')}
           tone={colors.negative}
           styles={styles}
         />
-        {split ? (
-          <MoneyBlock
-            label={t('rentals.debtTotal')}
-            entries={debtMoney}
-            empty={dash ?? t('rentals.noDebt')}
-            tone={colors.secondary}
-            styles={styles}
-            alignEnd
-          />
-        ) : null}
       </View>
     </View>
   );

@@ -345,8 +345,12 @@ describe('dueFrom / durationOf', () => {
 });
 
 /**
- * HISOB BOSQICHI — ijarachi ro'yxatni shu bo'yicha ajratadi:
- * mijozda / kechikkan / NASIYA (qaytgan, puli olinmagan) / yopilgan.
+ * HISOB BOSQICHI — buyum QAYERDA: mijozda / kechikkan / qaytgan.
+ *
+ * Pul bosqichga ta'sir qilmaydi. Ilgari "qaytgan, puli olinmagan"
+ * alohida NASIYA bosqichi edi, lekin u `paidAmount` ga tayanardi va
+ * ilovada ijara to'lovini yozadigan yo'l qolmagach, har qaytgan ijara
+ * nasiya bo'lib yopishib olardi. Pul endi faqat Qarzlar daftarida.
  */
 describe('rentalStage', () => {
   it('buyum mijozda bo\'lsa holat o\'zi', () => {
@@ -354,19 +358,13 @@ describe('rentalStage', () => {
     expect(rentalStage(rental(), '2026-10-10')).toBe('OVERDUE');
   });
 
-  it("qaytgan, puli olinmagan — NASIYA", () => {
-    const item = rental({ returnedDate: '2026-10-04', paidAmount: 100000 });
-    expect(rentalStage(item, '2026-10-12')).toBe('DEBT');
-  });
-
-  it('qaytgan va puli olingan — yopilgan', () => {
-    const item = rental({ returnedDate: '2026-10-04', paidAmount: 150000 });
-    expect(rentalStage(item, '2026-10-12')).toBe('CLOSED');
-  });
-
-  it("ortiqcha to'langan bo'lsa ham yopilgan (nasiya emas)", () => {
-    const item = rental({ returnedDate: '2026-10-04', paidAmount: 200000 });
-    expect(rentalStage(item, '2026-10-12')).toBe('CLOSED');
+  it('qaytgan bo\'lsa — yopilgan, puli qancha bo\'lishidan qat\'i nazar', () => {
+    // To'liq to'lanmagan, to'lanmagan va ortiqcha to'langan — uchalasi ham
+    // bitta bosqich: buyum omborga qaytdi.
+    for (const paidAmount of [0, 100000, 150000, 200000]) {
+      const item = rental({ returnedDate: '2026-10-04', paidAmount });
+      expect(rentalStage(item, '2026-10-12')).toBe('CLOSED');
+    }
   });
 
   it('kasr narxda yaxlitlash xatosi nasiya bo\'lib chiqmaydi', () => {

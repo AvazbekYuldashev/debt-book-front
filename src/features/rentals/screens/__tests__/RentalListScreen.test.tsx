@@ -343,38 +343,35 @@ describe('RentalListScreen — ijaralar', () => {
     expect(screen.getByText(/150 000/)).toBeTruthy();
   });
 
-  it("buyum qaytib puli olinmagan bo'lsa NASIYA deb turadi", async () => {
+  /**
+   * NASIYA butunlay olib tashlandi — bosqich ham, filtr ham, panel
+   * ustuni ham. Izohi `rentalMath.rentalStage` da: u `paidAmount` ga
+   * tayanardi, ilovada esa ijara to'lovini yozadigan yo'l qolmagan.
+   */
+  it("qaytgan ijara NASIYA emas, QAYTARILDI bo'lib turadi", async () => {
     mockList.mockReturnValue(
       listResult([rental({ returnedDate: dayShift(-1), paidAmount: 50000 })]),
     );
     show('rentals');
     await settle();
 
-    // Bir xil so'z panelda, filtrda va qatorda bor — qator belgisi ham shular orasida.
-    expect(screen.getAllByText('Nasiya').length).toBeGreaterThanOrEqual(3);
-    // 4 kun × 50 000 = 200 000, 50 000 olingan -> 150 000 nasiya.
+    expect(screen.queryByText('Nasiya')).toBeNull();
+    expect(screen.getAllByText('Qaytarildi').length).toBeGreaterThan(0);
+    // Pul qatorda QOLADI: 4 kun × 50 000 = 200 000, 50 000 olingan -> 150 000.
     expect(screen.getByText(/150 000/)).toBeTruthy();
   });
 
-  it('Nasiya filtri faqat qaytgan, puli olinmaganlarni qoldiradi', async () => {
+  it('Nasiya filtri umuman chiqmaydi', async () => {
     mockList.mockReturnValue(
-      listResult([
-        rental({ id: 'r-debt', itemName: 'Stul', returnedDate: dayShift(-1) }),
-        rental({ id: 'r-paid', itemName: 'Stol', returnedDate: dayShift(-1), paidAmount: 200000 }),
-        rental({ id: 'r-out', itemName: 'Lesa' }),
-      ]),
+      listResult([rental({ id: 'r-out', itemName: 'Lesa' })]),
     );
     show('rentals');
     await settle();
 
-    fireEvent.press(screen.getByRole('radio', { name: 'Nasiya' }));
-    await settle();
-
-    expect(screen.getByText('Stul')).toBeTruthy();
-    expect(screen.queryByText('Stol')).toBeNull();
-    expect(screen.queryByText('Lesa')).toBeNull();
-    // Serverga ham shu filtr ketadi.
-    expect(mockList).toHaveBeenCalledWith({ status: 'DEBT' });
+    expect(screen.queryByRole('radio', { name: 'Nasiya' })).toBeNull();
+    // Qolgan filtrlar joyida.
+    expect(screen.getByRole('radio', { name: 'Kechikkan' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Yopilgan' })).toBeTruthy();
   });
 
   it('soatlik ijarada soatlar ko\'rinadi', async () => {

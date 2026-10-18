@@ -106,18 +106,18 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
   const credit = unpaid > 0 === mine;
 
   /**
-   * Rang bosqichga qarab: kechikkan — qizil, NASIYA (buyum qaytgan, puli
-   * olinmagan) — sariq, yopilgan — kulrang. Nasiya kechikkandan alohida
-   * rangda: buyum endi omborda, faqat pul undirilishi kerak.
+   * Rang bosqichga qarab: kechikkan — qizil, yopilgan — kulrang,
+   * mijozda — yashil.
+   *
+   * NASIYA rangi olib tashlandi: u bosqich sifatida ham yo'q (izohi
+   * `rentalMath.rentalStage` da). Pul holati o'ng ustunda qoladi.
    */
   const statusTone =
     stage === 'OVERDUE'
       ? colors.negative
-      : stage === 'DEBT'
-        ? colors.secondary
-        : stage === 'CLOSED'
-          ? colors.textSecondary
-          : colors.positive;
+      : stage === 'CLOSED'
+        ? colors.textSecondary
+        : colors.positive;
 
   return (
     <Pressable
@@ -164,12 +164,6 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
             <View style={[styles.badge, { backgroundColor: colors.surfaceMuted }]}>
               <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
                 {t('rentals.returned')}
-              </Text>
-            </View>
-          ) : stage === 'DEBT' ? (
-            <View style={[styles.badge, { backgroundColor: `${colors.secondary}26` }]}>
-              <Text style={[styles.badgeText, { color: colors.secondary }]}>
-                {t('rentals.debtBadge')}
               </Text>
             </View>
           ) : late > 0 ? (

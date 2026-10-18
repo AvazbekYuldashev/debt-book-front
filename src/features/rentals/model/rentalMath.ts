@@ -350,16 +350,21 @@ export const unpaidAmount = (rental: RentalResponseDTO, now = nowString()): numb
   roundMoney(accruedAmount(rental, now) - toAmount(rental.paidAmount));
 
 /**
- * Hisob bosqichi: buyum qayerda VA puli olinganmi.
+ * Hisob bosqichi: buyum QAYERDA — mijozdami, kechikkanmi, qaytganmi.
  *
- * Buyum qaytgan, lekin puli to'liq olinmagan ijara — NASIYA (DEBT).
- * Ijarachi uchun bu alohida ro'yxat: buyum omborga qaytdi, endi faqat
- * pulni undirish qoldi.
+ * NASIYA (DEBT) bosqichi OLIB TASHLANDI. U "buyum qaytgan, lekin puli
+ * olinmagan" degani edi va `paidAmount` ga tayanardi — ilovada esa
+ * ijara to'lovi yozadigan yo'l qolmagan (`usePayRental` hech qayerda
+ * chaqirilmaydi). Natijada `paidAmount` doim 0 bo'lib qolar va har
+ * qaytgan ijara "Nasiya" bo'lib yopishib olardi, pul Qarzlar daftarida
+ * allaqachon to'langan bo'lsa ham.
+ *
+ * Pulning yagona joyi — QARZLAR bo'limi. Ijara buyum va muddatni
+ * kuzatadi.
  */
 export const rentalStage = (rental: RentalResponseDTO, now = nowString()): RentalStage => {
   const status = rentalStatus(rental, now);
-  if (status !== 'RETURNED') return status;
-  return unpaidAmount(rental, now) > 0 ? 'DEBT' : 'CLOSED';
+  return status === 'RETURNED' ? 'CLOSED' : status;
 };
 
 // ---------------------------------------------------------------- muddat
