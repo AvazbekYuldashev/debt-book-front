@@ -422,9 +422,12 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                     <Text style={styles.note}>{t('rentals.paymentWaitingHint')}</Text>
                   </View>
                 ) : null}
-                {/* MIJOZ o'z tasdiqlanmagan so'rovini qaytarib oladi.
-                    Aks holda noto'g'ri yozilgan so'rov do'kon javob
-                    bermaguncha osilib qolar va qarzda ko'rinib turardi. */}
+                {/* MIJOZ o'z buyurtmasini qaytarib oladi — unga hali
+                    hech narsa tegmagan bo'lsa (pul tushmagan, buyum
+                    qaytmagan). Buyurtma tasdiqsiz yaratilgani uchun
+                    xatoni tuzatadigan yagona yo'l shu; harakat
+                    boshlangach yozuv ikki tomonning ishi bo'ladi va
+                    server o'chirishni rad etadi. */}
                 {!mine && rental.canWithdraw ? (
                   <Button
                     title={t('rentals.withdraw')}

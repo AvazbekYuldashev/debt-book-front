@@ -593,12 +593,33 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         period: RentalPeriod;
       }[],
     ) => {
+      // `closeRequest` bayroqni tozalaydi — undan OLDIN o'qiymiz.
+      const cameFromMoney = rentInFromMoney;
       closeRequest();
       setRentalDrafts(
         picked.map((entry, index) => ({ id: `rent-${index}`, kind: rentKind, ...entry })),
       );
+      if (cameFromMoney) return;
+
+      /*
+       * IJARA SAHIFASIDAN kelgan tanlov ham pul oynasidan o'tadi.
+       *
+       * Ilgari bu yerda tanlov faqat `rentalDrafts` ga yig'ilar va oyna
+       * ochilmasdi: pul oynasidan kelmagan bo'lsa yozuv HECH QAYERGA
+       * saqlanmasdi — odam buyum tanlar, oyna yopilar, daftarda esa
+       * hech narsa paydo bo'lmasdi.
+       *
+       * Oyna ochilishi SHART: ijara summasi Qarzlar daftariga yozuv
+       * bo'lib tushishi kerak (balans faqat pul yozuvlaridan yig'iladi).
+       * Summani oynaning o'zi `rentInAmount` farqidan to'ldiradi.
+       *
+       * Yo'nalish tanlovdan chiqadi: ombor birovniki bo'lsa men OLDIM,
+       * o'zimniki bo'lsa BERDIM.
+       */
+      setActionType(rentKind === 'give' ? 'GIVE' : 'TAKE');
+      setModalVisible(true);
     },
-    [closeRequest, rentKind],
+    [closeRequest, rentKind, rentInFromMoney],
   );
 
   /** Bitta tanlovni olib tashlash — qolganlari joyida qoladi. */
