@@ -275,9 +275,15 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   );
 };
 
-const createStyles = ({ spacing, glass }: ThemeValue) =>
+const createStyles = ({ spacing, glass, radius, shadows }: ThemeValue) =>
   StyleSheet.create({
     listCard: {
+      ...glass.pane,
+      borderRadius: radius.xxl,
+      marginHorizontal: spacing.md,
+      marginBottom: spacing.md,
+      overflow: 'hidden',
+      ...shadows.card,
       paddingBottom: spacing.md,
     },
     // Qatorlar karta sirtida: ro'yxat tugagan joyda karta ham tugaydi.
