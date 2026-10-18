@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { FlatList, SectionList, StyleSheet, View } from 'react-native';
+import { FlatList, SectionList, StyleSheet, Text, View } from 'react-native';
 import EmptyState from '../../../shared/ui/EmptyState';
 import SectionHeader from '../../../shared/ui/SectionHeader';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
@@ -114,9 +114,11 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
    * bilan bir xil. Tekis ro'yxat o'nta buyumdan keyin o'qib bo'lmas
    * bo'lib qoladi: "stul qaysi biri edi" degan savol tug'iladi.
    */
+  const stockGroups = useMemo(() => groupRentalItems(items), [items]);
+
   const stockSections = useMemo<StockSection[]>(
     () =>
-      groupRentalItems(items).map((group) => ({
+      stockGroups.map((group) => ({
         key: `stock:${group.category ?? ''}`,
         title: group.category ?? t('rentals.noCategory'),
         data: group.items.map((item, itemIndex) => ({
@@ -124,8 +126,17 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
           isLast: itemIndex === group.items.length - 1,
         })),
       })),
-    [items, t],
+    [stockGroups, t],
   );
+
+  /**
+   * Bitta guruh va u kategoriyasiz bo'lsa — sarlavha chizilmaydi.
+   *
+   * "Kategoriyasiz" degan yolg'iz sarlavha hech qanday ma'lumot bermaydi:
+   * u faqat BOSHQA guruhlardan ajratish uchun kerak. Qoida Ijara
+   * bo'limidagi ombor ro'yxati bilan bir xil.
+   */
+  const showStockHeaders = stockGroups.length > 1 || Boolean(stockGroups[0]?.category);
 
   /**
    * Amal tugmasi IKKALA tomonda ham bor — faqat nomi teskari.
@@ -164,37 +175,42 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
      * ScrollView gorizontal, ya'ni vertikal surilmaydi.
      */
     return (
-      <FlatList
-        data={rentals}
-        keyExtractor={(rental) => rental.id}
-        // Tugma ro'yxat BILAN birga suriladi: ekran tepasiga yopishib
-        // turgan tugma uzun ro'yxatda joyni yeb qo'yardi.
-        ListHeaderComponent={
-          canAct ? (
-            <SectionHeader
-              icon="cube"
-              iconBadge={false}
-              title={clientMode ? t('rentals.atMe') : t('rentals.atThisClient')}
-              actionLabel={actionLabel}
-              actionIcon="add"
-              actionVariant="solid"
-              onAction={() => onGiveOut(null)}
-            />
-          ) : null
-        }
-        renderItem={({ item: rental, index }) => (
-          <View style={styles.rowSlice}>
+      <View style={styles.page}>
+        {/*
+          Sarlavha KARTADAN TASHQARIDA turadi.
+          Uning tabletkasi (`glass.surface`) fon rasmida o'qilishi uchun
+          qo'yilgan va karta sirtida u ikkinchi, ortiqcha sirt bo'lib
+          ko'rinardi - "karta ichida karta". Mahsulotlar va Tarix
+          sahifalarida ham sarlavha kartadan tashqarida.
+        */}
+        {canAct ? (
+          <SectionHeader
+            icon="cube"
+            iconBadge={false}
+            title={clientMode ? t('rentals.atMe') : t('rentals.atThisClient')}
+            actionLabel={actionLabel}
+            actionIcon="add"
+            actionVariant="solid"
+            onAction={() => onGiveOut(null)}
+          />
+        ) : null}
+        <FlatList
+          data={rentals}
+          keyExtractor={(rental) => rental.id}
+          // Qator KARTA SIRTIDA: o'z foni va yon bo'shlig'i yo'q - aks
+          // holda karta ichida ikkinchi karta bo'lib ko'rinardi.
+          renderItem={({ item: rental, index }) => (
             <RentalRow
               item={rental}
               isLast={index === rentals.length - 1}
               showClient={false}
               onPress={onOpenRental}
             />
-          </View>
-        )}
-        contentContainerStyle={styles.listCard}
-        showsVerticalScrollIndicator={false}
-      />
+          )}
+          contentContainerStyle={styles.listCard}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
     );
   }, [loading, rentals, clientMode, canAct, actionLabel, styles, onGiveOut, onOpenRental, t]);
 
@@ -221,30 +237,40 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
         sections={stockSections}
         keyExtractor={(row) => row.item.id}
         renderItem={({ item: row }) => (
-          <View style={styles.rowSlice}>
-            <RentalItemRow
-              item={row.item}
-              isLast={row.isLast}
-              // Mijoz rejimida yozish huquqi biznesga emas, o'ziga tegishli:
-              // u do'kondan olish uchun so'rov yuboradi, ombor esa
-              // tasdiqlanmaguncha o'zgarmaydi.
-              onPress={clientMode || allowWrite ? onGiveOut : undefined}
-            />
-          </View>
-        )}
-        renderSectionHeader={({ section }) => (
-          <SectionHeader
-            icon="albums"
-            iconBadge={false}
-            title={(section as StockSection).title}
+          <RentalItemRow
+            item={row.item}
+            isLast={row.isLast}
+            // Mijoz rejimida yozish huquqi biznesga emas, o'ziga tegishli:
+            // u do'kondan olish uchun so'rov yuboradi, ombor esa
+            // tasdiqlanmaguncha o'zgarmaydi.
+            onPress={clientMode || allowWrite ? onGiveOut : undefined}
           />
         )}
+        /*
+         * Kategoriya sarlavhasi KARTA ICHIDA, oddiy matn bo'lib turadi —
+         * Mahsulotlar sahifasidagi aynan o'sha ko'rinish. Tabletkali
+         * `SectionHeader` bu yerda kartaning o'z sirtida ikkinchi sirt
+         * bo'lib ko'rinardi.
+         *
+         * Chiziq sarlavha USTIDA: u kategoriyalarni ajratadi, qatorlar
+         * orasidagi ingichka chiziqlar esa kategoriya ichida qoladi.
+         */
+        renderSectionHeader={({ section }) => {
+          if (!showStockHeaders) return null;
+          const isFirst = stockSections[0]?.key === (section as StockSection).key;
+          return (
+            <View style={[styles.sectionHeader, !isFirst && styles.sectionDivider]}>
+              <Text style={styles.sectionTitle}>{(section as StockSection).title}</Text>
+              <Text style={styles.sectionCount}>{(section as StockSection).data.length}</Text>
+            </View>
+          );
+        }}
         stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.listCard}
         showsVerticalScrollIndicator={false}
       />
     );
-  }, [loading, stockSections, clientMode, allowWrite, onAddItem, onGiveOut, styles, t]);
+  }, [loading, stockSections, showStockHeaders, clientMode, allowWrite, onAddItem, onGiveOut, styles, t]);
 
   /**
    * Sahifa nomlari TOMONGA qarab: mijozga "Mendagi buyumlar" va
@@ -275,8 +301,15 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   );
 };
 
-const createStyles = ({ spacing, glass, radius, shadows }: ThemeValue) =>
+// Karta ko'rinishi Mahsulotlar va Tarix sahifalari bilan AYNAN bir xil:
+// uchalasi bitta sahifalagichda yonma-yon turadi va biri boshqasiga
+// o'xshamasa, surilish "sakrash" bo'lib ko'rinardi.
+const createStyles = ({ colors, spacing, glass, radius, shadows, typography }: ThemeValue) =>
   StyleSheet.create({
+    // Sarlavha karta USTIDA turadi, shuning uchun sahifa ustun bo'ladi.
+    page: {
+      flex: 1,
+    },
     listCard: {
       ...glass.pane,
       borderRadius: radius.xxl,
@@ -284,12 +317,37 @@ const createStyles = ({ spacing, glass, radius, shadows }: ThemeValue) =>
       marginBottom: spacing.md,
       overflow: 'hidden',
       ...shadows.card,
-      paddingBottom: spacing.md,
     },
-    // Qatorlar karta sirtida: ro'yxat tugagan joyda karta ham tugaydi.
-    rowSlice: {
-      backgroundColor: glass.surface.backgroundColor,
-      marginHorizontal: spacing.md,
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.xxs,
+    },
+    // Kategoriyalar orasidagi ajratgich — qator chiziqlaridan QALINROQ,
+    // shunda "bo'lim tugadi" va "keyingi buyum" farqlanadi.
+    sectionDivider: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      marginTop: spacing.sm,
+      paddingTop: spacing.md,
+    },
+    sectionTitle: {
+      ...typography.caption,
+      fontSize: 13,
+      fontWeight: '700',
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
+      color: colors.textSecondary,
+      flexShrink: 1,
+    },
+    sectionCount: {
+      ...typography.caption,
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textSecondary,
     },
   });
 
