@@ -3,70 +3,61 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
-import { useI18n } from '../../../shared/i18n';
 import { formatMoney } from '../../../shared/lib/money';
-import { normalizeCurrency, parseCurrencyAmounts } from '../../../shared/lib/currency';
-import type { RentalSummaryDTO } from '../types/rental';
+import { normalizeCurrency } from '../../../shared/lib/currency';
 
 interface RentalSummaryCardProps {
-  summary?: RentalSummaryDTO | null;
   loading?: boolean;
-  /** Tanlangan filtr nomi — sanoq ustunining sarlavhasi shu. */
+  /** Sanoq ustunining sarlavhasi — tanlangan filtr yoki "Omborda". */
   countLabel: string;
+  countValue: string;
+  /** Ikonka: ijara ro'yxatida quti, omborda javon. */
+  countIcon?: keyof typeof Ionicons.glyphMap;
+  moneyLabel: string;
+  /** Valyuta → summa. Bo'sh bo'lsa `moneyEmpty` chiqadi. */
+  moneyEntries: [string, number][];
+  moneyEmpty: string;
 }
 
 /**
- * Ijara bo'limining yuqori paneli — TANLANGAN RO'YXAT haqida ikki
- * raqam: nechta yozuv bor va ular qancha haq yig'gan.
+ * Ijara bo'limining yuqori paneli — ikki raqam: nechta va qancha pul.
  *
- * SANOQ USTUNI tanlangan filtr bilan nomlanadi. Ilgari bu yerda ikkita
- * qat'iy ustun turardi ("Ijarada" va "Kechikkan") va panel filtrga
- * ergashgach ular ma'nosini yo'qotdi: "Yopilgan" tanlanganda ikkalasi
- * ham tuzilish jihatidan DOIM nol bo'lardi — qaytgan ijara na mijozda,
- * na kechikkan bo'ladi.
+ * MAZMUNI CHAQIRUVCHIDAN keladi, chunki ekranning ikki bo'limi ikki xil
+ * savolga javob beradi:
  *
- * PUL "yig'ilgan ijara haqi" deb ataladi, "olinmagan pul" emas.
- * Olinmagan pulni aytish uchun qancha to'langanini bilish kerak, ilova
- * esa ijara to'lovini yozmaydi — pul Qarzlar daftarida yuradi. Eski nom
- * qaytgan ijaralarda qizil "olinmagan 100 000" bo'lib chiqar va nasiya
- * boshqa nom bilan qaytib kelgandek bo'lardi.
+ *   IJARALAR — tanlangan ro'yxatda nechta yozuv bor va ular qancha haq
+ *              yig'gan;
+ *   OMBOR    — nechta buyum bor va ular bir kunda qancha topadi.
+ *
+ * Ilgari karta faqat ijara panelini bilardi va Ombor ochiq turganda ham
+ * o'sha ijara raqamlari qolib ketardi — ya'ni ekranning yarmida panel
+ * ko'rilayotgan narsaga umuman aloqasi yo'q edi.
  *
  * Valyutalar ALOHIDA qator bo'lib turadi, chunki so'm bilan dollarni
  * qo'shib bo'lmaydi (gap kassadagi qoida bilan bir xil).
  */
 const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({
-  summary,
   loading = false,
   countLabel,
+  countValue,
+  countIcon = 'cube-outline',
+  moneyLabel,
+  moneyEntries,
+  moneyEmpty,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
-  const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  /*
-   * YIG'ILGAN haq, olinmagan pul emas.
-   *
-   * `unpaidByCurrency` "yig'ilgan − to'langan" degani, to'langan esa
-   * ijara yozuvida hech qachon yangilanmaydi (pul Qarzlar daftarida).
-   * Ya'ni u amalda yig'ilganning o'zi edi, lekin nomi boshqa narsani
-   * va'da qilardi.
-   */
-  const money = useMemo(
-    () => Object.entries(parseCurrencyAmounts(summary?.accruedByCurrency)),
-    [summary?.accruedByCurrency],
-  );
-
-  const matched = summary?.matchedCount ?? 0;
   const dash = loading ? '—' : null;
 
   return (
     <View style={styles.card}>
       <View style={styles.counts}>
         <Count
-          icon="cube-outline"
+          icon={countIcon}
           label={countLabel}
-          value={dash ?? String(matched)}
+          value={dash ?? countValue}
           styles={styles}
           colors={colors}
         />
@@ -74,9 +65,9 @@ const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({
 
       <View style={styles.moneyRow}>
         <MoneyBlock
-          label={t('rentals.accruedTotal')}
-          entries={money}
-          empty={dash ?? t('rentals.noAccrued')}
+          label={moneyLabel}
+          entries={moneyEntries}
+          empty={dash ?? moneyEmpty}
           tone={colors.textPrimary}
           styles={styles}
         />

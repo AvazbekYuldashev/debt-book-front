@@ -36,6 +36,8 @@ import {
 } from '../../expenses/services/categoryService';
 import type { CategoryResponseDTO } from '../../expenses/types/category';
 import { confirmAction } from '../../../shared/lib/confirm';
+import { parseCurrencyAmounts } from '../../../shared/lib/currency';
+import { formatQuantity } from '../../../shared/lib/quantity';
 import type { RentalFilterStatus, RentalResponseDTO, RentalStage } from '../types/rental';
 import type { RentalItemResponseDTO } from '../types/rentalItem';
 
@@ -192,6 +194,14 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
     [statusOptions, status],
   );
 
+  const accruedEntries = useMemo(
+    () =>
+      Object.entries(parseCurrencyAmounts(summaryQuery.data?.accruedByCurrency)).filter(
+        ([, amount]) => (amount ?? 0) > 0,
+      ) as [string, number][],
+    [summaryQuery.data?.accruedByCurrency],
+  );
+
   /**
    * Ijaralar: kechikkanlar yuqorida, keyin mijozdagilar, yopilgan.
    *
@@ -317,6 +327,40 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
     });
     return entries;
   }, [allItems, needle, activeCategory, t]);
+
+  /**
+   * OMBOR PANELI: nechta buyum bor va ular BIR KUNDA qancha topadi.
+   *
+   * Hisob KO'RINIB TURGAN buyumlardan — kategoriya va qidiruv
+   * qo'llanganidan keyin. Panel ro'yxat bilan bitta narsani ko'rsatishi
+   * kerak (ijaralar tomonidagi qoidaning o'zi).
+   *
+   * "Bir kunda" soatlik buyumga ham tegishli: ilovaning hisobi bir
+   * kunni 24 soat deb o'lchaydi (`billedUnitsBetween`), shuning uchun
+   * soatlik narx 24 ga ko'paytiriladi — aks holda soatlik ombor
+   * daromadsiz ko'rinardi.
+   *
+   * Miqdor TURLI birlikda bo'lishi mumkin (dona, m²) — ular bitta
+   * songa qo'shiladi va bu TAXMINIY ko'rsatkich. Valyuta esa
+   * qo'shilmaydi: har biri alohida qator.
+   */
+  const stockTotals = useMemo(() => {
+    let quantity = 0;
+    const byCurrency: Record<string, number> = {};
+    for (const entry of stockEntries) {
+      if (entry.kind !== 'item') continue;
+      const item = entry.item;
+      const count = Number(item.totalQuantity) || 0;
+      quantity += count;
+      const perDay = (Number(item.price) || 0) * (item.period === 'HOUR' ? 24 : 1);
+      const code = item.currency ?? 'UZS';
+      byCurrency[code] = (byCurrency[code] ?? 0) + perDay * count;
+    }
+    return {
+      quantity,
+      entries: Object.entries(byCurrency).filter(([, amount]) => amount > 0) as [string, number][],
+    };
+  }, [stockEntries]);
 
   // ---- Ijara amallari ----
 
@@ -525,11 +569,26 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
         </View>
 
         <View style={styles.headerBody}>
-          <RentalSummaryCard
-            summary={summaryQuery.data}
-            loading={summaryQuery.isLoading}
-            countLabel={countLabel}
-          />
+          {tab === 'stock' ? (
+            <RentalSummaryCard
+              loading={itemsQuery.isLoading}
+              countIcon="albums-outline"
+              countLabel={t('rentals.stockCount')}
+              countValue={formatQuantity(stockTotals.quantity)}
+              moneyLabel={t('rentals.dailyRevenue')}
+              moneyEntries={stockTotals.entries}
+              moneyEmpty={t('rentals.noDailyRevenue')}
+            />
+          ) : (
+            <RentalSummaryCard
+              loading={summaryQuery.isLoading}
+              countLabel={countLabel}
+              countValue={String(summaryQuery.data?.matchedCount ?? 0)}
+              moneyLabel={t('rentals.accruedTotal')}
+              moneyEntries={accruedEntries}
+              moneyEmpty={t('rentals.noAccrued')}
+            />
+          )}
 
           <ChipSelector options={tabOptions} value={tab} onChange={setTab} layout="fluid" />
 

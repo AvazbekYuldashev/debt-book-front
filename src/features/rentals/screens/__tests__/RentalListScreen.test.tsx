@@ -516,3 +516,66 @@ describe("RentalListScreen — 'Hammasi' filtri", () => {
     expect(mockSummary).toHaveBeenCalledWith({});
   });
 });
+
+/**
+ * OMBOR paneli ijara panelidan boshqa savolga javob beradi.
+ *
+ * Ilgari karta faqat ijara raqamlarini bilardi va Ombor ochiq turganda
+ * ham o'shalar qolib ketardi — panel ko'rilayotgan narsaga aloqasiz edi.
+ */
+describe('RentalListScreen — ombor paneli', () => {
+  it("nechta buyum borligi va ularning kunlik daromadi ko'rinadi", async () => {
+    mockItems.mockReturnValue({
+      // `busyQuantity` ataylab nolmas: aks holda qatordagi "bo'sh 50"
+      // paneldagi 50 bilan bir xil matn bo'lib, test qaysi birini
+      // topganini ayta olmasdi.
+      data: [stockItem({ price: 25000, totalQuantity: 50, busyQuantity: 2 })],
+      isLoading: false,
+      isRefetching: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+    show();
+    await settle();
+
+    expect(screen.getByText('Omborda')).toBeTruthy();
+    expect(screen.getByText('50')).toBeTruthy();
+    expect(screen.getByText("Kunlik to'liq daromad")).toBeTruthy();
+    // 50 dona × 25 000 = 1 250 000.
+    expect(screen.getByText(/1 250 000/)).toBeTruthy();
+  });
+
+  /**
+   * Soatlik buyum ham kunlik daromadga kiradi: ilovaning hisobi bir
+   * kunni 24 soat deb o'lchaydi, shuning uchun soatlik narx 24 ga
+   * ko'paytiriladi.
+   */
+  it("soatlik buyum 24 soat bo'yicha sanaladi", async () => {
+    mockItems.mockReturnValue({
+      data: [stockItem({ period: 'HOUR', price: 1000, totalQuantity: 2 })],
+      isLoading: false,
+      isRefetching: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+    show();
+    await settle();
+
+    // 2 dona × 1 000 × 24 soat = 48 000.
+    expect(screen.getByText(/48 000/)).toBeTruthy();
+  });
+
+  it("ijaralar bo'limida panel yana ijara raqamlariga qaytadi", async () => {
+    mockSummary.mockReturnValue({
+      data: { activeCount: 0, overdueCount: 0, matchedCount: 7, accruedByCurrency: { UZS: 90000 } },
+      isLoading: false,
+      refetch: jest.fn(),
+    });
+    show('rentals');
+    await settle();
+
+    expect(screen.queryByText('Omborda')).toBeNull();
+    expect(screen.getByText("Yig'ilgan ijara haqi")).toBeTruthy();
+    expect(screen.getByText('7')).toBeTruthy();
+  });
+});
