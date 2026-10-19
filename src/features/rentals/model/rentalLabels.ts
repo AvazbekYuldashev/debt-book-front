@@ -35,3 +35,14 @@ export const quantityLabel = (
 /** "3 kun kechikdi" yoki "2 soat kechikdi". */
 export const lateLabel = (t: TranslateFn, period: RentalPeriod, count: number): string =>
   t(period === 'HOUR' ? 'rentals.lateByHours' : 'rentals.lateByDays', { count: String(count) });
+
+/**
+ * "5 kundan oshdi" yoki "7 soatdan oshdi" — MUDDATSIZ ijara uchun.
+ *
+ * `lateLabel` dan farqi bor va u ataylab: muddatsiz ijarada kelishilgan
+ * sana yo'q, demak "kechikdi" deb bo'lmaydi. Lekin buyum odamda turgan
+ * vaqt baribir ko'rinishi kerak — aks holda u oylab yotib, hech qayerda
+ * belgi chiqmasdi.
+ */
+export const elapsedLabel = (t: TranslateFn, period: RentalPeriod, count: number): string =>
+  t(period === 'HOUR' ? 'rentals.elapsedHours' : 'rentals.elapsedDays', { count: String(count) });

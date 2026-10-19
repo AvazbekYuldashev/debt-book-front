@@ -20,7 +20,13 @@ import {
   totalQuantity,
   unpaidAmount,
 } from '../model/rentalMath';
-import { lateLabel, unitCountLabel, unitLabel } from '../model/rentalLabels';
+import {
+  elapsedLabel,
+  lateLabel,
+  perPeriodLabel,
+  unitCountLabel,
+  unitLabel,
+} from '../model/rentalLabels';
 
 interface RentalRowProps {
   item: RentalResponseDTO;
@@ -172,16 +178,35 @@ const RentalRow: React.FC<RentalRowProps> = ({ item, isLast = false, showClient 
                 {lateLabel(t, period, late)}
               </Text>
             </View>
+          ) : isOpenEnded(item) ? (
+            /*
+             * MUDDATSIZ ijara: sana o'rniga O'TGAN VAQT va narx.
+             *
+             * Ilgari bu yerda "Muddat belgilanmagan" turardi — u rost,
+             * lekin hech narsa aytmasdi: buyum bir kundan beri
+             * mijozdami yoki olti oydanmi, qator bir xil ko'rinardi va
+             * hech qayerda belgi chiqmasdi (kelishilgan muddat yo'q,
+             * demak "kechikdi" ham bo'lmaydi).
+             *
+             * Narx ham shu yerda: qatorning o'ng tomonida JAMI summa
+             * turadi, birlik narxi esa umuman ko'rinmasdi — "25 000
+             * so'm kuniga" bo'lmasa, "5 kundan oshdi" raqami nimadan
+             * kelganini tushunib bo'lmasdi.
+             *
+             * Rang OGOHLANTIRUVCHI emas, XABAR beruvchi: kechikish
+             * yo'q, shunchaki diqqatga olinadigan ma'lumot.
+             */
+            <View style={[styles.badge, { backgroundColor: colors.infoSoft }]}>
+              <Text style={[styles.badgeText, { color: colors.info }]}>
+                {`${elapsedLabel(t, period, units)} · ${formatMoney(item.price, item.currency)} ${perPeriodLabel(t, period)}`}
+              </Text>
+            </View>
           ) : (
             <View style={[styles.badge, { backgroundColor: colors.positiveSoft }]}>
               <Text style={[styles.badgeText, { color: colors.positive }]}>
-                {/* Muddatsiz ijarada sana ko'rsatilmaydi: u kelishuv
-                    emas va "shu kungacha" deb o'qilib yolg'on bo'lardi. */}
-                {isOpenEnded(item)
-                  ? t('rentals.openEnded')
-                  : t('rentals.dueOn', {
-                      date: formatMoment(item.dueDate, period === 'HOUR' ? item.dueTime : null),
-                    })}
+                {t('rentals.dueOn', {
+                  date: formatMoment(item.dueDate, period === 'HOUR' ? item.dueTime : null),
+                })}
               </Text>
             </View>
           )}

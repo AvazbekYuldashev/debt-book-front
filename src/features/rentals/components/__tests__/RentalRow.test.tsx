@@ -118,9 +118,34 @@ describe('ijara qatori — qoldiq ustuni', () => {
     expect(screen.getByText('Qarz')).toBeTruthy();
   });
 
-  it('muddatsiz ijarada sana emas, "Muddat belgilanmagan" turadi', async () => {
+  /**
+   * MUDDATSIZ ijara: "belgilanmagan" o'rniga O'TGAN VAQT va NARX.
+   *
+   * Eski matn rost edi, lekin hech narsa aytmasdi: buyum bir kundan
+   * beri mijozdami yoki olti oydanmi, qator bir xil ko'rinardi va
+   * ogohlantiradigan belgi ham yo'q edi (kelishilgan muddat
+   * bo'lmagani uchun "kechikdi" hech qachon chiqmaydi).
+   */
+  it("muddatsiz ijarada o'tgan kun va kunlik narx turadi", async () => {
+    // Bugun boshlangan: 1 kun.
     await show(rental({ openEnded: true }));
 
-    expect(screen.getByText('Muddat belgilanmagan')).toBeTruthy();
+    expect(screen.getByText("1 kundan oshdi · 23 333 so'm kuniga")).toBeTruthy();
+    expect(screen.queryByText('Muddat belgilanmagan')).toBeNull();
+  });
+
+  it('muddatsiz ijara KECHIKKAN deb belgilanmaydi', async () => {
+    // Muddat sanasi ortda, lekin u kelishilmagan — kechikish yo'q.
+    await show(rental({ openEnded: true, startDate: iso(-5), dueDate: iso(-4) }));
+
+    expect(screen.getByText("5 kundan oshdi · 23 333 so'm kuniga")).toBeTruthy();
+    expect(screen.queryByText(/kechikdi/)).toBeNull();
+  });
+
+  it('muddat belgilangan ijarada avvalgidek SANA turadi', async () => {
+    await show(rental());
+
+    expect(screen.getByText(`${iso(1)} gacha`)).toBeTruthy();
+    expect(screen.queryByText(/oshdi/)).toBeNull();
   });
 });

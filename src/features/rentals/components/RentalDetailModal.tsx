@@ -46,7 +46,13 @@ import {
   todayString,
   totalQuantity,
 } from '../model/rentalMath';
-import { lateLabel, perPeriodLabel, quantityLabel, unitCountLabel } from '../model/rentalLabels';
+import {
+  elapsedLabel,
+  lateLabel,
+  perPeriodLabel,
+  quantityLabel,
+  unitCountLabel,
+} from '../model/rentalLabels';
 import { toAmount, type RentalResponseDTO } from '../types/rental';
 
 interface RentalDetailModalProps {
@@ -238,8 +244,11 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
       ? t('rentals.returnedOn', { date: returnedOn })
       : late > 0
         ? lateLabel(t, period, late)
+        // Muddatsizda sana yo'q, lekin O'TGAN VAQT bor — "belgilanmagan"
+        // so'zi buyum bir kundan beri turganini ham, olti oydan beri
+        // turganini ham bir xil ko'rsatardi.
         : isOpenEnded(rental)
-          ? t('rentals.openEnded')
+          ? elapsedLabel(t, period, units)
           : t('rentals.dueOn', { date: formatMoment(rental.dueDate, hourly ? rental.dueTime : null) });
 
   return (
