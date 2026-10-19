@@ -679,7 +679,25 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       gap: spacing.xs,
       marginTop: spacing.sm,
     },
+    /**
+     * IKKI USTUNLI to'r — har tugma qatorning yarmini oladi.
+     *
+     * Ilgari tugma kengligi MATNGA qarab edi va to'rttasi "10 000 /
+     * 25 000 / 50 000" + yolg'iz "100 000" bo'lib sinardi: uchta kichik
+     * tugma yonma-yon, to'rtinchisi pastda yetim qolardi.
+     *
+     * `flexBasis: 48%` ikkitadan ko'pini bir qatorga sig'dirmaydi
+     * (48 × 3 > 100), `flexGrow` esa qolgan bo'shliqni teng bo'lib
+     * beradi — tugmalar bir xil o'lchamda chiqadi. Soni toq bo'lsa
+     * oxirgisi butun qatorni egallaydi, ya'ni baribir yetim ko'rinmaydi.
+     */
     amount: {
+      flexBasis: '48%',
+      flexGrow: 1,
+      minWidth: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 44,
       paddingVertical: spacing.xs,
       paddingHorizontal: spacing.sm,
       borderRadius: radius.md,
@@ -692,7 +710,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     amountText: {
       ...typography.body,
+      fontWeight: '700',
       color: colors.textPrimary,
+      textAlign: 'center',
     },
     payError: {
       ...typography.caption,
