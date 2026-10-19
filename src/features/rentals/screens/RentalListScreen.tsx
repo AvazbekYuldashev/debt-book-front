@@ -180,8 +180,15 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
     [t],
   );
 
+  // Paneldagi sanoq ustuni TANLANGAN filtr bilan nomlanadi — izohi
+  // `RentalSummaryCard` da.
+  const countLabel = useMemo(
+    () => statusOptions.find((option) => option.value === status)?.label ?? '',
+    [statusOptions, status],
+  );
+
   /**
-   * Ijaralar: kechikkanlar yuqorida, keyin mijozdagilar, nasiya, yopilgan.
+   * Ijaralar: kechikkanlar yuqorida, keyin mijozdagilar, yopilgan.
    *
    * Tartib va filtr SERVERGA tashlab qo'yilmaydi: bosqich "hozir"ga
    * bog'liq va u telefonning soati — server kechagi holatni yuborishi
@@ -513,7 +520,11 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
         </View>
 
         <View style={styles.headerBody}>
-          <RentalSummaryCard summary={summaryQuery.data} loading={summaryQuery.isLoading} />
+          <RentalSummaryCard
+            summary={summaryQuery.data}
+            loading={summaryQuery.isLoading}
+            countLabel={countLabel}
+          />
 
           <ChipSelector options={tabOptions} value={tab} onChange={setTab} layout="fluid" />
 

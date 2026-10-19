@@ -11,44 +11,53 @@ import type { RentalSummaryDTO } from '../types/rental';
 interface RentalSummaryCardProps {
   summary?: RentalSummaryDTO | null;
   loading?: boolean;
+  /** Tanlangan filtr nomi — sanoq ustunining sarlavhasi shu. */
+  countLabel: string;
 }
 
 /**
- * Ijara bo'limining yuqori paneli — ijarachining ikki savoliga javob:
+ * Ijara bo'limining yuqori paneli — TANLANGAN RO'YXAT haqida ikki
+ * raqam: nechta yozuv bor va ular qancha haq yig'gan.
  *
- *   1. Nechta ijara ochiq va qanchasi kechikkan?
- *   2. Mijozlardagi buyumlardan qancha pul OLINISHI KERAK?
+ * SANOQ USTUNI tanlangan filtr bilan nomlanadi. Ilgari bu yerda ikkita
+ * qat'iy ustun turardi ("Ijarada" va "Kechikkan") va panel filtrga
+ * ergashgach ular ma'nosini yo'qotdi: "Yopilgan" tanlanganda ikkalasi
+ * ham tuzilish jihatidan DOIM nol bo'lardi — qaytgan ijara na mijozda,
+ * na kechikkan bo'ladi.
  *
- * NASIYA ustuni va "Nasiyadagi pul" OLIB TASHLANDI. Ular "buyum
- * qaytgan, puli olinmagan" degan bosqichga tayanardi, u esa endi yo'q
- * (izohi `rentalMath.rentalStage` da): ilovada ijara to'lovini
- * yozadigan yo'l qolmagani uchun har qaytgan ijara nasiya bo'lib
- * ko'rinardi.
+ * PUL "yig'ilgan ijara haqi" deb ataladi, "olinmagan pul" emas.
+ * Olinmagan pulni aytish uchun qancha to'langanini bilish kerak, ilova
+ * esa ijara to'lovini yozmaydi — pul Qarzlar daftarida yuradi. Eski nom
+ * qaytgan ijaralarda qizil "olinmagan 100 000" bo'lib chiqar va nasiya
+ * boshqa nom bilan qaytib kelgandek bo'lardi.
  *
  * Valyutalar ALOHIDA qator bo'lib turadi, chunki so'm bilan dollarni
  * qo'shib bo'lmaydi (gap kassadagi qoida bilan bir xil).
  */
-const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({ summary, loading = false }) => {
+const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({
+  summary,
+  loading = false,
+  countLabel,
+}) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   /*
-   * Olinishi kerak bo'lgan pul YAGONA raqam.
+   * YIG'ILGAN haq, olinmagan pul emas.
    *
-   * Ilgari u ikkiga bo'linardi: mijozdagilar va nasiya. Nasiya
-   * yo'qolgach bo'linishning ma'nosi qolmadi — `unpaidByCurrency`
-   * ikkalasini ham o'z ichiga oladi.
+   * `unpaidByCurrency` "yig'ilgan − to'langan" degani, to'langan esa
+   * ijara yozuvida hech qachon yangilanmaydi (pul Qarzlar daftarida).
+   * Ya'ni u amalda yig'ilganning o'zi edi, lekin nomi boshqa narsani
+   * va'da qilardi.
    */
-  const outMoney = useMemo(
-    () => Object.entries(parseCurrencyAmounts(summary?.unpaidByCurrency)),
-    [summary?.unpaidByCurrency],
+  const money = useMemo(
+    () => Object.entries(parseCurrencyAmounts(summary?.accruedByCurrency)),
+    [summary?.accruedByCurrency],
   );
 
-  const active = summary?.activeCount ?? 0;
-  const overdue = summary?.overdueCount ?? 0;
-
+  const matched = summary?.matchedCount ?? 0;
   const dash = loading ? '—' : null;
 
   return (
@@ -56,17 +65,8 @@ const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({ summary, loading 
       <View style={styles.counts}>
         <Count
           icon="cube-outline"
-          label={t('rentals.outCount')}
-          value={dash ?? String(active)}
-          styles={styles}
-          colors={colors}
-        />
-        <View style={styles.divider} />
-        <Count
-          icon="alert-circle-outline"
-          label={t('rentals.overdueCount')}
-          value={dash ?? String(overdue)}
-          tone={overdue > 0 ? colors.negative : undefined}
+          label={countLabel}
+          value={dash ?? String(matched)}
           styles={styles}
           colors={colors}
         />
@@ -74,10 +74,10 @@ const RentalSummaryCard: React.FC<RentalSummaryCardProps> = ({ summary, loading 
 
       <View style={styles.moneyRow}>
         <MoneyBlock
-          label={t('rentals.unpaidTotal')}
-          entries={outMoney}
-          empty={dash ?? t('rentals.allCollected')}
-          tone={colors.negative}
+          label={t('rentals.accruedTotal')}
+          entries={money}
+          empty={dash ?? t('rentals.noAccrued')}
+          tone={colors.textPrimary}
           styles={styles}
         />
       </View>

@@ -282,6 +282,15 @@ export interface RentalPaymentDTO {
  * (gap kassadagi kabi — so'm bilan dollarni jamlab bo'lmaydi).
  */
 export interface RentalSummaryDTO {
+  /**
+   * TANLANGAN FILTRGA tushgan yozuvlar soni — panel shuni ko'rsatadi.
+   *
+   * `activeCount` dan farqi: u "mijozda turganlar"ni sanaydi va
+   * "Yopilgan" tanlanganda doim nol bo'lardi.
+   *
+   * Eski server bu maydonni yubormaydi — u holda nol ko'rinadi.
+   */
+  matchedCount?: number | null;
   /** Buyumi mijozda turgan ijaralar soni. */
   activeCount: number;
   /** Muddati o'tganlar soni — ekranda qizil raqam. */

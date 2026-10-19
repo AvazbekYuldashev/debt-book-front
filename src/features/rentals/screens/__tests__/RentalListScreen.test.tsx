@@ -420,3 +420,49 @@ describe('RentalListScreen — ijaralar', () => {
     expect(screen.getByText('4 soat')).toBeTruthy();
   });
 });
+/**
+ * Panel TANLANGAN ro'yxat haqida gapiradi.
+ *
+ * Ilgari u ikkita qat'iy ustun ("Ijarada" va "Kechikkan") ko'rsatardi va
+ * panel filtrga ergashgach ular ma'nosini yo'qotdi: "Yopilgan"da
+ * ikkalasi ham tuzilish jihatidan doim nol bo'lardi.
+ */
+describe('RentalListScreen — yuqoridagi panel', () => {
+  it('sanoq ustuni tanlangan filtr bilan nomlanadi', async () => {
+    mockSummary.mockReturnValue({
+      data: { activeCount: 0, overdueCount: 0, matchedCount: 3, accruedByCurrency: { UZS: 100000 } },
+      isLoading: false,
+      refetch: jest.fn(),
+    });
+    show('rentals');
+    await settle();
+
+    // Odatiy filtr — "Mijozda": sarlavha ham, soni ham shu ro'yxatniki.
+    expect(screen.getAllByText('Mijozda').length).toBeGreaterThan(0);
+    expect(screen.getByText('3')).toBeTruthy();
+  });
+
+  it("pul 'yig'ilgan ijara haqi' deb ataladi, olinmagan pul emas", async () => {
+    mockSummary.mockReturnValue({
+      data: { activeCount: 0, overdueCount: 0, matchedCount: 1, accruedByCurrency: { UZS: 100000 } },
+      isLoading: false,
+      refetch: jest.fn(),
+    });
+    show('rentals');
+    await settle();
+
+    expect(screen.getByText("Yig'ilgan ijara haqi")).toBeTruthy();
+    expect(screen.queryByText('Olinmagan pul')).toBeNull();
+    expect(screen.getByText(/100 000/)).toBeTruthy();
+  });
+
+  it('filtr almashsa panelga ham shu filtr yuboriladi', async () => {
+    show('rentals');
+    await settle();
+
+    fireEvent.press(screen.getByRole('radio', { name: 'Yopilgan' }));
+    await settle();
+
+    expect(mockSummary).toHaveBeenCalledWith({ status: 'CLOSED' });
+  });
+});
