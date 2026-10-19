@@ -374,3 +374,67 @@ describe('rentalStage', () => {
     expect(rentalStage(item, '2026-10-12')).toBe('CLOSED');
   });
 });
+
+/**
+ * MUDDATDAN KEYIN HAM har kun ODDIY narxda qo'shilib boradi.
+ *
+ * Jarima YO'Q: kechikkan kun ham, muddat ichidagi kun ham bir xil
+ * narxda. Muddat faqat "kechikdi" belgisiga ta'sir qiladi, summaga
+ * emas — hisob buyum qaytgandagina to'xtaydi.
+ *
+ * Raqamlar haqiqiy ombordan olingan: lesa, 1 dona, kuniga 25 000 so'm,
+ * 18-oktyabrda berilgan, muddati 19-oktyabr.
+ */
+describe('muddatdan keyin kunlik qo\'shilish', () => {
+  const lesa = (over: Partial<RentalResponseDTO> = {}): RentalResponseDTO =>
+    rental({
+      itemName: 'lesa',
+      quantity: 1,
+      price: 25000,
+      startDate: '2026-10-18',
+      dueDate: '2026-10-19',
+      ...over,
+    });
+
+  it('har kun bitta kunlik narx qo\'shiladi, muddat o\'tgach ham', () => {
+    //  kun | sana        | holat
+    //    1 | 19-oktyabr  | muddat kuni, hali kechikmagan
+    //    2 | 20-oktyabr  | 1 kun kechikdi
+    //    3 | 21-oktyabr  | 2 kun kechikdi
+    //    7 | 25-oktyabr  | 6 kun kechikdi
+    expect(accruedAmount(lesa(), '2026-10-19')).toBe(25000);
+    expect(accruedAmount(lesa(), '2026-10-20')).toBe(50000);
+    expect(accruedAmount(lesa(), '2026-10-21')).toBe(75000);
+    expect(accruedAmount(lesa(), '2026-10-25')).toBe(175000);
+  });
+
+  it('kechikkan kun qimmatroq EMAS — oshish bir tekis', () => {
+    const before = accruedAmount(lesa(), '2026-10-19');
+    const firstLate = accruedAmount(lesa(), '2026-10-20');
+    const secondLate = accruedAmount(lesa(), '2026-10-21');
+
+    expect(firstLate - before).toBe(25000);
+    expect(secondLate - firstLate).toBe(25000);
+  });
+
+  it('bir nechta buyum bo\'lsa har biriga alohida qo\'shiladi', () => {
+    // 2 dona × 25 000 × 3 kun.
+    expect(accruedAmount(lesa({ quantity: 2 }), '2026-10-21')).toBe(150000);
+  });
+
+  it('buyum qaytgach hisob TO\'XTAYDI — keyingi kunlar qo\'shilmaydi', () => {
+    const returned = lesa({ returnedDate: '2026-10-21' });
+    expect(accruedAmount(returned, '2026-10-21')).toBe(75000);
+    expect(accruedAmount(returned, '2026-12-31')).toBe(75000);
+  });
+
+  /**
+   * MUDDATSIZ ijarada ham hisob yuradi: kelishilgan sana yo'q, lekin
+   * buyum odamda turgan har kun uchun haq olinadi.
+   */
+  it('muddatsiz ijarada ham kunlik qo\'shiladi', () => {
+    const openEnded = lesa({ openEnded: true });
+    expect(accruedAmount(openEnded, '2026-10-21')).toBe(75000);
+    expect(overdueUnits(openEnded, '2026-10-21')).toBe(0);
+  });
+});
