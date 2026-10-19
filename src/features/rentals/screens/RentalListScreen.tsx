@@ -43,22 +43,24 @@ import type { RentalItemResponseDTO } from '../types/rentalItem';
 type Tab = 'stock' | 'rentals';
 
 /**
- * Ijaralar filtri — odatiysi 'OUT': mijozda turganlar.
+ * Ijaralar filtri. ODATIYSI 'OUT' — mijozda turganlar.
  *
- * 'ALL' ("Hammasi") OLIB TASHLANDI. Qaytgan ijaralar asosiy ro'yxatdan
- * chiqarilgach u 'OUT' bilan aynan bir xil bo'lib qolardi — ikkita bir
- * xil tugma esa "farqi nima?" degan savol tug'dirardi.
+ * 'ALL' ("Hammasi") qaytgan ijaralarni ham qo'shadi, lekin u ODATIY
+ * EMAS: kundalik savol "mijozda nima turibdi", qaytganlar esa ro'yxatni
+ * to'ldirib, qidirishni qiyinlashtirardi. Ataylab tanlangani boshqa gap
+ * — o'shanda odam butun tarixni ko'rmoqchi.
  *
- * 'DEBT' (nasiya) ham yo'q: bosqich sifatida u olib tashlangan
- * (izohi `rentalMath.rentalStage` da).
+ * 'DEBT' (nasiya) yo'q: bosqich sifatida u olib tashlangan (izohi
+ * `rentalMath.rentalStage` da).
  */
-type StatusFilter = Extract<RentalFilterStatus, 'OUT' | 'OVERDUE' | 'CLOSED'>;
+type StatusFilter = 'ALL' | Extract<RentalFilterStatus, 'OUT' | 'OVERDUE' | 'CLOSED'>;
 
 /** Qidiruv shu uzunlikdan boshlab serverga yuboriladi. */
 const SEARCH_MIN = 2;
 
 /** Filtr qaysi bosqichlarni o'z ichiga oladi — server eski bo'lsa ham ro'yxat to'g'ri chiqsin. */
 const STAGES_OF: Record<StatusFilter, RentalStage[]> = {
+  ALL: ['ACTIVE', 'OVERDUE', 'CLOSED'],
   OUT: ['ACTIVE', 'OVERDUE'],
   OVERDUE: ['OVERDUE'],
   CLOSED: ['CLOSED'],
@@ -79,12 +81,11 @@ type StockEntry =
  *
  *   OMBOR    — "nimam bor, nechtasi bo'sh, nechtasi kimda?"
  *              100 ta lesadan 50 tasi band, 50 tasi bo'sh.
- *   IJARALAR — "kimdan qancha pul olishim kerak?" Buyumi hali
- *              mijozda turganlar va buyum qaytib, puli olinmagani —
- *              NASIYA — alohida filtr.
+ *   IJARALAR — "nima kimda va qancha haq yig'ildi?" Mijozdagilar,
+ *              kechikkanlar va qaytganlar alohida filtrda.
  *
- * Yuqoridagi panel ikkala bo'limda bir xil: ochiq ijaralar, kechikkan,
- * nasiya soni va pul.
+ * Yuqoridagi panel TANLANGAN ro'yxat haqida: nechta yozuv bor va
+ * ular qancha haq yig'gan (izohi `RentalSummaryCard` da).
  *
  * Biznes hisobida ombor ham, ijaralar ham BIZNESNIKI: hamma adminlar
  * bir xil ro'yxatni ko'radi (X-Business-ID). MEMBER faqat ko'radi.
@@ -140,9 +141,10 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
   }, [route?.params, allowWrite, navigation]);
 
   const needle = search.trim();
+  // 'ALL' da `status` YUBORILMAYDI: server uchun "filtrsiz" degani shu.
   const filter = useMemo(
     () => ({
-      status,
+      ...(status === 'ALL' ? {} : { status }),
       ...(needle.length >= SEARCH_MIN ? { search: needle } : {}),
     }),
     [status, needle],
@@ -161,7 +163,9 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
    * Qidiruv YUBORILMAYDI: u yozishga qarab o'zgaradi va panel har
    * harfda sakrab turardi.
    */
-  const summaryQuery = useRentalSummary(useMemo(() => ({ status }), [status]));
+  const summaryQuery = useRentalSummary(
+    useMemo(() => (status === 'ALL' ? {} : { status }), [status]),
+  );
 
   const tabOptions = useMemo<ChipOption<Tab>[]>(
     () => [
@@ -173,6 +177,7 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
 
   const statusOptions = useMemo<ChipOption<StatusFilter>[]>(
     () => [
+      { value: 'ALL', label: t('rentals.filterAll') },
       { value: 'OUT', label: t('rentals.filterActive') },
       { value: 'OVERDUE', label: t('rentals.filterOverdue') },
       { value: 'CLOSED', label: t('rentals.filterClosed') },

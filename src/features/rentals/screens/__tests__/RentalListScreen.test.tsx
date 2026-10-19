@@ -466,3 +466,53 @@ describe('RentalListScreen — yuqoridagi panel', () => {
     expect(mockSummary).toHaveBeenCalledWith({ status: 'CLOSED' });
   });
 });
+
+/**
+ * "Hammasi" qaytganlarni ham ko'rsatadi, lekin ODATIY emas.
+ *
+ * Kundalik savol "mijozda nima turibdi" — shuning uchun ekran "Mijozda"
+ * bilan ochiladi. Butun tarixni ko'rish esa ataylab tanlanadi.
+ */
+describe("RentalListScreen — 'Hammasi' filtri", () => {
+  it("odatiy filtr 'Mijozda' — qaytganlar ko'rinmaydi", async () => {
+    mockList.mockReturnValue(
+      listResult([
+        rental({ id: 'r-out', itemName: 'Lesa' }),
+        rental({ id: 'r-back', itemName: 'Gayka kaliti', returnedDate: dayShift(-1) }),
+      ]),
+    );
+    show('rentals');
+    await settle();
+
+    expect(screen.getByText('Lesa')).toBeTruthy();
+    expect(screen.queryByText('Gayka kaliti')).toBeNull();
+  });
+
+  it("'Hammasi' tanlansa qaytganlar ham qo'shiladi", async () => {
+    mockList.mockReturnValue(
+      listResult([
+        rental({ id: 'r-out', itemName: 'Lesa' }),
+        rental({ id: 'r-back', itemName: 'Gayka kaliti', returnedDate: dayShift(-1) }),
+      ]),
+    );
+    show('rentals');
+    await settle();
+
+    fireEvent.press(screen.getByRole('radio', { name: 'Hammasi' }));
+    await settle();
+
+    expect(screen.getByText('Lesa')).toBeTruthy();
+    expect(screen.getByText('Gayka kaliti')).toBeTruthy();
+  });
+
+  it("'Hammasi' da serverga status YUBORILMAYDI", async () => {
+    show('rentals');
+    await settle();
+
+    fireEvent.press(screen.getByRole('radio', { name: 'Hammasi' }));
+    await settle();
+
+    expect(mockList).toHaveBeenCalledWith({});
+    expect(mockSummary).toHaveBeenCalledWith({});
+  });
+});
