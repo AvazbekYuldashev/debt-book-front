@@ -1,5 +1,12 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  FlatList,
+  type ListRenderItem,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import Card from '../../../shared/ui/Card';
@@ -248,121 +255,152 @@ const ProductsScreen: React.FC<Props> = () => {
     </View>
   );
 
-  const renderBody = () => {
-    if (!isBusiness) {
-      return inCard(
-        <EmptyState
-          icon="business-outline"
-          title={t('products.businessOnly')}
-          description={t('products.businessOnlyHint')}
+  /**
+   * SARLAVHA RO'YXAT ICHIDA — u bilan birga suriladi.
+   *
+   * Ilgari tepada sarlavha, qidiruv va kategoriya qatori qotib turardi
+   * va ro'yxatga ekranning pastki yarmi qolardi. Androidda bu sezilarli:
+   * bir vaqtda uch-to'rt qator ko'rinib, qolgani uchun kichik oynada
+   * surishga to'g'ri kelardi.
+   *
+   * Element sifatida beriladi (komponent emas): komponent berilsa RN uni
+   * har renderda qaytadan ulardi va qidiruvdagi fokus har harfda
+   * yo'qolardi.
+   */
+  const listHeader = (
+    <View>
+      <View style={styles.headerRow}>
+        <View style={styles.titleWrap}>
+          <Text style={styles.title} numberOfLines={1}>
+            {t('products.title')}
+          </Text>
+        </View>
+      </View>
+      {error ? (
+        <View style={styles.banner}>
+          <StatusBanner
+            tone="error"
+            message={error}
+            actionLabel={t('common.retry')}
+            onAction={() => loadProducts(true)}
+          />
+        </View>
+      ) : null}
+      {isBusiness && products.length > 0 ? (
+        <View style={styles.searchWrap}>
+          <SearchField
+            value={search}
+            onChangeText={setSearch}
+            placeholder={t('products.search')}
+            accessibilityLabel={t('products.search')}
+          />
+        </View>
+      ) : null}
+      {isBusiness ? (
+        <ProductCategoryBar
+          categories={categories.map((category) => ({ id: category.id, name: category.name }))}
+          value={activeCategory}
+          onChange={setActiveCategory}
+          allowManage={allowWrite}
+          onCreate={createProductCategory}
+          onDelete={removeCategory}
         />
+      ) : null}
+      {visibleProducts.length > 0 ? (
+        <SurfaceLabel style={styles.count}>
+          {t('products.count', { count: visibleProducts.length })}
+        </SurfaceLabel>
+      ) : null}
+    </View>
+  );
+
+  /** Bo'sh holat ham sarlavha BILAN chiqadi — qidiruvni tozalash yo'li yo'qolmasin. */
+  const emptyBody = !isBusiness ? (
+    inCard(
+      <EmptyState
+        icon="business-outline"
+        title={t('products.businessOnly')}
+        description={t('products.businessOnlyHint')}
+      />
+    )
+  ) : loading ? (
+    <SkeletonContactList count={5} />
+  ) : products.length === 0 ? (
+    inCard(
+      <EmptyState
+        icon="pricetags-outline"
+        title={t('products.empty')}
+        description={t('products.emptyHint')}
+        actionLabel={allowWrite ? t('products.add') : undefined}
+        onAction={allowWrite ? openCreate : undefined}
+      />
+    )
+  ) : (
+    inCard(
+      <EmptyState
+        icon="search-outline"
+        title={t('products.notFound')}
+        description={t('products.notFoundHint')}
+      />
+    )
+  );
+
+  /*
+   * Qator KARTA SIRTIDA: birinchisi va oxirgisi yumaloqlanadi, shunda
+   * ro'yxat bitta karta bo'lib ko'rinadi. Ilgari hamma qator bitta
+   * `Card` ichida `.map()` bilan chizilardi — u butun ro'yxatni bir
+   * vaqtda render qilar va uzun narxnomada ekran qotib qolardi
+   * (xuddi shu nuqson kontakt tarixida ham bor edi va FlatList bilan
+   * tuzatilgan).
+   */
+  const renderProduct = useCallback<ListRenderItem<ProductResponseDTO>>(
+    ({ item, index }) => {
+      const isLast = index === visibleProducts.length - 1;
+      return (
+        <View style={[styles.rowSlice, index === 0 && styles.rowFirst, isLast && styles.rowLast]}>
+          <ProductRow
+            product={item}
+            isLast={isLast}
+            allowManage={allowWrite}
+            allowDelete={allowDelete}
+            deleting={deletingId === item.id}
+            onEdit={openEdit}
+            onRequestDelete={requestDelete}
+          />
+        </View>
       );
-    }
-
-    if (loading) {
-      return <SkeletonContactList count={5} />;
-    }
-
-    if (products.length === 0) {
-      return inCard(
-        <EmptyState
-          icon="pricetags-outline"
-          title={t('products.empty')}
-          description={t('products.emptyHint')}
-          actionLabel={allowWrite ? t('products.add') : undefined}
-          onAction={allowWrite ? openCreate : undefined}
-        />
-      );
-    }
-
-    if (visibleProducts.length === 0) {
-      return inCard(
-        <EmptyState
-          icon="search-outline"
-          title={t('products.notFound')}
-          description={t('products.notFoundHint')}
-        />
-      );
-    }
-
-    return (
-      <EntranceView>
-        <SurfaceLabel style={styles.count}>{t('products.count', { count: visibleProducts.length })}</SurfaceLabel>
-        <Card style={styles.listCard}>
-          {visibleProducts.map((product, index) => (
-            <ProductRow
-              key={product.id}
-              product={product}
-              isLast={index === visibleProducts.length - 1}
-              allowManage={allowWrite}
-              allowDelete={allowDelete}
-              deleting={deletingId === product.id}
-              onEdit={openEdit}
-              onRequestDelete={requestDelete}
-            />
-          ))}
-        </Card>
-        {!allowWrite ? (
-          <SurfaceLabel style={styles.readOnly} textStyle={styles.readOnlyText} multiline>
-            {t('products.readOnly')}
-          </SurfaceLabel>
-        ) : null}
-      </EntranceView>
-    );
-  };
+    },
+    [visibleProducts.length, allowWrite, allowDelete, deletingId, openEdit, requestDelete, styles],
+  );
 
   return (
     <View style={styles.container}>
       <AmbientBackground />
+      {/* FAQAT shu qator qotib turadi: hisob almashtirgich va
+          bildirishnoma ilovaning doimiy qismi. */}
       <EntranceView style={styles.header} duration={300} fromY={12}>
         <ScreenTopBar />
-        <View style={styles.headerRow}>
-          <View style={styles.titleWrap}>
-            <Text style={styles.title} numberOfLines={1}>
-              {t('products.title')}
-            </Text>
-          </View>
-        </View>
-        {error ? (
-          <View style={styles.banner}>
-            <StatusBanner
-              tone="error"
-              message={error}
-              actionLabel={t('common.retry')}
-              onAction={() => loadProducts(true)}
-            />
-          </View>
-        ) : null}
-        {isBusiness && products.length > 0 ? (
-          <View style={styles.searchWrap}>
-            <SearchField
-              value={search}
-              onChangeText={setSearch}
-              placeholder={t('products.search')}
-              accessibilityLabel={t('products.search')}
-            />
-          </View>
-        ) : null}
-        {isBusiness ? (
-          <ProductCategoryBar
-            categories={categories.map((category) => ({ id: category.id, name: category.name }))}
-            value={activeCategory}
-            onChange={setActiveCategory}
-            allowManage={allowWrite}
-            onCreate={createProductCategory}
-            onDelete={removeCategory}
-          />
-        ) : null}
       </EntranceView>
 
-      <ScrollView
+      <FlatList
         style={styles.scroll}
         contentContainerStyle={styles.content}
+        data={visibleProducts}
+        keyExtractor={(item) => item.id}
+        renderItem={renderProduct}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={emptyBody}
+        ListFooterComponent={
+          !allowWrite && isBusiness ? (
+            <SurfaceLabel style={styles.readOnly} textStyle={styles.readOnlyText} multiline>
+              {t('products.readOnly')}
+            </SurfaceLabel>
+          ) : null
+        }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         keyboardShouldPersistTaps="handled"
-      >
-        {renderBody()}
-      </ScrollView>
+        showsVerticalScrollIndicator={false}
+      />
 
       {allowWrite ? (
         <FloatingActionButton
@@ -427,10 +465,25 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     scroll: {
       flex: 1,
     },
+    // Yon bo'shliq QATORGA beriladi, konteynerga emas: sarlavha endi
+    // shu ro'yxat ichida va unga o'z paddingi yetarli.
     content: {
-      padding: spacing.md,
       paddingTop: spacing.xs,
       paddingBottom: FAB_CLEARANCE,
+    },
+    rowSlice: {
+      backgroundColor: glass.surface.backgroundColor,
+      marginHorizontal: spacing.md,
+    },
+    rowFirst: {
+      borderTopLeftRadius: radius.xxl,
+      borderTopRightRadius: radius.xxl,
+      overflow: 'hidden',
+    },
+    rowLast: {
+      borderBottomLeftRadius: radius.xxl,
+      borderBottomRightRadius: radius.xxl,
+      overflow: 'hidden',
     },
     emptyCard: {
       ...glass.surface,

@@ -478,73 +478,161 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
     />
   );
 
-  const renderBody = () => {
-    if (activeQuery.isLoading) {
-      return (
-        <View style={styles.emptyCard}>
-          <SkeletonContactList />
+  /**
+   * SARLAVHA RO'YXAT ICHIDA — u bilan birga suriladi.
+   *
+   * Ilgari tepada oltita blok qotib turardi: tepa panel, sarlavha,
+   * hisob kartasi, bo'lim tugmalari, qidiruv va kategoriya qatori.
+   * Androidda ekran pastroq va ro'yxatga deyarli joy qolmasdi — bir
+   * necha qator ko'rinib, qolgani uchun ekranning kichik oynasida
+   * surishga to'g'ri kelardi.
+   *
+   * Endi faqat `ScreenTopBar` qotib turadi (hisob almashtirgich va
+   * bildirishnoma — ular ilovaning doimiy qismi), qolgani surilib
+   * ketadi va ro'yxatga BUTUN ekran qoladi. Yuqoriga qaytilsa
+   * boshqaruvlar o'z joyida.
+   *
+   * Element sifatida beriladi (komponent emas): komponent berilsa RN
+   * uni har renderda qaytadan ulardi va qidiruv maydonidagi fokus har
+   * harfda yo'qolardi.
+   */
+  const listHeader = (
+    <View>
+      <View style={styles.titleRow}>
+        <View style={styles.titleWrap}>
+          <Text style={styles.title} numberOfLines={1}>
+            {t('rentals.title')}
+          </Text>
         </View>
-      );
-    }
+      </View>
 
-    if (tab === 'stock') {
-      if (stockEntries.length === 0) {
-        return (
-          <View style={styles.emptyCard}>
-            <EmptyState
-              icon="cube-outline"
-              title={needle ? t('rentals.stockNotFound') : t('rentals.stockEmptyTitle')}
-              description={needle ? undefined : t('rentals.stockEmptyHint')}
-              actionLabel={!needle && allowWrite ? t('rentals.addItem') : undefined}
-              actionIcon="add"
-              onAction={!needle && allowWrite ? () => openItemForm(null) : undefined}
-            />
-          </View>
-        );
-      }
-      return (
-        <NestedGlass>
-          <FlatList
-            style={styles.list}
-            contentContainerStyle={styles.listContent}
-            data={stockEntries}
-            keyExtractor={(entry) => entry.key}
-            renderItem={renderStock}
-            showsVerticalScrollIndicator={false}
-            refreshControl={refreshControl}
+      <View style={styles.headerBody}>
+        {tab === 'stock' ? (
+          <RentalSummaryCard
+            loading={itemsQuery.isLoading}
+            countIcon="albums-outline"
+            countLabel={t('rentals.stockCount')}
+            countValue={formatQuantity(stockTotals.quantity)}
+            moneyLabel={t('rentals.dailyRevenue')}
+            moneyEntries={stockTotals.entries}
+            moneyEmpty={t('rentals.noDailyRevenue')}
           />
-        </NestedGlass>
-      );
-    }
+        ) : (
+          <RentalSummaryCard
+            loading={summaryQuery.isLoading}
+            countLabel={countLabel}
+            countValue={String(summaryQuery.data?.matchedCount ?? 0)}
+            moneyLabel={t('rentals.accruedTotal')}
+            moneyEntries={accruedEntries}
+            moneyEmpty={t('rentals.noAccrued')}
+          />
+        )}
 
-    if (rentals.length === 0) {
-      return (
-        <View style={styles.emptyCard}>
-          <EmptyState
-            icon="cube-outline"
-            title={t('rentals.emptyTitle')}
-            description={t('rentals.emptyHint')}
-            actionLabel={allowWrite ? t('rentals.createSubmit') : undefined}
-            actionIcon="add"
-            onAction={allowWrite ? () => openRentalForm(null) : undefined}
+        <ChipSelector options={tabOptions} value={tab} onChange={setTab} layout="fluid" />
+
+        <SearchField
+          value={search}
+          onChangeText={setSearch}
+          placeholder={tab === 'stock' ? t('rentals.searchItem') : t('rentals.searchPlaceholder')}
+          accessibilityLabel={tab === 'stock' ? t('rentals.searchItem') : t('rentals.searchPlaceholder')}
+        />
+
+        {/* Kategoriya paneli FAQAT omborda: ijaralar ro'yxati buyum
+            emas, kelishuvlar bo'yicha tuzilgan va kategoriya u yerda
+            ma'no bermaydi. Narxnomadagi panelning aynan o'zi. */}
+        {tab === 'stock' ? (
+          <ProductCategoryBar
+            categories={categoryChips}
+            value={activeCategory}
+            onChange={setActiveCategory}
+            allowManage={allowWrite}
+            onCreate={handleCreateCategory}
+            onDelete={handleDeleteCategory}
           />
-        </View>
-      );
-    }
-    return (
-      <NestedGlass>
+        ) : null}
+
+        {tab === 'rentals' ? (
+          <ChipSelector options={statusOptions} value={status} onChange={setStatus} layout="scroll" />
+        ) : null}
+
+        {error ? (
+          <StatusBanner
+            tone="error"
+            message={error}
+            actionLabel={t('common.retry')}
+            onAction={handleRefresh}
+          />
+        ) : null}
+      </View>
+    </View>
+  );
+
+  /**
+   * Bo'sh holat ham sarlavha BILAN chiqadi.
+   *
+   * Ilgari ro'yxat bo'sh bo'lsa butun ekran almashtirilar va qidiruv
+   * bilan filtrlar yo'qolardi — odam "hech narsa topilmadi" ni ko'rib,
+   * qidiruvni tozalay olmay qolardi.
+   */
+  const emptyBody = activeQuery.isLoading ? (
+    <View style={styles.emptyCard}>
+      <SkeletonContactList />
+    </View>
+  ) : tab === 'stock' ? (
+    <View style={styles.emptyCard}>
+      <EmptyState
+        icon="cube-outline"
+        title={needle ? t('rentals.stockNotFound') : t('rentals.stockEmptyTitle')}
+        description={needle ? undefined : t('rentals.stockEmptyHint')}
+        actionLabel={!needle && allowWrite ? t('rentals.addItem') : undefined}
+        actionIcon="add"
+        onAction={!needle && allowWrite ? () => openItemForm(null) : undefined}
+      />
+    </View>
+  ) : (
+    <View style={styles.emptyCard}>
+      <EmptyState
+        icon="cube-outline"
+        title={t('rentals.emptyTitle')}
+        description={t('rentals.emptyHint')}
+        actionLabel={allowWrite ? t('rentals.createSubmit') : undefined}
+        actionIcon="add"
+        onAction={allowWrite ? () => openRentalForm(null) : undefined}
+      />
+    </View>
+  );
+
+  const renderBody = () => (
+    <NestedGlass>
+      {tab === 'stock' ? (
+        <FlatList
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          data={stockEntries}
+          keyExtractor={(entry) => entry.key}
+          renderItem={renderStock}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={emptyBody}
+          showsVerticalScrollIndicator={false}
+          refreshControl={refreshControl}
+          keyboardShouldPersistTaps="handled"
+        />
+      ) : (
         <FlatList
           style={styles.list}
           contentContainerStyle={styles.listContent}
           data={rentals}
           keyExtractor={(item) => item.id}
           renderItem={renderRental}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={emptyBody}
           showsVerticalScrollIndicator={false}
           refreshControl={refreshControl}
+          keyboardShouldPersistTaps="handled"
         />
-      </NestedGlass>
-    );
-  };
+      )}
+    </NestedGlass>
+  );
 
   const isEmpty = tab === 'stock' ? stockEntries.length === 0 : rentals.length === 0;
 
@@ -553,79 +641,11 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
       {/* Dekorativ fon — barcha ekranlarda bir xil "imzo" qatlami. */}
       <AmbientBackground />
 
+      {/* FAQAT shu qator qotib turadi: hisob almashtirgich va
+          bildirishnoma ilovaning doimiy qismi. Qolgan sarlavha
+          ro'yxat bilan birga suriladi — izohi `listHeader` da. */}
       <EntranceView style={styles.header} duration={300} fromY={12}>
-        {/* Sarlavha MAHSULOTLAR bilan bir xil: Ijara ham pastki
-            panelning o'z bo'limi, ichki sahifa emas. Ilgari orqaga
-            tugmasi turardi — u stack ildizida hech qayerga olib
-            bormaydi, hisob almashtirgich va bildirishnoma esa
-            yo'qolgandi. */}
         <ScreenTopBar />
-        <View style={styles.titleRow}>
-          <View style={styles.titleWrap}>
-            <Text style={styles.title} numberOfLines={1}>
-              {t('rentals.title')}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.headerBody}>
-          {tab === 'stock' ? (
-            <RentalSummaryCard
-              loading={itemsQuery.isLoading}
-              countIcon="albums-outline"
-              countLabel={t('rentals.stockCount')}
-              countValue={formatQuantity(stockTotals.quantity)}
-              moneyLabel={t('rentals.dailyRevenue')}
-              moneyEntries={stockTotals.entries}
-              moneyEmpty={t('rentals.noDailyRevenue')}
-            />
-          ) : (
-            <RentalSummaryCard
-              loading={summaryQuery.isLoading}
-              countLabel={countLabel}
-              countValue={String(summaryQuery.data?.matchedCount ?? 0)}
-              moneyLabel={t('rentals.accruedTotal')}
-              moneyEntries={accruedEntries}
-              moneyEmpty={t('rentals.noAccrued')}
-            />
-          )}
-
-          <ChipSelector options={tabOptions} value={tab} onChange={setTab} layout="fluid" />
-
-          <SearchField
-            value={search}
-            onChangeText={setSearch}
-            placeholder={tab === 'stock' ? t('rentals.searchItem') : t('rentals.searchPlaceholder')}
-            accessibilityLabel={tab === 'stock' ? t('rentals.searchItem') : t('rentals.searchPlaceholder')}
-          />
-
-          {/* Kategoriya paneli FAQAT omborda: ijaralar ro'yxati buyum
-              emas, kelishuvlar bo'yicha tuzilgan va kategoriya u yerda
-              ma'no bermaydi. Narxnomadagi panelning aynan o'zi. */}
-          {tab === 'stock' ? (
-            <ProductCategoryBar
-              categories={categoryChips}
-              value={activeCategory}
-              onChange={setActiveCategory}
-              allowManage={allowWrite}
-              onCreate={handleCreateCategory}
-              onDelete={handleDeleteCategory}
-            />
-          ) : null}
-
-          {tab === 'rentals' ? (
-            <ChipSelector options={statusOptions} value={status} onChange={setStatus} layout="scroll" />
-          ) : null}
-
-          {error ? (
-            <StatusBanner
-              tone="error"
-              message={error}
-              actionLabel={t('common.retry')}
-              onAction={handleRefresh}
-            />
-          ) : null}
-        </View>
       </EntranceView>
 
       {renderBody()}
@@ -718,9 +738,10 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       marginTop: spacing.sm,
       overflow: 'hidden',
     },
+    // Yuqori bo'shliq SARLAVHADAN keladi (u endi ro'yxat ichida):
+    // bu yerda qo'shilsa, surilganda tepada bo'sh joy qolib ketardi.
     list: {
       flex: 1,
-      marginTop: spacing.sm,
     },
     // Faqat pastki bo'shliq: "+" tugmasi oxirgi qatorni yopib qolmasin.
     // Margin emas, PADDING — RN `contentContainerStyle` dagi margin'ni
