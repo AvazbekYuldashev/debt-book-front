@@ -291,6 +291,10 @@ describe('RentalListScreen — ijaralar', () => {
     show('rentals');
     await settle();
 
+    // Qaytganlar odatiy ro'yxatda emas — ular "Yopilgan"da.
+    fireEvent.press(screen.getByRole('radio', { name: 'Yopilgan' }));
+    await settle();
+
     expect(screen.getByText('Qaytarildi')).toBeTruthy();
     // 4 kun × 50 000 = 200 000, hammasi to'langan.
     expect(screen.getByText('Hisob toza')).toBeTruthy();
@@ -300,9 +304,7 @@ describe('RentalListScreen — ijaralar', () => {
     mockList.mockReturnValue({
       data: {
         content: [
-          // Qaytarilgan — oxirida turishi kerak.
-          rental({ id: 'r-returned', itemName: 'Gayka kaliti', returnedDate: dayShift(-1) }),
-          // Muddati hali kelmagan — o'rtada.
+          // Muddati hali kelmagan — pastda.
           rental({ id: 'r-active', itemName: 'Armatura', startDate: dayShift(-1), dueDate: dayShift(3) }),
           // Kechikkan — boshida.
           rental({ id: 'r-late', itemName: 'Beton aralashtirgich' }),
@@ -318,14 +320,10 @@ describe('RentalListScreen — ijaralar', () => {
 
     // Qatorda nom va miqdor qo'shimchasi ikki bola bo'lib keladi
     // ("Stol" + " x 2"), shuning uchun ular bitta satrga yig'iladi.
-    const names = screen.getAllByText(/Beton aralashtirgich|Armatura|Gayka kaliti/);
+    const names = screen.getAllByText(/Beton aralashtirgich|Armatura/);
     const text = (node: ReactTestInstance) =>
       ([] as unknown[]).concat(node.props.children).join('');
-    expect(names.map(text)).toEqual([
-      'Beton aralashtirgich',
-      'Armatura',
-      'Gayka kaliti',
-    ]);
+    expect(names.map(text)).toEqual(['Beton aralashtirgich', 'Armatura']);
   });
 
   it('olinmagan qoldiq alohida ko\'rsatiladi', async () => {
@@ -355,10 +353,34 @@ describe('RentalListScreen — ijaralar', () => {
     show('rentals');
     await settle();
 
+    fireEvent.press(screen.getByRole('radio', { name: 'Yopilgan' }));
+    await settle();
+
     expect(screen.queryByText('Nasiya')).toBeNull();
     expect(screen.getAllByText('Qaytarildi').length).toBeGreaterThan(0);
     // Pul qatorda QOLADI: 4 kun × 50 000 = 200 000, 50 000 olingan -> 150 000.
     expect(screen.getByText(/150 000/)).toBeTruthy();
+  });
+
+  /**
+   * Qaytgan ijara ASOSIY ro'yxatda turmaydi — u "Yopilgan"da.
+   *
+   * Kundalik savol "mijozda nima turibdi": qaytganlar aralashsa,
+   * ro'yxat o'sib boraverar va odam ular orasidan qidirishga majbur
+   * bo'lardi.
+   */
+  it("qaytgan ijara odatiy ro'yxatda turmaydi", async () => {
+    mockList.mockReturnValue(
+      listResult([
+        rental({ id: 'r-out', itemName: 'Lesa' }),
+        rental({ id: 'r-back', itemName: 'Gayka kaliti', returnedDate: dayShift(-1) }),
+      ]),
+    );
+    show('rentals');
+    await settle();
+
+    expect(screen.getByText('Lesa')).toBeTruthy();
+    expect(screen.queryByText('Gayka kaliti')).toBeNull();
   });
 
   it('Nasiya filtri umuman chiqmaydi', async () => {

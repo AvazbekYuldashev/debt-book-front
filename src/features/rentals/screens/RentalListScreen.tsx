@@ -43,20 +43,22 @@ import type { RentalItemResponseDTO } from '../types/rentalItem';
 type Tab = 'stock' | 'rentals';
 
 /**
- * Ijaralar filtri. 'ALL' — odatiy: hammasi ko'rinadi.
+ * Ijaralar filtri — odatiysi 'OUT': mijozda turganlar.
  *
- * 'DEBT' (nasiya) olib tashlandi: bosqich sifatida u endi yo'q
- * (izohi `rentalMath.rentalStage` da), demak filtr doim bo'sh
- * ro'yxat qaytarardi.
+ * 'ALL' ("Hammasi") OLIB TASHLANDI. Qaytgan ijaralar asosiy ro'yxatdan
+ * chiqarilgach u 'OUT' bilan aynan bir xil bo'lib qolardi — ikkita bir
+ * xil tugma esa "farqi nima?" degan savol tug'dirardi.
+ *
+ * 'DEBT' (nasiya) ham yo'q: bosqich sifatida u olib tashlangan
+ * (izohi `rentalMath.rentalStage` da).
  */
-type StatusFilter = 'ALL' | Extract<RentalFilterStatus, 'OUT' | 'OVERDUE' | 'CLOSED'>;
+type StatusFilter = Extract<RentalFilterStatus, 'OUT' | 'OVERDUE' | 'CLOSED'>;
 
 /** Qidiruv shu uzunlikdan boshlab serverga yuboriladi. */
 const SEARCH_MIN = 2;
 
 /** Filtr qaysi bosqichlarni o'z ichiga oladi — server eski bo'lsa ham ro'yxat to'g'ri chiqsin. */
 const STAGES_OF: Record<StatusFilter, RentalStage[]> = {
-  ALL: ['ACTIVE', 'OVERDUE', 'CLOSED'],
   OUT: ['ACTIVE', 'OVERDUE'],
   OVERDUE: ['OVERDUE'],
   CLOSED: ['CLOSED'],
@@ -106,7 +108,7 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
   const allowDelete = canDelete(workspace.activeBusinessRole);
 
   const [tab, setTab] = useState<Tab>(route?.params?.tab ?? 'stock');
-  const [status, setStatus] = useState<StatusFilter>('ALL');
+  const [status, setStatus] = useState<StatusFilter>('OUT');
   const [search, setSearch] = useState('');
 
   // Ijara formasi va kartasi
@@ -140,7 +142,7 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
   const needle = search.trim();
   const filter = useMemo(
     () => ({
-      ...(status === 'ALL' ? {} : { status }),
+      status,
       ...(needle.length >= SEARCH_MIN ? { search: needle } : {}),
     }),
     [status, needle],
@@ -148,9 +150,18 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
 
   const itemsQuery = useRentalItems();
   const listQuery = useMyRentals(filter);
-  // Panel filtr va qidiruvga BOG'LANMAYDI: yuqoridagi umumiy raqamlar
-  // ro'yxat filtriga qarab o'zgarib tursa, umumiy holatni ko'rsatmay qoladi.
-  const summaryQuery = useRentalSummary();
+  /*
+   * Panel TANLANGAN FILTRGA ergashadi.
+   *
+   * Ilgari u filtrdan mustaqil edi ("umumiy holatni ko'rsatsin" degan
+   * mulohaza bilan), lekin amalda ro'yxat bir narsani, tepadagi raqam
+   * boshqa narsani aytardi: "Yopilgan" tanlanganda pastda qaytgan
+   * ijaralar turar, tepada esa mijozdagilarning puli ko'rinardi.
+   *
+   * Qidiruv YUBORILMAYDI: u yozishga qarab o'zgaradi va panel har
+   * harfda sakrab turardi.
+   */
+  const summaryQuery = useRentalSummary(useMemo(() => ({ status }), [status]));
 
   const tabOptions = useMemo<ChipOption<Tab>[]>(
     () => [
@@ -162,7 +173,6 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
 
   const statusOptions = useMemo<ChipOption<StatusFilter>[]>(
     () => [
-      { value: 'ALL', label: t('rentals.filterAll') },
       { value: 'OUT', label: t('rentals.filterActive') },
       { value: 'OVERDUE', label: t('rentals.filterOverdue') },
       { value: 'CLOSED', label: t('rentals.filterClosed') },
