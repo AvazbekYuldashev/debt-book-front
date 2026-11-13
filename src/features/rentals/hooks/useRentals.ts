@@ -77,16 +77,39 @@ export const useRentalSummary = (filter: RentalFilterDTO = {}) => {
 /**
  * `enabled: false` — oyna yopiq turganda so'rov ketmasin (masalan ombor
  * kartasidagi "kimlarda" ro'yxati faqat karta ochilganda kerak).
+ *
+ * `size` — bitta so'rovda nechta yozuv.
+ *
+ * BERILISHI SHART bo'lgan joylar bor: ro'yxat bosqich bo'yicha
+ * TELEFONDA filtrlanadi va tartiblanadi (bosqich "hozir"ga bog'liq),
+ * demak ekran butun to'plamni ko'rishi kerak. Server tomoni odatiy
+ * 20 ta qaytaradi va shuncha yozuvdan keyin ro'yxat jim kesilib
+ * qolardi: tepadagi panel "73" deb turar, pastda esa 20 qator
+ * ko'rinardi.
  */
-export const useMyRentals = (filter: RentalFilterDTO = {}, options: { enabled?: boolean } = {}) => {
+export const useMyRentals = (
+  filter: RentalFilterDTO = {},
+  options: { enabled?: boolean; size?: number; keepPrevious?: boolean } = {},
+) => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;
   const rentalKey = useRentalKey();
+  const size = options.size;
 
   return useQuery({
-    queryKey: [...rentalKey, 'my', filter],
-    queryFn: () => getMyRentals({ filter, token }),
+    queryKey: [...rentalKey, 'my', filter, size ?? null],
+    queryFn: () => getMyRentals({ filter, token, ...(size ? { size } : {}) }),
     enabled: Boolean(token) && options.enabled !== false,
+    /*
+     * O'SIB BORADIGAN ro'yxat uchun: hajm oshganda kalit o'zgaradi va
+     * oldingi natija ekranda qoladi — aks holda ro'yxat o'rnini
+     * skeletonga bo'shatib, odam qarab turgan qatorini yo'qotardi.
+     *
+     * Odatiysi YO'Q: buyum bo'yicha so'rovda ("kimlarda") kalit
+     * BOSHQA buyumga o'tganda o'zgaradi va o'sha paytda oldingi
+     * buyumning ro'yxati yangi sarlavha ostida turib qolardi.
+     */
+    keepPreviousData: options.keepPrevious === true,
   });
 };
 

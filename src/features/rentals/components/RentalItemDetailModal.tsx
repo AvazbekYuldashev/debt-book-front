@@ -31,6 +31,9 @@ interface RentalItemDetailModalProps {
   allowDelete?: boolean;
 }
 
+/** "Kimlarda" ro'yxati bitta so'rovda olinadi — sahifalanmaydi. */
+const HOLDERS_PAGE = 200;
+
 /**
  * Ombordagi bitta buyumning kartasi: nechtasi bo'sh va KIMLARDA.
  *
@@ -63,7 +66,13 @@ const RentalItemDetailModal: React.FC<RentalItemDetailModalProps> = ({
     () => ({ rentalItemId: item?.id ?? '', status: 'OUT' as const }),
     [item?.id],
   );
-  const holdersQuery = useMyRentals(filter, { enabled: Boolean(item) });
+  /*
+   * "Kimlarda" ro'yxati BUTUN bo'lishi kerak: 100 ta lesa o'nlab
+   * mijozda bo'lishi mumkin va server odatiysi (20 ta) bilan ro'yxat
+   * jim kesilib, "olinishi kerak bo'lgan pul" ham kam chiqardi.
+   * Bitta buyum bo'yicha so'rov kichik — sahifalash kerak emas.
+   */
+  const holdersQuery = useMyRentals(filter, { enabled: Boolean(item), size: HOLDERS_PAGE });
 
   // Server filtri bilan bir qatorda telefonda ham tekshiriladi: qaytib
   // bo'lgan yozuv "kimlarda" ro'yxatida turib qolmasin.

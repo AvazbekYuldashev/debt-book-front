@@ -147,6 +147,9 @@ beforeEach(() => {
     (hook as jest.Mock).mockReturnValue(mutationStub);
   }
   mockSummary.mockReturnValue({ data: undefined, isLoading: false, refetch: jest.fn() });
+  // Chaqiruvlar HAR TESTDA noldan sanaladi: ular bo'yicha tekshiruv
+  // bor va oldingi testning so'rovlari aralashib ketardi.
+  mockList.mockClear();
   mockList.mockReturnValue(listResult([]));
   mockItems.mockReturnValue({
     data: [],
@@ -512,8 +515,70 @@ describe("RentalListScreen — 'Hammasi' filtri", () => {
     fireEvent.press(screen.getByRole('radio', { name: 'Hammasi' }));
     await settle();
 
-    expect(mockList).toHaveBeenCalledWith({});
+    // Ikkinchi arg — sahifa hajmi; filtr tanasi bo'sh qolishi kerak.
+    expect(mockList).toHaveBeenCalledWith({}, expect.objectContaining({ size: expect.any(Number) }));
     expect(mockSummary).toHaveBeenCalledWith({});
+  });
+
+  /**
+   * RO'YXAT JIM KESILMAYDI.
+   *
+   * Server odatiysi 20 ta: shuncha ijaradan keyin ro'yxat tugab
+   * qolar, tepadagi panel esa butun sonni ("73") ko'rsatib turardi va
+   * qolganiga yetadigan yo'l yo'q edi. Bosqich bo'yicha tartiblash
+   * telefonda bo'lgani uchun sahifa NOMERI emas, HAJMI o'sadi.
+   */
+  /**
+   * RO'YXAT so'rovida oxirgi so'ralgan hajm.
+   *
+   * Ekranda `useMyRentals` bir nechta joydan chaqiriladi — ombor
+   * kartasidagi "kimlarda" ro'yxati ham shu hook'ni ishlatadi (yopiq
+   * holda, o'z hajmi bilan). Ularni filtrning SHAKLI ajratadi: buyum
+   * bo'yicha so'rovda `rentalItemId` kaliti bor (qiymati bo'sh bo'lsa
+   * ham), ro'yxat so'rovida esa umuman yo'q.
+   */
+  const lastRequestedSize = (): number | undefined =>
+    mockList.mock.calls
+      .filter(
+        (call) =>
+          !('rentalItemId' in (call[0] ?? {})) && typeof call[1]?.size === 'number',
+      )
+      .map((call) => call[1].size as number)
+      .at(-1);
+
+  it("pastga surilganda yana yozuv so'raladi", async () => {
+    mockList.mockReturnValue({
+      ...listResult([rental({ id: 'r-out', itemName: 'Lesa' })]),
+      // Serverda yana bor.
+      data: { content: [rental({ id: 'r-out', itemName: 'Lesa' })], last: false },
+    });
+    show('rentals');
+    await settle();
+
+    const first = lastRequestedSize() as number;
+    expect(first).toBeGreaterThan(20);
+
+    fireEvent(screen.getByText('Lesa'), 'onEndReached');
+    await settle();
+
+    expect(lastRequestedSize()).toBeGreaterThan(first);
+  });
+
+  it("hammasi kelgan bo'lsa qo'shimcha so'rov yuborilmaydi", async () => {
+    mockList.mockReturnValue({
+      ...listResult([rental({ id: 'r-out', itemName: 'Lesa' })]),
+      data: { content: [rental({ id: 'r-out', itemName: 'Lesa' })], last: true },
+    });
+    show('rentals');
+    await settle();
+
+    const before = lastRequestedSize();
+    expect(before).toBeGreaterThan(20);
+
+    fireEvent(screen.getByText('Lesa'), 'onEndReached');
+    await settle();
+
+    expect(lastRequestedSize()).toBe(before);
   });
 });
 

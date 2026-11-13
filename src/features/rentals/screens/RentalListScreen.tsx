@@ -1,5 +1,13 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { FlatList, type ListRenderItem, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  type ListRenderItem,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
@@ -59,6 +67,21 @@ type StatusFilter = 'ALL' | Extract<RentalFilterStatus, 'OUT' | 'OVERDUE' | 'CLO
 
 /** Qidiruv shu uzunlikdan boshlab serverga yuboriladi. */
 const SEARCH_MIN = 2;
+
+/**
+ * Bir so'rovda nechta ijara olinadi va pastga surilganda qancha
+ * qo'shiladi.
+ *
+ * Sahifa NOMERI emas, HAJMI o'sadi: ro'yxat bosqich bo'yicha telefonda
+ * tartiblanadi (kechikkanlar yuqorida), ya'ni ekran butun to'plamni
+ * ko'rishi kerak. Sahifalarni ketma-ket qo'shganda tartib har yangi
+ * sahifada qayta chizilar va odam qarab turgan qatori sakrab ketardi.
+ *
+ * Shuncha qatordan keyin ro'yxat ILGARI jim kesilardi (server odatiysi
+ * 20 ta): tepadagi panel "73" deb turar, pastda esa 20 qator ko'rinardi
+ * va qolganiga yetadigan yo'l yo'q edi.
+ */
+const RENTAL_PAGE = 50;
 
 /** Filtr qaysi bosqichlarni o'z ichiga oladi — server eski bo'lsa ham ro'yxat to'g'ri chiqsin. */
 const STAGES_OF: Record<StatusFilter, RentalStage[]> = {
@@ -153,7 +176,28 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
   );
 
   const itemsQuery = useRentalItems();
-  const listQuery = useMyRentals(filter);
+  /**
+   * So'ralayotgan yozuvlar soni — pastga surilganda o'sadi.
+   *
+   * Filtr yoki qidiruv o'zgarganda birinchi sahifaga qaytadi: yangi
+   * ro'yxat boshidan ko'riladi va eski "yana yuklangan" hajm bekorga
+   * katta so'rov bo'lib qolardi.
+   */
+  const [limit, setLimit] = useState(RENTAL_PAGE);
+  useEffect(() => {
+    setLimit(RENTAL_PAGE);
+  }, [filter]);
+
+  const listQuery = useMyRentals(filter, { size: limit, keepPrevious: true });
+
+  /** Serverda yana yozuv bor va hozir yuklanmayapti. */
+  const canLoadMore =
+    tab === 'rentals' && listQuery.data?.last === false && !listQuery.isFetching;
+
+  const handleEndReached = useCallback(() => {
+    if (!canLoadMore) return;
+    setLimit((current) => current + RENTAL_PAGE);
+  }, [canLoadMore]);
   /*
    * Panel TANLANGAN FILTRGA ergashadi.
    *
@@ -602,6 +646,18 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
     </View>
   );
 
+  /**
+   * Pastdagi yuklanish belgisi — "yana bor" degan yagona belgi.
+   *
+   * Faqat QO'SHIMCHA yuklashda chiqadi: birinchi yuklash skeleton
+   * bilan ko'rsatiladi (`emptyBody`) va ikkisi birga chiqsa ekranda
+   * ikkita "kutilyapti" bo'lib qolardi.
+   */
+  const listFooter =
+    listQuery.isFetching && rentals.length > 0 ? (
+      <ActivityIndicator style={styles.footer} color={colors.primary} />
+    ) : null;
+
   const renderBody = () => (
     <NestedGlass>
       {tab === 'stock' ? (
@@ -626,9 +682,14 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
           renderItem={renderRental}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={emptyBody}
+          ListFooterComponent={listFooter}
           showsVerticalScrollIndicator={false}
           refreshControl={refreshControl}
           keyboardShouldPersistTaps="handled"
+          // Oxiriga YETMASDAN yuklanadi: odam surib turganda to'xtab
+          // qolmasligi kerak.
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.4}
         />
       )}
     </NestedGlass>
@@ -762,6 +823,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       borderBottomLeftRadius: radius.xxl,
       borderBottomRightRadius: radius.xxl,
       overflow: 'hidden',
+    },
+    footer: {
+      paddingVertical: spacing.md,
     },
     groupTitle: {
       ...typography.caption,
