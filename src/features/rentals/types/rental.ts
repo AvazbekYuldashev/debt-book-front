@@ -83,6 +83,22 @@ export interface RentalReturnItemDTO {
   returnedTime?: string | null;
 }
 
+/**
+ * Bitta to'lov qatori — "qachon, qancha".
+ *
+ * Hisob `paidAmount` yig'indisiga tayanadi, bu ro'yxat esa TARIX uchun:
+ * mijoz kartasidagi Tarix sahifasi ijara to'lovlarini ham sanasi bilan
+ * ko'rsatadi. Eski serverda maydon yo'q — ro'yxat bo'sh qoladi.
+ */
+export interface RentalPaymentItemDTO {
+  id?: string;
+  amount: number | string;
+  /** Pul berilgan kun — YYYY-MM-DD. */
+  paidDate?: string | null;
+  /** Yozuv kiritilgan payt — tarix shu bo'yicha tartiblanadi. */
+  createdDate?: string | null;
+}
+
 /** Ro'yxat filtri. Bo'sh yuborilsa hammasi qaytadi. */
 export interface RentalFilterDTO {
   clientId?: string;
@@ -162,6 +178,8 @@ export interface RentalResponseDTO {
   returnedTime?: string | null;
   /** Qaytarish partiyalari — summa shular bo'yicha qayta hisoblanadi. */
   returns?: RentalReturnItemDTO[];
+  /** To'lov tarixi — Tarix sahifasi va kartadagi ro'yxat uchun. */
+  payments?: RentalPaymentItemDTO[];
   /**
    * MIJOZ YOZGAN, EGASI TASDIQLAMAGAN to'lov. null = yo'q.
    *

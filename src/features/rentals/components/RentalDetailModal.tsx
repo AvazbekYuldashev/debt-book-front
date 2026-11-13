@@ -412,6 +412,27 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
               </View>
             ) : null}
 
+            {/* ---- To'lov tarixi: har to'lov sanasi bilan ----
+                Yig'indi ("to'langan") tepadagi satrda bor; bu ro'yxat
+                "qachon, qancha" degan savolga javob beradi va mijoz
+                kartasidagi Tarix bilan bir xil manbadan chiqadi. */}
+            {(rental.payments ?? []).length > 0 ? (
+              <View style={styles.rows}>
+                {(rental.payments ?? []).map((item, index) => (
+                  <View key={item.id ?? index} style={styles.detailRow}>
+                    <Text style={styles.detailLabel} numberOfLines={1}>
+                      {t('rentals.paymentLine', {
+                        amount: formatMoney(toAmount(item.amount), rental.currency),
+                      })}
+                    </Text>
+                    <Text style={styles.detailValue} numberOfLines={1}>
+                      {item.paidDate ?? ''}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
             {/* ---- Amallar ---- */}
             {pane === 'info' ? (
               <View style={styles.actionsColumn}>

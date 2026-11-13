@@ -27,7 +27,13 @@ import { ROUTES } from '../../../app/navigation/routes';
 import { MoneyActionType } from '../../../shared/types/money';
 import { mergeAmounts, netByCurrency } from '../../../shared/lib/currency';
 import { useRequestRental } from '../../rentals/hooks/useRentals';
-import { useContactRentalTotals } from '../../rentals/hooks/useContactRentalTotals';
+import { useContactRentals } from '../../rentals/hooks/useContactRentalTotals';
+import { rentalTotalsByContact } from '../../rentals/model/rentalBalance';
+import {
+  mergeHistoryRows,
+  rentalIdOfPaymentRow,
+  rentalPaymentRows,
+} from '../model/rentalPaymentRows';
 import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
 import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { useI18n } from '../../../shared/i18n';
@@ -245,11 +251,15 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    * hisoblanadi. To'lov esa ijara kartasida yoziladi va qoldiqni
    * kamaytiradi.
    */
-  const rentalTotals = useContactRentalTotals(
+  const contactRentals = useContactRentals(
     contactId,
     rentalsAvailable && clientMode ? counterpartyBusinessId ?? null : null,
     // Biznes rejimida men ham shu do'kondan olgan bo'lishim mumkin.
     !clientMode && canRentIn ? counterpartyBusinessId ?? null : null,
+  );
+  const rentalTotals = useMemo(
+    () => rentalTotalsByContact(contactRentals)[contactId] ?? { credit: {}, debt: {} },
+    [contactRentals, contactId],
   );
 
   // Har valyuta balansi MUSTAQIL — so'm alohida, dollar alohida (kurs aralashmaydi).
@@ -265,6 +275,20 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const mappedHistory = useMemo(
     () => history.map((item) => mapTransaction(item, owner, selectedCounterparty || undefined)),
     [history, owner, selectedCounterparty],
+  );
+
+  /*
+   * TARIXGA ijara to'lovlari ham qo'shiladi.
+   *
+   * To'lov pul yozuvi emas (u ijara ichida yashaydi va balansni ijara
+   * qoldig'i orqali kamaytiradi), lekin odam uchun u pul voqeasi:
+   * "falon kuni shuncha berdim". Ko'rinmasa to'lov yo'qolgan deb
+   * o'ylanadi — aynan shu savol tug'ilgan edi.
+   */
+  const paymentRows = useMemo(() => rentalPaymentRows(contactRentals), [contactRentals]);
+  const historyRows = useMemo(
+    () => mergeHistoryRows(mappedHistory, paymentRows),
+    [mappedHistory, paymentRows],
   );
 
   // QARAMA-QARSHI tomon xodimi: men tanlagan odam menga, men esa ularga ko'rinaman.
@@ -356,14 +380,31 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     setModalVisible(true);
   }, []);
 
+  /**
+   * Qator bosildi: ijara to'lovi bo'lsa IJARA kartasi ochiladi —
+   * sintetik qatorda pul kartasi ko'rsatadigan tomonlar yo'q.
+   */
+  const handleRowPress = useCallback(
+    (tx: MappedTransaction) => {
+      const rentalId = rentalIdOfPaymentRow(tx.id);
+      if (!rentalId) {
+        setSelectedTransaction(tx);
+        return;
+      }
+      const rental = contactRentals.find((item) => item.id === rentalId);
+      if (rental) setOpenedRental(rental);
+    },
+    [contactRentals],
+  );
+
   // Tarix virtualizatsiyalangan (FlatList) — bir kontaktda minglab yozuv bo'lishi
   // mumkin; avval ScrollView + .map() hammasini bir vaqtda render qilardi ("qotish").
-  const lastIndex = mappedHistory.length - 1;
+  const lastIndex = historyRows.length - 1;
   const renderTransaction = useCallback<ListRenderItem<MappedTransaction>>(
     ({ item, index }) => (
-      <TransactionRow tx={item} isLast={index === lastIndex} onPress={setSelectedTransaction} />
+      <TransactionRow tx={item} isLast={index === lastIndex} onPress={handleRowPress} />
     ),
-    [lastIndex],
+    [lastIndex, handleRowPress],
   );
 
   const keyExtractor = useCallback((item: MappedTransaction) => item.id, []);
@@ -496,7 +537,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     <NestedGlass>
       <FlatList
         contentContainerStyle={styles.listCard}
-        data={mappedHistory}
+        data={historyRows}
         renderItem={renderTransaction}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
@@ -515,7 +556,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
           // Skeleton faqat BIRINCHI yuklashda: tarix allaqachon ekranda
           // bo'lsa, modal yopilgandan keyingi fon yangilanishi uni
           // kulrang chiziqlarga almashtirmaydi.
-          loading && mappedHistory.length === 0 ? (
+          loading && historyRows.length === 0 ? (
             <SkeletonContactList count={5} />
           ) : (
             <EmptyState

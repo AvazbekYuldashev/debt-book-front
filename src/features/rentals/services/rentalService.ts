@@ -72,6 +72,11 @@ export const normalizeRental = (raw: RentalResponseDTO): RentalResponseDTO => ({
     quantity: toAmount(item.quantity),
     returnedTime: toHourMinute(item.returnedTime),
   })),
+  // To'lov tarixi: summalari ham BigDecimal bo'lib satr kelishi mumkin.
+  payments: (raw.payments ?? []).map((item) => ({
+    ...item,
+    amount: toAmount(item.amount),
+  })),
 });
 
 // ---------------------------------------------------------------- o'qish

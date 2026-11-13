@@ -60,6 +60,15 @@ describe('normalizeRental', () => {
     expect(normalizeRental(raw({ pendingPayment: null })).pendingPayment).toBeNull();
   });
 
+  it("to'lov tarixi summalari ham songa keladi", () => {
+    const item = normalizeRental(
+      raw({ payments: [{ id: 'p1', amount: '50000.00', paidDate: '2026-11-14' }] }),
+    );
+    expect(item.payments?.[0].amount).toBe(50_000);
+    // Eski server maydonni yubormaydi — bo'sh ro'yxat, undefined emas.
+    expect(normalizeRental(raw()).payments).toEqual([]);
+  });
+
   it("soat HH:mm ga qisqaradi va qaytarish partiyalari songa keladi", () => {
     const item = normalizeRental(
       raw({
