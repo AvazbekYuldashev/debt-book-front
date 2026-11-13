@@ -16,13 +16,15 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
-import { formatMoney } from '../../../shared/lib/money';
+import { formatAmountInput, formatMoney, parseAmountInput } from '../../../shared/lib/money';
 import { isValidDateInput } from '../../../shared/lib/date';
 import DateField from '../../../shared/ui/DateField';
 import { confirmAction } from '../../../shared/lib/confirm';
 import {
   useConfirmRental,
   useDeleteRental,
+  usePayRental,
+  useRequestRentalPayment,
   useResolveRentalPayment,
   useReturnRental,
 } from '../hooks/useRentals';
@@ -45,6 +47,7 @@ import {
   startMoment,
   todayString,
   totalQuantity,
+  unpaidAmount,
 } from '../model/rentalMath';
 import {
   elapsedLabel,
@@ -65,7 +68,7 @@ interface RentalDetailModalProps {
   allowDelete?: boolean;
 }
 
-type Pane = 'info' | 'return';
+type Pane = 'info' | 'return' | 'payment';
 
 /**
  * Bitta ijaraning kartasi va ikki amali.
@@ -106,11 +109,13 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
   const mine = rental?.owner !== false;
 
   /*
-   * PUL YOZISH YO'LI BU YERDA YO'Q — u Qarzlar bo'limida.
-   *
-   * Qolgani faqat eski so'rovni hal qilish uchun: tasdiq kutayotgan
-   * yozuv osilib qolmasligi kerak.
+   * TO'LOV YO'LI yozuv kimning ekaniga qarab boshqa: egasi o'z
+   * daftarida pul olganini darhol yozadi, mijoz esa "pul berdim" deb
+   * yozadi va summa egasi tasdiqlagunicha hisobga kirmaydi — aks
+   * holda mijoz o'z qarzini o'zi yopib qo'ya olardi.
    */
+  const payMutation = usePayRental();
+  const payRequestMutation = useRequestRentalPayment();
   const payResolveMutation = useResolveRentalPayment();
   const deleteMutation = useDeleteRental();
   const confirmMutation = useConfirmRental();
@@ -119,6 +124,7 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
   const [returnDate, setReturnDate] = useState(todayString());
   const [returnTime, setReturnTime] = useState(currentTimeString());
   const [returnQty, setReturnQty] = useState('');
+  const [payAmount, setPayAmount] = useState('');
   const [error, setError] = useState('');
 
   /**
@@ -137,6 +143,8 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
     // Maydonlar QOLGANI bilan to'ldiriladi: ko'p holatda hammasi birdan
     // qaytadi va hech narsa yozmasdan tasdiqlanadi.
     setReturnQty(String(remainingQuantity(rental)));
+    const remainingMoney = unpaidAmount(rental);
+    setPayAmount(remainingMoney > 0 ? formatAmountInput(String(remainingMoney)) : '');
   }, [rental]);
 
   const handleReturn = useCallback(() => {
@@ -164,6 +172,32 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
       { onSuccess: onClose, onError: (err) => setError((err as Error).message) },
     );
   }, [rental, returnDate, returnTime, returnQty, returnMutation, onClose, t]);
+
+  /**
+   * To'lov yozish.
+   *
+   * YO'L yozuv kimning ekaniga qarab boshqa: egasi o'z daftarida pul
+   * olganini darhol yozadi, mijoz esa "pul berdim" deb yozadi va summa
+   * egasi tasdiqlagunicha hisobga kirmaydi.
+   */
+  const handlePay = useCallback(() => {
+    if (!rental) return;
+    setError('');
+    const amount = parseAmountInput(payAmount);
+    if (!amount) return setError(t('rentals.errPayAmount'));
+
+    const handlers = {
+      onSuccess: onClose,
+      onError: (err: unknown) => setError((err as Error).message),
+    };
+    const payload = { id: rental.id, dto: { amount, date: todayString() } };
+
+    if (mine) {
+      payMutation.mutate(payload, handlers);
+    } else {
+      payRequestMutation.mutate(payload, handlers);
+    }
+  }, [rental, payAmount, mine, payMutation, payRequestMutation, onClose, t]);
 
   /** Egasi mijozning to'loviga javob beradi. */
   const handleResolvePayment = useCallback(
@@ -211,6 +245,8 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
   const units = billedUnits(rental);
   const late = overdueUnits(rental);
   const accrued = accruedAmount(rental);
+  const unpaid = unpaidAmount(rental);
+  const paid = toAmount(rental.paidAmount);
   const total = totalQuantity(rental);
   const back = returnedQuantity(rental);
   const left = remainingQuantity(rental);
@@ -284,21 +320,33 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
               </View>
             </View>
 
-            {/* ---- Eng muhim raqam: YIG'ILGAN ijara haqi ----
-                Ilgari bu yerda "to'lanmagan qoldiq" turardi, ya'ni
-                karta o'zining ALOHIDA pul hisobini yuritardi. Ijara
-                summasi esa "Qarz berish" bilan birga pul yozuviga
-                kiradi — natijada bitta pul ikki joyda ko'rinardi va
-                odam shu yerga to'lab, qarzi joyida turganini ko'rib
-                chalkashardi. Endi karta faqat HAQNI ko'rsatadi,
-                pulni Qarzlar bo'limi yuritadi. */}
-            <View style={[styles.hero, { backgroundColor: colors.infoSoft }]}>
-              <Text style={styles.heroLabel}>{t('rentals.accrued')}</Text>
-              <Text style={[styles.heroValue, { color: colors.info }]} numberOfLines={1}>
-                {formatMoney(accrued, rental.currency)}
+            {/* ---- Eng muhim raqam: olinmagan qoldiq ----
+                Katta va rangli: odam kartani aynan shuni bilish uchun
+                ochadi. Qoldiq VAQT bilan o'sadi (muddat o'tgach ham) va
+                mijozning qarz balansiga o'zi qo'shilib turadi; to'lov
+                shu kartada yoziladi. Hisob yopiq bo'lsa yashil
+                "Hisob toza" — "to'landi" degani. */}
+            <View style={[styles.hero, { backgroundColor: unpaid > 0 ? colors.negativeSoft : colors.positiveSoft }]}>
+              <Text style={styles.heroLabel}>
+                {unpaid > 0
+                  ? mine
+                    ? t('rentals.unpaid')
+                    : t('rentals.toPay')
+                  : unpaid < 0
+                    ? t('rentals.advance')
+                    : t('rentals.settled')}
               </Text>
-              <Text style={styles.heroHint} numberOfLines={2}>
-                {t('rentals.moneyInDebts')}
+              <Text
+                style={[styles.heroValue, { color: unpaid > 0 ? colors.negative : colors.positive }]}
+                numberOfLines={1}
+              >
+                {formatMoney(Math.abs(unpaid), rental.currency)}
+              </Text>
+              <Text style={styles.heroHint} numberOfLines={1}>
+                {t('rentals.heroHint', {
+                  accrued: formatMoney(accrued, rental.currency),
+                  paid: formatMoney(paid, rental.currency),
+                })}
               </Text>
             </View>
 
@@ -380,17 +428,27 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                 {mine && allowWrite && !returned ? (
                   <Button title={t('rentals.markReturned')} onPress={() => setPane('return')} />
                 ) : null}
-                {/*
-                  PUL BU YERDA YOZILMAYDI — u Qarzlar bo'limida.
-                  Ijara summasi "Qarz berish" bilan birga pul yozuviga
-                  kiradi, shuning uchun bu yerda ikkinchi marta to'lov
-                  yozish pulni BOSHQA daftarga tushirardi: odam
-                  to'lagandan keyin ham qarz ko'rinib turardi.
-                */}
+                {/* Pul buyumdan MUSTAQIL: qisman to'lov ham, buyum
+                    qaytmasidan oldin to'lov ham bo'ladi. */}
+                {mine && allowWrite && unpaid > 0 ? (
+                  <Button
+                    title={t('rentals.takePayment')}
+                    variant="secondary"
+                    onPress={() => setPane('payment')}
+                  />
+                ) : null}
                 {/* MIJOZ tomoni: pulni u beradi, demak yozuvni ham u
                     boshlaydi. Summa egasi tasdiqlagunicha hisobga
-                    kirmaydi. */}
-
+                    kirmaydi — aks holda mijoz o'z qarzini o'zi yopib
+                    qo'ya olardi. Kutayotgan to'lov bor bo'lsa yangisi
+                    yozilmaydi. */}
+                {!mine && rental.canPay && !rental.pendingPayment && unpaid > 0 ? (
+                  <Button
+                    title={t('rentals.iPaid')}
+                    variant="secondary"
+                    onPress={() => setPane('payment')}
+                  />
+                ) : null}
                 {/* Egasiga: mijoz yozgan summa va javob tugmalari. Rad
                     etish tasdiqlash bilan birga turadi — yolg'on yozuv
                     kartada abadiy osilib qolmasligi kerak. */}
@@ -463,6 +521,34 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                   </View>
                 ) : null}
                 <Button title={t('common.close')} variant="secondary" onPress={onClose} />
+              </View>
+            ) : null}
+
+            {pane === 'payment' ? (
+              <View style={styles.pane}>
+                <Input
+                  label={mine ? t('rentals.payAmount') : t('rentals.iPaidTitle')}
+                  value={payAmount}
+                  onChangeText={(value) => setPayAmount(formatAmountInput(value))}
+                  keyboardType="decimal-pad"
+                />
+                <Text style={styles.note}>
+                  {mine ? t('rentals.payHint') : t('rentals.paymentWaitingHint')}
+                </Text>
+                <View style={styles.actionsRow}>
+                  <Button
+                    title={t('common.cancel')}
+                    variant="secondary"
+                    onPress={() => setPane('info')}
+                    style={styles.actionBtn}
+                  />
+                  <Button
+                    title={mine ? t('rentals.takePayment') : t('rentals.iPaid')}
+                    onPress={handlePay}
+                    loading={payMutation.isPending || payRequestMutation.isPending}
+                    style={styles.actionBtn}
+                  />
+                </View>
               </View>
             ) : null}
 

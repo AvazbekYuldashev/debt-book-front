@@ -74,48 +74,47 @@ beforeEach(() => {
  * deb yozadi va summa egasi tasdiqlagunicha hisobga kirmaydi — aks holda
  * u o'z qarzini o'zi yopib qo'ya olardi.
  *
- * Ilgari mijozga egasining tugmasi ko'rinib, bosilganda server 403
- * qaytarardi. Shu test o'sha xatoni qaytib kelishiga yo'l qo'ymaydi.
+ * Bir muddat to'lov yo'li kartadan olib tashlangan edi ("pul faqat pul
+ * yozuvlarida" degan model) — egasining qarori bilan qaytarildi: ijara
+ * qoldig'i qarz balansida turadi va aynan shu kartada to'lanadi.
  */
-describe('to\'lov yo\'li', () => {
-  it("PUL bu yerda yozilmaydi — u Qarzlar bo'limida", async () => {
-    /*
-     * Ijara summasi "Qarz berish" bilan birga pul yozuviga kiradi.
-     * Kartada ikkinchi to'lov yo'li bo'lsa pul BOSHQA daftarga
-     * tushardi: odam 2 ta lesani olib, pulini to'lagandan keyin ham
-     * qarz ko'rinib turardi — aynan shu xato ro'y berdi.
-     */
+describe("to'lov yo'li", () => {
+  it("egasiga 'Pul oldim' chiqadi va u darhol yoziladi", async () => {
     show(rental());
     await settle();
 
-    expect(screen.queryByText('Pul oldim')).toBeNull();
-    expect(ownerPay).not.toHaveBeenCalled();
-  });
+    fireEvent.press(screen.getByText('Pul oldim'));
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '50000');
+    const buttons = screen.getAllByText('Pul oldim');
+    fireEvent.press(buttons[buttons.length - 1]);
 
-  it("karta QARZ emas, yig'ilgan HAQNI ko'rsatadi", async () => {
-    /*
-     * Ilgari tepada "To'lash kerak" turardi va odam pulini bergandan
-     * keyin ham qizil raqamni ko'rib "hali ham qarz" deb yozardi.
-     * Haq - ma'lumot; qarz esa Qarzlar bo'limida.
-     */
-    show(rental({ paidAmount: 0 }));
-    await settle();
-
-    expect(screen.getByText("Yig'ilgan ijara haqi")).toBeTruthy();
-    expect(screen.getByText("Pul Qarzlar bo'limida yuritiladi")).toBeTruthy();
-    expect(screen.queryByText("To'lash kerak")).toBeNull();
-    expect(screen.queryByText("To'lanmagan")).toBeNull();
-  });
-
-  it("mijozda ham to'lov yo'li yo'q", async () => {
-    show(rental({ owner: false, canPay: true }));
-    await settle();
-
-    expect(screen.queryByText('Pul berdim')).toBeNull();
+    expect(ownerPay).toHaveBeenCalledTimes(1);
     expect(clientPay).not.toHaveBeenCalled();
   });
 
-  it('mijoz tomonida egasining amallari ko\'rinmaydi', async () => {
+  it("mijozga 'Pul berdim' chiqadi va u TASDIQ so'rovi bo'lib ketadi", async () => {
+    show(rental({ owner: false, canPay: true }));
+    await settle();
+
+    fireEvent.press(screen.getByText('Pul berdim'));
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], '50000');
+    const buttons = screen.getAllByText('Pul berdim');
+    fireEvent.press(buttons[buttons.length - 1]);
+
+    // Egasining yo'li EMAS: u 403 qaytarardi.
+    expect(clientPay).toHaveBeenCalledTimes(1);
+    expect(ownerPay).not.toHaveBeenCalled();
+  });
+
+  it("server ruxsat bermagan mijozga tugma chiqmaydi", async () => {
+    // `canPay` SERVERNIKI: eski javobda maydon yo'q — tugma ham yo'q.
+    show(rental({ owner: false }));
+    await settle();
+
+    expect(screen.queryByText('Pul berdim')).toBeNull();
+  });
+
+  it("mijoz tomonida egasining amallari ko'rinmaydi", async () => {
     show(rental({ owner: false, canPay: true }));
     await settle();
 
@@ -124,19 +123,19 @@ describe('to\'lov yo\'li', () => {
   });
 
   it("mijoz o'z to'lovini kutayotganini ko'radi", async () => {
-    show(rental({ owner: false, pendingPayment: 50_000 }));
+    show(rental({ owner: false, canPay: true, pendingPayment: 50_000 }));
     await settle();
 
-    expect(screen.getByText('To\'lov tasdiq kutyapti')).toBeTruthy();
+    expect(screen.getByText("To'lov tasdiq kutyapti")).toBeTruthy();
     // Kutayotgan to'lov bor — ikkinchisini yozib bo'lmaydi.
     expect(screen.queryByText('Pul berdim')).toBeNull();
   });
 
-  it('egasi mijozning to\'lovini tasdiqlaydi', async () => {
+  it("egasi mijozning to'lovini tasdiqlaydi", async () => {
     show(rental({ pendingPayment: 50_000, canConfirmPayment: true }));
     await settle();
 
-    expect(screen.getByText('Mijoz to\'lov yozdi')).toBeTruthy();
+    expect(screen.getByText("Mijoz to'lov yozdi")).toBeTruthy();
     fireEvent.press(screen.getByText('Tasdiqlash'));
 
     expect(resolvePay).toHaveBeenCalledWith(
@@ -145,7 +144,7 @@ describe('to\'lov yo\'li', () => {
     );
   });
 
-  it('egasi rad eta oladi — yolg\'on yozuv osilib qolmaydi', async () => {
+  it("egasi rad eta oladi — yolg'on yozuv osilib qolmaydi", async () => {
     show(rental({ pendingPayment: 50_000, canConfirmPayment: true }));
     await settle();
 
@@ -155,5 +154,39 @@ describe('to\'lov yo\'li', () => {
       { id: 'r1', accept: false },
       expect.anything(),
     );
+  });
+});
+
+/**
+ * PUL TO'LANSA "TO'LANDI" DEYILADI.
+ *
+ * Karta eng muhim raqam sifatida QOLDIQNI ko'rsatadi: u vaqt bilan
+ * o'sadi va qarz balansiga o'zi qo'shilib turadi. To'liq to'langan
+ * yozuvda esa yashil "Hisob toza" turadi — odam "yana nimadir
+ * qoldimi" deb o'ylamasligi kerak.
+ */
+describe('qoldiq va to\'landi', () => {
+  it("to'lanmagan yozuvda QOLDIQ ko'rinadi", async () => {
+    // 10 dona × 5 000, kechagacha ochiq — qoldiq aniq musbat.
+    show(rental({ paidAmount: 0 }));
+    await settle();
+
+    expect(screen.getByText('Olinmagan')).toBeTruthy();
+  });
+
+  it("to'liq to'langan yozuv 'Hisob toza' deb turadi", async () => {
+    // 1 dona, 2026-10-10 → 2026-10-12 = 2 kun × 5 000 = 10 000.
+    show(
+      rental({
+        quantity: 1,
+        returnedDate: '2026-10-12',
+        paidAmount: 10_000,
+      }),
+    );
+    await settle();
+
+    expect(screen.getByText('Hisob toza')).toBeTruthy();
+    // Qoldiq nol — to'lov tugmasi ham kerak emas.
+    expect(screen.queryByText('Pul oldim')).toBeNull();
   });
 });
