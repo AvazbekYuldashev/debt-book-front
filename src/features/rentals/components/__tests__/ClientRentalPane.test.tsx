@@ -205,6 +205,66 @@ describe("ombor egasi tomonida 'Ijaraga berish'", () => {
     // Bo'sh forma ochiladi: bir mijozga bir nechta buyum beriladi.
     expect(giveOut).toHaveBeenCalledWith(null);
   });
+  /**
+   * IKKI YO'NALISH BIRDAN: men ularga beraman, o'zim ham ulardan olaman.
+   *
+   * Qurilishchi lesani birovdan olib, o'z opalubkasini beradi. "Men
+   * olgan" yozuvlar do'konning daftarida turadi va `/rental/my` da
+   * CHIQMAYDI — alohida sahifa bo'lmasa ular ilovada hech qayerda
+   * ko'rinmasdi: yozib bo'lardi, ko'rib bo'lmasdi.
+   */
+  it("do'kon kontaktida MENDAGI buyumlar alohida sahifa bo'ladi", async () => {
+    (useRentalsWithBusiness as jest.Mock).mockReturnValue({
+      data: [rental({ id: 'r-taken', itemName: 'Mikser', owner: false })],
+      isLoading: false,
+    });
+
+    render(
+      <AppThemeProvider>
+        <LanguageProvider>
+          <ClientRentalPane
+            clientId="c1"
+            active
+            allowWrite
+            onGiveOut={giveOut}
+            onOpenRental={jest.fn()}
+            takenFromBusinessId={SHOP}
+          />
+        </LanguageProvider>
+      </AppThemeProvider>,
+    );
+    await settle();
+
+    // Uchta sahifa: shu mijozda, mendagi buyumlar, ombor.
+    expect(screen.getAllByText('Mendagi buyumlar').length).toBeGreaterThan(0);
+    expect(screen.getByText('Mikser')).toBeTruthy();
+    // Men bergan yozuv ham o'z joyida qoladi.
+    expect(screen.getByText('Lesa')).toBeTruthy();
+  });
+
+  it("men hech narsa olmagan bo'lsam uchinchi sahifa qo'shilmaydi", async () => {
+    (useRentalsWithBusiness as jest.Mock).mockReturnValue({ data: [], isLoading: false });
+
+    render(
+      <AppThemeProvider>
+        <LanguageProvider>
+          <ClientRentalPane
+            clientId="c1"
+            active
+            allowWrite
+            onGiveOut={giveOut}
+            onOpenRental={jest.fn()}
+            takenFromBusinessId={SHOP}
+          />
+        </LanguageProvider>
+      </AppThemeProvider>,
+    );
+    await settle();
+
+    // Bo'sh sahifa har kartada surishga qo'shimcha qadam bo'lardi.
+    expect(screen.queryByText('Mendagi buyumlar')).toBeNull();
+  });
+
   it('tugma BITTA joyda — ombor sarlavhalarida takrorlanmaydi', async () => {
     await showOwner();
 

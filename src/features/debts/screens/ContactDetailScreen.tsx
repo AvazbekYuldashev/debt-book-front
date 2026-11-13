@@ -789,6 +789,10 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
                 onOpenRental={setOpenedRental}
                 onAddItem={allowWrite ? openStockForNewItem : undefined}
                 ownerBusinessId={clientMode ? counterpartyBusinessId : null}
+                /* Biznes ham boshqa do'kondan oladi — o'sha yozuvlar
+                   do'konning daftarida turadi va alohida sahifa
+                   bo'lib keladi (shart `canRentIn` bilan bir xil). */
+                takenFromBusinessId={canRentIn ? counterpartyBusinessId : null}
               />
             ),
           },

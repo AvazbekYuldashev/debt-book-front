@@ -39,7 +39,22 @@ interface ClientRentalPaneProps {
    * baribir do'kon tasdiqlaydi: ombor birovning mulki.
    */
   ownerBusinessId?: string | null;
+  /**
+   * Qarshi tomon do'koni — MEN HAM o'sha yerdan olgan bo'lsam.
+   *
+   * Biznes hisobida ikki yo'nalish birdan bo'lishi mumkin: o'z
+   * omborimdan ularga beraman va ularning omboridan o'zim olaman
+   * (qurilishchi lesani birovdan olib, o'z opalubkasini beradi). Bu
+   * yozuvlar `/rental/my` da CHIQMAYDI — ular do'konning daftarida
+   * turadi — shuning uchun alohida sahifa bo'lib keladi.
+   *
+   * Mijoz rejimida berilmaydi: u yerda o'sha ro'yxat asosiy sahifa.
+   */
+  takenFromBusinessId?: string | null;
 }
+
+/** Bitta mijozning ijaralari bitta so'rovda olinadi — sahifalanmaydi. */
+const CLIENT_PAGE = 200;
 
 /** Ombor sahifasidagi kategoriya bo'limi. */
 interface StockSection {
@@ -47,6 +62,27 @@ interface StockSection {
   title: string;
   data: { item: RentalItemResponseDTO; isLast: boolean }[];
 }
+
+/**
+ * Ro'yxatdan HOZIR turgan ijaralar — qaytganlari tushib qoladi.
+ *
+ * Ikki endpoint ikki shaklda javob beradi: "men bergan" ro'yxat
+ * sahifalangan (`content`), "men olgan" esa oddiy massiv. Ikkisi ham
+ * shu yerdan o'tadi, shuning uchun shart bir joyda turadi.
+ *
+ * Qaytgan ijara bu sahifaning savoliga ("ayni damda nima turibdi")
+ * javob emas: ro'yxat o'sib boraverar va odam qaytargan narsasini har
+ * safar ko'rib, "yana qaytarishim kerakmi" deb o'ylardi. Yozuv
+ * O'CHMAYDI — u Ijara bo'limidagi "Yopilgan" filtrida tarix bo'lib
+ * qoladi.
+ */
+const openRentalsOf = (
+  data: RentalResponseDTO[] | { content?: RentalResponseDTO[] } | undefined,
+): RentalResponseDTO[] => {
+  if (!data) return [];
+  const all = Array.isArray(data) ? data : data.content ?? [];
+  return all.filter((rental) => rentalStage(rental) !== 'CLOSED');
+};
 
 /**
  * Mijoz kartasidagi IJARA sahifasi — ikkita surilib o'tiladigan sahifa.
@@ -80,6 +116,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   onOpenRental,
   onAddItem,
   ownerBusinessId,
+  takenFromBusinessId,
 }) => {
   const theme = useAppTheme();
   const { t } = useI18n();
@@ -90,7 +127,14 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   const clientMode = Boolean(ownerBusinessId);
   const filter = useMemo(() => ({ clientId }), [clientId]);
 
-  const ownRentals = useMyRentals(filter, { enabled: active && !clientMode });
+  /*
+   * Sahifa qaytganlarni TELEFONDA tashlab yuboradi, demak server
+   * odatiysi (20 ta) yetmaydi: eski yopilgan yozuvlar sahifani to'ldirib,
+   * hozir mijozda turgan buyum ro'yxatdan tushib qolishi mumkin edi.
+   * Bitta mijozdagi ochiq ijaralar soni o'nlab bo'ladi — bitta katta
+   * so'rov yetarli.
+   */
+  const ownRentals = useMyRentals(filter, { enabled: active && !clientMode, size: CLIENT_PAGE });
   const theirRentals = useRentalsWithBusiness(ownerBusinessId ?? '', {
     enabled: active && clientMode,
   });
@@ -103,6 +147,17 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   const itemsQuery = clientMode ? theirItems : ownItems;
 
   /**
+   * MENDAGI buyumlar — qarshi tomon do'konidan olganlarim.
+   *
+   * Faqat egalik rejimida alohida so'rov bo'ladi: mijoz rejimida bu
+   * ro'yxat allaqachon asosiy sahifa (`theirRentals`).
+   */
+  const takenBusinessId = clientMode ? '' : takenFromBusinessId ?? '';
+  const takenQuery = useRentalsWithBusiness(takenBusinessId, {
+    enabled: active && Boolean(takenBusinessId),
+  });
+
+  /**
    * Sahifa HOZIR turgan buyumlarni ko'rsatadi, tarixni emas.
    *
    * Sarlavhasi "Mendagi buyumlar" (yoki "Shu mijozda") — ya'ni savol
@@ -113,13 +168,9 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
    * Yozuv O'CHMAYDI — u Ijara bo'limidagi "Yopilgan" filtrida tarix
    * bo'lib qoladi.
    */
-  const rentals = useMemo(() => {
-    const data = rentalsQuery.data;
-    if (!data) return [];
-    // Mijoz rejimida endpoint massiv, egasinikida sahifa qaytaradi.
-    const all = Array.isArray(data) ? data : data.content ?? [];
-    return all.filter((rental) => rentalStage(rental) !== 'CLOSED');
-  }, [rentalsQuery.data]);
+  const rentals = useMemo(() => openRentalsOf(rentalsQuery.data), [rentalsQuery.data]);
+  /** Men o'sha do'kondan olgan va hali qaytarmagan buyumlar. */
+  const taken = useMemo(() => openRentalsOf(takenQuery.data), [takenQuery.data]);
   const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
 
   /*
@@ -227,6 +278,46 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
     );
   }, [loading, rentals, clientMode, canAct, actionLabel, styles, onGiveOut, onOpenRental, t]);
 
+  /**
+   * MENDAGI buyumlar — o'sha do'kondan olganlarim (egalik rejimida).
+   *
+   * Amal tugmasi YO'Q: olish pul oynasidan boshlanadi ("Oldim" →
+   * "Ijaraga olish"), chunki summa Qarzlar daftariga yozuv bo'lib
+   * tushishi kerak. Bu sahifa javob beradigan savol boshqa: "men
+   * ularga nima qaytarishim kerak".
+   */
+  const renderTaken = useCallback(() => {
+    if (takenQuery.isLoading) return <SkeletonContactList count={3} />;
+    if (taken.length === 0) {
+      return (
+        <EmptyState
+          icon="cube-outline"
+          title={t('rentals.atMe')}
+          description={t('rentals.noRentalsHere')}
+        />
+      );
+    }
+    return (
+      <View style={styles.page}>
+        <SectionHeader icon="cube" iconBadge={false} title={t('rentals.atMe')} />
+        <FlatList
+          data={taken}
+          keyExtractor={(rental) => rental.id}
+          renderItem={({ item: rental, index }) => (
+            <RentalRow
+              item={rental}
+              isLast={index === taken.length - 1}
+              showClient={false}
+              onPress={onOpenRental}
+            />
+          )}
+          contentContainerStyle={styles.listCard}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    );
+  }, [takenQuery.isLoading, taken, styles, onOpenRental, t]);
+
   const renderStock = useCallback(() => {
     if (loading) return <SkeletonContactList count={3} />;
     if (stockSections.length === 0) {
@@ -297,6 +388,29 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
         icon: 'cube-outline',
         render: renderRentals,
       },
+      /*
+       * "MENDAGI buyumlar" — faqat ikki yo'nalish birdan bo'lganda.
+       *
+       * Qarshi tomon do'kon bo'lsa men ham undan olgan bo'lishim
+       * mumkin, lekin o'sha yozuvlar o'z daftarimda emas — do'konning
+       * daftarida turadi va `/rental/my` da chiqmaydi. Sahifa
+       * bo'lmasa ular ilovada HECH QAYERDA ko'rinmasdi: yozib
+       * bo'lardi, ko'rib bo'lmasdi.
+       *
+       * Yo'q bo'lganda sahifa ham qo'shilmaydi: bo'sh uchinchi
+       * sahifa har mijoz kartasida surishga qo'shimcha qadam
+       * bo'lardi.
+       */
+      ...(takenBusinessId && taken.length > 0
+        ? [
+            {
+              key: 'taken',
+              label: t('rentals.atMe'),
+              icon: 'arrow-down-circle-outline' as const,
+              render: renderTaken,
+            },
+          ]
+        : []),
       {
         key: 'stock',
         label: clientMode ? t('rentals.theirStock') : t('rentals.tabStock'),
@@ -304,7 +418,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
         render: renderStock,
       },
     ],
-    [clientMode, renderRentals, renderStock, t],
+    [clientMode, renderRentals, renderStock, renderTaken, takenBusinessId, taken.length, t],
   );
 
   return (
