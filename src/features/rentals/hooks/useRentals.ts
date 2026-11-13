@@ -38,6 +38,15 @@ import type { RentalItemCreateDTO, RentalItemUpdateDTO } from '../types/rentalIt
 const RENTAL_KEY = 'rental';
 
 /**
+ * Bitta mijozning ijaralari bitta so'rovda olinadi — sahifalanmaydi.
+ *
+ * Konstanta BIR joyda: mijoz kartasi sahifasi va balans hook'i aynan
+ * bir xil kalit bilan so'rashi kerak, aks holda React Query keshi
+ * ikkiga bo'linib, bitta ro'yxat ikki marta yuklanardi.
+ */
+export const RENTAL_CLIENT_PAGE = 200;
+
+/**
  * Kesh kaliti ISH MAYDONIGA bog'lanadi.
  *
  * Ilgari kalit faqat `'rental'` edi, so'rov esa `X-Business-ID`
