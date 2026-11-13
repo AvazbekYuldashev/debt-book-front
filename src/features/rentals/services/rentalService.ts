@@ -40,9 +40,6 @@ const toHourMinute = (value: string | null | undefined): string | null =>
  * javob chegarasida bir marta normallashtiriladi — ekranlarda emas.
  */
 export const normalizeRental = (raw: RentalResponseDTO): RentalResponseDTO => ({
-  // Server `null` yuboradi, ilova esa "yo'q" ni null deb biladi; satr
-  // ko'rinishida kelsa ham songa aylantiramiz (pul maydonlari kabi).
-  pendingPayment: raw.pendingPayment == null ? null : toAmount(raw.pendingPayment),
   ...raw,
   // `price` — yangi nom; eski server faqat `dailyPrice` yuboradi (u
   // paytda hamma ijara kunlik edi).
@@ -51,6 +48,17 @@ export const normalizeRental = (raw: RentalResponseDTO): RentalResponseDTO => ({
   paidAmount: toAmount(raw.paidAmount),
   // Miqdor yo'q bo'lsa 1: eski yozuvlarda ustun umuman bo'lmagan.
   quantity: raw.quantity === null || raw.quantity === undefined ? 1 : toAmount(raw.quantity) || 1,
+  /*
+   * Kutayotgan to'lov — SON yoki null.
+   *
+   * Maydon `...raw` dan KEYIN turishi shart: ilgari u tepada edi va
+   * yoyilma uni ustidan yozib ketardi, ya'ni normallashtirish hech
+   * qachon qo'llanmasdi. Natijasi ikkita: Jackson "50000.00" satr
+   * yuborganda `formatCurrency` uni son emas deb "0 so'm" chizardi, va
+   * BigDecimal nol ("0.00") satr bo'lib ROST qiymat bergani uchun
+   * kartada bo'lmagan "to'lov tasdiq kutyapti" bloki chiqardi.
+   */
+  pendingPayment: raw.pendingPayment == null ? null : toAmount(raw.pendingPayment),
   currency: normalizeCurrency(raw.currency),
   // Soat HH:mm bo'lishi shart (hisob shu ko'rinishni kutadi); server
   // "14:00:00" yuborsa soniyasi kesiladi.
