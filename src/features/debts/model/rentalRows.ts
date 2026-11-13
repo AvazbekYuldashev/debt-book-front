@@ -22,10 +22,15 @@ interface RentalRows {
  * Ilgari ikkala qator ikkala oynada ham chiqardi va summani teskari
  * tomonga yozib qo'yish hech gap emas edi.
  *
- * Qaysi biri BO'LISHI esa hisobga bog'liq: shaxsiyda ombor yo'q —
- * faqat olish; biznesda ombor bor — berish.
+ * Qaysi biri BO'LISHI esa OMBORGA qarab: berish uchun ombor menda
+ * bo'lishi kerak (ombor biznesning bo'limi), olish uchun esa qarshi
+ * tomonda bo'lishi kerak (`canRentIn` shuni aytadi).
+ *
+ * Hisob turi OLISHGA to'siq emas: biznes ham boshqa do'kondan lesa
+ * ijaraga olib, buni daftariga yozishi kerak. Bir vaqtda ikkala qator
+ * chiqmaydi — ular turli yo'nalishdagi oynalarda.
  */
 export const rentalRowsFor = ({ actionType, business, canRentIn }: RentalRowsInput): RentalRows => ({
-  rentIn: canRentIn && !business && actionType === 'TAKE',
+  rentIn: canRentIn && actionType === 'TAKE',
   rentOut: business && actionType === 'GIVE',
 });

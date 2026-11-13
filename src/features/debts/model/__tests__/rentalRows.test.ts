@@ -32,8 +32,25 @@ describe('pul oynasidagi ijara qatorlari', () => {
     });
   });
 
-  it("biznesda 'Oldim' oynasida hech narsa chiqmaydi", () => {
+  /*
+   * Biznes ham BOSHQA do'kondan ijaraga oladi.
+   *
+   * Yo'l bir marta qo'shilgan edi ("biznes hisobida ham Ijaraga olish
+   * chiqadi"), keyin yo'nalish qulflanganda `!business` sharti bilan
+   * yana yopilib qolgan: biznes egasi o'zi olgan lesani daftariga yoza
+   * olmasdi. Hisob turi OLISHGA to'siq emas — to'siq faqat o'z
+   * omboridan "olish" bo'lardi, uni `canRentIn` ajratadi.
+   */
+  it("biznesda 'Oldim' oynasida ham OLISH chiqadi", () => {
     expect(rentalRowsFor({ ...shop, actionType: 'TAKE' })).toEqual({
+      rentIn: true,
+      rentOut: false,
+    });
+  });
+
+  it("o'z do'koni bo'lsa 'Oldim' oynasi bo'sh qoladi", () => {
+    // `canRentIn` yolg'on: ombor meniki, undan "olish" oddiy berish.
+    expect(rentalRowsFor({ business: true, canRentIn: false, actionType: 'TAKE' })).toEqual({
       rentIn: false,
       rentOut: false,
     });
