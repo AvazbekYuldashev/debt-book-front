@@ -83,15 +83,6 @@ interface MoneyActionModalProps {
    */
   onRentOut?: () => void;
   /**
-   * Shu do'kondan olingan va hali QAYTARILMAGAN buyumlar soni.
-   *
-   * Odam oynani ochmasdan "menda nimadir bormi" degan savolga javob
-   * olishi kerak. Qator sarlavhasiga QO'YILMAYDI: u yerda amal nomi
-   * turadi va son u bilan qo'shilib ketsa, shu formada qilingan ish
-   * bo'lib o'qilardi ("7 ta buyum olingan" — hozir oldimmi?).
-   */
-  rentInCount?: number;
-  /**
    * Tanlangan, lekin hali SAQLANMAGAN ijaralar.
    *
    * Har biri alohida qator bo'lib chiqadi va alohida o'chiriladi -
