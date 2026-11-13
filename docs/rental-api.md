@@ -359,7 +359,12 @@ telefon avvalgidek bitta "Olinmagan pul" ko'rsatadi.
 
 #### `GET /rental/{id}`, `DELETE /rental/{id}`, `POST /rental/{id}/payment`
 
-1-versiyadagidek.
+1-versiyadagidek. Har to'lov `rental_payment` jadvaliga ham yoziladi
+(summa, sana, kim) va javobdagi `payments[]` ro'yxatida qaytadi -
+mijoz kartasidagi Tarix ijara to'lovlarini shu ro'yxatdan ko'rsatadi.
+`paid_amount` yig'indi bo'lib qoladi: hisob unga tayanadi. Jadval
+joriy qilinishidan OLDINGI to'lovlarning qatori yo'q (yig'indida bor,
+tarixda yo'q).
 
 #### `POST /rental/{id}/return` → `RentalResponseDTO`
 
@@ -397,6 +402,9 @@ soni hisoblanadi, saqlanmaydi).
   "returnedTime": null,                   // YANGI
   "returns": [
     { "id": "uuid", "quantity": 3, "returnedDate": "2026-10-03", "returnedTime": null }
+  ],
+  "payments": [
+    { "id": "uuid", "amount": 100000, "paidDate": "2026-11-14", "createdDate": "2026-11-14T10:30:00" }
   ],
   "paidAmount": 0,
   "note": null,
