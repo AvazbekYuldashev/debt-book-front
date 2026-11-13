@@ -2,7 +2,6 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { FlatList, type ListRenderItem, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import MoneyActionModal, { MoneyActionPayload } from '../components/MoneyActionModal';
-import { rentalRowsFor } from '../model/rentalRows';
 import { Ionicons } from '@expo/vector-icons';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import EmptyState from '../../../shared/ui/EmptyState';
@@ -26,8 +25,9 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import type { DebtsScreenProps } from '../../../app/navigation/types';
 import { ROUTES } from '../../../app/navigation/routes';
 import { MoneyActionType } from '../../../shared/types/money';
-import { netByCurrency } from '../../../shared/lib/currency';
-import { useCreateRentalBatch, useRequestRental } from '../../rentals/hooks/useRentals';
+import { mergeAmounts, netByCurrency } from '../../../shared/lib/currency';
+import { useRequestRental } from '../../rentals/hooks/useRentals';
+import { useContactRentalTotals } from '../../rentals/hooks/useContactRentalTotals';
 import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
 import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { useI18n } from '../../../shared/i18n';
@@ -41,21 +41,6 @@ import RentalDetailModal from '../../rentals/components/RentalDetailModal';
 import RentalRequestModal from '../../rentals/components/RentalRequestModal';
 import type { RentalPeriod, RentalRequestDTO, RentalResponseDTO } from '../../rentals/types/rental';
 
-/**
- * Hali saqlanmagan ijara: so'rov + ko'rsatish uchun nom va summa.
- *
- * `give` — O'Z omboridan berish (ijaraga berish ham qarz berish).
- * `take` — birovning omboridan olish; u do'kon tasdig'ini kutadi.
- */
-interface RentalDraft {
-  id: string;
-  kind: 'give' | 'take';
-  draft: RentalRequestDTO;
-  total: number;
-  label: string;
-  /** Berishda `createBatch` uchun shart: bitta yozuv bitta davrda. */
-  period: RentalPeriod;
-}
 import type { RentalItemResponseDTO } from '../../rentals/types/rentalItem';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
 import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
@@ -150,7 +135,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       })),
     );
     setMoneyFormKey((key) => key + 1);
-    setRentalDrafts([]);
     setModalVisible(true);
   }, []);
 
@@ -250,39 +234,32 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const canRentIn =
     Boolean(counterpartyBusinessId) && counterpartyBusinessId !== workspace.activeBusinessId;
 
-  // Qaysi ijara qatori ko'rinishi — yo'nalish va hisob turiga bog'liq.
-  const rentalRows = rentalRowsFor({
-    actionType,
-    business: workspace.mode === 'business',
-    canRentIn,
-  });
-
   /*
-   * IJARA BALANSGA QO'SHILMAYDI — pul yozuvi uni allaqachon olib yuradi.
+   * Balansga IJARA ham kiradi.
    *
    * Sarlavhadagi raqam pul tarixidan chiqardi va ijarani ko'rmasdi:
    * odam darhol ostida "Qarz 23 333" deb turgan qatorni ko'rar, tepada
-   * esa o'sha pul yo'q edi. Ro'yxatdagi balans ijarani allaqachon
-   * qo'shardi, ya'ni bitta mijozning raqami ikki ekranda ikki xil
-   * chiqardi.
+   * esa o'sha pul yo'q edi. Qoldiq VAQT bilan o'sadi (muddat o'tgach
+   * ham kunlik/soatlik qo'shilaveradi), shuning uchun u pul yozuviga
+   * QOTIRIB yozilmaydi — har ko'rishda ijara yozuvidan qaytadan
+   * hisoblanadi. To'lov esa ijara kartasida yoziladi va qoldiqni
+   * kamaytiradi.
    */
-  /*
-   * Ilgari ijara qoldig'i balansga QO'SHILARDI. O'shanda ijara o'z
-   * yozuvini yaratar va pul yozuvi bilan bog'liq emas edi.
-   *
-   * Endi ijara "Qarz berish" bilan BIRGA saqlanadi va summasi pul
-   * yozuviga kiradi (chek satri bo'lib ham ko'rinadi). Ikkalasini ham
-   * qo'shish bitta pulni ikki marta sanardi: odam 2 ta lesani 2 kunga
-   * olib, pulini to'lagach ham qarz ko'rinib turardi - pul bir
-   * daftarga, qarz boshqasiga yozilgani uchun.
-   *
-   * Endi YAGONA daftar: Qarzlar. Ijara sahifasi esa buyum va muddatni
-   * kuzatadi - qancha ketgan, nechtasi qaytgan.
-   */
+  const rentalTotals = useContactRentalTotals(
+    contactId,
+    rentalsAvailable && clientMode ? counterpartyBusinessId ?? null : null,
+    // Biznes rejimida men ham shu do'kondan olgan bo'lishim mumkin.
+    !clientMode && canRentIn ? counterpartyBusinessId ?? null : null,
+  );
+
   // Har valyuta balansi MUSTAQIL — so'm alohida, dollar alohida (kurs aralashmaydi).
   const balances = useMemo(
-    () => netByCurrency(currencyTotals.credit, currencyTotals.debt),
-    [currencyTotals],
+    () =>
+      netByCurrency(
+        mergeAmounts(currencyTotals.credit, rentalTotals.credit),
+        mergeAmounts(currencyTotals.debt, rentalTotals.debt),
+      ),
+    [currencyTotals, rentalTotals],
   );
 
   const mappedHistory = useMemo(
@@ -311,89 +288,28 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     }, [loadScreenData]),
   );
 
-  /**
-   * Hali SAQLANMAGAN ijara so'rovlari.
-   *
-   * "Qarz berish" bosilganda pul yozuvi bilan BIRGA yuboriladi -
-   * narxnoma savati bilan bir xil. Ilgari so'rov darhol yaratilar va
-   * qarz balansiga o'sha zahoti kirardi; summa esa Miqdorga ham
-   * qo'shilgani uchun bitta pul ikki marta sanalardi.
-   */
-  const [rentalDrafts, setRentalDrafts] = useState<RentalDraft[]>([]);
   // Hook keshni o'zi yangilaydi: ijara sahifasi darhol to'g'ri ko'rinadi.
   const requestRentalMutation = useRequestRental();
-  const createBatchMutation = useCreateRentalBatch();
 
+  /*
+   * Pul oynasi FAQAT PUL yozadi.
+   *
+   * Ilgari ijara tanlovi ham shu yozuvga qo'shilardi (summa Miqdorga,
+   * qatorlari chekka) — lekin yozuv QOTIB qolar, muddat o'tgach o'sib
+   * boruvchi ijara haqi esa unda ko'rinmasdi. Endi ijara o'z yozuvida
+   * yashaydi va qoldig'i balansga o'zi qo'shiladi (`rentalBalance`),
+   * to'lovi ijara kartasida yoziladi.
+   */
   const handleCreate = useCallback(
     async (payload: MoneyActionPayload) => {
       if (!contact) return;
-      /*
-       * IJARA qatorlari CHEKKA qo'shiladi.
-       *
-       * Narxnomadan tanlangan mahsulotlar kabi: server narxni o'z
-       * jadvalidan o'qiydi va qator tranzaksiya kartasidagi chekda
-       * ko'rinadi. Ilgari faqat izohga yozilardi - summa chekda emas,
-       * matn ichida qolardi.
-       *
-       * Miqdor va muddat yuboriladi, NARX yuborilmaydi: uni mijoz
-       * belgilay olmasligi kerak.
-       */
-      const rentalItems = rentalDrafts.flatMap((entry) =>
-        entry.draft.lines.map((line) => ({
-          rentalItemId: line.rentalItemId,
-          quantity: line.quantity,
-          duration: entry.draft.duration ?? null,
-        })),
-      );
-
       const ok = await createMoney(actionType, {
         ...payload,
-        items: [...(payload.items ?? []), ...rentalItems],
         targetPartyType: contact.partyType,
         targetPartyId: contact.partyId,
         targetPhone: contact.partyType === 'PROFILE' ? contact.phone : undefined,
       });
       if (!ok) return;
-
-      /*
-       * Ijara so'rovlari pul yozuvi SAQLANGANDAN KEYIN yuboriladi.
-       *
-       * Tartib muhim: pul saqlanmasa (xato, bekor) ijara ham
-       * yaratilmasligi kerak - aks holda odam ko'rmagan yozuv
-       * daftarga tushib qolardi.
-       */
-      for (const entry of rentalDrafts) {
-        try {
-          if (entry.kind === 'give') {
-            // O'Z omborimdan berish: tasdiq kutilmaydi, yozuv darhol
-            // tayyor - ombor ham meniki, qaror ham meniki.
-            await createBatchMutation.mutateAsync({
-              clientId: contactId,
-              period: entry.period,
-              startDate: entry.draft.startDate,
-              ...(entry.draft.startTime ? { startTime: entry.draft.startTime } : {}),
-              duration: entry.draft.duration,
-              note: entry.draft.note,
-              // Narx YUBORILMAYDI — server uni OMBORDAN o'qiydi. Nol
-              // yuborilsa u haqiqiy narx bo'lib, ijara bepul bo'lib
-              // qolardi.
-              lines: entry.draft.lines.map((line) => ({
-                rentalItemId: line.rentalItemId,
-                quantity: line.quantity,
-              })),
-            });
-          } else {
-            await requestRentalMutation.mutateAsync(entry.draft);
-          }
-        } catch {
-          // Pul allaqachon saqlangan - butun amalni yiqitmaymiz.
-          // Ijara sahifasida yo'qligi ko'rinadi va qayta yozilishi mumkin.
-        }
-      }
-      if (rentalDrafts.length > 0) {
-        setRentalDrafts([]);
-        setRequestSent(true);
-      }
 
       setModalVisible(false);
 
@@ -420,11 +336,9 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       setActionType(next.actionType);
       setVoicePrefill(next.prefill);
       setMoneyFormKey((key) => key + 1);
-          setRentalDrafts([]);
       setModalVisible(true);
     },
-    [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue,
-      rentalDrafts, requestRentalMutation, createBatchMutation],
+    [contact, contactId, voicePrefill?.commandId, createMoney, actionType, settlementQueue],
   );
 
   /**
@@ -436,52 +350,9 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    */
   const [moneyFormKey, setMoneyFormKey] = useState(0);
 
-  /**
-   * SHU OQIMDA ijaraga olingan buyumlar soni.
-   *
-   * Narxnoma qatoridagi son kabi: u shu formada qilingan ishni
-   * ko'rsatadi, tarixni emas. Ilgari bu yerda mijozdagi BARCHA
-   * qaytarilmagan yozuvlar sanalardi va hech narsa olmagan odam
-   * "7 ta buyum olingan" degan yozuvni ko'rardi.
-   *
-   * Har yangi oqimda noldan boshlanadi.
-   */
-
-  /**
-   * Shu oqimda olingan ijaralarning summasi — faqat KO'RSATISH uchun.
-   *
-   * Qarz maydoniga qo'shilmaydi: ijara o'z yozuvini yaratadi va u
-   * allaqachon balansga kiradi (rentalTotalsByContact). Qo'shilsa
-   * bitta pul ikki marta sanalardi - narxnoma tanlovidan farqi shu:
-   * u yerda yozuv hali yo'q, forma uni endi yaratadi.
-   */
-  /**
-   * Savat qayta ochilganda shu tanlov bilan ochiladi.
-   *
-   * Loyihalar qatorlardan yig'ilgan, shuning uchun teskari aylantirish
-   * ham shu yerda: har qatorning muddati o'z loyihasidan olinadi.
-   */
-  const rentInPicksForBasket = useMemo(
-    () =>
-      rentalDrafts.flatMap((entry) =>
-        entry.draft.lines.map((line) => ({
-          itemId: line.rentalItemId,
-          quantity: line.quantity,
-          duration: entry.draft.duration ?? null,
-        })),
-      ),
-    [rentalDrafts],
-  );
-
-  const rentInSessionAmount = useMemo(
-    () => rentalDrafts.reduce((sum, item) => sum + item.total, 0),
-    [rentalDrafts],
-  );
-
   const openModal = useCallback((type: MoneyActionType) => {
     setActionType(type);
     setMoneyFormKey((key) => key + 1);
-    setRentalDrafts([]);
     setModalVisible(true);
   }, []);
 
@@ -530,102 +401,51 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    */
   const [requestOpen, setRequestOpen] = useState(false);
 
-  /**
-   * So'rov oynasi QARZ OYNASIDAN ochildimi.
-   *
-   * Bekor qilgan odam o'sha yerga qaytishi kerak: u pul summasini
-   * yozib qo'ygan bo'lishi mumkin va oyna yopilib ketsa hammasini
-   * boshqatdan kiritardi. (Qarz oynasi mount'da qoladi, shuning uchun
-   * yozilgani joyida turadi.)
-   */
-  const [rentInFromMoney, setRentInFromMoney] = useState(false);
-  /**
-   * Oyna qaysi yo'nalishda ochildi.
-   *
-   * "Qarz berish" da o'z omborimdan BERAMAN, "Qarz olish" da esa
-   * birovnikidan OLAMAN - ikkisi bitta oynada, ombor boshqa.
-   */
-  const [rentKind, setRentKind] = useState<'give' | 'take'>('take');
-
   /** "So'rov yuborildi" xabari — yuborilganini bildiradigan yagona belgi. */
   const [requestSent, setRequestSent] = useState(false);
+  /** So'rov yuborilmay qoldi — sababi banner bo'lib chiqadi. */
+  const [rentalError, setRentalError] = useState('');
 
-  const openRentIn = useCallback(
-    (kind: 'give' | 'take') => () => {
-      setRentKind(kind);
-      setModalVisible(false);
-      setRequestItem(null);
-      setRentInFromMoney(true);
-      setRequestOpen(true);
-      setRequestSent(false);
-    },
-    [],
-  );
+  /** "Ijaraga olish" — buyumsiz ochilsa oyna o'zi ombor ro'yxatini ko'rsatadi. */
+  const openRentIn = useCallback(() => {
+    setRequestItem(null);
+    setRequestOpen(true);
+    setRequestSent(false);
+    setRentalError('');
+  }, []);
 
   const closeRequest = useCallback(() => {
     setRequestOpen(false);
     setRequestItem(null);
-    if (rentInFromMoney) {
-      setRentInFromMoney(false);
-      setModalVisible(true);
-    }
-  }, [rentInFromMoney]);
+  }, []);
 
   /**
-   * So'rov yuborildi.
+   * Tanlov savatdan keldi — so'rov DARHOL yuboriladi.
    *
-   * Navigatsiya bekor qilish bilan BIR XIL (bir qadam orqaga), farqi
-   * faqat xabarda: ilgari yuborilgandan keyin hech qanday belgi yo'q
-   * edi va odam yozuv yaratilganini bilmasdi.
-   */
-  /**
-   * Tanlov savatdan keldi — avvalgisini ALMASHTIRADI.
+   * Bir muddat tanlov pul oynasiga olib o'tilar va "Qarz berish" bilan
+   * birga saqlanardi. U model bilan birga ketdi: endi ijara o'z yozuvini
+   * yaratadi, qoldig'i balansga o'zi qo'shiladi (WAITING yozuv do'kon
+   * tasdiqlagach kuchga kiradi), pul yozuvi esa shart emas.
    *
-   * Narxnoma savati kabi: oyna butun tanlovni qaytaradi, shuning uchun
-   * ustiga qo'shilsa takrorlanib ketardi.
+   * Muddati har xil buyumlar alohida so'rov bo'lib keladi (bitta yozuv
+   * bitta muddat) — hammasi ketma-ket yuboriladi; bittasi yiqilsa
+   * qolgani baribir yozilgan bo'ladi va xato banner aytadi.
    */
   const handleRentalPicked = useCallback(
-    (
-      picked: {
-        draft: RentalRequestDTO;
-        total: number;
-        label: string;
-        period: RentalPeriod;
-      }[],
-    ) => {
-      // `closeRequest` bayroqni tozalaydi — undan OLDIN o'qiymiz.
-      const cameFromMoney = rentInFromMoney;
+    async (picked: { draft: RentalRequestDTO; total: number; label: string; period: RentalPeriod }[]) => {
       closeRequest();
-      setRentalDrafts(
-        picked.map((entry, index) => ({ id: `rent-${index}`, kind: rentKind, ...entry })),
-      );
-      if (cameFromMoney) return;
-
-      /*
-       * IJARA SAHIFASIDAN kelgan tanlov ham pul oynasidan o'tadi.
-       *
-       * Ilgari bu yerda tanlov faqat `rentalDrafts` ga yig'ilar va oyna
-       * ochilmasdi: pul oynasidan kelmagan bo'lsa yozuv HECH QAYERGA
-       * saqlanmasdi — odam buyum tanlar, oyna yopilar, daftarda esa
-       * hech narsa paydo bo'lmasdi.
-       *
-       * Oyna ochilishi SHART: ijara summasi Qarzlar daftariga yozuv
-       * bo'lib tushishi kerak (balans faqat pul yozuvlaridan yig'iladi).
-       * Summani oynaning o'zi `rentInAmount` farqidan to'ldiradi.
-       *
-       * Yo'nalish tanlovdan chiqadi: ombor birovniki bo'lsa men OLDIM,
-       * o'zimniki bo'lsa BERDIM.
-       */
-      setActionType(rentKind === 'give' ? 'GIVE' : 'TAKE');
-      setModalVisible(true);
+      setRentalError('');
+      try {
+        for (const entry of picked) {
+          await requestRentalMutation.mutateAsync(entry.draft);
+        }
+        setRequestSent(true);
+      } catch (e) {
+        setRentalError(e instanceof Error ? e.message : t('debts.saveFailed'));
+      }
     },
-    [closeRequest, rentKind, rentInFromMoney],
+    [closeRequest, requestRentalMutation, t],
   );
-
-  /** Bitta tanlovni olib tashlash — qolganlari joyida qoladi. */
-  const removeRentalDraft = useCallback((id: string) => {
-    setRentalDrafts((drafts) => drafts.filter((item) => item.id !== id));
-  }, []);
 
   /** Ombor qatori yoki sarlavhadagi tugma: buyum bilan yoki bo'sh forma. */
   const openRentalForm = useCallback((item: RentalItemResponseDTO | null = null) => {
@@ -780,9 +600,10 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
                     ? (stockItem) => {
                         // Ijara sahifasidan kelganda yo'nalish OLISH:
                         // ombor do'konniki va tasdiq kutiladi.
-                        setRentKind('take');
                         setRequestItem(stockItem);
                         setRequestOpen(true);
+                        setRequestSent(false);
+                        setRentalError('');
                       }
                     : openRentalForm
                 }
@@ -793,6 +614,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
                    do'konning daftarida turadi va alohida sahifa
                    bo'lib keladi (shart `canRentIn` bilan bir xil). */
                 takenFromBusinessId={canRentIn ? counterpartyBusinessId : null}
+                onTakeFrom={!clientMode && canRentIn ? openRentIn : undefined}
               />
             ),
           },
@@ -827,6 +649,17 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
               message={t('rentals.requestSent')}
               actionLabel={t('common.close')}
               onAction={() => setRequestSent(false)}
+            />
+          </View>
+        ) : null}
+
+        {rentalError ? (
+          <View style={styles.banner}>
+            <StatusBanner
+              tone="error"
+              message={rentalError}
+              actionLabel={t('common.close')}
+              onAction={() => setRentalError('')}
             />
           </View>
         ) : null}
@@ -893,15 +726,11 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
 
       {requestOpen ? (
         <RentalRequestModal
-          ownStock={rentKind === 'give'}
           businessId={counterpartyBusinessId ?? ''}
           item={requestItem}
           visible={requestOpen}
           onClose={closeRequest}
           onPicked={handleRentalPicked}
-          initialPicks={rentInPicksForBasket}
-          // Qarz oynasidan kelgan bo'lsa — o'sha yerga qaytish yo'li.
-          onBack={rentInFromMoney ? closeRequest : undefined}
         />
       ) : null}
 
@@ -914,12 +743,6 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
       />
 
       <MoneyActionModal
-        // Qoida `rentalRows` da — u yerda testi bilan izohi ham bor.
-        onRentIn={rentalRows.rentIn ? openRentIn('take') : undefined}
-        onRentOut={rentalRows.rentOut ? openRentIn('give') : undefined}
-        rentInPicks={rentalDrafts.map(({ id, label, total }) => ({ id, label, total }))}
-        rentInAmount={rentInSessionAmount}
-        onRemoveRentIn={removeRentalDraft}
         resetKey={moneyFormKey}
         visible={modalVisible}
         actionType={actionType}

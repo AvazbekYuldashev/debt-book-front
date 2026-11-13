@@ -242,8 +242,13 @@ describe("ombor egasi tomonida 'Ijaraga berish'", () => {
     expect(screen.getByText('Lesa')).toBeTruthy();
   });
 
-  it("men hech narsa olmagan bo'lsam uchinchi sahifa qo'shilmaydi", async () => {
+  /**
+   * Sahifa BO'SH bo'lsa ham turadi: "Ijaraga olish" amali shu yerda
+   * va usiz biznes hisobida olishning kirish nuqtasi qolmasdi.
+   */
+  it("hech narsa olmagan bo'lsam ham sahifa va OLISH tugmasi turadi", async () => {
     (useRentalsWithBusiness as jest.Mock).mockReturnValue({ data: [], isLoading: false });
+    const takeFrom = jest.fn();
 
     render(
       <AppThemeProvider>
@@ -255,13 +260,36 @@ describe("ombor egasi tomonida 'Ijaraga berish'", () => {
             onGiveOut={giveOut}
             onOpenRental={jest.fn()}
             takenFromBusinessId={SHOP}
+            onTakeFrom={takeFrom}
           />
         </LanguageProvider>
       </AppThemeProvider>,
     );
     await settle();
 
-    // Bo'sh sahifa har kartada surishga qo'shimcha qadam bo'lardi.
+    expect(screen.getAllByText('Mendagi buyumlar').length).toBeGreaterThan(0);
+
+    fireEvent.press(screen.getByText('Ijaraga olish'));
+    expect(takeFrom).toHaveBeenCalled();
+  });
+
+  it("oddiy mijoz kontaktida uchinchi sahifa YO'Q", async () => {
+    render(
+      <AppThemeProvider>
+        <LanguageProvider>
+          <ClientRentalPane
+            clientId="c1"
+            active
+            allowWrite
+            onGiveOut={giveOut}
+            onOpenRental={jest.fn()}
+          />
+        </LanguageProvider>
+      </AppThemeProvider>,
+    );
+    await settle();
+
+    // Qarshi tomon do'kon emas — "Mendagi buyumlar" ham yo'q.
     expect(screen.queryByText('Mendagi buyumlar')).toBeNull();
   });
 

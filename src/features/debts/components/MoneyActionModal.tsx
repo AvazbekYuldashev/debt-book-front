@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -29,7 +29,7 @@ import {
 } from '../../../shared/types/money';
 import { accountTypeFromParty, flowForAccounts } from '../model/resolveMoneyFlow';
 import { CURRENCY_LABEL, CURRENCY_SYMBOL } from '../../../shared/lib/currency';
-import { formatAmountInput, formatMoney, parseAmountInput } from '../../../shared/lib/money';
+import { formatAmountInput, parseAmountInput } from '../../../shared/lib/money';
 import { useCurrency } from '../context/CurrencyContext';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
@@ -67,40 +67,6 @@ interface MoneyActionModalProps {
   /** Narxnomadan buyurtma qilish uchun token (counterparty biznes bo'lsa). */
   token?: string;
   /**
-   * "Ijaraga olish" yo'li — faqat qarshi tomon BIZNES bo'lganda.
-   *
-   * Ijaraga BERISH mijoz kartasining o'z sahifasida qoladi (ombor
-   * meniki), OLISH esa pul yozuvi bilan bir oqimda: odam do'kondan
-   * narsa olayotganda bu yerga keladi. Oyna yopilib, so'rov formasi
-   * ochiladi — modal ustiga modal qalashtirilmaydi.
-   */
-  onRentIn?: () => void;
-  /**
-   * O'Z omboridan IJARAGA BERISH.
-   *
-   * Ijaraga berish ham qarz berish: buyum odamga ketadi va puli menga
-   * qarz bo'lib qoladi. Shuning uchun u ham shu oynadan boshlanadi.
-   */
-  onRentOut?: () => void;
-  /**
-   * Tanlangan, lekin hali SAQLANMAGAN ijaralar.
-   *
-   * Har biri alohida qator bo'lib chiqadi va alohida o'chiriladi -
-   * savatdagi miqdorni bitta mahsulotga nolga tushirgandek. Ilgari
-   * bitta "x" hammasini birdan o'chirardi.
-   */
-  rentInPicks?: { id: string; label: string; total: number }[];
-  /**
-   * Shu oqimda olingan ijaralarning YIG'INDI summasi.
-   *
-   * Qiymat oshganda farqi `Miqdor` maydoniga qo'shiladi — narxnomadan
-   * tanlangandek. Yig'indi beriladi, farq emas: shu bilan bitta yozuv
-   * ikki marta qo'shilib ketmaydi (qayta render farqni qaytarmaydi).
-   */
-  rentInAmount?: number;
-  /** Bitta tanlovni olib tashlash. */
-  onRemoveRentIn?: (id: string) => void;
-  /**
    * Forma QACHON tozalanishi kerakligini aytadi.
    *
    * Ilgari oyna `visible` har rost bo'lganda tozalanardi. Lekin u
@@ -133,9 +99,6 @@ interface MoneyActionModalProps {
  * yerda; a'zolarni yuklash BusinessMemberPicker'ga, domen mantiq
  * resolveMoneyFlow use-case'iga ajratilgan.
  */
-/** Har render'da bir xil bo'sh havola — keraksiz effekt qo'zg'atmaslik uchun. */
-const EMPTY_PICKS: { id: string; label: string; total: number }[] = [];
-
 const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   visible,
   actionType,
@@ -144,11 +107,6 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
   fixedCounterpartyType,
   ownerAccountType,
   token,
-  onRentIn,
-  onRentOut,
-  rentInPicks = EMPTY_PICKS,
-  rentInAmount = 0,
-  onRemoveRentIn,
   resetKey = 0,
   prefill,
   onClose,
@@ -182,31 +140,6 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
    */
   const [orderItems, setOrderItems] = useState<MoneyItemCreateDTO[]>([]);
 
-  /**
-   * IJARA SUMMASI miqdorga qo'shiladi.
-   *
-   * Narxnoma tanlovidan farqi bor: u yozuv yaratmaydi, forma uni endi
-   * yaratadi. Ijara esa o'z yozuvini darhol yaratgan va qarz balansida
-   * ham turadi - demak "Qarz berish" bosilsa o'sha pul ikkinchi marta
-   * yoziladi. Bu egasining qarori: u ijarani oddiy qarz qatori qilib
-   * yuritishni tanladi.
-   *
-   * FARQ qo'llanadi, yig'indi emas: oyna qayta chizilganda summa yana
-   * qo'shilib ketmasligi kerak. Tanlov bekor qilinsa farq MANFIY
-   * bo'ladi va summa ayriladi - qo'lda yozilgan qism joyida qoladi.
-   */
-  const lastRentInAmount = useRef(0);
-  useEffect(() => {
-    const delta = rentInAmount - lastRentInAmount.current;
-    lastRentInAmount.current = rentInAmount;
-    if (delta === 0) return;
-    setAmount((current) => {
-      const base = parseAmountInput(current) ?? 0;
-      const next = Math.max(0, base + delta);
-      return next > 0 ? formatAmountInput(String(next)) : '';
-    });
-  }, [rentInAmount]);
-
   // Yangi oqim boshlanganda toza forma — yopilish yo'lidan (bekor/hardware
   // back/muvaffaqiyat) qat'i nazar eski qiymatlar qolib ketmaydi. Vaqtincha
   // yopilib qaytish esa tozalamaydi (izohi `resetKey` da).
@@ -224,8 +157,6 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
     // Qatorlar ham tiklanadi: ularsiz yozuv "shuncha so'm" bo'lib qolib,
     // nima sotib olingani ko'rinmasdi.
     setOrderItems(prefill?.items ?? []);
-    // Yangi oqim: ijara summasi ham noldan sanaladi.
-    lastRentInAmount.current = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey, baseCurrency, prefill]);
 
@@ -447,81 +378,6 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               placeholder="100 000"
             />
 
-            {/* IJARAGA BERISH — o'z omboridan. Ijaraga berish ham qarz
-                berish: buyum odamga ketadi, puli qarz bo'lib qoladi. */}
-            {onRentOut ? (
-              <Pressable
-                onPress={onRentOut}
-                style={({ pressed }) => [styles.basketBtn, pressed && styles.calcBtnPressed]}
-                accessibilityRole="button"
-                accessibilityLabel={t('rentals.createTitle')}
-              >
-                <Ionicons name="cube-outline" size={18} color={colors.primary} />
-                <View style={styles.basketLines}>
-                  <Text style={styles.basketText} numberOfLines={1}>
-                    {t('rentals.createTitle')}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-              </Pressable>
-            ) : null}
-
-            {/* Ijaraga olish — narxnoma yonida, chunki ikkalasi ham
-                "o'sha do'kondan nima olyapman" degan savolning javobi. */}
-            {onRentIn ? (
-              <Pressable
-                onPress={onRentIn}
-                style={({ pressed }) => [styles.basketBtn, pressed && styles.calcBtnPressed]}
-                accessibilityRole="button"
-                accessibilityLabel={t('rentals.takeFromStock')}
-              >
-                <Ionicons name="cube-outline" size={18} color={colors.primary} />
-                <View style={styles.basketLines}>
-                  {/* Tanlov bo'lsa qator "YANA olish" deb o'qiladi: u yangi
-                      tanlov ochadi, avvalgisi esa pastda alohida qator
-                      bo'lib turadi. Ilgari "Ijaraga olish" deb turar va
-                      bosilganda bo'sh savat chiqib, odam "tanlaganim
-                      qani?" deb o'ylardi. */}
-                  <Text style={styles.basketText} numberOfLines={1}>
-                    {rentInPicks.length > 0
-                      ? t('rentals.takeMore')
-                      : t('rentals.takeFromStock')}
-                  </Text>
-                  {/* Son — HOLAT, amal emas: shuning uchun ostida va so'niq. */}
-                  {rentInPicks.length > 0 ? (
-                    <Text style={styles.basketSub} numberOfLines={1}>
-                      {t('rentals.atMeCount', { count: String(rentInPicks.length) })}
-                      {rentInAmount > 0 ? ` · ${formatMoney(rentInAmount, currency)}` : ''}
-                    </Text>
-                  ) : null}
-                </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-              </Pressable>
-            ) : null}
-
-            {/* Har tanlov ALOHIDA qator: bittasini olib tashlash uchun
-                butun tanlovni bekor qilish shart emas. */}
-            {rentInPicks.map((pick) => (
-              <View key={pick.id} style={styles.pickRow}>
-                <Text style={styles.pickLabel} numberOfLines={1}>
-                  {pick.label}
-                </Text>
-                <Text style={styles.pickAmount} numberOfLines={1}>
-                  {formatMoney(pick.total, currency)}
-                </Text>
-                {onRemoveRentIn ? (
-                  <Pressable
-                    onPress={() => onRemoveRentIn(pick.id)}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${pick.label} ${t('rentals.clearPicked')}`}
-                  >
-                    <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
-                  </Pressable>
-                ) : null}
-              </View>
-            ))}
-
             {/* Narxnomadan buyurtma — faqat qarama-qarshi tomon BIZNES bo'lganda:
                 mahsulot ham, narx ham o'sha biznesning katalogidan keladi. */}
             {catalogBusinessId ? (
@@ -640,42 +496,11 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       borderColor: colors.border,
       backgroundColor: colors.surfaceMuted,
     },
-    // Ikki qatorli punkt: amal nomi va uning ostida holat.
-    basketLines: {
-      flex: 1,
-      minWidth: 0,
-    },
     basketText: {
       ...typography.button,
+      flex: 1,
       fontSize: 14,
       color: colors.textPrimary,
-    },
-    // Tanlangan ijara qatori: qatorning o'zidan ko'ra past darajada.
-    pickRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-      marginTop: -spacing.sm,
-      marginBottom: spacing.md,
-      paddingHorizontal: spacing.sm,
-    },
-    pickLabel: {
-      ...typography.caption,
-      flex: 1,
-      fontSize: 12,
-      color: colors.textSecondary,
-    },
-    pickAmount: {
-      ...typography.caption,
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      fontVariant: ['tabular-nums'],
-    },
-    basketSub: {
-      ...typography.caption,
-      fontSize: 12,
-      color: colors.textSecondary,
     },
     backdrop: {
       flex: 1,

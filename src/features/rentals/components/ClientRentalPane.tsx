@@ -10,6 +10,7 @@ import { useI18n } from '../../../shared/i18n';
 import RentalRow from './RentalRow';
 import RentalItemRow from './RentalItemRow';
 import {
+  RENTAL_CLIENT_PAGE,
   useBusinessRentalItems,
   useMyRentals,
   useRentalItems,
@@ -51,10 +52,14 @@ interface ClientRentalPaneProps {
    * Mijoz rejimida berilmaydi: u yerda o'sha ro'yxat asosiy sahifa.
    */
   takenFromBusinessId?: string | null;
+  /**
+   * "Ijaraga olish" — qarshi tomon do'konidan so'rov yuborish.
+   *
+   * "Mendagi buyumlar" sahifasining amali: olish ham shu yerdan
+   * boshlanadi, yozuvni esa do'kon tasdiqlaydi.
+   */
+  onTakeFrom?: () => void;
 }
-
-/** Bitta mijozning ijaralari bitta so'rovda olinadi — sahifalanmaydi. */
-const CLIENT_PAGE = 200;
 
 /** Ombor sahifasidagi kategoriya bo'limi. */
 interface StockSection {
@@ -117,6 +122,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   onAddItem,
   ownerBusinessId,
   takenFromBusinessId,
+  onTakeFrom,
 }) => {
   const theme = useAppTheme();
   const { t } = useI18n();
@@ -134,7 +140,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
    * Bitta mijozdagi ochiq ijaralar soni o'nlab bo'ladi — bitta katta
    * so'rov yetarli.
    */
-  const ownRentals = useMyRentals(filter, { enabled: active && !clientMode, size: CLIENT_PAGE });
+  const ownRentals = useMyRentals(filter, { enabled: active && !clientMode, size: RENTAL_CLIENT_PAGE });
   const theirRentals = useRentalsWithBusiness(ownerBusinessId ?? '', {
     enabled: active && clientMode,
   });
@@ -281,10 +287,9 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
   /**
    * MENDAGI buyumlar — o'sha do'kondan olganlarim (egalik rejimida).
    *
-   * Amal tugmasi YO'Q: olish pul oynasidan boshlanadi ("Oldim" →
-   * "Ijaraga olish"), chunki summa Qarzlar daftariga yozuv bo'lib
-   * tushishi kerak. Bu sahifa javob beradigan savol boshqa: "men
-   * ularga nima qaytarishim kerak".
+   * Amali "Ijaraga olish": so'rov shu yerdan yuboriladi, yozuv esa
+   * do'kon tasdiqlagach kuchga kiradi va qoldig'i qarz balansiga
+   * qo'shiladi.
    */
   const renderTaken = useCallback(() => {
     if (takenQuery.isLoading) return <SkeletonContactList count={3} />;
@@ -294,12 +299,23 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
           icon="cube-outline"
           title={t('rentals.atMe')}
           description={t('rentals.noRentalsHere')}
+          actionLabel={onTakeFrom ? t('rentals.takeFromStock') : undefined}
+          actionIcon="add"
+          onAction={onTakeFrom}
         />
       );
     }
     return (
       <View style={styles.page}>
-        <SectionHeader icon="cube" iconBadge={false} title={t('rentals.atMe')} />
+        <SectionHeader
+          icon="cube"
+          iconBadge={false}
+          title={t('rentals.atMe')}
+          actionLabel={onTakeFrom ? t('rentals.takeFromStock') : undefined}
+          actionIcon="add"
+          actionVariant="solid"
+          onAction={onTakeFrom}
+        />
         <FlatList
           data={taken}
           keyExtractor={(rental) => rental.id}
@@ -316,7 +332,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
         />
       </View>
     );
-  }, [takenQuery.isLoading, taken, styles, onOpenRental, t]);
+  }, [takenQuery.isLoading, taken, styles, onOpenRental, onTakeFrom, t]);
 
   const renderStock = useCallback(() => {
     if (loading) return <SkeletonContactList count={3} />;
@@ -389,19 +405,17 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
         render: renderRentals,
       },
       /*
-       * "MENDAGI buyumlar" — faqat ikki yo'nalish birdan bo'lganda.
+       * "MENDAGI buyumlar" — qarshi tomon DO'KON bo'lganda.
        *
-       * Qarshi tomon do'kon bo'lsa men ham undan olgan bo'lishim
-       * mumkin, lekin o'sha yozuvlar o'z daftarimda emas — do'konning
-       * daftarida turadi va `/rental/my` da chiqmaydi. Sahifa
-       * bo'lmasa ular ilovada HECH QAYERDA ko'rinmasdi: yozib
-       * bo'lardi, ko'rib bo'lmasdi.
+       * Men ham undan olgan bo'lishim mumkin, lekin o'sha yozuvlar
+       * o'z daftarimda emas — do'konning daftarida turadi va
+       * `/rental/my` da chiqmaydi. Sahifa bo'lmasa ular ilovada HECH
+       * QAYERDA ko'rinmasdi: yozib bo'lardi, ko'rib bo'lmasdi.
        *
-       * Yo'q bo'lganda sahifa ham qo'shilmaydi: bo'sh uchinchi
-       * sahifa har mijoz kartasida surishga qo'shimcha qadam
-       * bo'lardi.
+       * Bo'sh bo'lsa ham turadi: "Ijaraga olish" amali shu sahifada
+       * va usiz biznes hisobida olishning kirish nuqtasi qolmasdi.
        */
-      ...(takenBusinessId && taken.length > 0
+      ...(takenBusinessId
         ? [
             {
               key: 'taken',
@@ -418,7 +432,7 @@ const ClientRentalPane: React.FC<ClientRentalPaneProps> = ({
         render: renderStock,
       },
     ],
-    [clientMode, renderRentals, renderStock, renderTaken, takenBusinessId, taken.length, t],
+    [clientMode, renderRentals, renderStock, renderTaken, takenBusinessId, t],
   );
 
   return (

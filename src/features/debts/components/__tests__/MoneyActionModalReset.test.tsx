@@ -1,15 +1,12 @@
 import { act, renderHook } from '@testing-library/react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 /**
  * FORMA QACHON TOZALANADI.
  *
- * Qarz oynasi ijara oqimiga o'tganda vaqtincha yopiladi. Ilgari tozalash
- * `visible` ga bog'langan edi va qaytganda odam yozgan summa ham,
- * savatdagi mahsulotlar ham yo'qolardi — odam "narxnomadan ham oldim"
- * desa, aslida faqat ijara yozilib qolardi.
- *
- * Shu sababli tozalash `resetKey` ga ko'chdi: chaqiruvchi uni YANGI oqim
+ * Tozalash `visible` ga emas, `resetKey` ga bog'langan: oyna vaqtincha
+ * yopilib qaytishi mumkin (masalan boshqa modal ustiga chiqqanda) va
+ * odam yozgan summa yo'qolmasligi kerak. Chaqiruvchi kalitni YANGI oqim
  * boshlanganda o'zgartiradi, qaytishda esa tegmaydi. Quyidagi test aynan
  * shu qoidani qulflaydi (oynaning o'zi emas — qoida).
  */
@@ -53,66 +50,5 @@ describe('qarz formasi tozalanishi', () => {
     rerender({ key: 2, visible: true });
 
     expect(result.current.resets).toBe(before + 1);
-  });
-});
-
-/**
- * IJARA SUMMASI miqdorga qo'shiladi va QAYTARIB olinadi.
- *
- * Tanlov yozuv yaratmaydi, shuning uchun uni bekor qilish ham mumkin
- * bo'lishi kerak. Farq qo'llanadi (yig'indi emas): qayta render summani
- * ikkilantirmasligi, bekor qilish esa ayirishi kerak.
- */
-function useAmountFromRent(rentInAmount: number) {
-  const [amount, setAmount] = useState(0);
-  const last = useRef(0);
-
-  useEffect(() => {
-    const delta = rentInAmount - last.current;
-    last.current = rentInAmount;
-    if (delta === 0) return;
-    setAmount((base) => Math.max(0, base + delta));
-  }, [rentInAmount]);
-
-  return { amount, setAmount };
-}
-
-describe("ijara summasi miqdorda", () => {
-  it('qayta render summani IKKILANTIRMAYDI', () => {
-    const { result, rerender } = renderHook(
-      ({ sum }: { sum: number }) => useAmountFromRent(sum),
-      { initialProps: { sum: 0 } },
-    );
-
-    rerender({ sum: 23_333 });
-    rerender({ sum: 23_333 });
-
-    expect(result.current.amount).toBe(23_333);
-  });
-
-  it("tanlov bekor qilinsa summa AYRILADI", () => {
-    const { result, rerender } = renderHook(
-      ({ sum }: { sum: number }) => useAmountFromRent(sum),
-      { initialProps: { sum: 0 } },
-    );
-
-    rerender({ sum: 23_333 });
-    rerender({ sum: 0 });
-
-    expect(result.current.amount).toBe(0);
-  });
-
-  it("qo'lda yozilgan qism JOYIDA qoladi", () => {
-    const { result, rerender } = renderHook(
-      ({ sum }: { sum: number }) => useAmountFromRent(sum),
-      { initialProps: { sum: 0 } },
-    );
-
-    // Odam 100 000 yozdi, keyin 23 333 lik ijara tanladi va bekor qildi.
-    act(() => result.current.setAmount(100_000));
-    rerender({ sum: 23_333 });
-    rerender({ sum: 0 });
-
-    expect(result.current.amount).toBe(100_000);
   });
 });

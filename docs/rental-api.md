@@ -492,9 +492,22 @@ shu yerda hisoblanadi:
 
 Yo'nalish: ombor meniki bo'lsa qoldiq `credit` (olinadi), birovning
 do'konidan olgan bo'lsam `debt` (to'lanadi). Ortiqcha to'lov teskari
-tomonga tushadi. `WAITING` yozuv hisobga kirmaydi — u hali kelishuv
-emas. Bir yozuv ikki yo'nalishdan kelsa id bo'yicha bir marta
-hisoblanadi.
+tomonga tushadi. `WAITING` yozuv HAM kiradi: ro'yxatda u "Qarz" bo'lib
+turadi va sarlavha o'z ostidagi qatorga qarshi gapirmasligi kerak;
+tasdiqlanmaganini "Kutilmoqda" belgisi aytib turadi (ikki tomon ham
+ayni shu hisobni ko'radi). Bir yozuv ikki yo'nalishdan kelsa id
+bo'yicha bir marta hisoblanadi.
+
+TARIX (2026-11): bu bog'lanish bir muddat olib tashlangan edi — ijara
+summasi "Qarz berish" bilan birga pul yozuviga kirar, balans esa faqat
+pul yozuvlaridan chiqar edi. U model muddati o'tgach o'sib boruvchi
+haqni ko'rsata olmasdi (pul yozuvi qotib qoladi), shuning uchun
+egasining qarori bilan QAYTARILDI: ijara o'z yozuvida yashaydi,
+qoldig'i balansga dinamik qo'shiladi, to'lovi ijara kartasida yoziladi
+(`/rental/{id}/payment` oilasi). Ilova endi pul yozuviga ijara
+qatorlarini (`rentalItemId` li `money_item`) YUBORMAYDI — server eski
+yozuvlar uchun ularni qabul qilishda va chekda ko'rsatishda davom
+etadi.
 
 KEYINGI QADAM (hozircha shart emas): mijoz soni ko'payganda
 ikkinchi qadam har kontaktga bittadan so'rov yuboradi. O'sha paytda
