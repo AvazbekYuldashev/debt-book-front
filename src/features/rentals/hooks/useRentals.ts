@@ -7,7 +7,6 @@ import {
   createRentalBatch,
   deleteRental,
   getMyRentals,
-  getRentalById,
   getRentalsWithBusiness,
   getRentalSummary,
   payRental,
@@ -122,18 +121,6 @@ export const useMyRentals = (
   });
 };
 
-export const useRental = (id: string) => {
-  const { profile } = useContext(AuthContext);
-  const token = profile?.jwt;
-  const rentalKey = useRentalKey();
-
-  return useQuery({
-    queryKey: [...rentalKey, 'one', id],
-    queryFn: () => getRentalById(id, token),
-    enabled: Boolean(token) && Boolean(id),
-  });
-};
-
 // ---------------------------------------------------------------- yozish
 
 /**
@@ -158,7 +145,6 @@ const useRentalInvalidate = () => {
   };
 };
 
-/** Bir mijozga bir yoki bir nechta buyumni berish. */
 /**
  * MENDAGI buyumlar: men mijoz bo'lgan ijaralar (shu do'kon bo'yicha).
  *

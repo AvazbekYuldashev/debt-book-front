@@ -23,14 +23,8 @@ export const canDelete = (role: Role): boolean => role === null || role === 'OWN
 /** Kategoriya boshqaruvi: faqat OWNER yoki shaxsiy hisob. */
 export const canManageCategories = (role: Role): boolean => role === null || role === 'OWNER';
 
-/** Biznesni tahrirlash/o'chirish: faqat OWNER. */
-export const canEditBusiness = (role: Role): boolean => role === 'OWNER';
-
 /** A'zo qo'shish: OWNER va ADMIN (shaxsiy hisobda mavjud emas). */
 export const canManageMembers = (role: Role): boolean => role === 'OWNER' || role === 'ADMIN';
 
 /** A'zolarni o'chirish / rolini o'zgartirish: faqat OWNER. */
 export const isBusinessOwner = (role: Role): boolean => role === 'OWNER';
-
-/** Faqat o'qish rejimimi (MEMBER). */
-export const isReadOnly = (role: Role): boolean => role === 'MEMBER';

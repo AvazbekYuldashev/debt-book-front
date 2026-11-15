@@ -42,17 +42,11 @@ export const normalizeRentalPeriod = (value: unknown): RentalPeriod =>
 export type RentalStatus = 'ACTIVE' | 'OVERDUE' | 'RETURNED';
 
 /**
- * Ijaraning HISOB bosqichi — holat + pul birgalikda.
- *
- * RETURNED ikkiga bo'linadi, chunki ijarachi uchun ular butunlay boshqa
- * narsa: buyum qaytib puli ham olingan bo'lsa ish tugagan (CLOSED), puli
- * olinmagan bo'lsa bu NASIYA (DEBT) — uni alohida ro'yxatda kuzatadi.
- */
-/**
  * Buyum QAYERDA: mijozda, kechikkan yoki qaytgan.
  *
  * `DEBT` (nasiya) olib tashlandi — izohi `rentalMath.rentalStage` da.
- * Pul bosqichga ta'sir qilmaydi, u Qarzlar daftarida yuradi.
+ * Pul bosqichga ta'sir qilmaydi: qoldiq qarz balansida yuradi va qator
+ * o'z ustunida "Haq/Qarz" bo'lib ko'rinadi.
  */
 export type RentalStage = 'ACTIVE' | 'OVERDUE' | 'CLOSED';
 

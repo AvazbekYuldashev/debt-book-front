@@ -43,17 +43,6 @@ export function markReadInPage(page: Page | undefined, id: string): Page | undef
   };
 }
 
-/** Sahifadagi HAMMA elementni o'qilgan deb belgilaydi. */
-export function markAllReadInPage(page: Page | undefined): Page | undefined {
-  if (!page) return page;
-  return { ...page, content: page.content.map((item) => ({ ...item, read: true })) };
-}
-
-/** Sahifani bo'shatadi (hammasi o'qilgach, o'qilmaganlar ro'yxati bo'shaydi). */
-export function clearPage(page: Page | undefined): Page | undefined {
-  if (!page) return page;
-  return { ...page, content: [], totalElements: 0 };
-}
 
 // Sana yo'q/buzuq bo'lsa ro'yxat oxiriga tushadi, tartib buzilmaydi.
 const toTime = (value?: string): number => {

@@ -1,19 +1,12 @@
 import { useContext } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../../auth/context/AuthContext';
-import {
-  clearPage,
-  insertIntoPage,
-  markAllReadInPage,
-  markReadInPage,
-  removeFromPage,
-} from '../model/notificationCache';
+import { insertIntoPage, markReadInPage, removeFromPage } from '../model/notificationCache';
 import { WorkspaceContext } from '../../business/context/WorkspaceContext';
 import {
   getNotifications,
   getUnreadByWorkspace,
   getUnreadNotificationCount,
-  markAllNotificationsRead,
   markNotificationRead,
 } from '../services/notificationService';
 import { useRealtimeConnected } from '../realtime/realtimeStatus';
@@ -124,38 +117,6 @@ export function useMarkNotificationRead() {
       queryClient.invalidateQueries({ queryKey: unreadByWorkspaceQueryKey(profile?.id) });
       // O'qilganlar ro'yxatida endi bittaga ko'p — u ham yangilansin.
       queryClient.invalidateQueries({ queryKey: notificationsKeyPrefix(profile?.id) });
-    },
-  });
-}
-
-/** Hammasini o'qilgan deb belgilash + ro'yxat va badge'ni yangilash. */
-export function useMarkAllNotificationsRead() {
-  const { profile } = useContext(AuthContext);
-  const { workspace } = useContext(WorkspaceContext);
-  const businessId = workspace.activeBusinessId;
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => markAllNotificationsRead(profile?.jwt),
-    onMutate: () => {
-      const unreadKey = notificationsQueryKey(profile?.id, businessId, false);
-      const readKey = notificationsQueryKey(profile?.id, businessId, true);
-      const allKey = notificationsQueryKey(profile?.id, businessId);
-
-      // Hamma o'qilmagan DARHOL o'qilganlar tomoniga ko'chadi.
-      const moving = queryClient.getQueryData<PageResponse<NotificationDTO>>(unreadKey)?.content ?? [];
-      queryClient.setQueryData<PageResponse<NotificationDTO>>(readKey, (prev) =>
-        moving.reduce<PageResponse<NotificationDTO> | undefined>(
-          (acc, item) => insertIntoPage(acc, { ...item, read: true }),
-          prev,
-        ),
-      );
-      queryClient.setQueryData<PageResponse<NotificationDTO>>(unreadKey, (prev) => clearPage(prev));
-      queryClient.setQueryData<PageResponse<NotificationDTO>>(allKey, (prev) => markAllReadInPage(prev));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsKeyPrefix(profile?.id) });
-      queryClient.invalidateQueries({ queryKey: unreadCountQueryKey(profile?.id, businessId) });
-      queryClient.invalidateQueries({ queryKey: unreadByWorkspaceQueryKey(profile?.id) });
     },
   });
 }

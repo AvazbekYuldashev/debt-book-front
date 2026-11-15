@@ -7,11 +7,10 @@ import type { RentalItemResponseDTO } from '../../types/rentalItem';
 
 jest.mock('../../hooks/useRentals');
 
-import { useBusinessRentalItems, useRentalItems } from '../../hooks/useRentals';
+import { useBusinessRentalItems } from '../../hooks/useRentals';
 
 const onClose = jest.fn();
 const onPicked = jest.fn();
-const onBack = jest.fn();
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 20)); });
 
 const item = (over: Partial<RentalItemResponseDTO> = {}): RentalItemResponseDTO => ({
@@ -26,8 +25,8 @@ const item = (over: Partial<RentalItemResponseDTO> = {}): RentalItemResponseDTO 
   ...over,
 });
 
-/** Oyna TANLASH bosqichida ochiladi — qarz oynasidagi "Ijaraga olish" kabi. */
-const show = async (withBack = true) => {
+/** Oyna TANLASH bosqichida ochiladi — mijoz kartasidagi "Ijaraga olish" kabi. */
+const show = async () => {
   render(
     <AppThemeProvider>
       <LanguageProvider>
@@ -37,7 +36,6 @@ const show = async (withBack = true) => {
           visible
           onClose={onClose}
           onPicked={onPicked}
-          onBack={withBack ? onBack : undefined}
         />
       </LanguageProvider>
     </AppThemeProvider>,
@@ -66,8 +64,6 @@ const submit = () => {
 beforeEach(() => {
   onClose.mockReset();
   onPicked.mockReset();
-  onBack.mockReset();
-  (useRentalItems as jest.Mock).mockReturnValue({ data: [], isLoading: false });
   (useBusinessRentalItems as jest.Mock).mockReturnValue({
     data: [item(), item({ id: 'stul', name: 'Stul', price: 5_000, totalQuantity: 50 })],
     isLoading: false,
@@ -144,7 +140,6 @@ describe('ijaraga olish oqimi', () => {
 
     // Savat qaytdi va avvalgi tanlov joyida.
     expect(screen.getByDisplayValue('1')).toBeTruthy();
-    expect(onBack).not.toHaveBeenCalled();
   });
 
   it("savat bosqichida 'Bekor qilish' KELGAN JOYGA qaytaradi", async () => {
@@ -174,65 +169,6 @@ describe('ijaraga olish oqimi', () => {
     fireEvent.press(buttons[buttons.length - 1]);
 
     expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('qayta ochilganda TANLOV joyida turadi', async () => {
-    // Narxnoma savati kabi: oyna avvalgi tanlov bilan ochiladi va
-    // forma ko'rinadi - odam "tanlaganim qani?" demasligi kerak.
-    render(
-      <AppThemeProvider>
-        <LanguageProvider>
-          <RentalRequestModal
-            businessId="biz-1"
-            item={null}
-            visible
-            onClose={onClose}
-            onPicked={onPicked}
-            initialPicks={[{ itemId: 'lesa', quantity: 2, duration: 3 }]}
-          />
-        </LanguageProvider>
-      </AppThemeProvider>,
-    );
-    await settle();
-
-    // Savat emas, FORMA ochildi va tanlov ko'rinib turibdi.
-    expect(screen.getByText(/Lesa × 2/)).toBeTruthy();
-  });
-
-  it("O'Z omboridan berish ham shu oynada", async () => {
-    // Ijaraga berish ham qarz berish: buyum odamga ketadi, puli qarz
-    // bo'lib qoladi. Ombor boshqa endpointdan keladi.
-    (useRentalItems as jest.Mock).mockReturnValue({
-      data: [item({ name: 'Opalubka', price: 3_000 })],
-      isLoading: false,
-    });
-    render(
-      <AppThemeProvider>
-        <LanguageProvider>
-          <RentalRequestModal
-            businessId=""
-            item={null}
-            visible
-            ownStock
-            onClose={onClose}
-            onPicked={onPicked}
-          />
-        </LanguageProvider>
-      </AppThemeProvider>,
-    );
-    await settle();
-
-    fireEvent.press(screen.getByLabelText("Opalubka miqdor ko'paytirish"));
-    fireEvent.press(screen.getByText("Tanlovni qo'llash"));
-    await settle();
-
-    // Sarlavha ham, tugma ham BERISH haqida.
-    const buttons = screen.getAllByText('Ijaraga berish');
-    fireEvent.press(buttons[buttons.length - 1]);
-
-    const [picked] = onPicked.mock.calls[0];
-    expect(picked[0].draft.lines).toEqual([{ rentalItemId: 'lesa', quantity: 1 }]);
-    expect(picked[0].period).toBe('DAY');
   });
 
   it("bo'sh sonidan ko'p olishga yo'l qo'ymaydi", async () => {

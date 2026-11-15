@@ -42,11 +42,6 @@ export const getUnreadByWorkspace = async (token?: string): Promise<WorkspaceUnr
   return Array.isArray(response.data) ? response.data : [];
 };
 
-export const markAllNotificationsRead = async (token?: string): Promise<void> => {
-  setApiAuthToken(token);
-  await apiClient.post('/notification/read-all');
-};
-
 export const markNotificationRead = async (id: string, token?: string): Promise<void> => {
   setApiAuthToken(token);
   await apiClient.post(`/notification/${id}/read`);

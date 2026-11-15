@@ -125,12 +125,6 @@ export const getMoneyHistory = async ({
   }
 };
 
-export const getAllTotalPrice = async (token?: string, accountType?: AccountType): Promise<MoneyPriceDTO> => {
-  setApiAuthToken(token);
-  const response = await getWithFallback<AppResponse<MoneyPriceDTO>>('/tootal-price', { accountType });
-  return response.data;
-};
-
 export const getTotalPriceByPartyId = async (
   id: string,
   partyType: PartyType,

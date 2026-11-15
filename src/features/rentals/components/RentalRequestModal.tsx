@@ -13,7 +13,7 @@ import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatQuantity } from '../../../shared/lib/quantity';
 import { isValidDateInput } from '../../../shared/lib/date';
-import { useBusinessRentalItems, useRentalItems } from '../hooks/useRentals';
+import { useBusinessRentalItems } from '../hooks/useRentals';
 import RentalItemBasketModal, { type RentalPick } from './RentalItemBasketModal';
 import {
   currentTimeString,
@@ -48,42 +48,18 @@ interface RentalRequestModalProps {
   onPicked?: (
     picked: { draft: RentalRequestDTO; total: number; label: string; period: RentalPeriod }[],
   ) => void;
-  /**
-   * Avvalgi TANLOV — savat shu bilan ochiladi.
-   *
-   * Narxnoma savati kabi: qayta kirilganda tanlov joyida turadi va
-   * o'zgartiriladi. Ilgari har kirish noldan boshlanardi va odam
-   * "tanlaganim qani?" deb o'ylardi.
-   */
-  initialPicks?: RentalPick[];
-  /** Kelgan joyga qaytish (qarz oynasi). */
-  onBack?: () => void;
-  /**
-   * O'Z omboridan berish (ijaraga BERISH).
-   *
-   * Ijaraga berish ham qarz berish: buyum odamga ketadi va puli menga
-   * qarz bo'lib qoladi. Shuning uchun oqim bir xil - farqi faqat
-   * ombor qayerdanligi va sarlavhada.
-   */
-  ownStock?: boolean;
-  /**
-   * Shu oqimda ALLAQACHON tanlangan miqdorlar (itemId -> soni).
-   *
-   * Bo'sh sonidan ayriladi va tepada eslatma bo'lib chiqadi: odam
-   * "nima olgan edim" degan savolga javob olishi kerak, chunki har
-   * kirish YANGI tanlov (shu bilan bir buyumni turli muddatga olish
-   * mumkin bo'ladi).
-   */
 }
 
 /**
  * MIJOZ tomonidan yoziladigan ijara: "men shu do'kondan shuni oldim".
  *
+ * Faqat OLISH yo'nalishi: egasi o'z omboridan berishni alohida forma
+ * (`RentalFormModal`) bilan qiladi — u yerda narx ham, muddat ham
+ * egasining qo'lida.
+ *
  * IKKI BOSQICH: avval ombordan buyum tanlanadi, keyin muddat/sana.
  * Tanlash narxnoma savati bilan AYNI oyna ko'rinishida — qidiruv,
- * kategoriya chiplari va har qator yonida miqdor. Ilgari u oddiy
- * ro'yxat edi: bir vaqtda bitta buyum, qidiruvsiz, kategoriyasiz va
- * tanlangan buyumni qaytarib olish yo'li yo'q edi.
+ * kategoriya chiplari va har qator yonida miqdor.
  *
  * Narx mijozga ko'rsatiladi, lekin u YOZA OLMAYDI: chegirma egasining
  * ishi. Miqdor esa tanlash oynasida belgilanadi.
@@ -97,9 +73,6 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   visible,
   onClose,
   onPicked,
-  onBack,
-  initialPicks,
-  ownStock = false,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -108,11 +81,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const open = visible ?? Boolean(item);
-  // Ombor MENIKI bo'lsa boshqa endpoint: do'konning ochiq ro'yxati emas,
-  // o'z ish maydonimdagi buyumlar.
-  const theirStock = useBusinessRentalItems(businessId, { enabled: open && !ownStock });
-  const myStock = useRentalItems({ enabled: open && ownStock });
-  const itemsQuery = ownStock ? myStock : theirStock;
+  const itemsQuery = useBusinessRentalItems(businessId, { enabled: open });
   const stock = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
 
   const [picks, setPicks] = useState<RentalPick[]>([]);
@@ -127,9 +96,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   useEffect(() => {
     if (!open) return;
     // Har ochilishda toza boshlanadi: eski tanlov bilan ochilib qolmasin.
-    const seeded = item
-      ? [{ itemId: item.id, quantity: 1, duration: null }]
-      : initialPicks ?? [];
+    const seeded = item ? [{ itemId: item.id, quantity: 1, duration: null }] : [];
     setPicks(seeded);
     // Tanlov bor bo'lsa FORMA ochiladi: odam uni ko'rib, kerak bo'lsa
     // savatga kirib o'zgartiradi.
@@ -138,7 +105,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
     setStartTime(currentTimeString());
     setNote('');
     setError('');
-  }, [open, item, initialPicks]);
+  }, [open, item]);
 
   const itemById = useMemo(
     () => new Map(stock.map((stockItem) => [stockItem.id, stockItem])),
@@ -265,12 +232,12 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
   ]);
 
   /**
-   * ORQAGA bir qadam: formadan TANLASHGA, tanlashdan kelgan joyga.
+   * ORQAGA bir qadam: formadan TANLASHGA.
    *
-   * Buyum tashqaridan berilgan bo'lsa tanlash bosqichi bo'lmagan va
-   * to'g'ridan-to'g'ri kelgan joyga qaytiladi.
+   * Buyum tashqaridan berilgan bo'lsa tanlash bosqichi bo'lmagan —
+   * orqaga tugmasi chiqmaydi, "x" oynani yopadi.
    */
-  const goBack = !item && picks.length > 0 ? () => setBasketOpen(true) : onBack;
+  const goBack = !item && picks.length > 0 ? () => setBasketOpen(true) : undefined;
 
   if (!open) return null;
 
@@ -304,7 +271,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                   </Pressable>
                 ) : null}
                 <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
-                  {ownStock ? t('rentals.createTitle') : t('rentals.takeFromStock')}
+                  {t('rentals.takeFromStock')}
                 </Text>
               </View>
 
@@ -361,9 +328,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                 {total > 0 ? (
                   <Text style={styles.previewTotal}>{formatMoney(total, currency)}</Text>
                 ) : null}
-                <Text style={styles.previewHint}>
-                  {ownStock ? t('rentals.giveHint') : t('rentals.requestHint')}
-                </Text>
+                <Text style={styles.previewHint}>{t('rentals.requestHint')}</Text>
               </View>
 
               {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -376,7 +341,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                   style={styles.actionBtn}
                 />
                 <Button
-                  title={ownStock ? t('rentals.createSubmit') : t('rentals.requestSubmit')}
+                  title={t('rentals.requestSubmit')}
                   onPress={handleSubmit}
                   style={styles.actionBtn}
                 />
@@ -454,14 +419,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       flex: 1,
       fontSize: 14,
       color: colors.textPrimary,
-    },
-    reserved: {
-      ...typography.caption,
-      fontSize: 12,
-      color: colors.textSecondary,
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: radius.md,
-      padding: spacing.sm,
     },
     lineRow: {
       flexDirection: 'row',

@@ -87,20 +87,6 @@ export const createGap = async (dto: GapGroupCreateDTO, token?: string): Promise
   return response.data;
 };
 
-export const updateGap = async (
-  groupId: string,
-  dto: Partial<GapGroupCreateDTO>,
-  token?: string
-): Promise<void> => {
-  setApiAuthToken(token);
-  await apiClient.put(`/gap/manage/${groupId}`, dto);
-};
-
-export const deleteGap = async (groupId: string, token?: string): Promise<void> => {
-  setApiAuthToken(token);
-  await apiClient.delete(`/gap/manage/${groupId}`);
-};
-
 export const addGapMember = async (
   groupId: string,
   dto: GapMemberCreateDTO,
@@ -108,11 +94,6 @@ export const addGapMember = async (
 ): Promise<void> => {
   setApiAuthToken(token);
   await apiClient.post(`/gap/manage/${groupId}/members`, dto);
-};
-
-export const removeGapMember = async (memberId: string, token?: string): Promise<void> => {
-  setApiAuthToken(token);
-  await apiClient.delete(`/gap/manage/members/${memberId}`);
 };
 
 /** Yangi oldi-berdi. Yozuvni kiritgan odam uni o'zi tasdiqlamaydi. */
@@ -131,8 +112,3 @@ export const confirmGapTransfer = async (transferId: string, token?: string): Pr
   await apiClient.put(`/gap/manage/transfers/${transferId}/confirm`, {});
 };
 
-/** Xato kiritilgan yozuvni olib tashlash — faqat tasdiqlanmaguncha. */
-export const deleteGapTransfer = async (transferId: string, token?: string): Promise<void> => {
-  setApiAuthToken(token);
-  await apiClient.delete(`/gap/manage/transfers/${transferId}`);
-};

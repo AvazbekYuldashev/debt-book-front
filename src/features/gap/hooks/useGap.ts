@@ -6,16 +6,12 @@ import {
   confirmGapTransfer,
   createGap,
   createGapTransfer,
-  deleteGap,
-  deleteGapTransfer,
   getGapGroup,
   getGapMemberDetail,
   getGapMembers,
   getGapSummary,
   getGapUnits,
   getMyGaps,
-  removeGapMember,
-  updateGap,
 } from '../services/gapService';
 import type {
   GapFilterDTO,
@@ -131,28 +127,6 @@ export const useCreateGap = () => {
   });
 };
 
-export const useUpdateGap = (groupId: string) => {
-  const { profile } = useContext(AuthContext);
-  const token = profile?.jwt;
-  const invalidate = useGapInvalidate();
-
-  return useMutation({
-    mutationFn: (dto: Partial<GapGroupCreateDTO>) => updateGap(groupId, dto, token),
-    onSuccess: invalidate,
-  });
-};
-
-export const useDeleteGap = () => {
-  const { profile } = useContext(AuthContext);
-  const token = profile?.jwt;
-  const invalidate = useGapInvalidate();
-
-  return useMutation({
-    mutationFn: (groupId: string) => deleteGap(groupId, token),
-    onSuccess: invalidate,
-  });
-};
-
 export const useAddGapMember = (groupId: string) => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;
@@ -160,17 +134,6 @@ export const useAddGapMember = (groupId: string) => {
 
   return useMutation({
     mutationFn: (dto: GapMemberCreateDTO) => addGapMember(groupId, dto, token),
-    onSuccess: invalidate,
-  });
-};
-
-export const useRemoveGapMember = () => {
-  const { profile } = useContext(AuthContext);
-  const token = profile?.jwt;
-  const invalidate = useGapInvalidate();
-
-  return useMutation({
-    mutationFn: (memberId: string) => removeGapMember(memberId, token),
     onSuccess: invalidate,
   });
 };
@@ -199,13 +162,3 @@ export const useConfirmGapTransfer = () => {
   });
 };
 
-export const useDeleteGapTransfer = () => {
-  const { profile } = useContext(AuthContext);
-  const token = profile?.jwt;
-  const invalidate = useGapInvalidate();
-
-  return useMutation({
-    mutationFn: (transferId: string) => deleteGapTransfer(transferId, token),
-    onSuccess: invalidate,
-  });
-};

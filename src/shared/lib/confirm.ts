@@ -30,8 +30,3 @@ export function confirmAction(
     { text: confirmLabel, style: 'destructive', onPress: onConfirm },
   ]);
 }
-
-// O'chirish uchun qulay qisqartma
-export function confirmDelete(itemLabel: string, onConfirm: () => void): void {
-  confirmAction(`"${itemLabel}" ni rostdan ham o'chirmoqchimisiz?`, onConfirm);
-}

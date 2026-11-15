@@ -3,7 +3,6 @@ import { AppResponse, PageResponse } from '../../../shared/types/money';
 import { normalizeCurrency } from '../../../shared/lib/currency';
 import {
   ProductCreateDTO,
-  ProductPriceUpdateDTO,
   ProductPublicDTO,
   ProductResponseDTO,
   ProductUpdateDTO,
@@ -87,12 +86,6 @@ export const getBusinessProducts = async ({
   return { ...data, content: (data?.content ?? []).map(normalizeProduct) };
 };
 
-export const getProductById = async (id: string, token?: string): Promise<ProductResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<ProductResponseDTO>(`/product/${id}`);
-  return normalizeProduct(response.data);
-};
-
 export const createProduct = async (dto: ProductCreateDTO, token?: string): Promise<ProductResponseDTO> => {
   setApiAuthToken(token);
   const response = await apiClient.post<ProductResponseDTO>('/product', dto);
@@ -103,15 +96,6 @@ export const updateProduct = async (dto: ProductUpdateDTO, token?: string): Prom
   setApiAuthToken(token);
   const response = await apiClient.put<ProductResponseDTO>('/product', dto);
   return normalizeProduct(response.data);
-};
-
-export const updateProductPrice = async (
-  dto: ProductPriceUpdateDTO,
-  token?: string
-): Promise<AppResponse<string>> => {
-  setApiAuthToken(token);
-  const response = await apiClient.patch<AppResponse<string>>('/product/price', dto);
-  return response.data;
 };
 
 export const deleteProduct = async (id: string, token?: string): Promise<AppResponse<string>> => {

@@ -106,12 +106,6 @@ export const getRentalSummary = async (
   return response.data;
 };
 
-export const getRentalById = async (id: string, token?: string): Promise<RentalResponseDTO> => {
-  setApiAuthToken(token);
-  const response = await apiClient.get<RentalResponseDTO>(`/rental/${id}`);
-  return normalizeRental(response.data);
-};
-
 // ---------------------------------------------------------------- yozish
 
 /**

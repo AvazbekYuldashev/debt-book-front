@@ -1,10 +1,4 @@
-import {
-  clearPage,
-  insertIntoPage,
-  markAllReadInPage,
-  markReadInPage,
-  removeFromPage,
-} from '../notificationCache';
+import { insertIntoPage, markReadInPage, removeFromPage } from '../notificationCache';
 import type { PageResponse } from '../../../../shared/types/money';
 import type { NotificationDTO } from '../../types/notification';
 
@@ -65,22 +59,11 @@ describe('insertIntoPage', () => {
   });
 });
 
-describe('markReadInPage / markAllReadInPage / clearPage', () => {
+describe('markReadInPage', () => {
   it('bitta elementni o\'qilgan qiladi', () => {
     const result = markReadInPage(page([item('a', '2026-09-16T10:00:00'), item('b', '2026-09-16T09:00:00')]), 'a');
     expect(result?.content.find((n) => n.id === 'a')?.read).toBe(true);
     expect(result?.content.find((n) => n.id === 'b')?.read).toBe(false);
-  });
-
-  it('hammasini o\'qilgan qiladi', () => {
-    const result = markAllReadInPage(page([item('a', '2026-09-16T10:00:00'), item('b', '2026-09-16T09:00:00')]));
-    expect(result?.content.every((n) => n.read)).toBe(true);
-  });
-
-  it('sahifani bo\'shatadi', () => {
-    const result = clearPage(page([item('a', '2026-09-16T10:00:00')]));
-    expect(result?.content).toEqual([]);
-    expect(result?.totalElements).toBe(0);
   });
 });
 
