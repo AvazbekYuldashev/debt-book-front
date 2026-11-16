@@ -617,8 +617,22 @@ MUHIM: ijara yozuvining O'ZI baribir `rental` jadvalida qoladi — chek
 faqat KO'RSATISH uchun. Ikki joyda pul hisoblanib qolmasligi kerak
 (buning qoidasi 6-bo'limda).
 
-## 7. Bildirishnoma (ixtiyoriy, keyingi qadam)
+## 7. Muddat bildirishnomasi — ULANDI (2026-11)
 
-Muddati bugun (soatlikda — shu soatda) tugaydigan va kechikkan ijaralar
-uchun bildirishnoma mavjud `notification` mexanizmiga tabiiy tushadi.
-Frontend tomonda qo'shimcha ish talab qilmaydi — faqat yangi `type` qiymati.
+`RentalReminderJob` har soatda yuradi (`Asia/Tashkent`):
+
+- MIJOZGA eslatma: muddati BUGUN tugaydigan ijara (kunlikda ertalab
+  8 dan boshlab, soatlikda — aynan o'z soatida) va KECHIKKAN ijara
+  (har kuni ertalab — egasining tanlovi: haq kunlik o'sadi).
+- EGASIGA ertalabki xulosa: "muddati bugun tugaydiganlar — N ta,
+  kechikkanlar — M ta" (biznesda hamma a'zoga, kuniga bitta).
+
+Takror nazorati `notification` jadvalidagi yangi `rental_id` + `kind`
+ustunlari bilan: bir ijaraga kuniga bitta xabar, server qayta ishga
+tushsa ham ikkilanmaydi. `kind` qiymatlari: `RENTAL_DUE`,
+`RENTAL_OVERDUE`, `RENTAL_DIGEST`. Muddatsiz (`open_ended`), qaytgan
+va WAITING yozuvlar eslatmaydi.
+
+Frontend tomonda qo'shimcha ish YO'Q: xabar matni tayyor keladi va
+mavjud ro'yxatda ko'rinadi (eski ilovalar ham o'qiy oladi).
+Indekslar — `V35__notification_rental.sql` (serverda qo'lda).
