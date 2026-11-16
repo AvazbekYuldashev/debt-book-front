@@ -193,10 +193,11 @@ export const payRental = async (
 };
 
 /**
- * MIJOZ "pul berdim" deb yozadi — tasdiq kutadi.
+ * MIJOZ "pul berdim" deb yozadi — summa DARHOL hisobga kiradi.
  *
- * Egasining yo'li alohida (`payRental`): u o'z daftarida pul olganini
- * yozadi va tasdiq kutishi kerak emas.
+ * Ilgari u egasining tasdig'ini kutardi; ijara buyurtmasining o'zi
+ * tasdiqsiz bo'lgach, to'lov ham shu qoidaga tushdi (server bc1258b).
+ * Yo'l baribir alohida: server kim yozganini shu orqali biladi.
  */
 export const requestRentalPayment = async (
   id: string,

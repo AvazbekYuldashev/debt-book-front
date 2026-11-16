@@ -459,10 +459,10 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                   />
                 ) : null}
                 {/* MIJOZ tomoni: pulni u beradi, demak yozuvni ham u
-                    boshlaydi. Summa egasi tasdiqlagunicha hisobga
-                    kirmaydi — aks holda mijoz o'z qarzini o'zi yopib
-                    qo'ya olardi. Kutayotgan to'lov bor bo'lsa yangisi
-                    yozilmaydi. */}
+                    boshlaydi va summa DARHOL hisobga kiradi — ijara
+                    buyurtmasining o'zi ham tasdiqsiz, daftar ikki tomon
+                    ishonchiga qurilgan. ESKI kutayotgan to'lov turgan
+                    bo'lsa yangisi yozilmaydi — avval u hal qilinadi. */}
                 {!mine && rental.canPay && !rental.pendingPayment && unpaid > 0 ? (
                   <Button
                     title={t('rentals.iPaid')}
@@ -553,9 +553,11 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                   onChangeText={(value) => setPayAmount(formatAmountInput(value))}
                   keyboardType="decimal-pad"
                 />
-                <Text style={styles.note}>
-                  {mine ? t('rentals.payHint') : t('rentals.paymentWaitingHint')}
-                </Text>
+                {/* Ikkala tomonda ham bitta izoh: server mijoz to'lovini ham
+                    DARHOL hisobga kiradi (ijara buyurtmasining o'zi tasdiqsiz
+                    bo'lgani kabi) — "tasdiq kutadi" degan eski matn odamni
+                    kutib o'tirishga undardi. */}
+                <Text style={styles.note}>{t('rentals.payHint')}</Text>
                 <View style={styles.actionsRow}>
                   <Button
                     title={t('common.cancel')}

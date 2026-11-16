@@ -525,30 +525,29 @@ javob kichik bo'ladi.
 
 ### Mijozning to'lovi
 
-Pulni mijoz beradi, shuning uchun yozuvni ham u boshlaydi — lekin summa
-`pending_payment` da KUTIB turadi va hisobga faqat egasi tasdiqlagach
-qo'shiladi: aks holda mijoz o'z qarzini o'zi yopib qo'ya olardi.
+Pulni mijoz beradi, shuning uchun yozuvni ham u boshlaydi va summa
+DARHOL `paid_amount` ga qo'shiladi — ijara buyurtmasining o'zi ham
+tasdiqsiz bo'lgani uchun to'lov ham shu qoidaga tushdi (daftar ikki
+tomon ishonchiga qurilgan; noto'g'ri summani egasi ko'radi va
+to'g'rilay oladi).
 
 | Kim | Yo'l | Natija |
 |---|---|---|
 | Egasi | `POST /rental/{id}/payment` | darhol `paid_amount` ga qo'shiladi |
-| Mijoz | `POST /rental/{id}/payment-request` | `pending_payment` ga yoziladi |
-| Egasi | `POST /rental/{id}/payment-confirm` | kutayotgan summa hisobga o'tadi |
-| Egasi | `POST /rental/{id}/payment-reject` | kutayotgan summa o'chadi |
+| Mijoz | `POST /rental/{id}/payment-request` | darhol `paid_amount` ga qo'shiladi |
+| Egasi | `POST /rental/{id}/payment-confirm` | ESKI kutayotgan summa hisobga o'tadi |
+| Egasi | `POST /rental/{id}/payment-reject` | ESKI kutayotgan summa o'chadi |
+
+`pending_payment` TARIXIY: yangi to'lov u yerga tushmaydi, lekin eski
+yozuvlarda kutayotgan summa qolgan bo'lishi mumkin — confirm/reject
+juftligi o'shalarni hal qilish uchun turibdi (ilova `pendingPayment`
+kelganda avvalgidek tasdiq/rad tugmalarini chiqaradi).
 
 Chegaralar: tasdiqlanmagan (WAITING) ijaraga to'lov yozilmaydi —
-kelishuvning o'zi hali yo'q; bir vaqtda bitta kutayotgan to'lov, aks
-holda ro'yxat tasdiqlanmagan summalar bilan to'lib ketardi; bog'liqlik
-KONTAKT qatori orqali tekshiriladi (`owns` o'tmaydi, chunki yozuv
-do'konning daftarida turadi).
-
-Javobdagi maydonlar: `pendingPayment`, `canPay` (mijozga "Pul berdim"
-tugmasi), `canConfirmPayment` (egasiga tasdiq/rad tugmalari).
-Kutayotgan to'lov BALANSNI KAMAYTIRMAYDI: `paid_amount` o'zgarmagan,
-demak qoldiq ham o'sha.
-
-Rad etish ataylab bor: tasdiqlashning juftisiz yolg'on yozilgan summa
-kartada abadiy osilib qolardi.
+kelishuvning o'zi hali yo'q; bog'liqlik KONTAKT qatori orqali
+tekshiriladi (`owns` o'tmaydi, chunki yozuv do'konning daftarida
+turadi). Javobdagi maydonlar: `canPay` (mijozga "Pul berdim" tugmasi),
+`pendingPayment`/`canConfirmPayment` (faqat eski yozuvlar uchun).
 
 ### KEYINGI QADAM: tranzaksiya kartasida ijara CHEKI
 
