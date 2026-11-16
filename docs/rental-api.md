@@ -633,6 +633,23 @@ tushsa ham ikkilanmaydi. `kind` qiymatlari: `RENTAL_DUE`,
 `RENTAL_OVERDUE`, `RENTAL_DIGEST`. Muddatsiz (`open_ended`), qaytgan
 va WAITING yozuvlar eslatmaydi.
 
+VOQEALAR ham xabar beradi (`RentalNotifier`, 2026-11): har amal
+QARSHI tomonga bildirishnoma tushiradi — harakat qilganning o'ziga
+emas:
+
+| Voqea | Kim qildi | Kimga boradi | `kind` |
+|---|---|---|---|
+| Buyurtma (`/rental/request`) | mijoz | egasiga (biznesda hamma a'zoga) | `RENTAL_REQUEST` |
+| Berish (`/rental/batch`) | egasi | mijozga | `RENTAL_GIVEN` |
+| Eski so'rov tasdig'i (`/confirm`) | egasi | mijozga | `RENTAL_CONFIRMED` |
+| Qaytarildi (`/return`) | egasi | mijozga | `RENTAL_RETURNED` |
+| To'lov (`/payment`, `/payment-request`) | ikkala tomon | qarshi tomonga | `RENTAL_PAYMENT` |
+
+Qabul qiluvchini topish BITTA joyda (`RentalNotifier`): kontakt
+qatorining egasi bo'lmagan tomoni; biznes tomonga — hamma a'zoga,
+shaxsiy tomonga — telefon bo'yicha (ro'yxatdan o'tmagan bo'lsa ham,
+o'tgach ko'rinadi). Eslatma ishi ham shu eshikdan yuradi.
+
 Frontend tomonda qo'shimcha ish YO'Q: xabar matni tayyor keladi va
 mavjud ro'yxatda ko'rinadi (eski ilovalar ham o'qiy oladi).
 Indekslar — `V35__notification_rental.sql` (serverda qo'lda).
