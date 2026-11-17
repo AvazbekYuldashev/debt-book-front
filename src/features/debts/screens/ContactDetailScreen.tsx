@@ -31,9 +31,9 @@ import { useContactRentals } from '../../rentals/hooks/useContactRentalTotals';
 import { rentalTotalsByContact } from '../../rentals/model/rentalBalance';
 import {
   mergeHistoryRows,
-  rentalIdOfPaymentRow,
-  rentalPaymentRows,
-} from '../model/rentalPaymentRows';
+  rentalHistoryRows,
+  rentalIdOfRow,
+} from '../model/rentalHistoryRows';
 import type { Currency, MoneyItemCreateDTO } from '../../../shared/types/money';
 import { canDelete, canWrite } from '../../../shared/lib/permissions';
 import { useI18n } from '../../../shared/i18n';
@@ -278,17 +278,19 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   );
 
   /*
-   * TARIXGA ijara to'lovlari ham qo'shiladi.
+   * TARIX BALANSNI TUSHUNTIRADI.
    *
-   * To'lov pul yozuvi emas (u ijara ichida yashaydi va balansni ijara
-   * qoldig'i orqali kamaytiradi), lekin odam uchun u pul voqeasi:
-   * "falon kuni shuncha berdim". Ko'rinmasa to'lov yo'qolgan deb
-   * o'ylanadi — aynan shu savol tug'ilgan edi.
+   * Sarlavhadagi raqam pul yozuvlari + ijara qoldig'idan yig'iladi,
+   * demak ijara ham tarixda qator bo'lishi shart: haq va to'lovlar
+   * alohida. Ilgari faqat to'lov ko'rinardi va qatorlarni qo'shib
+   * chiqqan odam sarlavhadagi boshqa raqamni ko'rardi — qaytarilgan,
+   * lekin puli to'lanmagan ijara esa hech qayerda ko'rinmasdi
+   * (Ijara sahifasi "hozir nima turibdi" ni ko'rsatadi).
    */
-  const paymentRows = useMemo(() => rentalPaymentRows(contactRentals), [contactRentals]);
+  const rentalRows = useMemo(() => rentalHistoryRows(contactRentals), [contactRentals]);
   const historyRows = useMemo(
-    () => mergeHistoryRows(mappedHistory, paymentRows),
-    [mappedHistory, paymentRows],
+    () => mergeHistoryRows(mappedHistory, rentalRows),
+    [mappedHistory, rentalRows],
   );
 
   // QARAMA-QARSHI tomon xodimi: men tanlagan odam menga, men esa ularga ko'rinaman.
@@ -386,7 +388,7 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
    */
   const handleRowPress = useCallback(
     (tx: MappedTransaction) => {
-      const rentalId = rentalIdOfPaymentRow(tx.id);
+      const rentalId = rentalIdOfRow(tx.id);
       if (!rentalId) {
         setSelectedTransaction(tx);
         return;
