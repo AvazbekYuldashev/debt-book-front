@@ -42,8 +42,7 @@ import { requestNotificationPermission } from '../../../shared/lib/deviceNotific
 import type { DeviceContact } from '../../../shared/lib/deviceContacts';
 import { useI18n } from '../../../shared/i18n';
 import BalanceSummary from '../components/BalanceSummary';
-import BalanceHero from '../components/BalanceHero';
-import QuickActions, { type QuickAction } from '../components/QuickActions';
+import BalanceHero, { HERO_OVERLAP } from '../components/BalanceHero';
 import StatsBanner from '../components/StatsBanner';
 import ContactRow from '../components/ContactRow';
 import ContactFormModal from '../components/ContactFormModal';
@@ -576,49 +575,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   // yozadigan doimiy rAF ishi (batareya + Performance panelida uzluksiz faollik).
   const shouldPulseFab = canEdit && isEmpty && !isBusy && !hasActiveQuery;
 
-  /**
-   * TEZ AMALLAR — balans ostidagi qator.
-   *
-   * Faqat MAVJUD yo'nalishlar: har plita haqiqiy ekranni ochadi.
-   * "Qarz qo'shish" ro'yxat bo'sh bo'lmaganda ham birinchi turadi —
-   * u ekranning asosiy amali.
-   */
-  const quickActions = useMemo<QuickAction[]>(() => {
-    const list: QuickAction[] = [];
-    if (canEdit) {
-      list.push({
-        key: 'new',
-        icon: 'add',
-        label: t('debts.quickNewDebt'),
-        onPress: openCreate,
-      });
-    }
-    list.push(
-      {
-        key: 'expenses',
-        icon: 'cash-outline',
-        label: t('tab.expenses'),
-        onPress: () => navigation.getParent()?.navigate(ROUTES.EXPENSES),
-      },
-      {
-        key: 'stats',
-        icon: 'stats-chart',
-        label: t('debts.quickStats'),
-        onPress: handleOpenStats,
-      },
-      {
-        key: 'settings',
-        icon: 'settings-outline',
-        label: t('debts.quickSettings'),
-        // Sozlamalar PROFIL stack'ining ichida — ota navigator orqali.
-        onPress: () =>
-          navigation.getParent()?.navigate(ROUTES.PROFILE, {
-            screen: ROUTES.PROFILE_SETTINGS,
-          }),
-      },
-    );
-    return list;
-  }, [canEdit, t, openCreate, handleOpenStats, navigation]);
   return (
     <View style={styles.container}>
       {/* Dekorativ fon — bosishni ushlamaydi, kontent ustidan o'tmaydi. */}
@@ -643,10 +599,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
             onSelect={handleSelectSort}
             onReset={handleResetSort}
           />
-        </View>
-
-        <View style={styles.quickWrap}>
-          <QuickActions actions={quickActions} />
         </View>
 
         {/* QIDIRUV: maydon doim ko'rinadi, yonidagi tugma esa ism va
@@ -839,19 +791,17 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
     banners: {
       marginTop: spacing.md,
     },
-    /* Tafsilot kartasi balans kartasining ostki bo'shlig'iga MINADI. */
+    /* Tafsilot kartasi balans kartasining ostki bo'shlig'iga MINADI.
+       Son HERO_OVERLAP dan keladi: hero ham shuncha bo'shliq qoldiradi. */
     summaryOverlap: {
-      marginTop: -(spacing.xl + spacing.md),
-    },
-    quickWrap: {
-      marginTop: spacing.sm,
+      marginTop: -HERO_OVERLAP,
     },
     searchRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.sm,
+      marginTop: spacing.md,
     },
     searchGrow: {
       flex: 1,

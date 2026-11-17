@@ -7,6 +7,16 @@ import { useI18n } from '../../../shared/i18n';
 import { formatMoney } from '../../../shared/lib/money';
 import type { Currency, CurrencyAmounts } from '../../../shared/lib/currency';
 
+/**
+ * Tafsilot kartasi hero ustiga QANCHA minadi.
+ *
+ * Bitta joyda turadi va ikkala tomon ham shundan o'qiydi: hero shuncha
+ * pastki bo'shliq qoldiradi, ekran esa shuncha salbiy chekinish beradi.
+ * Ikki joyda ikki son bo'lganda ular ajralib, belgi karta ostida
+ * ko'rinmay qolgan edi.
+ */
+export const HERO_OVERLAP = 32;
+
 interface BalanceHeroProps {
   totalDebt: CurrencyAmounts;
   totalCredit: CurrencyAmounts;
@@ -25,9 +35,9 @@ interface BalanceHeroProps {
  * Valyutalar QO'SHILMAYDI (kurs aralashmaydi): bu yerda faqat asosiy
  * valyuta ko'rinadi, qolganlari pastdagi kartada o'z qatorida turadi.
  *
- * Karta ostki qismi ataylab bo'sh: ostidagi tafsilot kartasi ustiga
- * MINIB turadi (salbiy chetki bo'shliq bilan) va ikkisi bitta blok
- * bo'lib ko'rinadi.
+ * Yo'nalish belgisi SARLAVHA QATORIDA, o'ng chetda: u pastda turganda
+ * ostidagi karta uni yopib qo'yardi va "Qarz" so'zi yarmigacha
+ * kesilgan holda ko'rinardi.
  */
 const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, currency }) => {
   const theme = useAppTheme();
@@ -40,27 +50,31 @@ const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, curre
 
   return (
     <View style={styles.card}>
-      <View style={styles.labelRow}>
-        <Ionicons name="wallet-outline" size={18} color={colors.textOnPrimary} />
-        <Text style={styles.label}>{t('debts.totalBalance')}</Text>
+      <View style={styles.topRow}>
+        <View style={styles.labelRow}>
+          <Ionicons name="wallet-outline" size={17} color={colors.textOnPrimary} />
+          <Text style={styles.label} numberOfLines={1}>
+            {t('debts.totalBalance')}
+          </Text>
+        </View>
+
+        {/* Yo'nalish — raqamning o'zi ishorasiz chiqadi, shuning uchun
+            "haq" yoki "qarz" ekanini so'z aytadi. */}
+        <View style={styles.badge}>
+          <Ionicons
+            name={positive ? 'trending-up' : 'trending-down'}
+            size={12}
+            color={colors.textOnPrimary}
+          />
+          <Text style={styles.badgeText} numberOfLines={1}>
+            {positive ? t('money.badgeCredit') : t('money.badgeDebt')}
+          </Text>
+        </View>
       </View>
 
       <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
         {formatMoney(Math.abs(net), currency)}
       </Text>
-
-      {/* Yo'nalish belgisi — raqamning o'zi ishorasiz chiqadi, shuning
-          uchun "haq" yoki "qarz" ekanini so'z aytadi. */}
-      <View style={styles.badge}>
-        <Ionicons
-          name={positive ? 'trending-up' : 'trending-down'}
-          size={13}
-          color={colors.textOnPrimary}
-        />
-        <Text style={styles.badgeText} numberOfLines={1}>
-          {positive ? t('money.badgeCredit') : t('money.badgeDebt')}
-        </Text>
-      </View>
     </View>
   );
 };
@@ -72,15 +86,23 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       borderRadius: radius.xxl,
       paddingHorizontal: spacing.md,
       paddingTop: spacing.md,
-      // Pastki bo'shliq KATTA: tafsilot kartasi shu joyga minadi.
-      paddingBottom: spacing.xl + spacing.lg,
+      // Ostidagi karta minadigan joy + bir oz nafas.
+      paddingBottom: HERO_OVERLAP + spacing.sm,
       marginHorizontal: spacing.md,
       ...shadows.card,
+    },
+    topRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
     },
     labelRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
+      flexShrink: 1,
+      minWidth: 0,
     },
     label: {
       ...typography.body,
@@ -90,22 +112,25 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     amount: {
       ...typography.heading1,
-      fontSize: 32,
+      fontSize: 30,
       fontWeight: '800',
       color: colors.textOnPrimary,
       marginTop: spacing.xs,
       fontVariant: ['tabular-nums'],
     },
+    /**
+     * Belgi KARTA USTIDA turadi, shuning uchun foni mavzu rangi emas,
+     * shaffof oq: yo'nalish qaysi tomonda bo'lishidan qat'i nazar matn
+     * o'qiladi (yashil fonda "Qarz" so'zi chalkash edi).
+     */
     badge: {
       flexDirection: 'row',
       alignItems: 'center',
-      alignSelf: 'flex-start',
       gap: 4,
-      marginTop: spacing.sm,
       paddingVertical: 4,
-      paddingHorizontal: spacing.sm,
+      paddingHorizontal: spacing.xs + 2,
       borderRadius: radius.pill,
-      backgroundColor: colors.positiveSoft,
+      backgroundColor: 'rgba(255, 255, 255, 0.22)',
     },
     badgeText: {
       ...typography.caption,
