@@ -16,7 +16,6 @@ import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import SearchField from '../../../shared/ui/SearchField';
-import SectionHeader from '../../../shared/ui/SectionHeader';
 import StatusBanner from '../../../shared/ui/StatusBanner';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import { useOnlineStatus } from '../../../shared/lib/networkStatus';
@@ -30,6 +29,7 @@ import { useNotifications } from '../../notifications/hooks/useNotifications';
 import { NestedGlass, useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { ROUTES } from '../../../app/navigation/routes';
+import { useCurrency } from '../context/CurrencyContext';
 import type { DebtsNavigation } from '../../../app/navigation/types';
 import { CurrencyAmounts, netByCurrency } from '../../../shared/lib/currency';
 import type { ActiveSort, SortDirection } from '../components/BalanceSummary';
@@ -42,6 +42,9 @@ import { requestNotificationPermission } from '../../../shared/lib/deviceNotific
 import type { DeviceContact } from '../../../shared/lib/deviceContacts';
 import { useI18n } from '../../../shared/i18n';
 import BalanceSummary from '../components/BalanceSummary';
+import BalanceHero from '../components/BalanceHero';
+import QuickActions, { type QuickAction } from '../components/QuickActions';
+import StatsBanner from '../components/StatsBanner';
 import ContactRow from '../components/ContactRow';
 import ContactFormModal from '../components/ContactFormModal';
 import ProfilePhotoModal from '../../profile/components/ProfilePhotoModal';
@@ -64,6 +67,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation }) => {
   const { t } = useI18n();
+  const { baseCurrency } = useCurrency();
   const theme = useAppTheme();
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -117,7 +121,15 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   const [selectedId, setSelectedId] = useState('');
 
   // ---- Qidiruv holati ----
-  const [activeSearch, setActiveSearch] = useState<SearchField | null>(null);
+  /**
+   * Qidiruv REJIMI: ism yoki telefon.
+   *
+   * Ilgari `null` ham bo'lardi ("qidiruv yopiq") va maydon faqat
+   * tugma bosilgandan keyin ochilardi. Endi maydon doim ko'rinadi —
+   * qidiruv borligini ko'rsatib turish uchun — rejim esa yonidagi
+   * tugma bilan almashadi.
+   */
+  const [searchMode, setSearchMode] = useState<SearchField>('name');
   const [filterName, setFilterName] = useState('');
   const [filterPhone, setFilterPhone] = useState('');
   const [searchResults, setSearchResults] = useState<typeof contacts>([]);
@@ -273,14 +285,29 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     };
   }, [filterContacts, filterName, filterPhone, t]);
 
-  const toggleSearch = useCallback((field: SearchField) => {
-    setActiveSearch((prev) => {
-      if (prev === field) return null;
-      if (field === 'name') setFilterPhone('');
-      else setFilterName('');
-      return field;
+  /** Ism <-> telefon. Almashganda ikkinchi maydon tozalanadi. */
+  const toggleSearchMode = useCallback(() => {
+    setSearchMode((prev) => {
+      if (prev === 'name') {
+        setFilterName('');
+        return 'phone';
+      }
+      setFilterPhone('');
+      return 'name';
     });
   }, []);
+
+  /** "Barchasi" — qidiruv va saralash tozalanadi. */
+  const handleShowAll = useCallback(() => {
+    setFilterName('');
+    setFilterPhone('');
+    setSort(null);
+  }, []);
+
+  /** Xulosa banneri va "Statistika" plitasi — raqamlar profilda. */
+  const handleOpenStats = useCallback(() => {
+    navigation.getParent()?.navigate(ROUTES.PROFILE);
+  }, [navigation]);
 
   const openCreate = useCallback(() => {
     // Foydalanuvchi ishorasi — bildirishnoma ovozini "ochamiz" (brauzer autoplay bloki uchun).
@@ -548,6 +575,50 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   // CHEKLI takror bilan. Avval cheksiz loop edi: web'da bu har frame'da style
   // yozadigan doimiy rAF ishi (batareya + Performance panelida uzluksiz faollik).
   const shouldPulseFab = canEdit && isEmpty && !isBusy && !hasActiveQuery;
+
+  /**
+   * TEZ AMALLAR — balans ostidagi qator.
+   *
+   * Faqat MAVJUD yo'nalishlar: har plita haqiqiy ekranni ochadi.
+   * "Qarz qo'shish" ro'yxat bo'sh bo'lmaganda ham birinchi turadi —
+   * u ekranning asosiy amali.
+   */
+  const quickActions = useMemo<QuickAction[]>(() => {
+    const list: QuickAction[] = [];
+    if (canEdit) {
+      list.push({
+        key: 'new',
+        icon: 'add',
+        label: t('debts.quickNewDebt'),
+        onPress: openCreate,
+      });
+    }
+    list.push(
+      {
+        key: 'expenses',
+        icon: 'cash-outline',
+        label: t('tab.expenses'),
+        onPress: () => navigation.getParent()?.navigate(ROUTES.EXPENSES),
+      },
+      {
+        key: 'stats',
+        icon: 'stats-chart',
+        label: t('debts.quickStats'),
+        onPress: handleOpenStats,
+      },
+      {
+        key: 'settings',
+        icon: 'settings-outline',
+        label: t('debts.quickSettings'),
+        // Sozlamalar PROFIL stack'ining ichida — ota navigator orqali.
+        onPress: () =>
+          navigation.getParent()?.navigate(ROUTES.PROFILE, {
+            screen: ROUTES.PROFILE_SETTINGS,
+          }),
+      },
+    );
+    return list;
+  }, [canEdit, t, openCreate, handleOpenStats, navigation]);
   return (
     <View style={styles.container}>
       {/* Dekorativ fon — bosishni ushlamaydi, kontent ustidan o'tmaydi. */}
@@ -556,43 +627,40 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       <EntranceView style={styles.header} duration={300} fromY={12}>
         <ScreenTopBar />
 
-        <View style={styles.headerRow}>
-          <View style={styles.titleWrap}>
-            {/* Sarlavha tab nomi bilan BIR XIL: ilgari tabda "Qarzlar",
-                ekranda "Mijozlar" turardi va foydalanuvchi qayerdaligini
-                anglash uchun ikki xil lug'atni bog'lashiga to'g'ri kelardi. */}
-            <Text style={styles.title} numberOfLines={1}>
-              {t('tab.debts')}
-            </Text>
-          </View>
-
-          <View style={styles.headerTools}>
-            <SearchToggle
-              label="ABC"
-              active={activeSearch === 'name'}
-              onPress={() => toggleSearch('name')}
-              styles={styles}
-              colors={colors}
-            />
-            <SearchToggle
-              label="123"
-              active={activeSearch === 'phone'}
-              onPress={() => toggleSearch('phone')}
-              styles={styles}
-              colors={colors}
-            />
-          </View>
+        {/* BALANS BLOKI: tepada yakuniy raqam, ostida tafsilot kartasi
+            unga MINIB turadi — ikkisi bitta blok bo'lib ko'rinadi. */}
+        <BalanceHero
+          totalDebt={aggregateTotals.totalDebt}
+          totalCredit={aggregateTotals.totalCredit}
+          currency={baseCurrency}
+        />
+        <View style={styles.summaryOverlap}>
+          <BalanceSummary
+            totalDebt={aggregateTotals.totalDebt}
+            totalCredit={aggregateTotals.totalCredit}
+            loading={balancesInitialLoading}
+            activeSort={sort}
+            onSelect={handleSelectSort}
+            onReset={handleResetSort}
+          />
         </View>
 
-        {activeSearch ? (
-          <EntranceView duration={200} fromY={-6} style={styles.searchWrap}>
-            {activeSearch === 'name' ? (
+        <View style={styles.quickWrap}>
+          <QuickActions actions={quickActions} />
+        </View>
+
+        {/* QIDIRUV: maydon doim ko'rinadi, yonidagi tugma esa ism va
+            telefon rejimini almashtiradi. Ilgari ikkita "ABC/123"
+            tugmasi turar va maydon faqat bosilgandan keyin ochilardi —
+            qidiruv borligi umuman ko'rinmasdi. */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchGrow}>
+            {searchMode === 'name' ? (
               <SearchField
                 value={filterName}
                 onChangeText={setFilterName}
-                placeholder={t('debts.min3letters')}
+                placeholder={t('debts.searchPlaceholder')}
                 accessibilityLabel={t('debts.filterName')}
-                autoFocus
               />
             ) : (
               <SearchField
@@ -601,20 +669,18 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
                 keyboardType="phone-pad"
                 placeholder={t('debts.min3digits')}
                 accessibilityLabel={t('debts.filterPhone')}
-                autoFocus
               />
             )}
-          </EntranceView>
-        ) : null}
-
-        <BalanceSummary
-          totalDebt={aggregateTotals.totalDebt}
-          totalCredit={aggregateTotals.totalCredit}
-          loading={balancesInitialLoading}
-          activeSort={sort}
-          onSelect={handleSelectSort}
-          onReset={handleResetSort}
-        />
+          </View>
+          <Pressable
+            onPress={toggleSearchMode}
+            style={({ pressed }) => [styles.filterBtn, pressed && styles.filterBtnPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t(searchMode === 'name' ? 'debts.filterPhone' : 'debts.filterName')}
+          >
+            <Ionicons name="options-outline" size={20} color={colors.primary} />
+          </Pressable>
+        </View>
 
         {/* Holat bannerlari — bo'lmasa konteyner ham chizilmaydi. */}
         {hasBanner ? (
@@ -636,11 +702,23 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
             suzuvchi "+" tugmasi aynan shu amalni bajaradi va ikkita bir xil
             harakat ekranda raqobatlashib turardi. */}
         <View style={styles.sectionWrap}>
-          <SectionHeader
-            icon="people"
-            iconBadge={false}
-            title={t('debts.contactsSection')}
-          />
+          <Text style={styles.sectionTitle} numberOfLines={1}>
+            {t('debts.contactsSection')}
+          </Text>
+          {/* "Barchasi" — qidiruv va saralashni tozalab, to'liq
+              ro'yxatga qaytaradi: filtr qolib ketgani sezilmay,
+              odam "kontaktlarim qani" deb o'ylardi. */}
+          {hasActiveQuery || sort ? (
+            <Pressable
+              onPress={handleShowAll}
+              style={({ pressed }) => [styles.seeAll, pressed && styles.filterBtnPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={t('debts.seeAll')}
+            >
+              <Text style={styles.seeAllText}>{t('debts.seeAll')}</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+            </Pressable>
+          ) : null}
         </View>
       </EntranceView>
 
@@ -658,6 +736,9 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           showsVerticalScrollIndicator={false}
           initialNumToRender={12}
           windowSize={11}
+          ListFooterComponent={
+            sortedContacts.length > 0 ? <StatsBanner onPress={handleOpenStats} /> : null
+          }
           refreshControl={
             <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
           }
@@ -745,30 +826,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   );
 };
 
-interface SearchToggleProps {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-  styles: ReturnType<typeof createStyles>;
-  colors: ThemeValue['colors'];
-}
-
-const SearchToggle: React.FC<SearchToggleProps> = ({ label, active, onPress, styles, colors }) => (
-  <Pressable
-    style={({ pressed }) => [
-      styles.searchToggle,
-      active && styles.searchToggleActive,
-      pressed && styles.searchTogglePressed,
-    ]}
-    onPress={onPress}
-    accessibilityRole="button"
-    accessibilityState={{ selected: active }}
-  >
-    <Ionicons name="search-outline" size={18} color={active ? colors.primary : colors.textSecondary} />
-    <Text style={[styles.searchToggleText, active && styles.searchToggleTextActive]}>{label}</Text>
-  </Pressable>
-);
-
 const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme }: ThemeValue) =>
   StyleSheet.create({
     container: {
@@ -779,80 +836,54 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
     header: {
       backgroundColor: 'transparent',
     },
-    // Qidiruv tugmalari sarlavha bloki bilan vertikal MARKAZDA tekislanadi.
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: spacing.sm,
-      // Bo'sh joy kengaytirildi: yangi uslubda bloklar orasidagi
-      // nafas sarlavha ierarxiyasini o'zi ko'rsatadi, qo'shimcha
-      // chiziq yoki ramka kerak bo'lmaydi.
-      marginBottom: spacing.md,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.xs,
+    banners: {
+      marginTop: spacing.md,
     },
-    /**
-     * Sarlavha O'Z SIRTIDA.
-     *
-     * U kartalardan tashqarida, to'g'ridan-to'g'ri fon ustida turadi.
-     * Kontur (matn soyasi) ingichka va to'q rasmda to'q matnni
-     * qutqarmasdi - sirt esa kafolat beradi.
-     *
-     * Kenglik MAZMUNGA qarab: butun qator bo'ylab cho'zilsa, u sarlavha
-     * emas, bo'sh panel bo'lib ko'rinardi.
-     */
-    titleWrap: {
-      alignSelf: 'flex-start',
-      paddingVertical: spacing.xxs,
-      paddingHorizontal: spacing.sm,
-      borderRadius: radius.lg,
-      ...glass.surface,
-      flexShrink: 1,
-      minWidth: 0,
+    /* Tafsilot kartasi balans kartasining ostki bo'shlig'iga MINADI. */
+    summaryOverlap: {
+      marginTop: -(spacing.xl + spacing.md),
     },
-    title: {
-      ...typography.display,
-      color: colors.textPrimary,
+    quickWrap: {
+      marginTop: spacing.sm,
     },
-    headerTools: {
+    searchRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.sm,
     },
-    // Qidiruv almashtirgichlari — alohida oq kartachalar.
-    searchToggle: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xxs + 1,
-      height: 48,
-      paddingHorizontal: spacing.sm,
+    searchGrow: {
+      flex: 1,
+      minWidth: 0,
+    },
+    filterBtn: {
+      width: 46,
+      height: 46,
       borderRadius: radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
       ...glass.surface,
     },
-    searchToggleActive: {
-      backgroundColor: colors.primarySoft,
-      shadowOpacity: 0,
-      elevation: 0,
-    },
-    searchTogglePressed: {
+    filterBtnPressed: {
       opacity: 0.6,
     },
-    searchToggleText: {
-      ...typography.label,
-      fontSize: 14,
-      fontWeight: '700',
+    sectionTitle: {
+      ...typography.heading2,
+      flex: 1,
+      minWidth: 0,
       color: colors.textPrimary,
     },
-    searchToggleTextActive: {
+    seeAll: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    seeAllText: {
+      ...typography.caption,
+      fontSize: 13,
+      fontWeight: '700',
       color: colors.primary,
-    },
-    searchWrap: {
-      marginHorizontal: spacing.md,
-      marginBottom: spacing.md,
-    },
-    banners: {
-      marginTop: spacing.md,
     },
     sectionWrap: {
       marginTop: spacing.sm,
