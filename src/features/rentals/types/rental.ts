@@ -91,6 +91,8 @@ export interface RentalPaymentItemDTO {
   paidDate?: string | null;
   /** Yozuv kiritilgan payt — tarix shu bo'yicha tartiblanadi. */
   createdDate?: string | null;
+  /** Kim yozgan — ism. Eski server bu maydonni yubormaydi. */
+  createdByName?: string | null;
 }
 
 /** Ro'yxat filtri. Bo'sh yuborilsa hammasi qaytadi. */

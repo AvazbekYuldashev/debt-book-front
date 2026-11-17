@@ -158,6 +158,89 @@ describe("to'lov yo'li", () => {
 });
 
 /**
+ * PUL KIMGA KETYAPTI — to'lov oynasida ko'rinadi.
+ *
+ * Egasining talabi: "pulni kimga bergani ijara pulini berayotganda ham
+ * ko'rsatilishi kerak". Oldi-berdi oynasida qarshi tomon doim turadi;
+ * ijara to'lovi ham pul va u ham shunday bo'lishi kerak.
+ */
+describe("to'lov oynasida qarshi tomon", () => {
+  it("mijoz to'layotganda KIMGA ekani ko'rinadi", async () => {
+    show(rental({ owner: false, canPay: true }));
+    await settle();
+
+    fireEvent.press(screen.getByText('Pul berdim'));
+    expect(screen.getByText('Kimga: Akmal Tursunov')).toBeTruthy();
+  });
+
+  it("egasi yozayotganda KIMDAN ekani ko'rinadi", async () => {
+    show(rental());
+    await settle();
+
+    fireEvent.press(screen.getByText('Pul oldim'));
+    expect(screen.getByText('Kimdan: Akmal Tursunov')).toBeTruthy();
+  });
+
+  it("to'lov tarixida KIM yozgani turadi", async () => {
+    show(
+      rental({
+        paidAmount: 30_000,
+        payments: [
+          { id: 'p1', amount: 30_000, paidDate: '2026-11-14', createdByName: 'Bekzod Aliyev' },
+        ],
+      }),
+    );
+    await settle();
+
+    expect(screen.getByText(/Bekzod Aliyev/)).toBeTruthy();
+  });
+});
+
+/**
+ * BUYUMNI QAYTARIB OLISH hisobni to'xtatadi va uni faqat ombor
+ * tomonidagi ADMIN yoki OWNER qila oladi (MEMBER faqat ko'radi).
+ */
+describe('buyumni qaytarib olish huquqi', () => {
+  it("egasida (admin/owner) 'Buyum qaytdi' tugmasi bor", async () => {
+    show(rental());
+    await settle();
+
+    expect(screen.getByText('Buyum qaytdi')).toBeTruthy();
+  });
+
+  it("MEMBER qaytara olmaydi", async () => {
+    render(
+      <AppThemeProvider>
+        <LanguageProvider>
+          <RentalDetailModal
+            rental={rental()}
+            onClose={jest.fn()}
+            onEdit={jest.fn()}
+            allowWrite={false}
+          />
+        </LanguageProvider>
+      </AppThemeProvider>,
+    );
+    await settle();
+
+    expect(screen.queryByText('Buyum qaytdi')).toBeNull();
+  });
+
+  it("qaytgan yozuvda tugma qolmaydi — hisob allaqachon to'xtagan", async () => {
+    show(
+      rental({
+        quantity: 1,
+        returnedDate: '2026-10-12',
+        returns: [{ id: 'b1', quantity: 1, returnedDate: '2026-10-12' }],
+      }),
+    );
+    await settle();
+
+    expect(screen.queryByText('Buyum qaytdi')).toBeNull();
+  });
+});
+
+/**
  * PUL TO'LANSA "TO'LANDI" DEYILADI.
  *
  * Karta eng muhim raqam sifatida QOLDIQNI ko'rsatadi: u vaqt bilan

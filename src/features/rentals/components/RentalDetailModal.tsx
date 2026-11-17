@@ -424,6 +424,9 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                       {t('rentals.paymentLine', {
                         amount: formatMoney(toAmount(item.amount), rental.currency),
                       })}
+                      {/* Kim yozgani: biznesda bir nechta admin bor va
+                          "kim qabul qildi" degan savol tug'iladi. */}
+                      {item.createdByName ? ` · ${item.createdByName}` : ''}
                     </Text>
                     <Text style={styles.detailValue} numberOfLines={1}>
                       {item.paidDate ?? ''}
@@ -547,6 +550,19 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
 
             {pane === 'payment' ? (
               <View style={styles.pane}>
+                {/* PUL KIMGA KETYAPTI. Oldi-berdi oynasida qarshi tomon
+                    doim ko'rinadi — ijara to'lovi ham pul, shu yerda ham
+                    ko'rinishi kerak: odam summani yozishdan oldin kimga
+                    yozayotganini bilsin. `clientName` ko'ruvchiga
+                    nisbatan: egasida mijoz, mijozda do'kon nomi. */}
+                <View style={styles.partyRow}>
+                  <Ionicons name="person-outline" size={15} color={colors.textSecondary} />
+                  <Text style={styles.partyText} numberOfLines={1}>
+                    {mine
+                      ? t('rentals.payFrom', { name: rental.clientName })
+                      : t('rentals.payTo', { name: rental.clientName })}
+                  </Text>
+                </View>
                 <Input
                   label={mine ? t('rentals.payAmount') : t('rentals.iPaidTitle')}
                   value={payAmount}
@@ -785,6 +801,17 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       flex: 1,
     },
     // Kutayotgan to'lov: alohida sirtda, chunki u HALI hisobda emas.
+    partyRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xxs,
+    },
+    partyText: {
+      ...typography.caption,
+      flex: 1,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
     pending: {
       backgroundColor: colors.surfaceMuted,
       borderRadius: radius.md,
