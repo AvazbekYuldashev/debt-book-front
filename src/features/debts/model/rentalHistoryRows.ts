@@ -18,10 +18,11 @@ import type { MappedTransaction } from './transactionMapping';
  * chiqib, sarlavhadagi boshqa raqamni ko'radi (aynan shu savol
  * tug'ilgan edi: "tarixdagi yozuvlar bilan umumiy bir xil emas-ku").
  *
- * Har ijara IKKI qator beradi:
+ * Har ijara qatorlari:
  *   HAQ    — yig'ilgan summa (vaqt bilan o'sadi, balansdagi kabi);
- *   TO'LOV — har to'lov alohida, teskari yo'nalishda.
- * Ikkisining farqi = qoldiq = ijaraning balansga qo'shgan hissasi.
+ *   TO'LOV — har to'lov alohida, teskari yo'nalishda;
+ *   OLDINGI TO'LOV — sanasi yozilmagan eski to'lovlar, bitta qator.
+ * Ularning farqi = qoldiq = ijaraning balansga qo'shgan hissasi.
  *
  * Ayniqsa muhim: QAYTARILGAN, lekin puli to'lanmagan ijara Ijara
  * sahifasidan tushib qoladi ("hozir nima turibdi" degan savolga javob
@@ -33,14 +34,16 @@ import type { MappedTransaction } from './transactionMapping';
 
 const ACCRUAL_PREFIX = 'rental:';
 const PAYMENT_PREFIX = 'rental-pay:';
+const LEGACY_PREFIX = 'rental-paid:';
+
+/** Tiyin changi qator chiqarmasin (0.1 × 3 kabi kasrlar). */
+const CENT = 0.01;
 
 /** Qator ijaraga tegishli bo'lsa — ijara id'si, aks holda null. */
 export const rentalIdOfRow = (rowId: string): string | null => {
-  const prefix = rowId.startsWith(PAYMENT_PREFIX)
-    ? PAYMENT_PREFIX
-    : rowId.startsWith(ACCRUAL_PREFIX)
-      ? ACCRUAL_PREFIX
-      : null;
+  const prefix = [PAYMENT_PREFIX, LEGACY_PREFIX, ACCRUAL_PREFIX].find((candidate) =>
+    rowId.startsWith(candidate),
+  );
   if (!prefix) return null;
   const rest = rowId.slice(prefix.length);
   const cut = rest.indexOf(':');
@@ -72,6 +75,7 @@ export function rentalHistoryRows(
   const rows: MappedTransaction[] = [];
   const accrualLabel = translate('rentals.accrualRow');
   const paymentLabel = translate('rentals.paymentRow');
+  const earlierLabel = translate('rentals.paymentRowEarlier');
   const today = now.slice(0, 10);
   // Bir yozuv ikki yo'nalishdan kelishi mumkin — id bo'yicha bir marta.
   const seen = new Set<string>();
@@ -100,9 +104,11 @@ export function rentalHistoryRows(
       });
     }
 
+    let itemized = 0;
     for (const [index, payment] of (rental.payments ?? []).entries()) {
       const amount = toAmount(payment.amount);
       if (amount <= 0) continue;
+      itemized += amount;
       rows.push({
         id: `${PAYMENT_PREFIX}${rental.id}:${payment.id ?? index}`,
         amount,
@@ -114,6 +120,34 @@ export function rentalHistoryRows(
         kind: mine ? 'debt' : 'credit',
         label: paymentLabel,
         description: `${paymentLabel} — ${what}`,
+      });
+    }
+
+    /*
+     * SANASI YOZILMAGAN eski to'lovlar.
+     *
+     * To'lov tarixi (`payments[]`) keyinroq joriy qilindi; undan oldin
+     * pul faqat `paidAmount` YIG'INDISIGA qo'shilardi. Balans o'sha
+     * yig'indini ayiradi, tarix esa qatorlarni ko'rsatadi — farqi
+     * qatorsiz qolsa, ro'yxat sarlavhadan katta chiqadi (aynan shu
+     * ko'rindi: 1 350 000 so'm qatorsiz edi).
+     *
+     * Shuning uchun farq BITTA qator bo'lib chiqadi. Sanasi noma'lum,
+     * shuning uchun ijara yozilgan paytga qo'yiladi — o'z haqi yonida
+     * turadi va nomi "oldingi" ekanini aytadi. Yangi to'lovlar o'z
+     * sanasi bilan yozilgani uchun bu qator vaqt o'tib yo'qoladi.
+     */
+    const legacy = toAmount(rental.paidAmount) - itemized;
+    if (legacy > CENT) {
+      rows.push({
+        id: `${LEGACY_PREFIX}${rental.id}`,
+        amount: legacy,
+        currency: rental.currency,
+        visible: true,
+        createdDate: rental.createdDate ?? `${rental.startDate}T00:00`,
+        kind: mine ? 'debt' : 'credit',
+        label: earlierLabel,
+        description: `${earlierLabel} — ${what}`,
       });
     }
   }

@@ -109,6 +109,73 @@ describe('rentalHistoryRows', () => {
     expect(rows[0].amount).toBe(25_000);
   });
 
+  /**
+   * SANASI YOZILMAGAN eski to'lovlar ham qator beradi.
+   *
+   * To'lov tarixi keyinroq joriy qilindi; undan oldingi pul faqat
+   * `paidAmount` yig'indisida qolgan. Qatorsiz qolsa ro'yxat
+   * sarlavhadan KATTA chiqadi — egasining ekranida aynan shunday
+   * bo'ldi: 1 350 000 so'm qatorsiz edi.
+   */
+  it("eski to'lov (sanasiz) ham qator bo'lib chiqadi", () => {
+    const legacy = rental({ paidAmount: 30_000, payments: [] });
+
+    const rows = rentalHistoryRows([legacy], NOW);
+    expect(rows).toHaveLength(2);
+    expect(rows[1].amount).toBe(30_000);
+    expect(rows[1].kind).toBe('credit'); // mijoz bergan pul
+    expect(rentalIdOfRow(rows[1].id)).toBe('r1');
+  });
+
+  it("itemlangan to'lovdan ortig'igina 'oldingi' bo'lib chiqadi", () => {
+    const mixed = rental({
+      paidAmount: 50_000,
+      payments: [{ id: 'p1', amount: 20_000, paidDate: '2026-11-19' }],
+    });
+
+    const amounts = rentalHistoryRows([mixed], NOW).map((row) => row.amount);
+    // Haq 50 000, itemlangan 20 000, qolgan eski 30 000.
+    expect(amounts).toEqual([50_000, 20_000, 30_000]);
+  });
+
+  it("to'liq itemlangan ijarada ortiqcha qator chiqmaydi", () => {
+    const clean = rental({
+      paidAmount: 20_000,
+      payments: [{ id: 'p1', amount: 20_000, paidDate: '2026-11-19' }],
+    });
+    expect(rentalHistoryRows([clean], NOW)).toHaveLength(2);
+  });
+
+  /**
+   * EGASINING EKRANI: uchta ochiq va ikkita yopilgan ijara, eski
+   * to'lovlar bilan. Qatorlar yig'indisi sarlavhadagi raqamni AYNAN
+   * berishi kerak — shu hisob buzilgani uchun shikoyat bo'lgan edi.
+   */
+  it("haqiqiy aralash holat: qatorlar sarlavhani AYNAN beradi", () => {
+    const items = [
+      // Ochiq: 30 kun × 25 000, ko'pi to'langan.
+      rental({ id: 'a', startDate: '2026-10-21', dueDate: '2026-11-20', paidAmount: 675_000 }),
+      rental({ id: 'b', startDate: '2026-10-21', dueDate: '2026-11-20', paidAmount: 675_000 }),
+      // Yopilgan, puli to'lanmagan — Ijara sahifasida ko'rinmaydi.
+      rental({
+        id: 'c',
+        startDate: '2026-11-18',
+        returnedDate: '2026-11-20',
+        returns: [{ id: 'r', quantity: 1, returnedDate: '2026-11-20' }],
+      }),
+    ];
+
+    const rows = rentalHistoryRows(items, NOW);
+    const fromRows = rows.reduce(
+      (sum, row) => sum + (row.kind === 'debt' ? row.amount : -row.amount),
+      0,
+    );
+    const totals = rentalTotalsByContact(items, NOW).c1;
+    const fromBalance = (totals.debt.UZS ?? 0) - (totals.credit.UZS ?? 0);
+
+    expect(fromRows).toBe(fromBalance);
+  });
+
   it('balansga kirmaydigan ijara tarixda ham chiqmaydi', () => {
     // Muddatsiz va hali boshlanmagan — majburiyat emas.
     const future = rental({ openEnded: true, startDate: '2026-12-01', inBalance: false });
