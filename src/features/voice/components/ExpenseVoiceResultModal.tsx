@@ -6,6 +6,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import type { ExpenseCategoryOption, ExpenseCommand } from '../model/resolveExpenseCommand';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 export interface ExpenseVoiceResultModalProps {
   command: ExpenseCommand | null;
@@ -54,7 +55,9 @@ const ExpenseVoiceResultModal: React.FC<ExpenseVoiceResultModalProps> = ({
         <Pressable style={styles.card} onPress={() => {}}>
           <View style={styles.titleRow}>
             <Ionicons name="mic-outline" size={20} color={colors.primary} />
-            <Text style={styles.title}>{t('voice.result')}</Text>
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title}>{t('voice.result')}</Text>
+            </ModalTitleRow>
           </View>
 
           {transcript ? (

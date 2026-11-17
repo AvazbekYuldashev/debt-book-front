@@ -24,6 +24,7 @@ import { formatQuantity } from '../../../shared/lib/quantity';
 import { normalizeCurrency } from '../../../shared/lib/currency';
 import { isValidDateInput } from '../../../shared/lib/date';
 import DateField from '../../../shared/ui/DateField';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 import { ContactsContext, type Contact } from '../../debts/context/ContactsContext';
 import { useCreateRentalBatch, useRentalItems, useUpdateRental } from '../hooks/useRentals';
 import {
@@ -438,9 +439,11 @@ const RentalFormModal: React.FC<RentalFormModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title} accessibilityRole="header">
-              {isEdit ? t('rentals.editTitle') : t('rentals.createTitle')}
-            </Text>
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title} accessibilityRole="header">
+                {isEdit ? t('rentals.editTitle') : t('rentals.createTitle')}
+              </Text>
+            </ModalTitleRow>
 
             {/* ---- Mijoz ---- */}
             {selected ? (

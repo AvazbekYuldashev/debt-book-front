@@ -12,6 +12,7 @@ import Button from '../../../shared/ui/Button';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import CalculatorModal from '../../../shared/ui/CalculatorModal';
+import { ModalCloseButton } from '../../../shared/ui/ModalTitleRow';
 
 interface ExpenseFormModalProps {
   visible: boolean;
@@ -100,7 +101,8 @@ const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
               >
                 <Ionicons name="calculator-outline" size={20} color={theme.colors.primary} />
               </Pressable>
-            </View>
+                          <ModalCloseButton onClose={onClose} />
+</View>
             <Text style={styles.hint}>
               {t('expenses.categoryColon')}: {categoryName || t('expenses.notSelected')}
             </Text>

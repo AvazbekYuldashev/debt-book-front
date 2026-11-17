@@ -7,6 +7,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import type { VoiceGapMember } from '../api/voice';
 import type { GapVoiceCommand } from '../model/resolveGapCommand';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 export interface GapVoiceResultModalProps {
   command: GapVoiceCommand | null;
@@ -48,7 +49,9 @@ const GapVoiceResultModal: React.FC<GapVoiceResultModalProps> = ({
         <Pressable style={styles.card} onPress={() => {}}>
           <View style={styles.titleRow}>
             <Ionicons name="mic-outline" size={20} color={colors.primary} />
-            <Text style={styles.title}>{t('voice.result')}</Text>
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title}>{t('voice.result')}</Text>
+            </ModalTitleRow>
           </View>
 
           {transcript ? (

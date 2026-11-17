@@ -23,6 +23,7 @@ import { formatGapAmountInput, parseGapAmountInput } from '../model/gapFormat';
 import { GapTransferDirection, GapUnit } from '../types/gap';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
+import { ModalCloseButton } from '../../../shared/ui/ModalTitleRow';
 
 interface GapTransferFormModalProps {
   visible: boolean;
@@ -142,7 +143,8 @@ const GapTransferFormModal: React.FC<GapTransferFormModalProps> = ({
               >
                 <Ionicons name="calculator-outline" size={20} color={colors.primary} />
               </Pressable>
-            </View>
+                          <ModalCloseButton onClose={onClose} />
+</View>
             <Text style={styles.subtitle} numberOfLines={2}>
               {memberName}
             </Text>

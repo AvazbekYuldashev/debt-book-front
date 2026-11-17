@@ -19,7 +19,9 @@ import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatAmountInput, formatMoney, parseAmountInput } from '../../../shared/lib/money';
 import { isValidDateInput } from '../../../shared/lib/date';
 import DateField from '../../../shared/ui/DateField';
+import { ModalCloseButton } from '../../../shared/ui/ModalTitleRow';
 import { confirmAction } from '../../../shared/lib/confirm';
+import BusinessMemberPicker from '../../debts/components/BusinessMemberPicker';
 import {
   useConfirmRental,
   useDeleteRental,
@@ -63,6 +65,11 @@ interface RentalDetailModalProps {
   onClose: () => void;
   /** Tahrirlash formasini ochish — forma ota-ekranda turadi. */
   onEdit: (rental: RentalResponseDTO) => void;
+  /**
+   * Qarshi tomon BIZNES bo'lsa uning id'si — to'lovda xodim tanlash
+   * uchun. Berilmasa (shaxsiy kontakt) tanlov so'ralmaydi.
+   */
+  counterpartyBusinessId?: string | null;
   /** Biznesda MEMBER faqat ko'radi — amal tugmalari chiqmaydi. */
   allowWrite?: boolean;
   allowDelete?: boolean;
@@ -90,6 +97,7 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
   rental,
   onClose,
   onEdit,
+  counterpartyBusinessId,
   allowWrite = true,
   allowDelete = true,
 }) => {
@@ -125,6 +133,8 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
   const [returnTime, setReturnTime] = useState(currentTimeString());
   const [returnQty, setReturnQty] = useState('');
   const [payAmount, setPayAmount] = useState('');
+  /** Pul qaysi xodimga tegadi — biznes bo'lsa MAJBURIY. */
+  const [payeeId, setPayeeId] = useState('');
   const [error, setError] = useState('');
 
   /**
@@ -145,6 +155,7 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
     setReturnQty(String(remainingQuantity(rental)));
     const remainingMoney = unpaidAmount(rental);
     setPayAmount(remainingMoney > 0 ? formatAmountInput(String(remainingMoney)) : '');
+    setPayeeId('');
   }, [rental]);
 
   const handleReturn = useCallback(() => {
@@ -185,19 +196,29 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
     setError('');
     const amount = parseAmountInput(payAmount);
     if (!amount) return setError(t('rentals.errPayAmount'));
+    // Qarshi tomon BIZNES bo'lsa xodim MAJBURIY: "do'konga berdim"
+    // degani keyin kimdan so'rashni bilmaslik degani.
+    if (counterpartyBusinessId && !payeeId) return setError(t('rentals.errPayee'));
 
     const handlers = {
       onSuccess: onClose,
       onError: (err: unknown) => setError((err as Error).message),
     };
-    const payload = { id: rental.id, dto: { amount, date: todayString() } };
+    const payload = {
+      id: rental.id,
+      dto: {
+        amount,
+        date: todayString(),
+        ...(payeeId ? { counterpartyProfileId: payeeId } : {}),
+      },
+    };
 
     if (mine) {
       payMutation.mutate(payload, handlers);
     } else {
       payRequestMutation.mutate(payload, handlers);
     }
-  }, [rental, payAmount, mine, payMutation, payRequestMutation, onClose, t]);
+  }, [rental, payAmount, payeeId, counterpartyBusinessId, mine, payMutation, payRequestMutation, onClose, t]);
 
   /** Egasi mijozning to'loviga javob beradi. */
   const handleResolvePayment = useCallback(
@@ -318,6 +339,10 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                   {statusText}
                 </Text>
               </View>
+              {/* YOPISH — yuqori o'ngda, tranzaksiya kartasidagi kabi.
+                  Pastdagi "Yopish" tugmasi amallar orasida yo'qolib
+                  ketardi va har karta o'zicha yopilardi. */}
+              <ModalCloseButton onClose={onClose} />
             </View>
 
             {/* ---- Eng muhim raqam: olinmagan qoldiq ----
@@ -426,7 +451,11 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                       })}
                       {/* Kim yozgani: biznesda bir nechta admin bor va
                           "kim qabul qildi" degan savol tug'iladi. */}
-                      {item.createdByName ? ` · ${item.createdByName}` : ''}
+                      {item.paidToName
+                        ? ` · ${item.paidToName}`
+                        : item.createdByName
+                          ? ` · ${item.createdByName}`
+                          : ''}
                     </Text>
                     <Text style={styles.detailValue} numberOfLines={1}>
                       {item.paidDate ?? ''}
@@ -544,7 +573,6 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                     ) : null}
                   </View>
                 ) : null}
-                <Button title={t('common.close')} variant="secondary" onPress={onClose} />
               </View>
             ) : null}
 
@@ -563,6 +591,20 @@ const RentalDetailModal: React.FC<RentalDetailModalProps> = ({
                       : t('rentals.payTo', { name: rental.clientName })}
                   </Text>
                 </View>
+                {/* QAYSI XODIM. Oldi-berdi oynasida a'zo tanlash
+                    allaqachon majburiy — ijara puli ham shu qoidaga
+                    tushadi: pul aniq bir odamning qo'liga tegadi. */}
+                {counterpartyBusinessId ? (
+                  <BusinessMemberPicker
+                    businessId={counterpartyBusinessId}
+                    enabled
+                    selectedId={payeeId}
+                    onSelect={(id) => {
+                      setError('');
+                      setPayeeId(id);
+                    }}
+                  />
+                ) : null}
                 <Input
                   label={mine ? t('rentals.payAmount') : t('rentals.iPaidTitle')}
                   value={payAmount}

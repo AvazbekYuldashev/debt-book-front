@@ -18,6 +18,7 @@ import { useCreateGap } from '../hooks/useGap';
 import GapUnitPicker from './GapUnitPicker';
 import type { GapUnit } from '../types/gap';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 interface GapCreateModalProps {
   visible: boolean;
@@ -96,9 +97,11 @@ const GapCreateModal: React.FC<GapCreateModalProps> = ({ visible, onClose }) => 
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title} accessibilityRole="header">
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title} accessibilityRole="header">
               {t('gap.createTitle')}
-            </Text>
+              </Text>
+            </ModalTitleRow>
 
             <Input label={t('gap.fieldName')} value={name} onChangeText={setName} />
 

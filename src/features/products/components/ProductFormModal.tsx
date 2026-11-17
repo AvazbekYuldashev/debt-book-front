@@ -21,6 +21,7 @@ import { CURRENCIES, CURRENCY_LABEL, normalizeCurrency } from '../../../shared/l
 import { formatAmountInput } from '../../../shared/lib/money';
 import { formatQuantity } from '../../../shared/lib/quantity';
 import type { Currency } from '../../../shared/types/money';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 import {
   DEFAULT_PRODUCT_UNIT,
   PRODUCT_UNITS,
@@ -194,7 +195,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title}>{mode === 'create' ? t('products.add') : t('products.edit')}</Text>
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title}>{mode === 'create' ? t('products.add') : t('products.edit')}</Text>
+            </ModalTitleRow>
 
             {/* Tugma NOMNI to'ldiradi — formadagi asosiy maydon. Izohning
                 o'z mikrofoni bor, chunki u boshqa maydon. */}

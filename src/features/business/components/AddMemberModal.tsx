@@ -8,6 +8,7 @@ import Button from '../../../shared/ui/Button';
 import { LOCAL_PHONE_DIGITS, sanitizeLocalPhone } from '../../../shared/lib/phone';
 import type { BusinessMemberRole } from '../types/business';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 export interface AddMemberResult {
   ok: boolean;
@@ -80,7 +81,9 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ visible, saving, onClos
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <View style={styles.backdrop}>
         <View style={styles.card}>
-          <Text style={styles.title}>{t('members.add')}</Text>
+          <ModalTitleRow onClose={onClose}>
+            <Text style={styles.title}>{t('members.add')}</Text>
+          </ModalTitleRow>
 
           <Text style={styles.fieldLabel}>{t('members.phone')}</Text>
           <View style={styles.phoneRow}>

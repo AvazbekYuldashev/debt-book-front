@@ -8,6 +8,7 @@ import { useI18n } from '../../../shared/i18n';
 import type { VoiceCommand } from '../model/voiceCommand';
 import { formatDuration, formatSum, formatWhen } from '../model/formatUsage';
 import { commandCost, tokenCost, type ModelPricing } from '../model/spend';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 export interface UsageDetailModalProps {
   command: VoiceCommand | null;
@@ -61,7 +62,9 @@ const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ command, onClose, p
         <Pressable style={styles.card} onPress={() => {}}>
           <View style={styles.titleRow}>
             <Ionicons name="mic-outline" size={20} color={colors.primary} />
-            <Text style={styles.title}>{t('usage.commandTitle')}</Text>
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title}>{t('usage.commandTitle')}</Text>
+            </ModalTitleRow>
           </View>
           <Text style={styles.when}>{formatWhen(command.at)}</Text>
 

@@ -5,6 +5,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 export type QuickFilterKey = 'today' | 'currentWeek' | 'currentMonth' | 'customRange';
 
@@ -31,7 +32,9 @@ const QuickFilterModal: React.FC<QuickFilterModalProps> = ({ visible, onClose, o
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <View style={styles.card}>
-          <Text style={styles.title}>{t('expenses.chooseFilter')}</Text>
+          <ModalTitleRow onClose={onClose}>
+            <Text style={styles.title}>{t('expenses.chooseFilter')}</Text>
+          </ModalTitleRow>
           {items.map((item) => (
             <Pressable
               key={item.key}

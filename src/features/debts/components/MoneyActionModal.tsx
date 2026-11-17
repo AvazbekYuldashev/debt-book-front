@@ -35,6 +35,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import { ModalCloseButton } from '../../../shared/ui/ModalTitleRow';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import VoiceBar from '../../voice/components/VoiceBar';
 import { applyTransactionIntent } from '../../voice/model/applyTransactionIntent';
@@ -359,6 +360,7 @@ const MoneyActionModal: React.FC<MoneyActionModalProps> = ({
               >
                 <Ionicons name="calculator-outline" size={20} color={colors.primary} />
               </Pressable>
+              <ModalCloseButton onClose={onClose} />
             </View>
 
             {/* Formaning eng tepasida: oyna ochilgan zahoti ko'rinadi.

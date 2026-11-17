@@ -4,6 +4,7 @@ import Modal from '../../../shared/ui/AppModal';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
+import { ModalCloseButton } from '../../../shared/ui/ModalTitleRow';
 
 interface ProfilePhotoModalProps {
   visible: boolean;
@@ -32,6 +33,11 @@ const ProfilePhotoModal: React.FC<ProfilePhotoModalProps> = ({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        {/* YOPISH — barcha oynalardagi kabi yuqori o'ngda. Fonni bosib
+            ham yopiladi, lekin ko'rinadigan yo'l ham bo'lishi kerak. */}
+        <View style={styles.closeSlot}>
+          <ModalCloseButton onClose={onClose} />
+        </View>
         {photoUri ? (
           <View style={styles.center} pointerEvents="box-none">
             <View style={[styles.imageWrap, imageSize]}>
@@ -49,6 +55,11 @@ const ProfilePhotoModal: React.FC<ProfilePhotoModalProps> = ({
 
 const createStyles = (_theme: ThemeValue) =>
   StyleSheet.create({
+    closeSlot: {
+      position: 'absolute',
+      top: 48,
+      right: 16,
+    },
     backdrop: {
       flex: 1,
       position: 'relative',

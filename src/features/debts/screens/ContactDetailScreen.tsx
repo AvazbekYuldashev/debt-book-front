@@ -781,6 +781,8 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
         rental={openedRental}
         onClose={() => setOpenedRental(null)}
         onEdit={handleEditRental}
+        /* Qarshi tomon do'kon bo'lsa to'lovda XODIM tanlanadi. */
+        counterpartyBusinessId={counterpartyBusinessId ?? null}
         allowWrite={allowWrite}
         allowDelete={canDelete(workspace.activeBusinessRole)}
       />

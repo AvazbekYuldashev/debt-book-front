@@ -33,6 +33,7 @@ import {
 } from '../../business/lib/businessUsername';
 import { ApiClientError } from '../../../shared/api/apiClient';
 import { AuthContext } from '../../auth/context/AuthContext';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 type Mode = 'create' | 'edit';
 
@@ -188,9 +189,11 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title}>
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title}>
               {mode === 'create' ? t('debts.addClient') : t('debts.editClient')}
-            </Text>
+              </Text>
+            </ModalTitleRow>
 
             <VoiceBar kind="PERSON_NAME" onResult={(intent) => setName(intent.text)} />
 

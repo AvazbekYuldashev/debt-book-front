@@ -9,6 +9,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import { ModalCloseButton } from '../../../shared/ui/ModalTitleRow';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatQuantity } from '../../../shared/lib/quantity';
@@ -273,6 +274,7 @@ const RentalRequestModal: React.FC<RentalRequestModalProps> = ({
                 <Text style={styles.title} accessibilityRole="header" numberOfLines={2}>
                   {t('rentals.takeFromStock')}
                 </Text>
+                <ModalCloseButton onClose={onClose} />
               </View>
 
               {/* Tanlangan buyumlar: nomi, soni va narxi. Miqdor tanlash

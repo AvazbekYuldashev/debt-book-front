@@ -7,6 +7,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import { ModalCloseButton } from '../../../shared/ui/ModalTitleRow';
 import { formatMoney } from '../../../shared/lib/money';
 import { formatQuantity } from '../../../shared/lib/quantity';
 import { normalizeCurrency } from '../../../shared/lib/currency';
@@ -131,6 +132,8 @@ const RentalItemDetailModal: React.FC<RentalItemDetailModalProps> = ({
                   {formatMoney(item.price, item.currency)} / {unit} · {perPeriodLabel(t, item.period)}
                 </Text>
               </View>
+              {/* YOPISH — yuqori o'ngda, barcha oynalardagi kabi. */}
+              <ModalCloseButton onClose={onClose} />
             </View>
 
             {/* ---- Uch raqam: bo'sh, band, jami ---- */}
@@ -197,7 +200,6 @@ const RentalItemDetailModal: React.FC<RentalItemDetailModalProps> = ({
                   />
                 ) : null}
               </View>
-              <Button title={t('common.close')} variant="secondary" onPress={onClose} />
             </View>
           </View>
         </ScrollView>

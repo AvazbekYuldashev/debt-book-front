@@ -19,6 +19,7 @@ import { useI18n } from '../../../shared/i18n';
 import { normalizePhone } from '../../../shared/lib/phone';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 export interface GapMemberFormValue {
   name: string;
@@ -101,9 +102,11 @@ const GapMemberFormModal: React.FC<GapMemberFormModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title} accessibilityRole="header">
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title} accessibilityRole="header">
               {t('gap.addMemberTitle')}
-            </Text>
+              </Text>
+            </ModalTitleRow>
 
             {/* Brauzerda telefon daftariga kirish yo'q — tugma ko'rsatilsa
                 ochilgan oyna doim "Kontakt topilmadi" deb turardi.

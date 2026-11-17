@@ -19,6 +19,7 @@ import Input from '../../../shared/ui/Input';
 import Button from '../../../shared/ui/Button';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 type Mode = 'create' | 'edit';
 
@@ -84,9 +85,11 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title}>
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title}>
               {mode === 'create' ? t('expenses.addCategory') : t('expenses.editCategory')}
-            </Text>
+              </Text>
+            </ModalTitleRow>
             {/* Rasm faqat tahrirlashda: yangi kategoriyada hali id yo'q. */}
             {mode === 'edit' ? (
               <Pressable

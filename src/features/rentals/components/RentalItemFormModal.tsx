@@ -16,6 +16,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 import { useKeyboardInset } from '../../../shared/lib/useKeyboardInset';
 import { CURRENCIES, type Currency } from '../../../shared/types/money';
 import { CURRENCY_LABEL } from '../../../shared/lib/currency';
@@ -192,9 +193,11 @@ const RentalItemFormModal: React.FC<RentalItemFormModalProps> = ({
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
-            <Text style={styles.title} accessibilityRole="header">
-              {isEdit ? t('rentals.itemEditTitle') : t('rentals.itemCreateTitle')}
-            </Text>
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title} accessibilityRole="header">
+                {isEdit ? t('rentals.itemEditTitle') : t('rentals.itemCreateTitle')}
+              </Text>
+            </ModalTitleRow>
 
             <Input
               label={t('rentals.itemName')}

@@ -8,6 +8,7 @@ import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 interface WorkspacePickerModalProps {
   visible: boolean;
@@ -65,9 +66,11 @@ const WorkspacePickerModal: React.FC<WorkspacePickerModalProps> = ({
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={t('common.cancel')}>
         {/* Karta ichidagi bosishlar backdrop'ga o'tmasin. */}
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title} accessibilityRole="header">
+          <ModalTitleRow onClose={onClose}>
+            <Text style={styles.title} accessibilityRole="header">
             {t('workspace.title')}
-          </Text>
+            </Text>
+          </ModalTitleRow>
 
           <Pressable
             style={({ pressed }) => [

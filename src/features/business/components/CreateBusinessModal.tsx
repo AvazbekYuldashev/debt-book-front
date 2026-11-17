@@ -14,6 +14,7 @@ import { useI18n } from '../../../shared/i18n';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 interface CreateBusinessModalProps {
   visible: boolean;
@@ -101,9 +102,11 @@ const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({ visible, onCl
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.card}>
-          <Text style={styles.title} accessibilityRole="header">
+          <ModalTitleRow onClose={onClose}>
+            <Text style={styles.title} accessibilityRole="header">
             {t('business.createTitle')}
-          </Text>
+            </Text>
+          </ModalTitleRow>
           <Input
             label={t('business.name')}
             value={name}

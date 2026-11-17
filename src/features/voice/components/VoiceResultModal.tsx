@@ -8,6 +8,7 @@ import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
 import type { VoiceContactOption, VoiceDirection } from '../api/voice';
 import type { VoiceCommand } from '../model/resolveVoiceCommand';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 
 export interface VoiceResultModalProps {
   command: VoiceCommand | null;
@@ -52,7 +53,9 @@ const VoiceResultModal: React.FC<VoiceResultModalProps> = ({
         <Pressable style={styles.card} onPress={() => {}}>
           <View style={styles.titleRow}>
             <Ionicons name="mic" size={18} color={colors.primary} />
-            <Text style={styles.title}>{t('voice.result')}</Text>
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title}>{t('voice.result')}</Text>
+            </ModalTitleRow>
           </View>
 
           {transcript ? (

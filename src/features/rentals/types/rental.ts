@@ -93,6 +93,8 @@ export interface RentalPaymentItemDTO {
   createdDate?: string | null;
   /** Kim yozgan — ism. Eski server bu maydonni yubormaydi. */
   createdByName?: string | null;
+  /** Pul qaysi XODIMGA tegdi — ism (biznes bo'lmasa null). */
+  paidToName?: string | null;
 }
 
 /** Ro'yxat filtri. Bo'sh yuborilsa hammasi qaytadi. */
@@ -289,6 +291,14 @@ export interface RentalReturnDTO {
 export interface RentalPaymentDTO {
   amount: number;
   date?: string;
+  /**
+   * Pul QAYSI XODIMGA berildi (yoki kimdan olindi).
+   *
+   * Qarshi tomon BIZNES bo'lsa majburiy: pul aniq bir odamning
+   * qo'liga tegadi va keyin kimdan so'rashni bilish kerak. Shaxsiy
+   * kontaktda savol tug'ilmaydi — maydon yuborilmaydi.
+   */
+  counterpartyProfileId?: string;
 }
 
 /**
