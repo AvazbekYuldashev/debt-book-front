@@ -5,7 +5,9 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { formatMoney } from '../../../shared/lib/money';
+import { canConvertAll, netInBase } from '../../../shared/lib/currency';
 import type { Currency, CurrencyAmounts } from '../../../shared/lib/currency';
+import { useCurrency } from '../context/CurrencyContext';
 
 /**
  * Tafsilot kartasi hero ustiga QANCHA minadi.
@@ -32,8 +34,15 @@ interface BalanceHeroProps {
  * o'zi ayirishi kerak edi. Endi tepada YAKUNIY raqam turadi, qarz va haq
  * esa uning ostidagi kartada tafsilot bo'lib qoladi.
  *
- * Valyutalar QO'SHILMAYDI (kurs aralashmaydi): bu yerda faqat asosiy
- * valyuta ko'rinadi, qolganlari pastdagi kartada o'z qatorida turadi.
+ * Valyutalar MARKAZIY BANK kursida jamlanadi: dollar va rubl so'mga
+ * aylantirilib, bitta yakuniy raqam chiqadi (egasining talabi — ilgari
+ * bu yerda faqat so'm turardi va boshqa valyutalar yo'qolgandek
+ * ko'rinardi). Har valyutaning O'Z qatori pastdagi tafsilot kartasida
+ * qoladi: kurs taxminiy, aniq raqam o'z valyutasida ko'rinishi kerak.
+ *
+ * Kurs kelmagan bo'lsa jamlanmaydi — faqat asosiy valyuta ko'rsatiladi.
+ * Kurssiz konvertatsiya summani o'zgartirmay qaytaradi va 5 000 dollar
+ * 5 000 so'm bo'lib qo'shilib ketardi.
  *
  * Yo'nalish belgisi SARLAVHA QATORIDA, o'ng chetda: u pastda turganda
  * ostidagi karta uni yopib qo'yardi va "Qarz" so'zi yarmigacha
@@ -45,7 +54,14 @@ const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, curre
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const net = (totalCredit[currency] ?? 0) - (totalDebt[currency] ?? 0);
+  const { rates } = useCurrency();
+
+  // Kurs yetarli bo'lsagina jamlanadi (izohi `canConvertAll` da).
+  const combined =
+    canConvertAll(totalCredit, currency, rates) && canConvertAll(totalDebt, currency, rates);
+  const net = combined
+    ? netInBase(totalCredit, totalDebt, currency, rates)
+    : (totalCredit[currency] ?? 0) - (totalDebt[currency] ?? 0);
   const positive = net >= 0;
 
   return (
@@ -75,6 +91,17 @@ const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, curre
       <Text style={styles.amount} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
         {formatMoney(Math.abs(net), currency)}
       </Text>
+
+      {/* Raqam qaysi kursda chiqqani AYTILADI: jamlangan summa taxminiy
+          va odam buni bilishi kerak. Kurs kelmagan bo'lsa satr ham
+          chiqmaydi — u holda raqam faqat asosiy valyutaniki. */}
+      {combined ? (
+        <Text style={styles.note} numberOfLines={1}>
+          {rates?.date
+            ? t('debts.cbRateOn', { date: rates.date })
+            : t('debts.cbRate')}
+        </Text>
+      ) : null}
     </View>
   );
 };
@@ -131,6 +158,13 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       paddingHorizontal: spacing.xs + 2,
       borderRadius: radius.pill,
       backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    },
+    note: {
+      ...typography.caption,
+      fontSize: 11,
+      color: colors.textOnPrimary,
+      opacity: 0.75,
+      marginTop: 2,
     },
     badgeText: {
       ...typography.caption,

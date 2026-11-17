@@ -77,9 +77,36 @@ export const sumInBase = (
   return total;
 };
 
-// credit - debt sof balansini asosiy valyutada qaytaradi.
-// DIQQAT: balans KO'RSATISHDA ishlatilmaydi — har valyuta hisobi alohida yuritiladi
-// (netByCurrency). Kursda jamlash foydalanuvchi talabiga ko'ra taqiqlangan.
+/**
+ * Jamlash uchun kurs YETARLIMI.
+ *
+ * Kurs topilmasa `convertAmount` summani O'ZGARTIRMAY qaytaradi — ya'ni
+ * 5 000 dollar 5 000 so'm bo'lib qo'shilib ketardi. Shuning uchun
+ * jamlashdan OLDIN shu tekshiruv: nolga teng bo'lmagan har valyutaning
+ * (va asosiy valyutaning) kursi bormi.
+ */
+export const canConvertAll = (
+  amounts: CurrencyAmounts,
+  base: Currency,
+  rates?: CurrencyRatesDTO | null
+): boolean => {
+  for (const cur of CURRENCIES) {
+    if (cur === base || !amounts[cur]) continue;
+    if (!rates?.rates?.[cur] || !rates?.rates?.[base]) return false;
+  }
+  return true;
+};
+
+/**
+ * credit − debt sof balansi, asosiy valyutada.
+ *
+ * UMUMIY BALANS uchun: egasining talabi bo'yicha dollar va rubl
+ * Markaziy bank kursida so'mga aylantirilib qo'shiladi. Har valyutaning
+ * O'Z qatori esa pastdagi tafsilot kartasida qoladi (`netByCurrency`) —
+ * kurs taxminiy, aniq raqam har doim o'z valyutasida ko'rinishi kerak.
+ *
+ * Chaqirishdan oldin `canConvertAll` bilan kurs borligi tekshiriladi.
+ */
 export const netInBase = (
   credit: CurrencyAmounts,
   debt: CurrencyAmounts,

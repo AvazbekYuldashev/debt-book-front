@@ -1,4 +1,5 @@
 import {
+  canConvertAll,
   convertAmount,
   formatCurrency,
   netByCurrency,
@@ -44,6 +45,45 @@ describe('sumInBase / netInBase', () => {
   it('credit - debt sof balans (UZS)', () => {
     // credit: 2 USD = 24000; debt: 12000 UZS -> net 12000
     expect(netInBase({ USD: 2 }, { UZS: 12000 }, 'UZS', rates)).toBe(12000);
+  });
+});
+
+/**
+ * UMUMIY BALANS kursda jamlanadi, lekin KURS BO'LMASA jamlanmasligi
+ * kerak: `convertAmount` kurssiz summani o'zgartirmay qaytaradi va
+ * 5 000 dollar 5 000 so'm bo'lib qo'shilib ketardi.
+ */
+describe('canConvertAll', () => {
+  it('kurs bor — jamlash mumkin', () => {
+    expect(canConvertAll({ USD: 5000, UZS: 100 }, 'UZS', rates)).toBe(true);
+  });
+
+  it("kurs umuman yo'q — jamlab bo'lmaydi", () => {
+    expect(canConvertAll({ USD: 5000 }, 'UZS', null)).toBe(false);
+  });
+
+  it("kerakli valyuta kursi yetishmasa — jamlab bo'lmaydi", () => {
+    const partial: CurrencyRatesDTO = { base: 'UZS', rates: { UZS: 1, USD: 12000 } };
+    expect(canConvertAll({ RUB: 128123 }, 'UZS', partial)).toBe(false);
+  });
+
+  it("faqat asosiy valyuta bo'lsa kurs KERAK EMAS", () => {
+    expect(canConvertAll({ UZS: 500 }, 'UZS', null)).toBe(true);
+    // Nolga teng qatorlar ham to'siq bo'lmaydi.
+    expect(canConvertAll({ UZS: 500, USD: 0 }, 'UZS', null)).toBe(true);
+  });
+
+  /** Egasining ekrani: so'm + dollar + rubl bitta raqamga yig'iladi. */
+  it("uch valyutali balans Markaziy bank kursida jamlanadi", () => {
+    const debt = { UZS: 16_271_610, USD: 5_000.5, RUB: 128_123 };
+    const credit = { UZS: 416_331, USD: 54_955 };
+
+    expect(canConvertAll(debt, 'UZS', rates)).toBe(true);
+    expect(canConvertAll(credit, 'UZS', rates)).toBe(true);
+    // (416331 + 54955x12000) - (16271610 + 5000.5x12000 + 128123x150)
+    expect(netInBase(credit, debt, 'UZS', rates)).toBe(
+      416_331 + 54_955 * 12_000 - (16_271_610 + 5_000.5 * 12_000 + 128_123 * 150),
+    );
   });
 });
 
