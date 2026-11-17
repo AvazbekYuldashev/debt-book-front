@@ -644,6 +644,8 @@ emas:
 | Eski so'rov tasdig'i (`/confirm`) | egasi | mijozga | `RENTAL_CONFIRMED` |
 | Qaytarildi (`/return`) | egasi | mijozga | `RENTAL_RETURNED` |
 | To'lov (`/payment`, `/payment-request`) | ikkala tomon | qarshi tomonga | `RENTAL_PAYMENT` |
+| Tahrir (`PUT /rental`, hisobga tegsa) | egasi | mijozga | `RENTAL_UPDATED` |
+| O'chirish / qaytarib olish (`DELETE`) | ikkala tomon | qarshi tomonga | `RENTAL_DELETED` |
 
 Qabul qiluvchini topish BITTA joyda (`RentalNotifier`): kontakt
 qatorining egasi bo'lmagan tomoni; biznes tomonga — hamma a'zoga,
