@@ -429,6 +429,24 @@ describe('muddatdan keyin kunlik qo\'shilish', () => {
   });
 
   /**
+   * UZOQ KECHIKISH, OY CHEGARASIDAN o'tib.
+   *
+   * Egasining savoli: "1 kunlik ijara kechiksa, 30 kunlik yozib
+   * qo'ymayaptimi?" — ha, aynan shunday: buyum 30 kun odamda turgan
+   * bo'lsa 30 kunlik haq yig'iladi (kelishilgan muddat 1 kun bo'lsa
+   * ham). Hisob qaytarilgunicha to'xtamaydi.
+   *
+   * Yuqoridagi testlar oktabr ichida qoladi; bu yerda sanoq OKTABRDAN
+   * NOYABRGA o'tadi — oy chegarasi sana hisobini buzmasligi kerak.
+   */
+  it("1 kunlik ijara 29 kun kechiksa — 30 kunlik haq (oy chegarasi)", () => {
+    // 18-oktyabr → 17-noyabr = 30 kun; muddat 19-oktyabr edi -> 29 kun kechikish.
+    expect(billedUnits(lesa(), '2026-11-17')).toBe(30);
+    expect(overdueUnits(lesa(), '2026-11-17')).toBe(29);
+    expect(accruedAmount(lesa(), '2026-11-17')).toBe(750000);
+  });
+
+  /**
    * MUDDATSIZ ijarada ham hisob yuradi: kelishilgan sana yo'q, lekin
    * buyum odamda turgan har kun uchun haq olinadi.
    */
