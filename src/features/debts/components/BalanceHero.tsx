@@ -64,8 +64,18 @@ const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, curre
     : (totalCredit[currency] ?? 0) - (totalDebt[currency] ?? 0);
   const positive = net >= 0;
 
+  /*
+   * KARTA RANGI yo'nalishni aytadi: haq — yashil, qarz — qizil.
+   *
+   * Ilgari karta doim bitta rangda edi va "men qarzdorman" yoki
+   * "menga qarzdor" degan farq faqat kichkina belgida ko'rinardi —
+   * ekranga qaragan odam darhol anglamasdi. Ro'yxatdagi qatorlar
+   * allaqachon shu ikki rangda gapiradi.
+   */
+  const tone = positive ? colors.positive : colors.negative;
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: tone }]}>
       <View style={styles.topRow}>
         <View style={styles.labelRow}>
           <Ionicons name="wallet-outline" size={17} color={colors.textOnPrimary} />
@@ -109,7 +119,6 @@ const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, curre
 const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.primary,
       borderRadius: radius.xxl,
       paddingHorizontal: spacing.md,
       paddingTop: spacing.md,

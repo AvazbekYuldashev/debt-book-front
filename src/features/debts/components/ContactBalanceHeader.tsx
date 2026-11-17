@@ -1,11 +1,11 @@
 import React, { memo, useCallback, useMemo } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { formatMoney, formatSignedMoney } from '../../../shared/lib/money';
-import { buildTelUrl, formatPhoneDisplay } from '../../../shared/lib/phone';
+import { buildSmsUrl, buildTelUrl, formatPhoneDisplay } from '../../../shared/lib/phone';
 import type { CurrencyNet } from '../../../shared/lib/currency';
 import type { Contact } from '../context/ContactsContext';
 import BackButton from '../../../shared/ui/BackButton';
@@ -39,6 +39,22 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const telUrl = buildTelUrl(contact.phone);
+
+  /**
+   * ESLATMA XABARI — qurilmaning SMS ilovasida ochiladi.
+   *
+   * Xabar ilovadan emas, odamning O'Z raqamidan ketadi: mijoz tanish
+   * raqamdan oladi va yuborishdan oldin matnni ko'rib chiqadi.
+   * Matnni ilova tayyorlab beradi, oxirgi so'z esa odamniki.
+   */
+  const smsUrl = buildSmsUrl(
+    contact.phone,
+    t('contact.remindSms', { name: contact.fullName }),
+    Platform.OS === 'ios',
+  );
+  const handleSms = useCallback(() => {
+    if (smsUrl) Linking.openURL(smsUrl);
+  }, [smsUrl]);
   const isBusiness = contact.partyType === 'BUSINESS_ACCOUNT';
 
   const handleDial = useCallback(() => {
@@ -98,6 +114,21 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
               </Pressable>
             ) : null}
           </View>
+
+          {/* XABAR — qo'ng'iroq yonida. Eslatma yuborish qo'ng'iroqdan
+              ko'ra tez-tez kerak bo'ladi: odam band bo'lishi mumkin,
+              xabar esa kutib turadi. */}
+          {contact.phone && smsUrl ? (
+            <Pressable
+              onPress={handleSms}
+              style={({ pressed }) => [styles.smsBtn, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel={t('contact.sendSms')}
+              hitSlop={6}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.primary} />
+            </Pressable>
+          ) : null}
         </View>
 
         <View style={styles.divider} />
@@ -205,6 +236,14 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       lineHeight: 14,
       fontWeight: '700',
       color: colors.info,
+    },
+    smsBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primarySoft,
     },
     phoneRow: {
       flexDirection: 'row',

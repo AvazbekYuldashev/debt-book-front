@@ -53,3 +53,22 @@ export const buildTelUrl = (value?: string): string | null => {
   const normalized = normalizePhone(digits);
   return /^998\d{9}$/.test(normalized) ? `tel:+${normalized}` : `tel:${normalized}`;
 };
+
+/**
+ * SMS havolasi — xabar QURILMANING o'z ilovasida ochiladi.
+ *
+ * Xabar ilovadan emas, odamning O'Z raqamidan ketadi: mijoz tanish
+ * raqamdan xabar oladi, provayder shabloni ham kerak bo'lmaydi va
+ * yuborishdan oldin odam matnni o'zi ko'rib, tahrirlay oladi.
+ *
+ * Matn ajratgichi platformaga qarab: iOS `&body=` ni kutadi, Android
+ * esa `?body=`. Noto'g'risida matn umuman o'tmaydi.
+ */
+export const buildSmsUrl = (value?: string, body?: string, ios = false): string | null => {
+  const digits = (value || '').replace(/\D/g, '');
+  if (!digits) return null;
+  const normalized = normalizePhone(digits);
+  const to = /^998\d{9}$/.test(normalized) ? `+${normalized}` : normalized;
+  if (!body) return `sms:${to}`;
+  return `sms:${to}${ios ? '&' : '?'}body=${encodeURIComponent(body)}`;
+};

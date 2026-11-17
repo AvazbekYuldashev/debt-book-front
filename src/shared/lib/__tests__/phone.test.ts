@@ -1,4 +1,5 @@
 import {
+  buildSmsUrl,
   normalizePhone,
   sanitizeLocalPhone,
   formatPhoneDisplay,
@@ -53,5 +54,32 @@ describe('getPhoneValidationError', () => {
   });
   it('to‘g‘ri 12 xona (998) -> null', () => {
     expect(getPhoneValidationError('998901234567')).toBeNull();
+  });
+});
+
+/**
+ * ESLATMA XABARI qurilmaning SMS ilovasida ochiladi — ilovaning o'zi
+ * yubormaydi. Shuning uchun havola to'g'ri yig'ilishi muhim: matn
+ * ajratgichi platformaga qarab boshqa bo'lib, noto'g'risida matn
+ * umuman o'tmaydi.
+ */
+describe('buildSmsUrl', () => {
+  it("o'zbek raqamiga xalqaro ko'rinish beradi", () => {
+    expect(buildSmsUrl('901234567')).toBe('sms:+998901234567');
+  });
+
+  it('matn kodlanadi — Android uchun "?"', () => {
+    expect(buildSmsUrl('901234567', 'Salom, Ali')).toBe(
+      'sms:+998901234567?body=Salom%2C%20Ali',
+    );
+  });
+
+  it('iOS uchun ajratgich "&"', () => {
+    expect(buildSmsUrl('901234567', 'Salom', true)).toBe('sms:+998901234567&body=Salom');
+  });
+
+  it("raqam bo'lmasa havola ham yo'q", () => {
+    expect(buildSmsUrl('')).toBeNull();
+    expect(buildSmsUrl(undefined)).toBeNull();
   });
 });

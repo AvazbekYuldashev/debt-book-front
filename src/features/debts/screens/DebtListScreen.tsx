@@ -836,7 +836,13 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
       color: colors.primary,
     },
     sectionWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      // Yon chekinish YO'Q edi — sarlavha ekran chetiga yopishib qolardi.
+      paddingHorizontal: spacing.md,
       marginTop: spacing.sm,
+      marginBottom: spacing.xs,
     },
     scroll: {
       flex: 1,
