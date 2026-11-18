@@ -151,7 +151,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       fontSize: 27,
       fontWeight: '800',
       color: colors.textOnPrimary,
-      marginTop: spacing.xs,
+      marginTop: spacing.xxs,
       fontVariant: ['tabular-nums'],
     },
     /**

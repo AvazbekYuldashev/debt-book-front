@@ -241,7 +241,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
-      marginBottom: spacing.xxs,
     },
     icon: {
       width: 30,
@@ -262,7 +261,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       gap: spacing.xxs,
       alignSelf: 'flex-start',
       maxWidth: '100%',
-      paddingVertical: spacing.xxs / 2,
       paddingHorizontal: spacing.xxs,
       marginLeft: -spacing.xxs,
       borderRadius: radius.md,
@@ -272,11 +270,10 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     value: {
       ...typography.amount,
-      lineHeight: 26,
+      lineHeight: 24,
       flexShrink: 1,
     },
     valueIdle: {
-      paddingVertical: spacing.xxs / 2,
       color: colors.textSecondary,
     },
     // Ikki katak orasidagi vertikal ajratgich — juda nozik, "qattiq" border emas.
