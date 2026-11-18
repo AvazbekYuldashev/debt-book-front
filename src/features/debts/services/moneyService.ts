@@ -102,6 +102,25 @@ export const createDebt = async (
   return normalizeMoney(response);
 };
 
+/**
+ * Bitta oldi-berdi — id bo'yicha.
+ *
+ * Bildirishnomadan ochilganda ishlatiladi: xabar qaysi kontaktga
+ * tegishli ekanini faqat yozuvning o'zi aniq aytadi.
+ *
+ * Server faqat QATNASHCHIGA beradi — begona odam yozuvni ko'rolmaydi.
+ */
+export const getMoneyById = async (
+  id: string,
+  token?: string,
+): Promise<MoneyResponseDTO> => {
+  setApiAuthToken(token);
+  const response = await getWithMultiplePathsFallback<
+    Omit<MoneyResponseDTO, 'amount'> & { amount: number | string }
+  >([{ path: `/${encodeURIComponent(id)}` }]);
+  return normalizeMoney(response);
+};
+
 export const getMoneyHistory = async ({
   page = 0,
   size = 15,

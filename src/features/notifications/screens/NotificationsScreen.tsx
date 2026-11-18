@@ -14,6 +14,8 @@ import { useNotifications, useMarkNotificationRead } from '../hooks/useNotificat
 import { ContactsContext } from '../../debts/context/ContactsContext';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { getRentalById } from '../../rentals/services/rentalService';
+import { getMoneyById } from '../../debts/services/moneyService';
+import { contactForTransaction } from '../../debts/model/transactionMapping';
 import { isRentalNotification, rentalTarget } from '../model/notificationTarget';
 import { normalizePhone } from '../../../shared/lib/phone';
 import {
@@ -126,28 +128,37 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
         }
         return;
       }
-      // Avval ANIQ tomon bo'yicha: bildirishnoma o'zi qaysi kontaktga
-      // tegishli ekanini aytadi. Telefon bo'yicha qidirish yaramaydi -
-      // odam biznes nomidan ish ko'rgan bo'lsa, tranzaksiya BIZNES
-      // kontaktida yotadi, biznesning esa telefoni yo'q.
-      const byParty = notification.counterpartyId
-        ? contacts.find(
-            (item) =>
-              item.partyId === notification.counterpartyId
-              && (!notification.counterpartyType
-                || item.partyType === notification.counterpartyType),
-          )
-        : undefined;
+      /*
+       * PUL xabari — yozuvning O'ZIDAN kontaktni topamiz.
+       *
+       * `actorPhone` yetarli emas: u DOIM odamning shaxsiy raqami,
+       * odam biznes nomidan ish ko'rgan bo'lsa ham. Yozuv esa biznes
+       * kontaktida yotadi va biznesning telefoni yo'q. Raqam bo'yicha
+       * qidirish shunda ikki xil xato berardi — kontakt topilmas,
+       * yoki o'sha odam alohida shaxsiy kontakt sifatida ham
+       * saqlangan bo'lsa NOTO'G'RI karta ochilardi.
+       */
+      if (notification.moneyId) {
+        try {
+          const money = await getMoneyById(notification.moneyId, profile?.jwt);
+          const owner = contactForTransaction(money, contacts);
+          if (owner) {
+            navigation.navigate(ROUTES.CONTACT_DETAIL, { id: owner.id });
+            return;
+          }
+        } catch {
+          // Yozuv o'chirilgan yoki ruxsat yo'q — quyidagi yo'lga tushamiz.
+        }
+      }
 
-      // Eski bildirishnomalarda tomon saqlanmagan - o'shanda telefonga qaytamiz.
+      // ESKI xabarlarda yozuv id saqlanmagan — o'shanda telefonga
+      // qaytamiz. Yangi xabarlar bu yergacha yetib kelmaydi.
       const actorPhone = notification.actorPhone ? normalizePhone(notification.actorPhone) : '';
       const byPhone = actorPhone
         ? contacts.find((item) => item.phone && normalizePhone(item.phone) === actorPhone)
         : undefined;
-
-      const contact = byParty ?? byPhone;
-      if (contact) {
-        navigation.navigate(ROUTES.CONTACT_DETAIL, { id: contact.id });
+      if (byPhone) {
+        navigation.navigate(ROUTES.CONTACT_DETAIL, { id: byPhone.id });
       }
     },
     [markReadMutate, contacts, navigation, profile?.jwt],

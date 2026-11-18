@@ -1,4 +1,5 @@
 import { MoneyResponseDTO, PartyType } from '../../../shared/types/money';
+import type { Contact } from '../context/ContactsContext';
 import { translate } from '../../../shared/i18n';
 import { formatBackendDateTime } from '../../../shared/lib/date';
 
@@ -70,4 +71,45 @@ export function formatDateShort(value: string): string {
 
 export function formatDateLong(value: string): string {
   return formatBackendDateTime(value);
+}
+
+/** Tranzaksiyaning bir tomoni shu kontaktmi. */
+const sideIsContact = (
+  item: MoneyResponseDTO,
+  contact: Contact,
+  side: 'creditor' | 'debtor',
+): boolean => {
+  if (!contact.partyId) return false;
+  if (contact.partyType === 'BUSINESS_ACCOUNT') {
+    return item[`${side}BusinessId`] === contact.partyId;
+  }
+  // Eski yozuvlarda `type` yo'q — u holda tomon shaxsiy deb olinadi
+  // (biznes tomonlar doim `businessId` bilan yoziladi).
+  const type = item[`${side}Type`];
+  return (!type || type === 'PROFILE') && item[`${side}Id`] === contact.partyId;
+};
+
+/**
+ * Oldi-berdi QAYSI kontakt kartasida yotibdi.
+ *
+ * Bildirishnoma bosilganda kerak. Xabarning o'zidan buni bilib
+ * bo'lmaydi: unda faqat `actorPhone` bor va u DOIM odamning shaxsiy
+ * raqami — odam biznes nomidan ish ko'rgan bo'lsa ham. Yozuv esa
+ * biznes kontaktida yotadi, biznesning telefoni esa yo'q.
+ *
+ * Shuning uchun raqam bo'yicha qidirish ikki xil xato berardi:
+ * kontakt umuman topilmas, yoki o'sha odam alohida shaxsiy kontakt
+ * sifatida ham saqlangan bo'lsa — NOTO'G'RI karta ochilardi, ya'ni
+ * odam yozuvi yo'q daftarga tushardi.
+ *
+ * Tomonlar bo'yicha solishtirish buni aniq hal qiladi: yozuvning
+ * o'zida ikkala tomonning kimligi yozilgan.
+ */
+export function contactForTransaction(
+  item: MoneyResponseDTO,
+  contacts: Contact[],
+): Contact | undefined {
+  return contacts.find(
+    (contact) => sideIsContact(item, contact, 'creditor') || sideIsContact(item, contact, 'debtor'),
+  );
 }

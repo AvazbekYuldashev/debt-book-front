@@ -8,10 +8,6 @@ export interface NotificationDTO {
   id: string;
   actorName?: string;
   actorPhone?: string;
-  /** Bildirishnoma qaysi kontaktga tegishli: PROFILE yoki BUSINESS_ACCOUNT. */
-  counterpartyType?: string;
-  /** Profil id yoki biznes id. Eski yozuvlarda bo'lmaydi. */
-  counterpartyId?: string;
   amount?: number;
   currency?: string;
   message: string;
@@ -24,6 +20,8 @@ export interface NotificationDTO {
   kind?: string;
   /** Ijara xabari qaysi yozuvga tegishli. Kunlik xulosada bo'lmaydi. */
   rentalId?: string;
+  /** Pul xabari qaysi oldi-berdiga tegishli. Eski yozuvlarda yo'q. */
+  moneyId?: string;
   read: boolean;
   createdDate: string;
 }
