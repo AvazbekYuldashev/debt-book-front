@@ -225,7 +225,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     card: {
       ...glass.raised,
       borderRadius: radius.xxl,
-      paddingVertical: spacing.md,
+      paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
       marginHorizontal: spacing.md,
     },
@@ -244,8 +244,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       marginBottom: spacing.xxs,
     },
     icon: {
-      width: 34,
-      height: 34,
+      width: 30,
+      height: 30,
       borderRadius: radius.pill,
       alignItems: 'center',
       justifyContent: 'center',
@@ -272,7 +272,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     value: {
       ...typography.amount,
-      lineHeight: 30,
+      lineHeight: 26,
       flexShrink: 1,
     },
     valueIdle: {

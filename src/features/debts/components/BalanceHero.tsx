@@ -121,9 +121,9 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     card: {
       borderRadius: radius.xxl,
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.md,
+      paddingTop: spacing.sm,
       // Ostidagi karta minadigan joy + bir oz nafas.
-      paddingBottom: HERO_OVERLAP + spacing.sm,
+      paddingBottom: HERO_OVERLAP + spacing.xs,
       marginHorizontal: spacing.md,
       ...shadows.card,
     },
@@ -148,7 +148,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     },
     amount: {
       ...typography.heading1,
-      fontSize: 30,
+      fontSize: 27,
       fontWeight: '800',
       color: colors.textOnPrimary,
       marginTop: spacing.xs,

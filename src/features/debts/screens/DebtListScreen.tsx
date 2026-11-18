@@ -575,6 +575,113 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   // yozadigan doimiy rAF ishi (batareya + Performance panelida uzluksiz faollik).
   const shouldPulseFab = canEdit && isEmpty && !isBusy && !hasActiveQuery;
 
+  /**
+   * Ro'yxat TEPASIDAGI bloklar — balans, qidiruv va bo'lim sarlavhasi.
+   *
+   * Ular ilgari ro'yxatdan TASHQARIDA, qotirilgan holda turardi va
+   * ekranning yarmidan ko'pini doimiy egallardi: kontaktlardan ikki-uch
+   * qator ko'rinardi, holbuki ekranning asosiy mazmuni aynan ro'yxat.
+   * Endi ro'yxat bilan birga suriladi — pastga tushganda butun ekran
+   * kontaktlarga qoladi, tepaga qaytganda balans yana joyida.
+   *
+   * ELEMENT sifatida beriladi, funksiya sifatida emas: funksiya har
+   * renderda yangi komponent turini yasab, qidiruv maydonini qaytadan
+   * ulardi va yozayotganda fokus uchib ketardi.
+   */
+  const listHeader = (
+    <View>
+          {/* BALANS BLOKI: tepada yakuniy raqam, ostida tafsilot kartasi
+              unga MINIB turadi — ikkisi bitta blok bo'lib ko'rinadi. */}
+          <BalanceHero
+            totalDebt={aggregateTotals.totalDebt}
+            totalCredit={aggregateTotals.totalCredit}
+            currency={baseCurrency}
+          />
+          <View style={styles.summaryOverlap}>
+            <BalanceSummary
+              totalDebt={aggregateTotals.totalDebt}
+              totalCredit={aggregateTotals.totalCredit}
+              loading={balancesInitialLoading}
+              activeSort={sort}
+              onSelect={handleSelectSort}
+              onReset={handleResetSort}
+            />
+          </View>
+
+          {/* QIDIRUV: maydon doim ko'rinadi, yonidagi tugma esa ism va
+              telefon rejimini almashtiradi. Ilgari ikkita "ABC/123"
+              tugmasi turar va maydon faqat bosilgandan keyin ochilardi —
+              qidiruv borligi umuman ko'rinmasdi. */}
+          <View style={styles.searchRow}>
+            <View style={styles.searchGrow}>
+              {searchMode === 'name' ? (
+                <SearchField
+                  value={filterName}
+                  onChangeText={setFilterName}
+                  placeholder={t('debts.searchPlaceholder')}
+                  accessibilityLabel={t('debts.filterName')}
+                />
+              ) : (
+                <SearchField
+                  value={filterPhone}
+                  onChangeText={(value) => setFilterPhone(value.replace(/\D/g, '').slice(0, 12))}
+                  keyboardType="phone-pad"
+                  placeholder={t('debts.min3digits')}
+                  accessibilityLabel={t('debts.filterPhone')}
+                />
+              )}
+            </View>
+            <Pressable
+              onPress={toggleSearchMode}
+              style={({ pressed }) => [styles.filterBtn, pressed && styles.filterBtnPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={t(searchMode === 'name' ? 'debts.filterPhone' : 'debts.filterName')}
+            >
+              <Ionicons name="options-outline" size={20} color={colors.primary} />
+            </Pressable>
+          </View>
+
+          {/* Holat bannerlari — bo'lmasa konteyner ham chizilmaydi. */}
+          {hasBanner ? (
+            <View style={styles.banners}>
+              {!isOnline ? <StatusBanner tone="warning" message={t('common.offline')} /> : null}
+              {error ? (
+                <StatusBanner
+                  tone="error"
+                  message={error}
+                  actionLabel={t('common.retry')}
+                  onAction={handleRefresh}
+                />
+              ) : null}
+              {searchError && !error ? <StatusBanner tone="error" message={searchError} /> : null}
+            </View>
+          ) : null}
+
+          {/* Bo'lim sarlavhasida "qo'shish" tugmasi ATAYIN yo'q: pastdagi
+              suzuvchi "+" tugmasi aynan shu amalni bajaradi va ikkita bir xil
+              harakat ekranda raqobatlashib turardi. */}
+          <View style={styles.sectionWrap}>
+            <Text style={styles.sectionTitle} numberOfLines={1}>
+              {t('debts.contactsSection')}
+            </Text>
+            {/* "Barchasi" — qidiruv va saralashni tozalab, to'liq
+                ro'yxatga qaytaradi: filtr qolib ketgani sezilmay,
+                odam "kontaktlarim qani" deb o'ylardi. */}
+            {hasActiveQuery || sort ? (
+              <Pressable
+                onPress={handleShowAll}
+                style={({ pressed }) => [styles.seeAll, pressed && styles.filterBtnPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={t('debts.seeAll')}
+              >
+                <Text style={styles.seeAllText}>{t('debts.seeAll')}</Text>
+                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+              </Pressable>
+            ) : null}
+          </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       {/* Dekorativ fon — bosishni ushlamaydi, kontent ustidan o'tmaydi. */}
@@ -582,96 +689,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
 
       <EntranceView style={styles.header} duration={300} fromY={12}>
         <ScreenTopBar />
-
-        {/* BALANS BLOKI: tepada yakuniy raqam, ostida tafsilot kartasi
-            unga MINIB turadi — ikkisi bitta blok bo'lib ko'rinadi. */}
-        <BalanceHero
-          totalDebt={aggregateTotals.totalDebt}
-          totalCredit={aggregateTotals.totalCredit}
-          currency={baseCurrency}
-        />
-        <View style={styles.summaryOverlap}>
-          <BalanceSummary
-            totalDebt={aggregateTotals.totalDebt}
-            totalCredit={aggregateTotals.totalCredit}
-            loading={balancesInitialLoading}
-            activeSort={sort}
-            onSelect={handleSelectSort}
-            onReset={handleResetSort}
-          />
-        </View>
-
-        {/* QIDIRUV: maydon doim ko'rinadi, yonidagi tugma esa ism va
-            telefon rejimini almashtiradi. Ilgari ikkita "ABC/123"
-            tugmasi turar va maydon faqat bosilgandan keyin ochilardi —
-            qidiruv borligi umuman ko'rinmasdi. */}
-        <View style={styles.searchRow}>
-          <View style={styles.searchGrow}>
-            {searchMode === 'name' ? (
-              <SearchField
-                value={filterName}
-                onChangeText={setFilterName}
-                placeholder={t('debts.searchPlaceholder')}
-                accessibilityLabel={t('debts.filterName')}
-              />
-            ) : (
-              <SearchField
-                value={filterPhone}
-                onChangeText={(value) => setFilterPhone(value.replace(/\D/g, '').slice(0, 12))}
-                keyboardType="phone-pad"
-                placeholder={t('debts.min3digits')}
-                accessibilityLabel={t('debts.filterPhone')}
-              />
-            )}
-          </View>
-          <Pressable
-            onPress={toggleSearchMode}
-            style={({ pressed }) => [styles.filterBtn, pressed && styles.filterBtnPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={t(searchMode === 'name' ? 'debts.filterPhone' : 'debts.filterName')}
-          >
-            <Ionicons name="options-outline" size={20} color={colors.primary} />
-          </Pressable>
-        </View>
-
-        {/* Holat bannerlari — bo'lmasa konteyner ham chizilmaydi. */}
-        {hasBanner ? (
-          <View style={styles.banners}>
-            {!isOnline ? <StatusBanner tone="warning" message={t('common.offline')} /> : null}
-            {error ? (
-              <StatusBanner
-                tone="error"
-                message={error}
-                actionLabel={t('common.retry')}
-                onAction={handleRefresh}
-              />
-            ) : null}
-            {searchError && !error ? <StatusBanner tone="error" message={searchError} /> : null}
-          </View>
-        ) : null}
-
-        {/* Bo'lim sarlavhasida "qo'shish" tugmasi ATAYIN yo'q: pastdagi
-            suzuvchi "+" tugmasi aynan shu amalni bajaradi va ikkita bir xil
-            harakat ekranda raqobatlashib turardi. */}
-        <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitle} numberOfLines={1}>
-            {t('debts.contactsSection')}
-          </Text>
-          {/* "Barchasi" — qidiruv va saralashni tozalab, to'liq
-              ro'yxatga qaytaradi: filtr qolib ketgani sezilmay,
-              odam "kontaktlarim qani" deb o'ylardi. */}
-          {hasActiveQuery || sort ? (
-            <Pressable
-              onPress={handleShowAll}
-              style={({ pressed }) => [styles.seeAll, pressed && styles.filterBtnPressed]}
-              accessibilityRole="button"
-              accessibilityLabel={t('debts.seeAll')}
-            >
-              <Text style={styles.seeAllText}>{t('debts.seeAll')}</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-            </Pressable>
-          ) : null}
-        </View>
       </EntranceView>
 
       {/* Ro'yxat virtualizatsiyalangan (FlatList) — faqat ko'rinadigan qatorlar
@@ -688,6 +705,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           showsVerticalScrollIndicator={false}
           initialNumToRender={12}
           windowSize={11}
+          ListHeaderComponent={listHeader}
           ListFooterComponent={
             sortedContacts.length > 0 ? <StatsBanner onPress={handleOpenStats} /> : null
           }
@@ -801,7 +819,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
       alignItems: 'center',
       gap: spacing.xs,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.md,
+      marginTop: spacing.xs,
     },
     searchGrow: {
       flex: 1,
@@ -841,8 +859,8 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
       gap: spacing.sm,
       // Yon chekinish YO'Q edi — sarlavha ekran chetiga yopishib qolardi.
       paddingHorizontal: spacing.md,
-      marginTop: spacing.sm,
-      marginBottom: spacing.xs,
+      marginTop: spacing.xs,
+      marginBottom: spacing.xxs,
     },
     scroll: {
       flex: 1,
