@@ -49,6 +49,7 @@ import type { RentalPeriod, RentalRequestDTO, RentalResponseDTO } from '../../re
 
 import type { RentalItemResponseDTO } from '../../rentals/types/rentalItem';
 import { mapTransaction, MappedTransaction } from '../model/transactionMapping';
+import { getMoneyById } from '../services/moneyService';
 import { counterpartyPerformerPhone } from '../model/resolveTransactionPerformer';
 import type { VoiceCommandPrefill } from '../../voice/model/resolveVoiceCommand';
 import { markVoiceTarget } from '../../voice/api/voice';
@@ -276,6 +277,44 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     () => history.map((item) => mapTransaction(item, owner, selectedCounterparty || undefined)),
     [history, owner, selectedCounterparty],
   );
+
+  /**
+   * BILDIRISHNOMADAN kelingan oldi-berdi — kartasi darhol ochiladi.
+   *
+   * Tarix sahifalangan va yozuv ko'pincha birinchi sahifada turadi,
+   * lekin har doim emas: eski xabar bosilsa ro'yxatda topilmasdi.
+   * Shuning uchun topilmasa id bo'yicha alohida so'raladi.
+   *
+   * Yozuv o'chirilgan yoki ruxsat yo'q bo'lsa jim o'tamiz — kontakt
+   * kartasi ochiq qoladi, bo'sh oyna chiqmaydi.
+   */
+  const askedMoneyId = route.params.moneyId;
+  useEffect(() => {
+    if (!askedMoneyId) return;
+    let cancelled = false;
+
+    (async () => {
+      const loaded = mappedHistory.find((item) => item.id === askedMoneyId);
+      if (loaded) {
+        setSelectedTransaction(loaded);
+      } else {
+        try {
+          const fresh = await getMoneyById(askedMoneyId, profile?.jwt);
+          if (cancelled) return;
+          setSelectedTransaction(mapTransaction(fresh, owner, selectedCounterparty || undefined));
+        } catch {
+          if (cancelled) return;
+        }
+      }
+      // Parametr ishlatilgach tozalanadi: orqaga qaytib kelganda karta
+      // yana o'zidan-o'zi ochilib qolmasin.
+      navigation.setParams({ moneyId: undefined });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [askedMoneyId, mappedHistory, owner, selectedCounterparty, profile?.jwt, navigation]);
 
   /*
    * TARIX BALANSNI TUSHUNTIRADI.

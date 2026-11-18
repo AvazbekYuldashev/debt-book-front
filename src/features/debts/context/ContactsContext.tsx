@@ -21,6 +21,13 @@ export interface Contact {
    * u holda qator ilgarigidek faqat ism bilan chiqadi.
    */
   username: string;
+  /**
+   * Biznes kontaktga bog'lanish raqami — egasining telefoni.
+   *
+   * Biznesning o'z raqami yo'q, shuning uchun `phone` bo'sh qoladi.
+   * Eslatma xabari shu raqamga yuboriladi.
+   */
+  businessPhone?: string;
   fullName: string;
   partyType: PartyType;
   partyId: string;
@@ -151,6 +158,7 @@ const toContact = (input: ClientDTO, actorType: PartyType, actorId?: string | nu
     lastName,
     phone: input.phoneNumber || '',
     username: input.partyUsername || '',
+    businessPhone: input.partyPhone || '',
     fullName: input.name || `${firstName} ${lastName}`.trim(),
     partyType: counterparty.partyId ? counterparty.partyType : fallbackPartyType,
     partyId: counterparty.partyId,

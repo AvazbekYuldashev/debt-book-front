@@ -41,6 +41,16 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
   const telUrl = buildTelUrl(contact.phone);
 
   /**
+   * Eslatma qaysi raqamga ketadi.
+   *
+   * Biznesning o'z telefoni yo'q — o'rniga EGASINIKI ishlatiladi
+   * (server shuni beradi). Ilgari biznes kontaktida xabar yuborish
+   * yo'li umuman yo'q edi: raqam o'rnida username turardi va unga
+   * SMS jo'natib bo'lmaydi.
+   */
+  const smsPhone = contact.phone || contact.businessPhone || '';
+
+  /**
    * ESLATMA XABARI — qurilmaning SMS ilovasida ochiladi.
    *
    * Xabar ilovadan emas, odamning O'Z raqamidan ketadi: mijoz tanish
@@ -48,7 +58,7 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
    * Matnni ilova tayyorlab beradi, oxirgi so'z esa odamniki.
    */
   const smsUrl = buildSmsUrl(
-    contact.phone,
+    smsPhone,
     t('contact.remindSms', { name: contact.fullName }),
     Platform.OS === 'ios',
   );
@@ -118,7 +128,7 @@ const ContactBalanceHeader: React.FC<ContactBalanceHeaderProps> = ({ contact, ba
           {/* XABAR — qo'ng'iroq yonida. Eslatma yuborish qo'ng'iroqdan
               ko'ra tez-tez kerak bo'ladi: odam band bo'lishi mumkin,
               xabar esa kutib turadi. */}
-          {contact.phone && smsUrl ? (
+          {smsUrl ? (
             <Pressable
               onPress={handleSms}
               style={({ pressed }) => [styles.smsBtn, pressed && styles.pressed]}

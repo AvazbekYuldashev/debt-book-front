@@ -13,6 +13,13 @@ export interface ClientDTO {
   phoneNumber?: string | null;
   /** Qarshi tomon BIZNES bo'lganda uning username'i (hali qo'yilmagan bo'lsa null). */
   partyUsername?: string | null;
+  /**
+   * Biznes kontaktning bog'lanish raqami — EGASINING telefoni.
+   *
+   * `phoneNumber` dan alohida: u maydon shaxsiy kontaktniki va
+   * kontakt turini aniqlashda ham ishlatiladi.
+   */
+  partyPhone?: string | null;
   creditorType?: PartyType;
   debtorType?: PartyType;
   creditorId?: string;

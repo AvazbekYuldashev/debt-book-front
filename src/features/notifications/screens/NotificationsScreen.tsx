@@ -143,7 +143,13 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
           const money = await getMoneyById(notification.moneyId, profile?.jwt);
           const owner = contactForTransaction(money, contacts);
           if (owner) {
-            navigation.navigate(ROUTES.CONTACT_DETAIL, { id: owner.id });
+            // TARIX sahifasi va o'sha yozuvning kartasi — odam xabarda
+            // ko'rgan narsasini qidirmasligi kerak.
+            navigation.navigate(ROUTES.CONTACT_DETAIL, {
+              id: owner.id,
+              tab: 'history',
+              moneyId: money.id,
+            });
             return;
           }
         } catch {

@@ -26,6 +26,14 @@ export type DebtsStackParamList = {
      * ko'rgani keladi. Berilmasa odatdagidek birinchi sahifa ochiladi.
      */
     tab?: 'products' | 'history';
+    /**
+     * Bildirishnomadan kelingan oldi-berdi — kartasi darhol ochiladi.
+     *
+     * Kontakt kartasini ochishning o'zi yetarli emas edi: odam xabarni
+     * bosib, uzun tarix ro'yxatiga tushar va qaysi yozuv haqida gap
+     * ketayotganini o'zi qidirishga majbur bo'lardi.
+     */
+    moneyId?: string;
   };
   [ROUTES.NOTIFICATIONS]: undefined;
   /**
