@@ -41,6 +41,7 @@ import { primeNotificationAudio } from '../../../shared/lib/webNotify';
 import { requestNotificationPermission } from '../../../shared/lib/deviceNotifications';
 import type { DeviceContact } from '../../../shared/lib/deviceContacts';
 import { useI18n } from '../../../shared/i18n';
+import SectionHeader from '../../../shared/ui/SectionHeader';
 import BalanceSummary from '../components/BalanceSummary';
 import BalanceHero, { HERO_OVERLAP } from '../components/BalanceHero';
 import ContactRow from '../components/ContactRow';
@@ -647,24 +648,22 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         {/* Bo'lim sarlavhasida "qo'shish" tugmasi ATAYIN yo'q: pastdagi
             suzuvchi "+" tugmasi aynan shu amalni bajaradi va ikkita bir xil
             harakat ekranda raqobatlashib turardi. */}
+        {/* Sarlavha O'Z SIRTIDA, ikonkasi bilan — Gap bo'limidagi
+            "Guruhlar" bilan bir xil. Oddiy matn fon rasmi ustida
+            yolg'iz osilib qolar va yozuv ekranga tasodifan tushgandek
+            ko'rinardi.
+
+            "Barchasi" — qidiruv va saralashni tozalab, to'liq ro'yxatga
+            qaytaradi: filtr qolib ketgani sezilmay, odam "kontaktlarim
+            qani" deb o'ylardi. */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitle} numberOfLines={1}>
-            {t('debts.contactsSection')}
-          </Text>
-          {/* "Barchasi" — qidiruv va saralashni tozalab, to'liq
-              ro'yxatga qaytaradi: filtr qolib ketgani sezilmay,
-              odam "kontaktlarim qani" deb o'ylardi. */}
-          {hasActiveQuery || sort ? (
-            <Pressable
-              onPress={handleShowAll}
-              style={({ pressed }) => [styles.seeAll, pressed && styles.filterBtnPressed]}
-              accessibilityRole="button"
-              accessibilityLabel={t('debts.seeAll')}
-            >
-              <Text style={styles.seeAllText}>{t('debts.seeAll')}</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-            </Pressable>
-          ) : null}
+          <SectionHeader
+            icon="people"
+            title={t('debts.contactsSection')}
+            actionLabel={hasActiveQuery || sort ? t('debts.seeAll') : undefined}
+            actionIcon="chevron-forward"
+            onAction={hasActiveQuery || sort ? handleShowAll : undefined}
+          />
         </View>
       </EntranceView>
 
@@ -809,31 +808,9 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
     filterBtnPressed: {
       opacity: 0.6,
     },
-    sectionTitle: {
-      ...typography.heading2,
-      flex: 1,
-      minWidth: 0,
-      color: colors.textPrimary,
-    },
-    seeAll: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-    },
-    seeAllText: {
-      ...typography.caption,
-      fontSize: 13,
-      fontWeight: '700',
-      color: colors.primary,
-    },
+    /* Yon chekinish va pastki oraliqni SectionHeader o'zi beradi. */
     sectionWrap: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      // Yon chekinish YO'Q edi — sarlavha ekran chetiga yopishib qolardi.
-      paddingHorizontal: spacing.md,
       marginTop: spacing.xs,
-      marginBottom: spacing.xxs,
     },
     scroll: {
       flex: 1,
