@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import ScreenHeader from '../../../shared/ui/ScreenHeader';
 import SettingsGroup from '../../../shared/ui/SettingsGroup';
@@ -11,6 +11,8 @@ import { useTransparency } from '../../../shared/theme/TransparencyProvider';
 import { TRANSPARENCY_LEVELS } from '../../../shared/theme/transparency';
 import { ACCENTS } from '../../../shared/theme/accent';
 import { useI18n } from '../../../shared/i18n';
+import { CURRENCIES, CURRENCY_LABEL, CURRENCY_SYMBOL } from '../../../shared/lib/currency';
+import { useCurrency } from '../../debts/context/CurrencyContext';
 import { ROUTES } from '../../../app/navigation/routes';
 import type { ProfileScreenProps } from '../../../app/navigation/types';
 import type { ThemeMode } from '../../../shared/theme/ThemeProvider';
@@ -45,6 +47,7 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
   const { t, lang, setLang, langs } = useI18n();
   const { accent, setAccent } = useAccent();
   const { level, setLevel } = useTransparency();
+  const { baseCurrency, setBaseCurrency } = useCurrency();
   const { profile, setProfile } = React.useContext(AuthContext);
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -91,6 +94,31 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
             />
           ))}
         </SettingsGroup>
+
+        {/* ASOSIY VALYUTA tilning ketidan: ikkovi ham "men ekranni
+            qanday o'qiyman" degan sozlama, ko'rinish bo'limlari esa
+            undan keyin boshlanadi.
+
+            Sozlama BOR edi va saqlanardi ham, lekin uni o'zgartiradigan
+            joy yo'q edi: qiymat qurilmada qolib ketar, kimdadir so'm,
+            kimdadir dollar bo'lib turardi va buning sababi
+            ko'rinmasdi. */}
+        <SettingsGroup title={t('currency.baseTitle')}>
+          {CURRENCIES.map((code, index) => (
+            <SettingsRow
+              key={code}
+              label={CURRENCY_LABEL[code]}
+              value={CURRENCY_SYMBOL[code]}
+              selected={code === baseCurrency}
+              onPress={() => setBaseCurrency(code)}
+              isLast={index === CURRENCIES.length - 1}
+            />
+          ))}
+        </SettingsGroup>
+        {/* Tanlov FAQAT yakuniy raqamga tegadi. Har valyutaning o'z
+            qatori o'z valyutasida qoladi — kurs taxminiy va aniq
+            summa hech qachon aylantirilmasligi kerak. */}
+        <Text style={styles.hint}>{t('currency.baseHint')}</Text>
 
         {/* Rang mavzudan OLDIN: odam avval "qaysi rang" ni tanlaydi, keyin
             uning yorug'/qorong'i variantini - rang bo'limning yuzi, mavzu
@@ -165,8 +193,15 @@ const ProfileSettingsScreen: React.FC<ProfileScreenProps<typeof ROUTES.PROFILE_S
   );
 };
 
-const createStyles = ({ spacing }: ThemeValue) =>
+const createStyles = ({ spacing, colors, typography }: ThemeValue) =>
   StyleSheet.create({
+    hint: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      paddingHorizontal: spacing.sm,
+      marginTop: -spacing.xs,
+      marginBottom: spacing.md,
+    },
     container: {
       flex: 1,
       backgroundColor: 'transparent',

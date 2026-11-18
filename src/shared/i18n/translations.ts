@@ -486,6 +486,9 @@ const uz: Dict = {
   'money.badgeCredit': 'Haq',
   'money.badgeDebt': 'Qarz',
   'money.currency': 'Valyuta',
+  'currency.baseTitle': 'Asosiy valyuta',
+  'currency.baseHint':
+    "Umumiy balans shu valyutada ko'rsatiladi. Har valyutaning o'z qatori o'z valyutasida qoladi.",
 
   'members.title': "Biznes a'zolari",
   'members.add': "A'zo qo'shish",
@@ -1260,6 +1263,9 @@ const ru: Dict = {
   'money.badgeCredit': 'Кредит',
   'money.badgeDebt': 'Долг',
   'money.currency': 'Валюта',
+  'currency.baseTitle': 'Основная валюта',
+  'currency.baseHint':
+    'Общий баланс показывается в этой валюте. Строка каждой валюты остаётся в своей валюте.',
 
   'members.title': 'Участники бизнеса',
   'members.add': 'Добавить участника',
@@ -2034,6 +2040,9 @@ const en: Dict = {
   'money.badgeCredit': 'Credit',
   'money.badgeDebt': 'Debt',
   'money.currency': 'Currency',
+  'currency.baseTitle': 'Base currency',
+  'currency.baseHint':
+    'The total balance is shown in this currency. Each currency row stays in its own currency.',
 
   'members.title': 'Business members',
   'members.add': 'Add member',

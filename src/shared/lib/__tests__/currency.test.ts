@@ -131,3 +131,40 @@ describe('formatCurrency', () => {
     expect(strip(formatCurrency(-12.5, 'USD'))).toBe('-12.5$');
   });
 });
+
+/*
+ * ASOSIY VALYUTA sozlamadan keladi va so'm bo'lmasligi mumkin.
+ *
+ * Ilgari bu yo'l amalda ishlatilmasdi (sozlamani o'zgartiradigan joy
+ * yo'q edi), shuning uchun u yerda hech narsa tekshirilmagan edi.
+ */
+describe("asosiy valyuta so'm bo'lmaganda", () => {
+  it("so'm dollarga aylanadi", () => {
+    expect(convertAmount(120000, 'UZS', 'USD', rates)).toBe(10);
+  });
+
+  it("rubl dollarga — so'm orqali", () => {
+    // 150 so'm = 1 rubl, 12 000 so'm = 1 dollar -> 800 rubl = 10 dollar.
+    expect(convertAmount(800, 'RUB', 'USD', rates)).toBe(10);
+  });
+
+  it('aralash balans dollarda jamlanadi', () => {
+    // 24 000 so'm = 2 $, 240 rubl = 36 000 so'm = 3 $, ustiga 5 $ -> 10 $.
+    expect(sumInBase({ UZS: 24000, RUB: 240, USD: 5 }, 'USD', rates)).toBe(10);
+  });
+
+  it('sof balans dollarda: haq − qarz', () => {
+    expect(netInBase({ UZS: 120000 }, { USD: 4 }, 'USD', rates)).toBe(6);
+  });
+
+  it("dollar kursi yo'q bo'lsa jamlanmaydi", () => {
+    // Asos DOLLAR, lekin kursda faqat so'm bor: so'mni dollarga
+    // aylantirib bo'lmaydi, demak jamlash ham mumkin emas.
+    const onlyUzs: CurrencyRatesDTO = { base: 'UZS', rates: { UZS: 1 } };
+    expect(canConvertAll({ UZS: 500000 }, 'USD', onlyUzs)).toBe(false);
+  });
+
+  it("faqat dollar bo'lsa kurssiz ham jamlanadi", () => {
+    expect(canConvertAll({ USD: 50 }, 'USD', null)).toBe(true);
+  });
+});
