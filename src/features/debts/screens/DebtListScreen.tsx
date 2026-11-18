@@ -43,7 +43,6 @@ import type { DeviceContact } from '../../../shared/lib/deviceContacts';
 import { useI18n } from '../../../shared/i18n';
 import BalanceSummary from '../components/BalanceSummary';
 import BalanceHero, { HERO_OVERLAP } from '../components/BalanceHero';
-import StatsBanner from '../components/StatsBanner';
 import ContactRow from '../components/ContactRow';
 import ContactFormModal from '../components/ContactFormModal';
 import ProfilePhotoModal from '../../profile/components/ProfilePhotoModal';
@@ -302,11 +301,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
     setFilterPhone('');
     setSort(null);
   }, []);
-
-  /** Xulosa banneri va "Statistika" plitasi — raqamlar profilda. */
-  const handleOpenStats = useCallback(() => {
-    navigation.getParent()?.navigate(ROUTES.PROFILE);
-  }, [navigation]);
 
   const openCreate = useCallback(() => {
     // Foydalanuvchi ishorasi — bildirishnoma ovozini "ochamiz" (brauzer autoplay bloki uchun).
@@ -706,9 +700,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           initialNumToRender={12}
           windowSize={11}
           ListHeaderComponent={listHeader}
-          ListFooterComponent={
-            sortedContacts.length > 0 ? <StatsBanner onPress={handleOpenStats} /> : null
-          }
           refreshControl={
             <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
           }
