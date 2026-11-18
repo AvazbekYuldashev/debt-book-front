@@ -25,7 +25,7 @@ export type DebtsStackParamList = {
      * Ovoz tarixidagi strelka TARIXNI so'raydi - odam aynan o'sha yozuvni
      * ko'rgani keladi. Berilmasa odatdagidek birinchi sahifa ochiladi.
      */
-    tab?: 'products' | 'history';
+    tab?: 'products' | 'rental' | 'history';
     /**
      * Bildirishnomadan kelingan oldi-berdi — kartasi darhol ochiladi.
      *
@@ -34,6 +34,14 @@ export type DebtsStackParamList = {
      * ketayotganini o'zi qidirishga majbur bo'lardi.
      */
     moneyId?: string;
+    /**
+     * Bildirishnomadan kelingan ijara — kartasi darhol ochiladi.
+     *
+     * MIJOZ tomoni uchun: unda Ijara ro'yxati yo'q (u tab faqat biznes
+     * rejimida bor), shuning uchun yozuv kontakt kartasining ijara
+     * bo'limida ochiladi.
+     */
+    rentalId?: string;
   };
   [ROUTES.NOTIFICATIONS]: undefined;
   /**

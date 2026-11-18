@@ -471,6 +471,25 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
   const [rentalFormVisible, setRentalFormVisible] = useState(false);
   const [editingRental, setEditingRental] = useState<RentalResponseDTO | null>(null);
   const [openedRental, setOpenedRental] = useState<RentalResponseDTO | null>(null);
+
+  /**
+   * BILDIRISHNOMADAN kelingan ijara — kartasi darhol ochiladi.
+   *
+   * Mijoz tomoni uchun yagona yo'l shu: Ijara ro'yxati tabi faqat biznes
+   * rejimida bor. Ilgari xabar bosilganda shunchaki kontakt kartasi
+   * ochilar va odam qaysi ijara haqida gap ketayotganini bo'limdan
+   * o'zi qidirardi.
+   */
+  const askedRentalId = route.params.rentalId;
+  useEffect(() => {
+    if (!askedRentalId) return;
+    const found = contactRentals.find((item) => item.id === askedRentalId);
+    if (!found) return;
+    setOpenedRental(found);
+    // Parametr ishlatilgach tozalanadi: orqaga qaytib kelganda karta
+    // yana o'zidan-o'zi ochilib qolmasin.
+    navigation.setParams({ rentalId: undefined });
+  }, [askedRentalId, contactRentals, navigation]);
   /** Ombordan tanlangan buyum — forma shu buyum bilan ochiladi. */
   const [presetItem, setPresetItem] = useState<RentalItemResponseDTO | null>(null);
   /** Mijoz rejimida tanlangan buyum — "ijaraga olish" so'rovi oynasi. */
@@ -626,7 +645,18 @@ const ContactDetailScreen: React.FC<ContactDetailProps> = ({ route, navigation }
     ],
     [showCatalog, rentalsAvailable],
   );
-  const initialPageIndex = route.params.tab === 'history' ? pageKeys.length - 1 : 0;
+  /*
+   * Boshlang'ich sahifa SO'RALGANIGA qarab: bildirishnomadan ijara
+   * yozuvi bilan kelinganda tarix emas, IJARA bo'limi ochilishi kerak.
+   * Topilmasa birinchisi — eski xatti-harakat o'zgarmaydi.
+   */
+  const askedPageIndex = route.params.tab ? pageKeys.indexOf(route.params.tab) : -1;
+  const initialPageIndex =
+    askedPageIndex >= 0
+      ? askedPageIndex
+      : route.params.tab === 'history'
+        ? pageKeys.length - 1
+        : 0;
   const [openedKeys, setOpenedKeys] = useState<string[]>([]);
   /** Sahifa ochilganmi: boshlang'ichi darhol, qolganlari surilgandan keyin. */
   const pageOpened = useCallback(

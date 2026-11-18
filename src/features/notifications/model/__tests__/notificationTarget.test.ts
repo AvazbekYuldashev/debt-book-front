@@ -40,10 +40,13 @@ describe('rentalTarget', () => {
     });
   });
 
-  it('mijoz — do‘konning kontakt kartasiga', () => {
+  it('mijoz — do‘konning kontakt kartasiga, YOZUV bilan', () => {
+    // Kontaktni ochishning o‘zi yetarli emas: odam xabarda ko‘rgan
+    // ijarasini bo‘limdan yana qidirishga majbur bo‘lardi.
     expect(rentalTarget(rental({ owner: false }))).toEqual({
       to: 'contact',
       contactId: 'c-1',
+      rentalId: 'r-1',
     });
   });
 

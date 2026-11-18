@@ -10,7 +10,7 @@ import type { NotificationDTO } from '../types/notification';
  */
 export type RentalTarget =
   | { to: 'rentalDetail'; rentalId: string }
-  | { to: 'contact'; contactId: string }
+  | { to: 'contact'; contactId: string; rentalId: string }
   | { to: 'none' };
 
 /** Xabar ijaraga tegishlimi — yozuvni so'rash kerakmi. */
@@ -30,5 +30,10 @@ export const isRentalNotification = (notification: NotificationDTO): boolean =>
 export const rentalTarget = (rental: RentalResponseDTO | null | undefined): RentalTarget => {
   if (!rental) return { to: 'none' };
   if (rental.owner) return { to: 'rentalDetail', rentalId: rental.id };
-  return rental.clientId ? { to: 'contact', contactId: rental.clientId } : { to: 'none' };
+  // Kontakt kartasiga borganda ham YOZUVNING o'zi ochiladi: kontaktni
+  // ko'rsatishning o'zi yetarli emas edi — odam xabarda ko'rgan ijarasini
+  // bo'limdan yana qidirishga majbur bo'lardi.
+  return rental.clientId
+    ? { to: 'contact', contactId: rental.clientId, rentalId: rental.id }
+    : { to: 'none' };
 };

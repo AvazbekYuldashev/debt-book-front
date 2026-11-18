@@ -124,7 +124,11 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
             params: { rentalId: target.rentalId },
           });
         } else if (target.to === 'contact') {
-          navigation.navigate(ROUTES.CONTACT_DETAIL, { id: target.contactId });
+          navigation.navigate(ROUTES.CONTACT_DETAIL, {
+            id: target.contactId,
+            tab: 'rental',
+            rentalId: target.rentalId,
+          });
         }
         return;
       }
