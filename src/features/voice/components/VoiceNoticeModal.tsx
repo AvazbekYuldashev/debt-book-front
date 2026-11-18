@@ -6,6 +6,7 @@ import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { modalCardLayout } from '../../../shared/ui/modalLayout';
+import ModalTitleRow from '../../../shared/ui/ModalTitleRow';
 import type { VoiceError } from '../model/useVoiceInput';
 
 export interface VoiceNoticeModalProps {
@@ -60,7 +61,9 @@ const VoiceNoticeModal: React.FC<VoiceNoticeModalProps> = ({ error, onClose }) =
               size={20}
               color={colors.danger}
             />
-            <Text style={styles.title}>{title}</Text>
+            <ModalTitleRow onClose={onClose}>
+              <Text style={styles.title}>{title}</Text>
+            </ModalTitleRow>
           </View>
 
           <Text style={styles.message}>{text}</Text>
@@ -87,10 +90,6 @@ const VoiceNoticeModal: React.FC<VoiceNoticeModalProps> = ({ error, onClose }) =
               nosozlikni izlayotgan odamga kerak: usiz sabab faqat taxmin
               qilinardi. */}
           {error.detail ? <Text style={styles.detail}>{error.detail}</Text> : null}
-
-          <Pressable onPress={onClose} style={({ pressed }) => [styles.close, pressed && styles.pressed]}>
-            <Text style={styles.closeText}>{t('common.close')}</Text>
-          </Pressable>
         </Pressable>
       </Pressable>
     </Modal>
@@ -151,19 +150,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       textAlign: 'center',
       color: colors.textSecondary,
       opacity: 0.7,
-    },
-    close: {
-      alignSelf: 'center',
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.lg,
-    },
-    closeText: {
-      ...typography.body,
-      color: colors.primary,
-      fontWeight: '600',
-    },
-    pressed: {
-      opacity: 0.6,
     },
   });
 

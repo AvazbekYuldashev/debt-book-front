@@ -15,6 +15,15 @@ export interface NotificationDTO {
   amount?: number;
   currency?: string;
   message: string;
+  /**
+   * Xabar turi: `RENTAL_*` yoki pul xabarlarida yo'q.
+   *
+   * Bosilganda QAYERGA borishni shu hal qiladi — ijara xabari
+   * kontakt kartasiga emas, yozuvning o'ziga olib borishi kerak.
+   */
+  kind?: string;
+  /** Ijara xabari qaysi yozuvga tegishli. Kunlik xulosada bo'lmaydi. */
+  rentalId?: string;
   read: boolean;
   createdDate: string;
 }

@@ -40,6 +40,7 @@ import {
   useDeleteRentalItem,
   useMyRentals,
   usePayRental,
+  useRental,
   useRentalItems,
   useRentalSummary,
   useReturnRental,
@@ -50,6 +51,7 @@ import {
 const mockList = useMyRentals as jest.Mock;
 const mockSummary = useRentalSummary as jest.Mock;
 const mockItems = useRentalItems as jest.Mock;
+const mockOne = useRental as jest.Mock;
 
 /**
  * Ekran forma va karta oynalarini ham o'z ichiga oladi, ular esa yozish
@@ -111,9 +113,13 @@ const listResult = (content: RentalResponseDTO[]) => ({
  * to'g'ridan-to'g'ri o'sha bo'limni ochadi — chipni bosib o'tish har
  * testda bir xil takror bo'lardi.
  */
-const show = (tab?: 'stock' | 'rentals') => {
+const show = (tab?: 'stock' | 'rentals', params?: Record<string, unknown>) => {
   const navigation = { goBack: jest.fn(), navigate: jest.fn(), setParams: jest.fn() } as never;
-  const route = { key: 'Rentals', name: 'Rentals', params: tab ? { tab } : undefined } as never;
+  const route = {
+    key: 'Rentals',
+    name: 'Rentals',
+    params: tab || params ? { ...(tab ? { tab } : {}), ...params } : undefined,
+  } as never;
   return render(
     <AppThemeProvider>
       <LanguageProvider>
@@ -158,6 +164,8 @@ beforeEach(() => {
     error: null,
     refetch: jest.fn(),
   });
+  // Bildirishnomadan kelingan yozuv — odatda so'ralmaydi (parametr yo'q).
+  mockOne.mockReturnValue({ data: undefined, isLoading: false, error: null });
 });
 
 describe('RentalListScreen — ombor', () => {
@@ -642,5 +650,44 @@ describe('RentalListScreen — ombor paneli', () => {
     expect(screen.queryByText('Omborda')).toBeNull();
     expect(screen.getByText("Yig'ilgan ijara haqi")).toBeTruthy();
     expect(screen.getByText('7')).toBeTruthy();
+  });
+});
+
+/*
+ * BILDIRISHNOMADAN kelish.
+ *
+ * Yozuv ro'yxatning joriy sahifasida bo'lmasligi mumkin (ro'yxat
+ * sahifalangan va bosqich bo'yicha filtrlangan), shuning uchun ekran
+ * uni id bo'yicha alohida so'raydi. Ilgari bunday yo'l umuman yo'q
+ * edi: ijara xabari bosilsa faqat o'qilganga o'tib ketardi.
+ */
+describe('RentalListScreen — bildirishnomadan ochish', () => {
+  it("parametrdagi yozuvning kartasi ochiladi", async () => {
+    // Ro'yxat BO'SH — karta faqat id bo'yicha so'rovdan kelishi kerak.
+    mockList.mockReturnValue(listResult([]));
+    mockOne.mockReturnValue({
+      data: rental({ id: 'r-xabar', itemName: 'Beton aralashtirgich' }),
+      isLoading: false,
+      error: null,
+    });
+
+    const { findByText } = show(undefined, { rentalId: 'r-xabar' });
+    await settle();
+
+    expect(await findByText('Beton aralashtirgich')).toBeTruthy();
+  });
+
+  it("parametr yo'q bo'lsa karta o'z-o'zidan ochilmaydi", async () => {
+    mockList.mockReturnValue(listResult([]));
+    mockOne.mockReturnValue({
+      data: rental({ id: 'r-xabar', itemName: 'Beton aralashtirgich' }),
+      isLoading: false,
+      error: null,
+    });
+
+    const { queryByText } = show();
+    await settle();
+
+    expect(queryByText('Beton aralashtirgich')).toBeNull();
   });
 });

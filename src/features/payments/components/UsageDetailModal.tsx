@@ -121,10 +121,6 @@ const UsageDetailModal: React.FC<UsageDetailModalProps> = ({ command, onClose, p
             <Text style={styles.totalLabel}>{t('usage.cost')}</Text>
             <Text style={styles.totalValue}>{formatSum(totalCost)}</Text>
           </View>
-
-          <Pressable style={styles.close} onPress={onClose} accessibilityRole="button">
-            <Text style={styles.closeText}>{t('common.close')}</Text>
-          </Pressable>
         </Pressable>
       </Pressable>
     </Modal>
@@ -218,16 +214,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     totalValue: {
       ...typography.heading3,
       color: colors.textPrimary,
-    },
-    close: {
-      alignSelf: 'flex-end',
-      marginTop: spacing.md,
-      paddingVertical: spacing.xs,
-      paddingHorizontal: spacing.sm,
-    },
-    closeText: {
-      ...typography.button,
-      color: colors.primary,
     },
   });
 

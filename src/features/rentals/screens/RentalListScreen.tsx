@@ -33,7 +33,7 @@ import RentalFormModal from '../components/RentalFormModal';
 import RentalDetailModal from '../components/RentalDetailModal';
 import RentalItemFormModal from '../components/RentalItemFormModal';
 import RentalItemDetailModal from '../components/RentalItemDetailModal';
-import { useMyRentals, useRentalItems, useRentalSummary } from '../hooks/useRentals';
+import { useMyRentals, useRental, useRentalItems, useRentalSummary } from '../hooks/useRentals';
 import { rentalStage } from '../model/rentalMath';
 import { groupRentalItems } from '../model/rentalStock';
 import ProductCategoryBar from '../../products/components/ProductCategoryBar';
@@ -164,6 +164,24 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
     }
     if (params.tab || params.addItem) navigation.setParams({ tab: undefined, addItem: undefined });
   }, [route?.params, allowWrite, navigation]);
+
+  /**
+   * Bildirishnomadan kelingan yozuv — id bo'yicha ALOHIDA so'raladi.
+   *
+   * Ro'yxatdan qidirib bo'lmaydi: u sahifalangan va bosqich bo'yicha
+   * filtrlangan, ya'ni kerakli yozuv ko'pincha unda yo'q. Shunda xabar
+   * bosilsa hech narsa ochilmay, faqat o'qilganga o'tib ketardi.
+   */
+  const askedRentalId = route?.params?.rentalId;
+  const askedRental = useRental(askedRentalId);
+  useEffect(() => {
+    if (!askedRentalId || !askedRental.data) return;
+    setTab('rentals');
+    setOpened(askedRental.data);
+    // Parametr ishlatilgach tozalanadi: orqaga qaytib kelganda karta
+    // yana o'zidan-o'zi ochilib qolmasin.
+    navigation.setParams({ rentalId: undefined });
+  }, [askedRentalId, askedRental.data, navigation]);
 
   const needle = search.trim();
   // 'ALL' da `status` YUBORILMAYDI: server uchun "filtrsiz" degani shu.

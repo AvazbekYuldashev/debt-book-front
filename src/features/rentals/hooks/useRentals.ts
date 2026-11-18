@@ -7,6 +7,7 @@ import {
   createRentalBatch,
   deleteRental,
   getMyRentals,
+  getRentalById,
   getRentalsWithBusiness,
   getRentalSummary,
   payRental,
@@ -151,6 +152,24 @@ const useRentalInvalidate = () => {
  * Alohida kalit: bu ro'yxat o'z daftarimdagi ijaralar emas, shuning
  * uchun `my` keshiga aralashtirilmaydi.
  */
+/**
+ * Bitta ijara — id bo'yicha.
+ *
+ * Bildirishnomadan ochilganda ishlatiladi: yozuv ro'yxatning joriy
+ * sahifasida bo'lmasligi mumkin. `enabled` id kelgandagina yoqiladi.
+ */
+export const useRental = (id?: string | null) => {
+  const { profile } = useContext(AuthContext);
+  const token = profile?.jwt;
+  const rentalKey = useRentalKey();
+
+  return useQuery({
+    queryKey: [...rentalKey, 'one', id ?? null],
+    queryFn: () => getRentalById(id as string, token),
+    enabled: Boolean(token) && Boolean(id),
+  });
+};
+
 export const useRentalsWithBusiness = (businessId: string, options: { enabled?: boolean } = {}) => {
   const { profile } = useContext(AuthContext);
   const token = profile?.jwt;

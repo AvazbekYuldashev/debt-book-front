@@ -119,10 +119,6 @@ const VoiceResultModal: React.FC<VoiceResultModalProps> = ({
           {command.kind === 'NO_CONTACT' ? (
             <Text style={styles.question}>{t('voice.personNotFound')}</Text>
           ) : null}
-
-          <Pressable onPress={onClose} style={({ pressed }) => [styles.close, pressed && styles.optionPressed]}>
-            <Text style={styles.closeText}>{t('common.close')}</Text>
-          </Pressable>
         </Pressable>
       </Pressable>
     </Modal>
@@ -229,17 +225,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...typography.body,
       fontWeight: '700',
       color: colors.textOnPrimary,
-    },
-    close: {
-      alignSelf: 'center',
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.lg,
-      marginTop: spacing.xs,
-    },
-    closeText: {
-      ...typography.body,
-      color: colors.primary,
-      fontWeight: '600',
     },
   });
 

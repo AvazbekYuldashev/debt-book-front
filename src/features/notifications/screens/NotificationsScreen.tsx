@@ -12,6 +12,9 @@ import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import { useNotifications, useMarkNotificationRead } from '../hooks/useNotifications';
 import { ContactsContext } from '../../debts/context/ContactsContext';
+import { AuthContext } from '../../auth/context/AuthContext';
+import { getRentalById } from '../../rentals/services/rentalService';
+import { isRentalNotification, rentalTarget } from '../model/notificationTarget';
 import { normalizePhone } from '../../../shared/lib/phone';
 import {
   getNotificationPermissionAsync,
@@ -21,6 +24,7 @@ import {
   type NotifyPermission,
 } from '../../../shared/lib/deviceNotifications';
 import type { NotificationDTO } from '../types/notification';
+import type { RentalResponseDTO } from '../../rentals/types/rental';
 import NotificationRow from '../components/NotificationRow';
 
 type Props = DebtsScreenProps<typeof ROUTES.NOTIFICATIONS>;
@@ -37,6 +41,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   const { data, isLoading, isRefetching, refetch } = useNotifications({ read: showRead });
   const { mutate: markReadMutate } = useMarkNotificationRead();
   const { contacts } = useContext(ContactsContext);
+  const { profile } = useContext(AuthContext);
 
   const items = data?.content ?? [];
 
@@ -73,8 +78,54 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
   // kontakt/tranzaksiya ekraniga yo'naltiramiz. Inbox ochilishida hech narsa
   // avtomatik o'qilmaydi.
   const handlePress = useCallback(
-    (notification: NotificationDTO) => {
+    async (notification: NotificationDTO) => {
       if (!notification.read) markReadMutate(notification.id);
+
+      /*
+       * IJARA xabari — yozuvning O'ZIGA olib boradi.
+       *
+       * Ilgari bu xabarlar hech qayerga olib bormasdi: ularda na
+       * `actorPhone`, na kontakt bor — quyidagi qidiruvlar bo'sh
+       * qaytarardi va bosish faqat "o'qilgan" qilib qo'yardi.
+       *
+       * Manzil TOMONGA qarab boshqa, chunki ijara ro'yxati faqat
+       * egasining ish maydonida bor:
+       *   egasiman  -> Ijara ro'yxati, kartasi ochiq holda;
+       *   mijozman  -> o'sha do'konning kontakt kartasi, ijara
+       *                bo'limi shu yerda ko'rinadi.
+       * `owner` bayrog'ini server aytadi — ilova taxmin qilmaydi.
+       *
+       * Yozuv o'chirilgan yoki ruxsat yo'q bo'lsa jim o'tamiz: xabar
+       * o'qilgan bo'lib qoladi, ekran esa joyida turadi.
+       */
+      if (isRentalNotification(notification)) {
+        // Kunlik XULOSADA aniq yozuv yo'q (u bir nechta ijarani jamlaydi)
+        // — unda ro'yxatning o'ziga boramiz.
+        if (!notification.rentalId) {
+          navigation.getParent()?.navigate(ROUTES.RENTALS, {
+            screen: ROUTES.RENTAL_LIST,
+            params: { tab: 'rentals' },
+          });
+          return;
+        }
+
+        let rental: RentalResponseDTO | null = null;
+        try {
+          rental = await getRentalById(notification.rentalId, profile?.jwt);
+        } catch {
+          // Yozuv o'chirilgan yoki ruxsat yo'q — jim o'tamiz.
+        }
+        const target = rentalTarget(rental);
+        if (target.to === 'rentalDetail') {
+          navigation.getParent()?.navigate(ROUTES.RENTALS, {
+            screen: ROUTES.RENTAL_LIST,
+            params: { rentalId: target.rentalId },
+          });
+        } else if (target.to === 'contact') {
+          navigation.navigate(ROUTES.CONTACT_DETAIL, { id: target.contactId });
+        }
+        return;
+      }
       // Avval ANIQ tomon bo'yicha: bildirishnoma o'zi qaysi kontaktga
       // tegishli ekanini aytadi. Telefon bo'yicha qidirish yaramaydi -
       // odam biznes nomidan ish ko'rgan bo'lsa, tranzaksiya BIZNES
@@ -99,7 +150,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
         navigation.navigate(ROUTES.CONTACT_DETAIL, { id: contact.id });
       }
     },
-    [markReadMutate, contacts, navigation],
+    [markReadMutate, contacts, navigation, profile?.jwt],
   );
 
   // Ro'yxat virtualizatsiyalangan (FlatList) — faqat ko'rinadigan qatorlar render qilinadi.

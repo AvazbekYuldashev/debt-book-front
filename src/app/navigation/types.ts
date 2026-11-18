@@ -155,7 +155,14 @@ export type GapScreenProps<T extends keyof GapStackParamList> = NativeStackScree
  * kerakli buyum topilmaganda shu yo'l bilan omborga o'tiladi.
  */
 export type RentalsStackParamList = {
-  [ROUTES.RENTAL_LIST]: { tab?: 'stock' | 'rentals'; addItem?: boolean } | undefined;
+  [ROUTES.RENTAL_LIST]:
+    | {
+        tab?: 'stock' | 'rentals';
+        addItem?: boolean;
+        /** Bildirishnomadan kelingan yozuv — ochilishi bilan kartasi chiqadi. */
+        rentalId?: string;
+      }
+    | undefined;
 };
 
 export type RentalsNavigation = NativeStackNavigationProp<RentalsStackParamList>;

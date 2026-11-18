@@ -139,6 +139,25 @@ export const getRentalsWithBusiness = async (
   return (response.data ?? []).map(normalizeRental);
 };
 
+/**
+ * Bitta ijara yozuvi — id bo'yicha.
+ *
+ * KERAKLIGI: bildirishnoma bosilganda yozuv ro'yxatda bo'lmasligi
+ * mumkin (ro'yxat sahifalangan va bosqich bo'yicha filtrlangan).
+ * Ro'yxatdan qidirish xabarni "hech qayerga olib bormaydigan"
+ * qilib qo'yardi.
+ *
+ * Ikkala tomon ham o'qiy oladi: xabar egaga ham, mijozga ham ketadi.
+ */
+export const getRentalById = async (
+  id: string,
+  token?: string,
+): Promise<RentalResponseDTO> => {
+  setApiAuthToken(token);
+  const response = await apiClient.get<RentalResponseDTO>(`/rental/${encodeURIComponent(id)}`);
+  return normalizeRental(response.data);
+};
+
 /** Mijoz yozadigan ijara: tasdiq kutib turadi, ombordan band qilmaydi. */
 export const requestRental = async (
   dto: RentalRequestDTO,
