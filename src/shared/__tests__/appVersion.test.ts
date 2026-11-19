@@ -2,16 +2,17 @@ import { APP_VERSION_CODE } from '../appVersion';
 import appJson from '../../../app.json';
 
 /**
- * Force-update darvozasi (UpdateGate) ilovaning O'Z versiyasini APP_VERSION_CODE
- * orqali biladi, Play esa app.json/build.gradle dagi versionCode'ni ko'radi.
+ * Force-update darvozasi (UpdateGate) ilovaning O'Z versiyasini
+ * APP_VERSION_CODE orqali biladi, Play esa app.json dagi versionCode'ni
+ * ko'radi. Ular ajralsa, chiqarilgan yangi versiya o'zini eski deb
+ * hisoblab O'ZINI O'ZI bloklaydi.
  *
- * Agar ular bir-biridan uzoqlashsa, chiqarilgan yangi versiya o'zini eski deb
- * hisoblab, backend `minVersionCode` dan past qoladi va O'ZINI O'ZI bloklaydi:
- * foydalanuvchi yopib bo'lmaydigan "yangilang" ekranida qamalib qoladi, Play'da
- * esa yangilanadigan narsa yo'q. Shu sababli moslik test bilan qulflangan.
+ * Qiymat endi app.json dan o'qiladi, ya'ni ajralish manbada hal qilingan.
+ * Test esa o'sha yo'l uzilmaganini tekshiradi: import buzilsa yoki
+ * app.json tuzilishi o'zgarsa, bu yerda ko'rinadi.
  */
 describe('APP_VERSION_CODE', () => {
-  it('app.json dagi android.versionCode bilan bir xil bo‘lishi shart', () => {
+  it('app.json dagi android.versionCode dan o‘qiladi', () => {
     expect(APP_VERSION_CODE).toBe(appJson.expo.android.versionCode);
   });
 
