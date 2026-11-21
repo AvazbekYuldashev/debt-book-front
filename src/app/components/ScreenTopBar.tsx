@@ -103,10 +103,35 @@ const createStyles = ({ spacing, radius, colors, typography, glass }: ThemeValue
       // sirt bitta to'plamdek ko'rinishi kerak.
       minHeight: TOP_BAR_PILL_HEIGHT,
       justifyContent: 'center',
-      paddingHorizontal: spacing.xxs + 2,
+      paddingHorizontal: spacing.xxs,
       borderRadius: radius.pill,
       ...glass.surface,
       flexShrink: 0,
+      /*
+       * UZUNLIK FOIZDA, pikselda emas.
+       *
+       * Eng pastki chegara tabletkani matndan uzunroq qiladi: "Qarzlar"
+       * kabi qisqa nom o'z harflariga yopishib, yonidagi yirik
+       * almashtirgich bilan solishtirganda siqilgandek ko'rinardi.
+       * Matn markazda, ya'ni tabletka ikki tomonga teng cho'ziladi.
+       *
+       * Yuqori chegara esa aksincha ushlab turadi: keng brauzer oynasida
+       * chegarasiz tabletka qatorni egallab ketardi, tor telefonda esa
+       * almashtirgichga joy qolmasdi.
+       *
+       * Ikkisi ham foiz, chunki xavf ekran ENIGA bog'liq: 560px da 28%
+       * — 157px, 375px da 105px, ya'ni tabletka ekran bilan birga
+       * kichrayadi va hech qachon qatorni bosib qolmaydi.
+       *
+       * Aynan 28: 375px da 30% (112px) qo'yilganda almashtirgichga
+       * yetmay qolib, "Shaxsiy" bir necha pikselga kesilgan edi.
+       *
+       * Yon chekinish ham shu sababdan tor (4px): eng tor telefonda
+       * (360px) qator aynan to'ladi va har ortiqcha piksel
+       * almashtirgichdan olinardi. Qisqa nomlarda tabletka uzunligini
+       * baribir chekinish emas, eng pastki chegara belgilaydi.
+       */
+      minWidth: '28%',
       maxWidth: '40%',
     },
     title: {
