@@ -43,7 +43,7 @@ import type { DeviceContact } from '../../../shared/lib/deviceContacts';
 import { useI18n } from '../../../shared/i18n';
 import SectionHeader from '../../../shared/ui/SectionHeader';
 import BalanceSummary from '../components/BalanceSummary';
-import BalanceHero from '../components/BalanceHero';
+import BalanceHero, { HERO_OVERLAP } from '../components/BalanceHero';
 import ContactRow from '../components/ContactRow';
 import ContactFormModal from '../components/ContactFormModal';
 import ProfilePhotoModal from '../../profile/components/ProfilePhotoModal';
@@ -578,15 +578,14 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       <EntranceView style={styles.header} duration={300} fromY={12}>
         <ScreenTopBar />
 
-        {/* BALANS BLOKI: tepada yakuniy raqam, ostida tafsilot kartasi —
-            ikkisi BITTA karta. Tafsilot hero ICHIDA turadi, ya'ni hero
-            rangi uning tagida to'liq davom etadi va ikki qatlam orasida
-            kesuvchi chegara qolmaydi. */}
+        {/* BALANS BLOKI: tepada yakuniy raqam, ostida tafsilot kartasi
+            unga MINIB turadi — ikkisi bitta blok bo'lib ko'rinadi. */}
         <BalanceHero
           totalDebt={aggregateTotals.totalDebt}
           totalCredit={aggregateTotals.totalCredit}
           currency={baseCurrency}
-        >
+        />
+        <View style={styles.summaryOverlap}>
           <BalanceSummary
             totalDebt={aggregateTotals.totalDebt}
             totalCredit={aggregateTotals.totalCredit}
@@ -595,7 +594,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
             onSelect={handleSelectSort}
             onReset={handleResetSort}
           />
-        </BalanceHero>
+        </View>
 
         {/* QIDIRUV: maydon doim ko'rinadi, yonidagi tugma esa ism va
             telefon rejimini almashtiradi. Ilgari ikkita "ABC/123"
@@ -781,6 +780,11 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
     },
     banners: {
       marginTop: spacing.xs,
+    },
+    /* Tafsilot kartasi balans kartasining ostki bo'shlig'iga MINADI.
+       Son HERO_OVERLAP dan keladi: hero ham shuncha bo'shliq qoldiradi. */
+    summaryOverlap: {
+      marginTop: -HERO_OVERLAP,
     },
     searchRow: {
       flexDirection: 'row',
