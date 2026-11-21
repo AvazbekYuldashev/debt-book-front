@@ -4,7 +4,6 @@ import {
   type ListRenderItem,
   RefreshControl,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { NestedGlass, useAppTheme } from '../../../shared/theme';
@@ -245,14 +244,10 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
       <EntranceView style={styles.header} duration={300} fromY={12}>
         {/* Ish maydoni almashtirgichi barcha bosh ekranlarda bir xil joyda va
             bir xil ko'rinishda turadi — chetdan chetga, sarlavhadan yuqorida. */}
-        <ScreenTopBar />
-        <View style={styles.headerRow}>
-          <View style={styles.titleWrap}>
-            <Text style={styles.title} numberOfLines={1}>
-              {t('gap.title')}
-            </Text>
-          </View>
-        </View>
+        {/* Sarlavha ALMASHTIRGICH QATORIDA, alohida blok emas: u ekranda
+            o'ziga bir qator egallab turardi va ro'yxat shuncha pastga
+            surilardi. */}
+        <ScreenTopBar title={t('gap.title')} />
         {/* BALANS BLOKI: Qarzlar ekranidagi bilan bir xil — tepada yakuniy
             raqam, ostida tafsilot kartasi unga MINIB turadi. */}
         <BalanceHero
@@ -344,7 +339,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, glass, activeTheme }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -359,37 +354,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
        Qarzlar ekranidagi bilan bitta manbadan. */
     summaryOverlap: {
       marginTop: -HERO_OVERLAP,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.xxs,
-    },
-    /**
-     * Sarlavha O'Z SIRTIDA.
-     *
-     * U kartalardan tashqarida, to'g'ridan-to'g'ri fon ustida turadi.
-     * Kontur (matn soyasi) ingichka va to'q rasmda to'q matnni
-     * qutqarmasdi - sirt esa kafolat beradi.
-     *
-     * Kenglik MAZMUNGA qarab: butun qator bo'ylab cho'zilsa, u sarlavha
-     * emas, bo'sh panel bo'lib ko'rinardi.
-     */
-    titleWrap: {
-      alignSelf: 'flex-start',
-      paddingVertical: spacing.xxs,
-      paddingHorizontal: spacing.sm,
-      borderRadius: radius.lg,
-      ...glass.surface,
-      flexShrink: 1,
-      minWidth: 0,
-    },
-    title: {
-      ...typography.display,
-      color: colors.textPrimary,
     },
     sectionWrap: {
       marginTop: spacing.sm,
