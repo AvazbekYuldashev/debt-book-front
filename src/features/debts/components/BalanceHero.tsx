@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppTheme } from '../../../shared/theme';
+import { useAppTheme, withAlpha } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { formatMoney } from '../../../shared/lib/money';
@@ -9,21 +9,13 @@ import { canConvertAll, netInBase } from '../../../shared/lib/currency';
 import type { Currency, CurrencyAmounts } from '../../../shared/lib/currency';
 import { useCurrency } from '../context/CurrencyContext';
 
-/**
- * Tafsilot kartasi hero ustiga QANCHA minadi.
- *
- * Bitta joyda turadi va ikkala tomon ham shundan o'qiydi: hero shuncha
- * pastki bo'shliq qoldiradi, ekran esa shuncha salbiy chekinish beradi.
- * Ikki joyda ikki son bo'lganda ular ajralib, belgi karta ostida
- * ko'rinmay qolgan edi.
- */
-export const HERO_OVERLAP = 32;
-
 interface BalanceHeroProps {
   totalDebt: CurrencyAmounts;
   totalCredit: CurrencyAmounts;
   /** Asosiy valyuta — katta raqam shu valyutada chiqadi. */
   currency: Currency;
+  /** Tafsilot kartasi — hero ICHIDA, uning rangi ustida turadi. */
+  children?: React.ReactNode;
 }
 
 /**
@@ -47,8 +39,18 @@ interface BalanceHeroProps {
  * Yo'nalish belgisi SARLAVHA QATORIDA, o'ng chetda: u pastda turganda
  * ostidagi karta uni yopib qo'yardi va "Qarz" so'zi yarmigacha
  * kesilgan holda ko'rinardi.
+ *
+ * Tafsilot kartasi (qarz | haq) hero ICHIDA, `children` bo'lib keladi.
+ * Ilgari u tashqarida turib manfiy chekinish bilan hero ustiga MINARDI:
+ * shunda hero kartasining pastki qirrasi tafsilot kartasini kesib o'tar
+ * va yarim shaffof sirt ostida qattiq chiziq bo'lib ko'rinardi — ikki
+ * qatlam bir-biriga yopishgandek emas, ustma-ust tashlangandek edi.
+ * Endi hero rangi tafsilot kartasining TAGIDA to'liq davom etadi:
+ * kesuvchi chegara yo'q, blok yaxlit ko'rinadi. (Web'da buni
+ * `backdrop-filter` xiralashtirib yashirardi, telefonda esa bunday CSS
+ * yo'q — shuning uchun farq aynan telefonda ko'zga tashlanardi.)
  */
-const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, currency }) => {
+const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, currency, children }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
@@ -112,6 +114,8 @@ const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, curre
             : t('debts.cbRate')}
         </Text>
       ) : null}
+
+      {children ? <View style={styles.detail}>{children}</View> : null}
     </View>
   );
 };
@@ -122,8 +126,9 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       borderRadius: radius.xxl,
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
-      // Ostidagi karta minadigan joy + bir oz nafas.
-      paddingBottom: HERO_OVERLAP + spacing.xs,
+      // Tafsilot kartasi ostidagi ramka — yon chekinish bilan bir xil,
+      // shunda rangli hoshiya karta atrofida teng aylanadi.
+      paddingBottom: spacing.md,
       marginHorizontal: spacing.md,
       ...shadows.card,
     },
@@ -167,6 +172,31 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       paddingHorizontal: spacing.xs + 2,
       borderRadius: radius.pill,
       backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    },
+    /**
+     * Tafsilot kartasining hero ichidagi o'rni va uning MUSTAHKAM ASOSI.
+     *
+     * Yon chekinish YO'Q: kartaning o'zi hero'ning `paddingHorizontal`
+     * ichida turadi va rangli hoshiya shundan chiqadi.
+     *
+     * Asos sirti SHART. Tafsilot kartasi yarim shaffof shisha va endi u
+     * butunlay hero rangi ustida yotadi: asossiz qoldirilsa, yorug'
+     * mavzuda qizil qarz raqami yashil hero ustiga tushib, kontrast
+     * 2.3:1 ga qulardi — raqam o'qilmay qolardi.
+     *
+     * Asos ATAYIN yarim shaffof: to'liq yopiq bo'lsa hero rangi umuman
+     * sezilmay, ichkarida oddiy oq karta turardi — blok yana ikkiga
+     * bo'linardi. Shu qiymatda hero tusi yengil sezilib turadi, qarz va
+     * haq raqamlari esa 3.9:1 dan past tushmaydi (yirik qalin matn
+     * uchun yetarli, yorliqlar 5:1 dan yuqori).
+     *
+     * Radius tafsilot kartasiniki bilan bir xil bo'lishi kerak, aks
+     * holda burchaklarda asos sirti chiqib qoladi.
+     */
+    detail: {
+      marginTop: spacing.sm,
+      borderRadius: radius.lg,
+      backgroundColor: withAlpha(colors.surface, 0.7),
     },
     note: {
       ...typography.caption,

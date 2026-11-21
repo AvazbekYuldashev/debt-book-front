@@ -221,13 +221,18 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     /**
      * Ichki bo'shliq kengaytirilgan: raqamlar karta qirrasiga yopishib
      * turardi va blok siqilgandek ko'rinardi.
+     *
+     * Yon chekinish YO'Q: karta `BalanceHero` ICHIDA turadi va chetgacha
+     * bo'lgan masofani o'sha hero'ning chekinishi belgilaydi. Bu yerda
+     * ham chekinish bo'lsa, ikkisi qo'shilib karta ortiqcha torayardi.
      */
     card: {
       ...glass.raised,
-      borderRadius: radius.xxl,
+      // Ichkaridagi karta radiusi ota-kartanikidan KICHIK: teng bo'lsa
+      // burchaklar bir-biriga yopishib, blok shishgandek ko'rinadi.
+      borderRadius: radius.lg,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
-      marginHorizontal: spacing.md,
     },
     tilesRow: {
       flexDirection: 'row',
