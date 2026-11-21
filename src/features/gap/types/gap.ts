@@ -74,15 +74,22 @@ export interface GapResponseDTO {
   awaitingMyConfirm: number;
 }
 
-/** A'zolar ro'yxatidagi bitta qator. Summalar MENGA NISBATAN. */
+/**
+ * A'zolar ro'yxatidagi bitta qator.
+ *
+ * DIQQAT: bu ikki maydon SHU ODAMNING tomonidan yoziladi, mening emas.
+ * Ekrandagi boshqa hamma joy (guruh kartasi, a'zo ekranining tepasi,
+ * bosh ekran xulosasi) MENING tomonimdan gapiradi, shuning uchun bu
+ * qatorni ko'rsatishdan oldin `memberNet` orqali agdarish SHART.
+ */
 export interface GapMemberDTO {
   memberId: string;
   memberName: string;
   memberPhone: string | null;
   me: boolean;
-  /** SHU ODAM olgan miqdor, birlik bo'yicha ajratilgan. */
+  /** SHU ODAM olgan miqdor (ya'ni men bergan), birlik bo'yicha ajratilgan. */
   received: GapAmountDTO[];
-  /** SHU ODAM bergan miqdor. Sof qoldiq = given - received. */
+  /** SHU ODAM bergan miqdor (ya'ni men olgan). */
   given: GapAmountDTO[];
   awaitingMyConfirm: number;
 }
@@ -257,6 +264,22 @@ export const moneyAmounts = (entries: GapAmountDTO[] | undefined): CurrencyAmoun
   }
   return result;
 };
+
+/**
+ * A'zo bilan bo'lgan sof hisob MENING tomonimdan.
+ *
+ * Musbat — HAQ: odam mendan ko'proq olgan, menga qaytarishi kerak.
+ * Manfiy — QARZ: men undan ko'proq olganman.
+ *
+ * Agdarish shu yerda, bitta joyda: `GapMemberDTO` ning `given`/`received`
+ * maydonlari QARSHI TOMONNING tomonidan yoziladi. Ilgari a'zo qatori
+ * ularni to'g'ridan-to'g'ri ishlatardi va natijada bitta ekranda tepadagi
+ * karta "Hozirgi qarz 250 000" deb tursa, pastdagi qator o'sha pulni
+ * yashil "+250 000" qilib ko'rsatardi — ya'ni men olgan pul menga
+ * qaytadigandek o'qilardi.
+ */
+export const memberNet = (member: GapMemberDTO): GapAmountDTO[] =>
+  netByUnit(member.received, member.given);
 
 /** Ro'yxatda pulga aylantirib bo'lmaydigan (mahsulot) qator bormi. */
 export const hasGoods = (entries: GapAmountDTO[] | undefined): boolean =>

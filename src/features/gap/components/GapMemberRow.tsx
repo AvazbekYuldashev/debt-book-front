@@ -6,7 +6,7 @@ import { useI18n } from '../../../shared/i18n';
 import { formatPhoneDisplay } from '../../../shared/lib/phone';
 import UserAvatar from '../../../shared/ui/UserAvatar';
 import GapAmountStack from './GapAmountStack';
-import { GapMemberDTO, GapUnit, netByUnit, toAmount } from '../types/gap';
+import { GapMemberDTO, GapUnit, memberNet, toAmount } from '../types/gap';
 import { formatGapAmount } from '../model/gapFormat';
 import { FOCUS_INSET } from '../../../shared/ui/focusRing';
 
@@ -25,10 +25,18 @@ interface GapMemberRowProps {
  * bir xil ko'rinishda: chapda avatar, ism va telefon; o'ngda SHU ODAMNING
  * sof qoldig'i.
  *
- * Qoldiq = bergan − olgan. Musbat bo'lsa u haqdor (yashil +), manfiy bo'lsa
- * qarzdor (qizil −), nol bo'lsa hisob toza. Ilgari bergani va olgani ikki
- * qatorda YALPI holda turardi: 1000 berib 1000 qaytarib olingan bo'lsa ham
- * "+1000" va "−1000" bo'lib ko'rinardi, nol emas.
+ * Qoldiq MENING tomonimdan: odam mendan olgan − menga bergan. Musbat
+ * bo'lsa bu mening HAQIM (yashil +), manfiy bo'lsa QARZIM (qizil −), nol
+ * bo'lsa hisob toza. Tepadagi guruh kartasi ham, bosh ekrandagi xulosa
+ * ham aynan shu tomondan gapiradi — bitta ekranda ikki xil hisob
+ * bo'lmasligi kerak.
+ *
+ * Ilgari bu qator DTO ni to'g'ridan-to'g'ri o'qir va QARSHI TOMONNING
+ * qoldig'ini ko'rsatardi: men olgan 250 000 so'm tepada "Hozirgi qarz"
+ * bo'lib tursa, shu yerda yashil "+250 000" bo'lib chiqardi.
+ *
+ * Qoldiq YALPI emas, sof: 1000 berib 1000 qaytarib olingan bo'lsa
+ * "+1000" va "−1000" emas, nol ko'rinadi.
  *
  * O'ng chetdagi qizil belgi — mening tasdig'imni kutayotgan yozuvlar soni.
  */
@@ -43,7 +51,9 @@ const GapMemberRow: React.FC<GapMemberRowProps> = ({
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const net = netByUnit(item.given, item.received);
+  // MENING tomonimdan: musbat — haq, manfiy — qarz. Agdarish
+  // `memberNet` ichida (DTO qarshi tomonning tomonidan keladi).
+  const net = memberNet(item);
   // Chip faqat ish bo'lsa chiqadi: tasdig'imni kutayotgan yozuvlar.
   const awaiting = item.awaitingMyConfirm ?? 0;
 
