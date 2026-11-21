@@ -6,6 +6,11 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { formatMoney } from '../../../shared/lib/money';
 import { CURRENCIES, Currency, CurrencyAmounts, DEFAULT_CURRENCY } from '../../../shared/lib/currency';
+import {
+  createBalanceTileStyles,
+  tileContentWidth,
+  valueFontSize,
+} from '../../../shared/ui/balanceTile';
 
 // Saralash yo'nalishi: qarz tomoni (eng katta qarz birinchi) yoki haq tomoni.
 export type SortDirection = 'debt' | 'credit';
@@ -39,34 +44,6 @@ const currencyEntries = (amounts: CurrencyAmounts): CurrencyEntry[] => {
   return list;
 };
 
-// Asosiy summa: keng ekranda 24px gacha, tor ekranda 13px gacha kichrayadi.
-// Yuqori chegara ATAYIN pasaytirilgan — bir nechta valyuta ko'rsatilganda
-// karta ekranning yarmini egallab, ro'yxatga joy qoldirmasdi.
-const VALUE_FONT_MAX = 24;
-const VALUE_FONT_MIN = 13;
-// Qalin, tabular-nums summa satri uchun o'rtacha belgi eni ≈ shriftning shuncha ulushi.
-const AVG_CHAR_RATIO = 0.58;
-// Summa blokining ichki gorizontal bo'shlig'i (aktiv holatda ham o'zgarmaydi).
-const BLOCK_RESERVED = 16;
-// Ajratuvchi chiziq va uning yon bo'shliqlari (katak eni hisobi uchun).
-const DIVIDER_SPACE = 33;
-
-/**
- * Summa shriftini MAVJUD ENGA qarab hisoblaydi: keng ekranda to'liq o'lcham
- * (VALUE_FONT_MAX), tor ekranda kerak bo'lgandagina kichrayadi (VALUE_FONT_MIN
- * gacha). Faqat uzunlikka qarash keng ekranda ham mayda qilib yuborardi.
- * `adjustsFontSizeToFit` web'da (react-native-web) ishlamaydi — shuning uchun qo'lda.
- *
- * `longestLength` — kartadagi ENG UZUN summa satri: barcha valyutalar (ikkala
- * tomonda ham) BIR XIL shrift oladi, aks holda uzun satr yonidagilardan kichik
- * bo'lib, xunuk ko'rinardi.
- */
-const valueFontSize = (longestLength: number, availWidth: number): number => {
-  if (!longestLength || availWidth <= 0) return VALUE_FONT_MAX;
-  const fitted = Math.floor(availWidth / (longestLength * AVG_CHAR_RATIO));
-  return Math.max(VALUE_FONT_MIN, Math.min(VALUE_FONT_MAX, fitted));
-};
-
 /**
  * Umumiy qarz/haq xulosasi — ekranning asosiy kartasi.
  *
@@ -94,6 +71,8 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
   const { colors, iconSize } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  // Katak o'lchamlari Gap to'yona kartasi bilan BITTA manbadan.
+  const tile = useMemo(() => createBalanceTileStyles(theme), [theme]);
 
   const debtEntries = useMemo(() => currencyEntries(totalDebt), [totalDebt]);
   const creditEntries = useMemo(() => currencyEntries(totalCredit), [totalCredit]);
@@ -112,8 +91,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
       (max, entry) => Math.max(max, entry.text.length),
       0,
     );
-    const tileWidth = rowWidth > 0 ? (rowWidth - DIVIDER_SPACE) / 2 : 0;
-    return valueFontSize(longest, tileWidth - BLOCK_RESERVED);
+    return valueFontSize(longest, tileContentWidth(rowWidth));
   }, [debtEntries, creditEntries, rowWidth]);
 
   const renderTile = (
@@ -124,12 +102,12 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
     iconName: keyof typeof Ionicons.glyphMap,
     label: string,
   ) => (
-    <View style={styles.tile}>
-      <View style={styles.tileHeader}>
-        <View style={[styles.icon, { backgroundColor: softColor }]}>
+    <View style={tile.tile}>
+      <View style={tile.tileHeader}>
+        <View style={[tile.icon, { backgroundColor: softColor }]}>
           <Ionicons name={iconName} size={iconSize.sm} color={color} />
         </View>
-        <Text style={styles.label} numberOfLines={2}>
+        <Text style={tile.label} numberOfLines={2}>
           {label}
         </Text>
       </View>
@@ -139,12 +117,12 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
           "0" ochiq qarzdek o'qiladi. Kategoriyani rangli ikonka bildiradi. */}
       {loading && entries.length === 0 ? (
         // Balanslar hali yuklanmagan — "0" ko'rsatib chalg'itmaymiz.
-        <Text style={[styles.value, styles.valueIdle]} numberOfLines={1}>
+        <Text style={[tile.value, tile.valueIdle]} numberOfLines={1}>
           …
         </Text>
       ) : entries.length === 0 ? (
         <Text
-          style={[styles.value, styles.valueIdle, { fontSize: valueFont }]}
+          style={[tile.value, tile.valueIdle, { fontSize: valueFont }]}
           numberOfLines={1}
         >
           {formatMoney(0, DEFAULT_CURRENCY)}
@@ -158,15 +136,15 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
               key={entry.currency}
               onPress={() => onSelect(direction, entry.currency)}
               style={({ pressed }) => [
-                styles.amountBlock,
+                tile.amountBlock,
                 active && { backgroundColor: softColor },
-                pressed && styles.amountBlockPressed,
+                pressed && tile.amountBlockPressed,
               ]}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               accessibilityLabel={`${label}: ${entry.text}`}
             >
-              <Text style={[styles.value, { color, fontSize: valueFont }]} numberOfLines={1}>
+              <Text style={[tile.value, { color, fontSize: valueFont }]} numberOfLines={1}>
                 {entry.text}
               </Text>
               {active ? (
@@ -181,7 +159,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
 
   return (
     <View style={styles.card}>
-      <View style={styles.tilesRow} onLayout={handleRowLayout}>
+      <View style={tile.tilesRow} onLayout={handleRowLayout}>
         {renderTile(
           'debt',
           debtEntries,
@@ -190,7 +168,7 @@ const BalanceSummary: React.FC<BalanceSummaryProps> = ({
           'arrow-down',
           t('debts.currentDebt'),
         )}
-        <View style={styles.divider} />
+        <View style={tile.divider} />
         {renderTile(
           'credit',
           creditEntries,
@@ -227,60 +205,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       borderRadius: radius.xxl,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
-      marginHorizontal: spacing.md,
-    },
-    tilesRow: {
-      flexDirection: 'row',
-      alignItems: 'stretch',
-    },
-    tile: {
-      flex: 1,
-      minWidth: 0,
-    },
-    tileHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xs,
-    },
-    icon: {
-      width: 30,
-      height: 30,
-      borderRadius: radius.pill,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    label: {
-      ...typography.bodySmall,
-      fontSize: 13,
-      color: colors.textSecondary,
-      flexShrink: 1,
-    },
-    amountBlock: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xxs,
-      alignSelf: 'flex-start',
-      maxWidth: '100%',
-      paddingHorizontal: spacing.xxs,
-      marginLeft: -spacing.xxs,
-      borderRadius: radius.md,
-    },
-    amountBlockPressed: {
-      opacity: 0.55,
-    },
-    value: {
-      ...typography.amount,
-      lineHeight: 24,
-      flexShrink: 1,
-    },
-    valueIdle: {
-      color: colors.textSecondary,
-    },
-    // Ikki katak orasidagi vertikal ajratgich — juda nozik, "qattiq" border emas.
-    divider: {
-      width: StyleSheet.hairlineWidth,
-      alignSelf: 'stretch',
-      backgroundColor: colors.border,
       marginHorizontal: spacing.md,
     },
     resetChip: {

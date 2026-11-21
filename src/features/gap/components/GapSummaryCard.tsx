@@ -1,10 +1,15 @@
-import React, { memo, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useCallback, useMemo, useState } from 'react';
+import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import { useI18n } from '../../../shared/i18n';
 import { formatGapAmount } from '../model/gapFormat';
+import {
+  createBalanceTileStyles,
+  tileContentWidth,
+  valueFontSize,
+} from '../../../shared/ui/balanceTile';
 import {
   GapAmountDTO,
   GapSort,
@@ -76,9 +81,11 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
   onToggleExpand,
 }) => {
   const theme = useAppTheme();
-  const { colors } = theme;
+  const { colors, iconSize } = theme;
   const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  // Katak o'lchamlari Qarzlar ekranidagi karta bilan BITTA manbadan.
+  const tile = useMemo(() => createBalanceTileStyles(theme), [theme]);
 
   const entriesOf = (amounts?: GapAmountDTO[]): AmountEntry[] =>
     (amounts ?? [])
@@ -96,6 +103,25 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
   const { haq, qarz } = splitNet(netByUnit(summary?.totalGiven, summary?.totalReceived));
   const haqRows = entriesOf(haq);
   const qarzRows = entriesOf(qarz);
+
+  // Shrift mavjud enga qarab hisoblanadi — ikkala katak yonma-yon, shuning
+  // uchun qator enini o'lchab, bitta katak enini chiqaramiz.
+  const [rowWidth, setRowWidth] = useState(0);
+  const handleRowLayout = useCallback(
+    (event: LayoutChangeEvent) => setRowWidth(event.nativeEvent.layout.width),
+    [],
+  );
+
+  // Kartadagi ENG UZUN satr (ikkala tomondan) yagona shriftni belgilaydi.
+  // Gap'da satrlar uzunroq ("232 dona gosht"), shuning uchun bu hisob bu
+  // yerda ayniqsa kerak — qotirilgan o'lcham yo kesilar, yo mayda qolardi.
+  const valueFont = useMemo(() => {
+    const longest = [...haqRows, ...qarzRows].reduce(
+      (max, entry) => Math.max(max, entry.text.length),
+      0,
+    );
+    return valueFontSize(longest, tileContentWidth(rowWidth));
+  }, [haqRows, qarzRows, rowWidth]);
 
   // Eng "to'la" katak nechta qatorni yashirayotgani.
   const maxRows = Math.max(haqRows.length, qarzRows.length);
@@ -131,12 +157,12 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
       shown = [...shown.slice(0, COLLAPSED_LIMIT - 1), activeEntry];
     }
     return (
-      <View style={styles.tile}>
-        <View style={styles.tileHeader}>
-          <View style={[styles.icon, { backgroundColor: softColor }]}>
-            <Ionicons name={iconName} size={14} color={color} />
+      <View style={tile.tile}>
+        <View style={tile.tileHeader}>
+          <View style={[tile.icon, { backgroundColor: softColor }]}>
+            <Ionicons name={iconName} size={iconSize.sm} color={color} />
           </View>
-          <Text style={styles.label} numberOfLines={2}>
+          <Text style={tile.label} numberOfLines={2}>
             {label}
           </Text>
         </View>
@@ -144,9 +170,9 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
             bilan bir xil): qizil "0" ochiq qarzdek o'qiladi. Kategoriyani
             rangli ikonka bildiradi. */}
         {loading ? (
-          <Text style={[styles.value, styles.valueIdle]}>—</Text>
+          <Text style={[tile.value, tile.valueIdle]}>—</Text>
         ) : shown.length === 0 ? (
-          <Text style={[styles.value, styles.valueIdle]} numberOfLines={1}>
+          <Text style={[tile.value, tile.valueIdle, { fontSize: valueFont }]} numberOfLines={1}>
             {zeroText}
           </Text>
         ) : (
@@ -157,18 +183,20 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
                 key={entry.unitCode}
                 onPress={() => onAmountPress(direction, entry.unitCode)}
                 style={({ pressed }) => [
-                  styles.amountBlock,
-                  active && { backgroundColor: softColor, borderColor: color },
-                  pressed && styles.amountBlockPressed,
+                  tile.amountBlock,
+                  active && { backgroundColor: softColor },
+                  pressed && tile.amountBlockPressed,
                 ]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={label + ': ' + entry.text}
               >
-                <Text style={[styles.value, { color }]} numberOfLines={1}>
+                <Text style={[tile.value, { color, fontSize: valueFont }]} numberOfLines={1}>
                   {entry.text}
                 </Text>
-                {active ? <Ionicons name="swap-vertical" size={12} color={color} /> : null}
+                {active ? (
+                  <Ionicons name="swap-vertical" size={iconSize.xs - 2} color={color} />
+                ) : null}
               </Pressable>
             );
           })
@@ -201,16 +229,10 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
 
   return (
     <View style={styles.card}>
-      <View style={styles.row}>
-        {renderTile(
-          'given',
-          t('gap.totalCredit'),
-          haqRows,
-          colors.positive,
-          colors.positiveSoft,
-          'arrow-up'
-        )}
-        <View style={styles.divider} />
+      {/* QARZ CHAPDA, HAQ O'NGDA — Qarzlar ekranidagi bilan bir xil tartib.
+          Ilgari bu yerda teskari edi va bo'limni almashtirgan odam
+          ranglarning joyi almashganini sezmay, raqamni teskari o'qirdi. */}
+      <View style={tile.tilesRow} onLayout={handleRowLayout}>
         {renderTile(
           'received',
           t('gap.totalDebt'),
@@ -218,6 +240,15 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
           colors.negative,
           colors.negativeSoft,
           'arrow-down'
+        )}
+        <View style={tile.divider} />
+        {renderTile(
+          'given',
+          t('gap.totalCredit'),
+          haqRows,
+          colors.positive,
+          colors.positiveSoft,
+          'arrow-up'
         )}
       </View>
 
@@ -255,7 +286,7 @@ const GapSummaryCard: React.FC<GapSummaryCardProps> = ({
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     // Ichki chekka har tomonda ~16px: yuqorida sm + qator tepasi (xxs),
     // pastda md. Pastki element (rail, "Yana N ta" yoki kataklar) shu
@@ -272,77 +303,11 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       // chiziladi va karta ichida oq to'rtburchak paydo bo'ladi.
       ...glass.raised,
       borderRadius: radius.xxl,
-      paddingTop: spacing.sm,
-      paddingBottom: spacing.md,
+      // Ichki bo'shliq ham Qarzlardagi karta bilan bir xil.
+      paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
       marginHorizontal: spacing.md,
       marginBottom: spacing.sm,
-    },
-    // Faqat tepadan: pastki bo'shliq qolsa, rail'siz holatda kataklar
-    // ostida 16 emas 20px chiqib, yuqori/pastki chekka nosimmetrik bo'lardi.
-    row: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      paddingTop: spacing.xxs,
-    },
-    tile: {
-      flex: 1,
-      minWidth: 0,
-    },
-    tileHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xxs + 2,
-      marginBottom: 2,
-    },
-    icon: {
-      width: 22,
-      height: 22,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    label: {
-      ...typography.caption,
-      fontSize: 11,
-      color: colors.textSecondary,
-      flexShrink: 1,
-    },
-    value: {
-      ...typography.caption,
-      fontSize: 15,
-      lineHeight: 19,
-      fontWeight: '800',
-      letterSpacing: -0.2,
-      fontVariant: ['tabular-nums'],
-    },
-    valueIdle: {
-      color: colors.textSecondary,
-    },
-    amountBlock: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      alignSelf: 'flex-start',
-      paddingVertical: 1,
-      paddingHorizontal: 6,
-      marginLeft: -6,
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: 'transparent',
-    },
-    amountBlockPressed: {
-      opacity: 0.55,
-    },
-    divider: {
-      width: 1,
-      alignSelf: 'stretch',
-      backgroundColor: colors.border,
-      marginHorizontal: spacing.sm,
-    },
-    rowDivider: {
-      height: 1,
-      backgroundColor: colors.border,
     },
     // Kataklardan 8px (avvalgi qator pastki xxs + xxs bilan bir xil).
     toggle: {
