@@ -69,11 +69,12 @@ const createStyles = ({ spacing, radius, colors, typography, glass }: ThemeValue
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      // Oraliq ATAYIN tor: qatorda uch element bor va 375px li ekranda
-      // 12px lik oraliqlar sarlavhani kesilishga majbur qilardi.
-      gap: spacing.xs,
+      // Oraliq va o'ng chekinish ATAYIN tor: qatorda uch element bor va
+      // 375px li ekranda har ortiqcha piksel sarlavhani kesilishga
+      // majbur qilardi.
+      gap: spacing.xxs + 2,
       // Chapdagi gorizontal chekinishni WorkspaceSwitcher o'zi beradi.
-      paddingRight: spacing.md,
+      paddingRight: spacing.sm,
       paddingTop: spacing.xxs + 2,
     },
     /**
@@ -83,10 +84,13 @@ const createStyles = ({ spacing, radius, colors, typography, glass }: ThemeValue
      *
      * Chekinish va o'lcham O'LCHOV bilan tanlangan. 375px li ekranda
      * qatorda almashtirgich (193px) va qo'ng'iroq (48px) bor; oraliq va
-     * o'ng chekinish bilan sarlavhaga 102px qoladi. Tabletka yon
-     * tomonlardan 8px yeydi, ya'ni matnga 94px. 16px da "Gap to'yona"
-     * aynan 94px — zaxira nolga teng va ekran bir piksel tor bo'lsa
-     * yozuv kesilardi. Shuning uchun 15px: matn 88px, zaxira 6px.
+     * o'ng chekinish bilan sarlavhaga 110px qoladi. Tabletka yon
+     * tomonlardan 12px yeydi, ya'ni matnga 98px va "Gap to'yona" 94px
+     * — sig'adi.
+     *
+     * Yuqori chegara shu: 17px da matn 100px ga chiqadi, tabletka 118px
+     * bo'ladi va oshgan 8px almashtirgichdan olinadi — o'lchab
+     * ko'rilgan, "Shaxsiy" o'sha zahoti kesilgan.
      *
      * Sarlavha QISQARMAYDI, ish maydoni nomi qisqaradi: ekran nomi
      * qisqa va sanoqli, nom esa "Ilhom&Temur&Mirzo" bo'lishi mumkin va
@@ -96,7 +100,7 @@ const createStyles = ({ spacing, radius, colors, typography, glass }: ThemeValue
      */
     titleWrap: {
       paddingVertical: spacing.xxs,
-      paddingHorizontal: spacing.xxs,
+      paddingHorizontal: spacing.xxs + 2,
       borderRadius: radius.lg,
       ...glass.surface,
       flexShrink: 0,
@@ -104,12 +108,19 @@ const createStyles = ({ spacing, radius, colors, typography, glass }: ThemeValue
     },
     title: {
       ...typography.body,
-      fontSize: 15,
-      lineHeight: 20,
+      fontSize: 16,
+      lineHeight: 21,
       fontWeight: '700',
       color: colors.textPrimary,
       textAlign: 'center',
     },
+    /**
+     * Almashtirgich QISQARA OLADI, sarlavha esa yo'q.
+     *
+     * Ichkarida nom allaqachon bir qatorga kesiladi, ya'ni joy
+     * yetmaganda yo'l beradigan tomon aynan shu. Teskarisi bo'lganda
+     * ekran nomi kesilardi — u esa qisqa va sanoqli.
+     */
     switcher: {
       flexShrink: 1,
       minWidth: 0,
