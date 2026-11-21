@@ -262,18 +262,21 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
     // padding'ga to'g'ridan-to'g'ri tayanadi — avval rail chegaraga 8px
     // qolib, karta siqilgandek ko'rinardi.
     card: {
-      ...glass.pane,
-      borderRadius: radius.xl,
+      // `raised` — Qarzlar ekranidagi tafsilot kartasi bilan BIR XIL sirt:
+      // ikkisi ham balans kartasiga minib turadi va ular bir xil ko'rinishi
+      // talab. `pane` suyuqroq edi, shuning uchun ostidagi rangli karta
+      // undan ko'proq sizib chiqardi.
+      //
+      // Soyani ham shu token beradi: Android'da shaffof sirtga elevation
+      // berilsa, soya yumaloq kontur o'rniga TO'RTBURCHAK chegara bo'yicha
+      // chiziladi va karta ichida oq to'rtburchak paydo bo'ladi.
+      ...glass.raised,
+      borderRadius: radius.xxl,
       paddingTop: spacing.sm,
       paddingBottom: spacing.md,
       paddingHorizontal: spacing.md,
       marginHorizontal: spacing.md,
       marginBottom: spacing.sm,
-      // Soya umumiy tokendan: Android'da shaffof sirtga elevation
-      // berilsa, soya yumaloq kontur o'rniga TO'RTBURCHAK chegara
-      // bo'yicha chiziladi va karta ichida oq to'rtburchak paydo
-      // bo'ladi. Token shu qoidani bir joyda ushlab turadi.
-      ...shadows.raised,
     },
     // Faqat tepadan: pastki bo'shliq qolsa, rail'siz holatda kataklar
     // ostida 16 emas 20px chiqib, yuqori/pastki chekka nosimmetrik bo'lardi.

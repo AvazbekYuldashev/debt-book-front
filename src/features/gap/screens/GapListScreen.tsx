@@ -25,11 +25,19 @@ import { useGapSummary, useGapUnits, useMyGaps } from '../hooks/useGap';
 import GapSummaryCard from '../components/GapSummaryCard';
 import GapRow from '../components/GapRow';
 import GapCreateModal from '../components/GapCreateModal';
+// Balans kartasi Qarzlar ekranidan QAYTA ISHLATILADI: ikkala ekranda bir xil
+// ko'rinishi talab, nusxasi esa vaqt o'tib ajralib ketardi.
+import BalanceHero, { HERO_OVERLAP } from '../../debts/components/BalanceHero';
+import { useCurrency } from '../../debts/context/CurrencyContext';
 import {
   GapResponseDTO,
   GapSort,
   GapSortDirection,
   GapUnitFilter,
+  hasGoods,
+  moneyAmounts,
+  netByUnit,
+  splitNet,
   toAmount,
 } from '../types/gap';
 import type { VoiceGapMember, VoiceIntent } from '../../voice/api/voice';
@@ -64,6 +72,26 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
   const listQuery = useMyGaps(unitCode);
 
   const isBusy = listQuery.isLoading;
+
+  /**
+   * Tepadagi UMUMIY BALANS uchun sof qoldiqning PUL qismi.
+   *
+   * Karta ichidagi kataklar bilan bir manbadan hisoblanadi (`netByUnit` ->
+   * `splitNet`), aks holda tepadagi raqam pastdagi qatorlar bilan mos
+   * kelmay qolardi. Mahsulot (GOODS) qatorlari bu yerda tushib qoladi:
+   * ularni so'mga aylantirib bo'lmaydi. Shunday qator bo'lsa, hero ostida
+   * izoh chiqadi — katta raqam hamma narsani qamramaganini odam bilsin.
+   */
+  const { baseCurrency } = useCurrency();
+  const heroTotals = useMemo(() => {
+    const net = netByUnit(summaryQuery.data?.totalGiven, summaryQuery.data?.totalReceived);
+    const { haq, qarz } = splitNet(net);
+    return {
+      totalCredit: moneyAmounts(haq),
+      totalDebt: moneyAmounts(qarz),
+      goods: hasGoods(net),
+    };
+  }, [summaryQuery.data]);
 
   /**
    * Statistikadagi raqamga bosilsa, ro'yxat o'sha ko'rsatkich bo'yicha
@@ -225,20 +253,30 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
             </Text>
           </View>
         </View>
-        <GapSummaryCard
-          summary={summaryQuery.data}
-          units={unitsQuery.data ?? []}
-          unitCode={unitCode}
-          onUnitChange={(next) => {
-            setUnitCode(next);
-            setSort(null);
-          }}
-          sort={sort}
-          onAmountPress={handleAmountPress}
-          loading={summaryQuery.isLoading}
-          expanded={expanded}
-          onToggleExpand={() => setExpanded((prev) => !prev)}
+        {/* BALANS BLOKI: Qarzlar ekranidagi bilan bir xil — tepada yakuniy
+            raqam, ostida tafsilot kartasi unga MINIB turadi. */}
+        <BalanceHero
+          totalDebt={heroTotals.totalDebt}
+          totalCredit={heroTotals.totalCredit}
+          currency={baseCurrency}
+          note={heroTotals.goods ? t('gap.goodsSeparate') : undefined}
         />
+        <View style={styles.summaryOverlap}>
+          <GapSummaryCard
+            summary={summaryQuery.data}
+            units={unitsQuery.data ?? []}
+            unitCode={unitCode}
+            onUnitChange={(next) => {
+              setUnitCode(next);
+              setSort(null);
+            }}
+            sort={sort}
+            onAmountPress={handleAmountPress}
+            loading={summaryQuery.isLoading}
+            expanded={expanded}
+            onToggleExpand={() => setExpanded((prev) => !prev)}
+          />
+        </View>
 
         <View style={styles.sectionWrap}>
           <SectionHeader icon="people" iconBadge={false} title={t('gap.section')} />
@@ -315,6 +353,12 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
     },
     header: {
       backgroundColor: 'transparent',
+    },
+    /* Tafsilot kartasi balans kartasining ostki bo'shlig'iga MINADI.
+       Son HERO_OVERLAP dan keladi: hero ham shuncha bo'shliq qoldiradi —
+       Qarzlar ekranidagi bilan bitta manbadan. */
+    summaryOverlap: {
+      marginTop: -HERO_OVERLAP,
     },
     headerRow: {
       flexDirection: 'row',

@@ -1,3 +1,6 @@
+import { isCurrency } from '../../../shared/lib/currency';
+import type { CurrencyAmounts } from '../../../shared/lib/currency';
+
 /**
  * Gap kassa: guruh + a'zolar + erkin oldi-berdi.
  *
@@ -236,3 +239,25 @@ export const splitNet = (net: GapAmountDTO[]) => ({
 /** Noldan farq qiladigan qatorlar. Bo'sh ro'yxat = hisob toza. */
 export const nonZero = (items: GapAmountDTO[] | undefined): GapAmountDTO[] =>
   (items ?? []).filter((entry) => toAmount(entry.amount) !== 0);
+
+/**
+ * Faqat PUL birliklarini valyuta xaritasiga yig'adi — umumiy balansni
+ * Markaziy bank kursida jamlash uchun.
+ *
+ * GOODS qatorlari ATAYIN tashlab ketiladi: "kg go'sht" ning so'mdagi
+ * qiymati yo'q va bo'lishi ham mumkin emas. Birlik kodi valyuta emasligi
+ * ham tekshiriladi — `normalizeCurrency` noma'lum kodni UZS ga
+ * aylantirib yuborardi va "5 kg" besh so'm bo'lib qo'shilib ketardi.
+ */
+export const moneyAmounts = (entries: GapAmountDTO[] | undefined): CurrencyAmounts => {
+  const result: CurrencyAmounts = {};
+  for (const entry of entries ?? []) {
+    if (entry.unitType !== 'MONEY' || !isCurrency(entry.unitCode)) continue;
+    result[entry.unitCode] = (result[entry.unitCode] ?? 0) + toAmount(entry.amount);
+  }
+  return result;
+};
+
+/** Ro'yxatda pulga aylantirib bo'lmaydigan (mahsulot) qator bormi. */
+export const hasGoods = (entries: GapAmountDTO[] | undefined): boolean =>
+  (entries ?? []).some((entry) => entry.unitType === 'GOODS');

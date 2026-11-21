@@ -24,6 +24,17 @@ interface BalanceHeroProps {
   totalCredit: CurrencyAmounts;
   /** Asosiy valyuta — katta raqam shu valyutada chiqadi. */
   currency: Currency;
+  /**
+   * Kurs satridan keyin qo'shiladigan QO'SHIMCHA izoh.
+   *
+   * Katta raqam nimani QAMRAMAGANINI aytish uchun: Gap to'yonada
+   * birliklar (kg, dona, litr) pulga aylantirilmaydi va jamlanmaydi,
+   * shuning uchun u yerda bu raqam faqat pul bo'yicha. Izohsiz
+   * "Umumiy balans 0 so'm" deb turishi odamni chalg'itardi.
+   *
+   * Qarzlar ekranida berilmaydi — u yerda qamrab olinmagan narsa yo'q.
+   */
+  note?: string;
 }
 
 /**
@@ -48,7 +59,7 @@ interface BalanceHeroProps {
  * ostidagi karta uni yopib qo'yardi va "Qarz" so'zi yarmigacha
  * kesilgan holda ko'rinardi.
  */
-const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, currency }) => {
+const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, currency, note }) => {
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
@@ -110,6 +121,12 @@ const BalanceHero: React.FC<BalanceHeroProps> = ({ totalDebt, totalCredit, curre
           {rates?.date
             ? t('debts.cbRateOn', { date: rates.date })
             : t('debts.cbRate')}
+        </Text>
+      ) : null}
+
+      {note ? (
+        <Text style={styles.note} numberOfLines={1}>
+          {note}
         </Text>
       ) : null}
     </View>
