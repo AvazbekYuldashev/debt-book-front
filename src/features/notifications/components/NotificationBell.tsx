@@ -9,6 +9,7 @@ import { ROUTES } from '../../../app/navigation/routes';
 import type { MainTabNavigation } from '../../../app/navigation/types';
 import { primeNotificationAudio } from '../../../shared/lib/webNotify';
 import { requestNotificationPermission } from '../../../shared/lib/deviceNotifications';
+import { TOP_BAR_PILL_HEIGHT } from '../../../shared/ui/topBarLayout';
 import { useUnreadNotificationCount } from '../hooks/useNotifications';
 
 /**
@@ -61,8 +62,9 @@ const createStyles = ({ colors, radius, typography, shadows, glass }: ThemeValue
   StyleSheet.create({
     // Fon ustida SUZADI, karta ichida emas — shuning uchun shisha sirt.
     button: {
-      width: 48,
-      height: 48,
+      // O'lcham yuqori qatordagi boshqa sirtlar bilan bir xil.
+      width: TOP_BAR_PILL_HEIGHT,
+      height: TOP_BAR_PILL_HEIGHT,
       borderRadius: radius.lg,
       ...glass.surface,
       alignItems: 'center',

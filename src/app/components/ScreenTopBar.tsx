@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import WorkspaceSwitcher from '../../features/business/components/WorkspaceSwitcher';
 import NotificationBell from '../../features/notifications/components/NotificationBell';
 import { useAppTheme } from '../../shared/theme';
+import { TOP_BAR_PILL_HEIGHT } from '../../shared/ui/topBarLayout';
 import type { ThemeValue } from '../../shared/theme/ThemeProvider';
 
 interface ScreenTopBarProps {
@@ -72,7 +73,7 @@ const createStyles = ({ spacing, radius, colors, typography, glass }: ThemeValue
       // Oraliq va o'ng chekinish ATAYIN tor: qatorda uch element bor va
       // 375px li ekranda har ortiqcha piksel sarlavhani kesilishga
       // majbur qilardi.
-      gap: spacing.xxs + 2,
+      gap: spacing.xxs,
       // Chapdagi gorizontal chekinishni WorkspaceSwitcher o'zi beradi.
       paddingRight: spacing.sm,
       paddingTop: spacing.xxs + 2,
@@ -82,15 +83,14 @@ const createStyles = ({ spacing, radius, colors, typography, glass }: ThemeValue
      * Kontur (matn soyasi) sinab ko'rilgan va yetmaydi: u ingichka, to'q
      * fotosurat ustida to'q matnni qutqarmaydi.
      *
-     * Chekinish va o'lcham O'LCHOV bilan tanlangan. 375px li ekranda
-     * qatorda almashtirgich (193px) va qo'ng'iroq (48px) bor; oraliq va
-     * o'ng chekinish bilan sarlavhaga 110px qoladi. Tabletka yon
-     * tomonlardan 12px yeydi, ya'ni matnga 98px va "Gap to'yona" 94px
-     * — sig'adi.
+     * Shrift O'LCHOV bilan tanlangan. 375px li ekranda qatorda
+     * almashtirgich (193px) va qo'ng'iroq (52px) bor; oraliq va o'ng
+     * chekinish bilan sarlavhaga ~110px qoladi, tabletka esa yon
+     * tomonlardan 16px yeydi.
      *
-     * Yuqori chegara shu: 17px da matn 100px ga chiqadi, tabletka 118px
-     * bo'ladi va oshgan 8px almashtirgichdan olinadi — o'lchab
-     * ko'rilgan, "Shaxsiy" o'sha zahoti kesilgan.
+     * Yuqori chegara shu: 17px da matn 100px ga chiqadi va oshgan
+     * piksellar almashtirgichdan olinadi — o'lchab ko'rilgan,
+     * "Shaxsiy" o'sha zahoti kesilgan.
      *
      * Sarlavha QISQARMAYDI, ish maydoni nomi qisqaradi: ekran nomi
      * qisqa va sanoqli, nom esa "Ilhom&Temur&Mirzo" bo'lishi mumkin va
@@ -99,9 +99,12 @@ const createStyles = ({ spacing, radius, colors, typography, glass }: ThemeValue
      * bor: tarjimada nom uzun chiqsa ham almashtirgichga joy qolsin.
      */
     titleWrap: {
-      paddingVertical: spacing.xxs,
+      // Balandlik va shakl chapdagi almashtirgich bilan BIR XIL: uchala
+      // sirt bitta to'plamdek ko'rinishi kerak.
+      minHeight: TOP_BAR_PILL_HEIGHT,
+      justifyContent: 'center',
       paddingHorizontal: spacing.xxs + 2,
-      borderRadius: radius.lg,
+      borderRadius: radius.pill,
       ...glass.surface,
       flexShrink: 0,
       maxWidth: '40%',

@@ -18,6 +18,7 @@ import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import UserAvatar from '../../../shared/ui/UserAvatar';
 import InitialsAvatar from '../../../shared/ui/InitialsAvatar';
 import { buildAttachUrl, normalizeAttachUrl } from '../../../shared/lib/attachUrl';
+import { TOP_BAR_PILL_HEIGHT } from '../../../shared/ui/topBarLayout';
 
 const BADGE_AVATAR_SIZE = 44;
 
@@ -212,7 +213,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       gap: spacing.xs,
       alignSelf: 'flex-start',
       maxWidth: '100%',
-      minHeight: 36,
+      minHeight: TOP_BAR_PILL_HEIGHT,
       borderRadius: radius.pill,
       paddingLeft: spacing.xxs,
       paddingRight: spacing.sm,
