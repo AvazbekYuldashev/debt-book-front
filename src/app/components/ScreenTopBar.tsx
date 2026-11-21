@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import WorkspaceSwitcher from '../../features/business/components/WorkspaceSwitcher';
 import NotificationBell from '../../features/notifications/components/NotificationBell';
 import { useAppTheme } from '../../shared/theme';
-import { titleOutline } from '../../shared/theme/textOutline';
 import type { ThemeValue } from '../../shared/theme/ThemeProvider';
 
 interface ScreenTopBarProps {
@@ -51,9 +50,11 @@ const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ title }) => {
           ish maydoni nomi uzun bo'lsa, u kesilmasligi kerak — odam qaysi
           hisobda turganini bilishi ekran nomidan muhimroq. */}
       {title ? (
-        <Text style={styles.title} numberOfLines={1}>
-          {title}
-        </Text>
+        <View style={styles.titleWrap}>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+        </View>
       ) : null}
       <View style={styles.tools}>
         <NotificationBell />
@@ -62,7 +63,7 @@ const ScreenTopBar: React.FC<ScreenTopBarProps> = ({ title }) => {
   );
 };
 
-const createStyles = ({ spacing, colors, typography, activeTheme }: ThemeValue) =>
+const createStyles = ({ spacing, radius, colors, typography, glass }: ThemeValue) =>
   StyleSheet.create({
     row: {
       flexDirection: 'row',
@@ -76,39 +77,38 @@ const createStyles = ({ spacing, colors, typography, activeTheme }: ThemeValue) 
       paddingTop: spacing.xxs + 2,
     },
     /**
-     * Sarlavhaning O'Z SIRTI YO'Q — va bu o'lchov bilan hal qilingan,
-     * did bilan emas.
+     * Sarlavha O'Z SIRTIDA — yonidagi ikki element bilan bir xil qoida.
+     * Kontur (matn soyasi) sinab ko'rilgan va yetmaydi: u ingichka, to'q
+     * fotosurat ustida to'q matnni qutqarmaydi.
      *
-     * Tabletka ikki yonidan 12px joy yeydi. 375px li ekranda qatorda
-     * allaqachon almashtirgich (189px) va qo'ng'iroq (48px) turibdi:
-     * tabletka bilan "Gap to'yona" ham, "Shaxsiy" ham 2-4 pikselga
-     * kesilardi. Kesilgan yozuv — aniq nuqson; sirtsiz matn esa faqat
-     * fon bilan kontrast xavfi, va uni KONTUR qoplaydi.
+     * Chekinish va o'lcham O'LCHOV bilan tanlangan. 375px li ekranda
+     * qatorda almashtirgich (193px) va qo'ng'iroq (48px) bor; oraliq va
+     * o'ng chekinish bilan sarlavhaga 102px qoladi. Tabletka yon
+     * tomonlardan 8px yeydi, ya'ni matnga 94px. 16px da "Gap to'yona"
+     * aynan 94px — zaxira nolga teng va ekran bir piksel tor bo'lsa
+     * yozuv kesilardi. Shuning uchun 15px: matn 88px, zaxira 6px.
      *
-     * Kontur yupqa, shuning uchun o'lcham ham kichik va QALIN: ingichka
-     * yirik matnda kontur yetmay qolardi.
+     * Sarlavha QISQARMAYDI, ish maydoni nomi qisqaradi: ekran nomi
+     * qisqa va sanoqli, nom esa "Ilhom&Temur&Mirzo" bo'lishi mumkin va
+     * u allaqachon bir qatorga kesilishga tayyor. Teskarisi bo'lganda
+     * uzun nom sarlavhani yeb qo'yardi. Yuqori chegara shunga qaramay
+     * bor: tarjimada nom uzun chiqsa ham almashtirgichga joy qolsin.
      */
+    titleWrap: {
+      paddingVertical: spacing.xxs,
+      paddingHorizontal: spacing.xxs,
+      borderRadius: radius.lg,
+      ...glass.surface,
+      flexShrink: 0,
+      maxWidth: '40%',
+    },
     title: {
       ...typography.body,
-      fontSize: 16,
-      lineHeight: 21,
+      fontSize: 15,
+      lineHeight: 20,
       fontWeight: '700',
       color: colors.textPrimary,
       textAlign: 'center',
-      /*
-       * Sarlavha QISQARMAYDI, ish maydoni nomi qisqaradi.
-       *
-       * Ekran nomi qisqa va sanoqli ("Gap to'yona"), nom esa uzun
-       * bo'lishi mumkin ("Ilhom&Temur&Mirzo") va u allaqachon bir
-       * qatorga kesilishga tayyor. Teskarisi bo'lganda uzun nom
-       * sarlavhani yeb qo'yardi.
-       *
-       * Yuqori chegara shunga qaramay bor: tarjimada nom uzun
-       * chiqsa ham almashtirgichga joy qolishi kerak.
-       */
-      flexShrink: 0,
-      maxWidth: '40%',
-      ...titleOutline(activeTheme === 'dark'),
     },
     switcher: {
       flexShrink: 1,
