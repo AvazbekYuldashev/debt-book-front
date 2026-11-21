@@ -576,7 +576,11 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       <AmbientBackground />
 
       <EntranceView style={styles.header} duration={300} fromY={12}>
-        <ScreenTopBar />
+        {/* Ekran nomi almashtirgich qatorida — Gap to'yona bilan bir xil.
+            Kalit tab yorlig'iniki: pastdagi tugma va tepadagi sarlavha
+            bitta so'z bo'lishi kerak, ikki kalit bo'lsa ular ajralib
+            ketardi. */}
+        <ScreenTopBar title={t('tab.debts')} />
 
         {/* BALANS BLOKI: tepada yakuniy raqam, ostida tafsilot kartasi
             unga MINIB turadi — ikkisi bitta blok bo'lib ko'rinadi. */}
