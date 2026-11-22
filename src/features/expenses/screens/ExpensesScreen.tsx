@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
@@ -552,14 +552,12 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
       <AmbientBackground />
 
       <EntranceView style={styles.header} duration={300} fromY={12}>
-        <ScreenTopBar />
-        <View style={styles.headerRow}>
-          <View style={styles.titleWrap}>
-            <Text style={styles.title} numberOfLines={1}>
-              {t('expenses.dailyTitle')}
-            </Text>
-          </View>
-        </View>
+        {/* Sarlavha ALMASHTIRGICH QATORIDA — Qarzlar va Gap ekranlaridagi
+            kabi. Alohida blok ekranda bir qator egallab turar va
+            kategoriyalar ro'yxati shuncha pastga surilardi. Kalit tab
+            yorlig'iniki: pastdagi tugma va tepadagi sarlavha bir so'z
+            bo'lishi kerak. */}
+        <ScreenTopBar title={t('tab.expenses')} />
 
         <ExpenseTotalCard
           label={totalLabelText}
@@ -764,37 +762,6 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass, act
     },
     header: {
       backgroundColor: 'transparent',
-    },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.xxs,
-    },
-    /**
-     * Sarlavha O'Z SIRTIDA.
-     *
-     * U kartalardan tashqarida, to'g'ridan-to'g'ri fon ustida turadi.
-     * Kontur (matn soyasi) ingichka va to'q rasmda to'q matnni
-     * qutqarmasdi - sirt esa kafolat beradi.
-     *
-     * Kenglik MAZMUNGA qarab: butun qator bo'ylab cho'zilsa, u sarlavha
-     * emas, bo'sh panel bo'lib ko'rinardi.
-     */
-    titleWrap: {
-      alignSelf: 'flex-start',
-      paddingVertical: spacing.xxs,
-      paddingHorizontal: spacing.sm,
-      borderRadius: radius.lg,
-      ...glass.surface,
-      flexShrink: 1,
-      minWidth: 0,
-    },
-    title: {
-      ...typography.display,
-      color: colors.textPrimary,
     },
     banner: {
       marginBottom: spacing.sm,

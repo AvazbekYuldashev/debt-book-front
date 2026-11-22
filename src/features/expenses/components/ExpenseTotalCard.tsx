@@ -15,15 +15,32 @@ interface ExpenseTotalCardProps {
 
 // Summa uzun bo'lganda shriftni kichraytiramiz. `adjustsFontSizeToFit` web'da
 // (react-native-web) ishlamaydi — shuning uchun matn uzunligiga qarab qo'lda
-// moslаymiz. Katta summalar ("5 000 000 012 333 so'm") ham to'liq ko'rinadi.
+// moslaymiz. Katta summalar ("5 000 000 012 333 so'm") ham to'liq ko'rinadi.
+//
+// Yuqori chegara 27: Qarzlar va Gap ekranlaridagi hero raqami bilan bir xil.
 const valueFontSize = (length: number): number => {
-  if (length <= 16) return 22;
-  if (length <= 22) return 19;
-  if (length <= 28) return 16;
-  return 14;
+  if (length <= 16) return 27;
+  if (length <= 22) return 22;
+  if (length <= 28) return 18;
+  return 15;
 };
 
-/** Tanlangan oraliqdagi umumiy xarajat summasi + filtr menyusi tugmasi. */
+/**
+ * Tanlangan oraliqdagi umumiy xarajat summasi + filtr menyusi tugmasi.
+ *
+ * Ko'rinishi Qarzlar va Gap to'yona ekranlaridagi balans kartasi
+ * (`BalanceHero`) bilan bir xil: rangli sirt, chapda ikonka va izoh,
+ * ostida yirik raqam. Ilgari bu shaffof shisha karta edi va uchta bosh
+ * ekran uch xil boshlanardi.
+ *
+ * NUSXA OLINMADI, chunki `BalanceHero` qarz/haq uchun: unda yo'nalish
+ * belgisi, valyuta jamlash va kurs izohi bor. Xarajatda yo'nalish degan
+ * narsa yo'q — bitta yakuniy son. Shuning uchun bu yerda faqat
+ * O'LCHAMLAR takrorlanadi.
+ *
+ * Rang `primary`: yashil/qizil yo'nalishni bildiradi va xarajatga
+ * noto'g'ri ma'no berardi.
+ */
 const ExpenseTotalCard: React.FC<ExpenseTotalCardProps> = ({ label, amount, onMenuPress }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -35,16 +52,17 @@ const ExpenseTotalCard: React.FC<ExpenseTotalCardProps> = ({ label, amount, onMe
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
-        <View style={styles.icon}>
-          <Ionicons name="wallet-outline" size={20} color={colors.primary} />
+        <View style={styles.labelRow}>
+          <Ionicons name="wallet-outline" size={17} color={colors.textOnPrimary} />
+          <Text style={styles.label} numberOfLines={1}>
+            {label}
+          </Text>
         </View>
-        <Text style={styles.label} numberOfLines={1}>
-          {label}
-        </Text>
         <IconButton
           name="ellipsis-horizontal"
           onPress={onMenuPress}
           accessibilityLabel={t('expenses.chooseFilter')}
+          color={colors.textOnPrimary}
         />
       </View>
 
@@ -55,47 +73,47 @@ const ExpenseTotalCard: React.FC<ExpenseTotalCardProps> = ({ label, amount, onMe
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: ThemeValue) =>
+// O'lchamlar `BalanceHero` dagi bilan BIR XIL: radius, chekinish,
+// yorliq va raqam o'lchami. Uchta bosh ekran bir xil boshlanishi kerak.
+const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeValue) =>
   StyleSheet.create({
     card: {
-      ...glass.pane,
-      borderRadius: radius.xl,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.md + 2,
-      marginBottom: spacing.md,
+      backgroundColor: colors.primary,
+      borderRadius: radius.xxl,
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.md,
       marginHorizontal: spacing.md,
-      // Soya umumiy tokendan: Android'da shaffof sirtga elevation
-      // berilsa, soya yumaloq kontur o'rniga TO'RTBURCHAK chegara
-      // bo'yicha chiziladi va karta ichida oq to'rtburchak paydo
-      // bo'ladi. Token shu qoidani bir joyda ushlab turadi.
-      ...shadows.raised,
+      marginBottom: spacing.sm,
+      ...shadows.card,
     },
     topRow: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
       gap: spacing.sm,
-      marginBottom: spacing.xs,
     },
-    icon: {
-      width: 34,
-      height: 34,
-      borderRadius: radius.md,
+    labelRow: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primarySoft,
+      gap: spacing.xs,
+      flexShrink: 1,
+      minWidth: 0,
     },
     label: {
-      ...typography.caption,
-      flex: 1,
-      color: colors.textSecondary,
+      ...typography.body,
+      fontSize: 15,
+      color: colors.textOnPrimary,
+      opacity: 0.9,
+      flexShrink: 1,
     },
     value: {
-      ...typography.heading2,
+      ...typography.heading1,
       fontWeight: '800',
-      letterSpacing: -0.2,
-      color: colors.primary,
+      color: colors.textOnPrimary,
+      marginTop: spacing.xxs,
+      fontVariant: ['tabular-nums'],
     },
-
   });
 
 export default memo(ExpenseTotalCard);
