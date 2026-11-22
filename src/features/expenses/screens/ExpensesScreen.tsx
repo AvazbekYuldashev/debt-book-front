@@ -582,6 +582,51 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
           onShowEndPicker={setShowEndPicker}
           onApply={handleApplyFilter}
         />
+        {/* QIDIRUV, holat banneri, bo'lim sarlavhasi va saralash qatori
+            QOTIRILGAN blokda — Qarzlar va Gap ekranlaridagi kabi. Ilgari
+            ular ro'yxat bilan birga suriladigan `ScrollView` ichida edi va
+            ikki natija bergan:
+
+            — maydon kartalardan ichkarida turardi: `ScrollView` kontenti
+              allaqachon 16px chekinishda va uning ustiga yana 16px
+              qo'shilib, chetlar balans kartasi bilan tenglashmagandi;
+            — kategoriyani qidirayotgan odam ro'yxatni surganda qidiruv
+              maydoni tepaga chiqib ketardi. */}
+        <View style={styles.searchRow}>
+          <SearchField
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('expenses.searchPlaceholder')}
+            accessibilityLabel={t('expenses.searchPlaceholder')}
+          />
+        </View>
+
+        {error ? (
+          <View style={styles.banner}>
+            <StatusBanner
+              tone="error"
+              message={error}
+              actionLabel={t('common.retry')}
+              onAction={handleRefresh}
+            />
+          </View>
+        ) : null}
+
+        <View style={styles.sectionWrap}>
+          <SectionHeader icon="pricetags" iconBadge={false} title={t('expenses.categories')} />
+        </View>
+
+        {!loading && sortedCategories.length > 0 ? (
+          <View style={styles.sortWrap}>
+            <ExpenseSortBar
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onToggleName={toggleNameSort}
+              onToggleSum={toggleSumSort}
+              onReset={resetSort}
+            />
+          </View>
+        ) : null}
       </EntranceView>
 
       <ScrollView
@@ -598,42 +643,6 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
           />
         }
       >
-        {error ? (
-          <View style={styles.banner}>
-            <StatusBanner
-              tone="error"
-              message={error}
-              actionLabel={t('common.retry')}
-              onAction={handleRefresh}
-            />
-          </View>
-        ) : null}
-
-        {/* QIDIRUV: Qarzlar va Gap ekranlaridagi bilan bir xil maydon va
-            bir xil joyda — bo'lim sarlavhasidan oldin. */}
-        <View style={styles.searchRow}>
-          <SearchField
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('expenses.searchPlaceholder')}
-            accessibilityLabel={t('expenses.searchPlaceholder')}
-          />
-        </View>
-
-        <View style={styles.sectionWrap}>
-          <SectionHeader icon="pricetags" iconBadge={false} title={t('expenses.categories')} />
-        </View>
-
-        {!loading && sortedCategories.length > 0 ? (
-          <ExpenseSortBar
-            sortKey={sortKey}
-            sortDir={sortDir}
-            onToggleName={toggleNameSort}
-            onToggleSum={toggleSumSort}
-            onReset={resetSort}
-          />
-        ) : null}
-
         <View style={styles.listCard}>
           <NestedGlass>
             {/* Skeleton faqat BIRINCHI yuklashda: mavjud kategoriyalar fon
@@ -764,18 +773,24 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass, act
       backgroundColor: 'transparent',
     },
     banner: {
-      marginBottom: spacing.sm,
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.xs,
     },
     // Qarzlar va Gap ekranlaridagi qidiruv qatori bilan bir xil chekinishlar.
     searchRow: {
       paddingHorizontal: spacing.md,
       marginTop: spacing.xs,
     },
+    // SectionHeader o'z gorizontal chekinishini beradi; bu yerda faqat
+    // vertikal ritm. Manfiy chekinish OLIB TASHLANDI: u `ScrollView`
+    // kontentining 16px ini qaytarish uchun edi, blok esa endi undan
+    // tashqarida va qaytaradigan narsa yo'q.
     sectionWrap: {
-      // SectionHeader o'z gorizontal chekinishini beradi; bu yerda faqat
-      // vertikal ritm (kontent allaqachon spacing.md ichida).
-      marginHorizontal: -spacing.md,
       marginBottom: spacing.xs,
+    },
+    // Saralash qatori o'z gorizontal chekinishini bermaydi.
+    sortWrap: {
+      paddingHorizontal: spacing.md,
     },
     scroll: {
       flex: 1,
