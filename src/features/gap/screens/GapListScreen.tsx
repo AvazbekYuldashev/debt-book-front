@@ -300,19 +300,6 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
           />
         </View>
 
-        {/* QIDIRUV: Qarzlar ekranidagi bilan bir xil maydon va bir xil
-            joyda — balans blokidan keyin, bo'lim sarlavhasidan oldin.
-            Rejim almashtirgichi YO'Q: u yerda ism/telefon tanlovi uchun
-            kerak, guruhda esa telefon degan narsa yo'q. */}
-        <View style={styles.searchRow}>
-          <SearchField
-            value={query}
-            onChangeText={setQuery}
-            placeholder={t('gap.searchPlaceholder')}
-            accessibilityLabel={t('gap.searchPlaceholder')}
-          />
-        </View>
-
         {/* "Barchasi" — qidiruv, birlik filtri va saralashni tozalaydi:
             filtr qolib ketgani sezilmay, odam "guruhlarim qani" deb
             o'ylardi. */}
@@ -326,6 +313,19 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
             onAction={hasActiveFilter ? handleShowAll : undefined}
           />
         </View>
+        {/* QIDIRUV: Qarzlar ekranidagi bilan bir xil maydon va bir xil
+            joyda — balans blokidan keyin, bo'lim sarlavhasidan oldin.
+            Rejim almashtirgichi YO'Q: u yerda ism/telefon tanlovi uchun
+            kerak, guruhda esa telefon degan narsa yo'q. */}
+        <View style={styles.searchRow}>
+          <SearchField
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('gap.searchPlaceholder')}
+            accessibilityLabel={t('gap.searchPlaceholder')}
+          />
+        </View>
+
       </EntranceView>
 
       <NestedGlass>

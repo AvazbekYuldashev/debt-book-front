@@ -582,6 +582,10 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
           onShowEndPicker={setShowEndPicker}
           onApply={handleApplyFilter}
         />
+        <View style={styles.sectionWrap}>
+          <SectionHeader icon="pricetags" iconBadge={false} title={t('expenses.categories')} />
+        </View>
+
         {/* QIDIRUV, holat banneri, bo'lim sarlavhasi va saralash qatori
             QOTIRILGAN blokda — Qarzlar va Gap ekranlaridagi kabi. Ilgari
             ular ro'yxat bilan birga suriladigan `ScrollView` ichida edi va
@@ -627,10 +631,6 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
             />
           </View>
         ) : null}
-
-        <View style={styles.sectionWrap}>
-          <SectionHeader icon="pricetags" iconBadge={false} title={t('expenses.categories')} />
-        </View>
 
       </EntranceView>
 
@@ -791,7 +791,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass, act
     // kontentining 16px ini qaytarish uchun edi, blok esa endi undan
     // tashqarida va qaytaradigan narsa yo'q.
     sectionWrap: {
-      marginBottom: spacing.xs,
+      marginTop: spacing.xs,
     },
     // Saralash qatori o'z gorizontal chekinishini bermaydi.
     sortWrap: {

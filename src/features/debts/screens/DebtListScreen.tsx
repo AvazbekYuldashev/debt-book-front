@@ -600,6 +600,26 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           />
         </View>
 
+        {/* Bo'lim sarlavhasida "qo'shish" tugmasi ATAYIN yo'q: pastdagi
+            suzuvchi "+" tugmasi aynan shu amalni bajaradi va ikkita bir xil
+            harakat ekranda raqobatlashib turardi. */}
+        {/* Sarlavha O'Z SIRTIDA, ikonkasi bilan — Gap bo'limidagi
+            "Guruhlar" bilan bir xil. Oddiy matn fon rasmi ustida
+            yolg'iz osilib qolar va yozuv ekranga tasodifan tushgandek
+            ko'rinardi.
+
+            "Barchasi" — qidiruv va saralashni tozalab, to'liq ro'yxatga
+            qaytaradi: filtr qolib ketgani sezilmay, odam "kontaktlarim
+            qani" deb o'ylardi. */}
+        <View style={styles.sectionWrap}>
+          <SectionHeader
+            icon="people"
+            title={t('debts.contactsSection')}
+            actionLabel={hasActiveQuery || sort ? t('debts.seeAll') : undefined}
+            actionIcon="chevron-forward"
+            onAction={hasActiveQuery || sort ? handleShowAll : undefined}
+          />
+        </View>
         {/* QIDIRUV: maydon doim ko'rinadi, yonidagi tugma esa ism va
             telefon rejimini almashtiradi. Ilgari ikkita "ABC/123"
             tugmasi turar va maydon faqat bosilgandan keyin ochilardi —
@@ -649,26 +669,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
           </View>
         ) : null}
 
-        {/* Bo'lim sarlavhasida "qo'shish" tugmasi ATAYIN yo'q: pastdagi
-            suzuvchi "+" tugmasi aynan shu amalni bajaradi va ikkita bir xil
-            harakat ekranda raqobatlashib turardi. */}
-        {/* Sarlavha O'Z SIRTIDA, ikonkasi bilan — Gap bo'limidagi
-            "Guruhlar" bilan bir xil. Oddiy matn fon rasmi ustida
-            yolg'iz osilib qolar va yozuv ekranga tasodifan tushgandek
-            ko'rinardi.
-
-            "Barchasi" — qidiruv va saralashni tozalab, to'liq ro'yxatga
-            qaytaradi: filtr qolib ketgani sezilmay, odam "kontaktlarim
-            qani" deb o'ylardi. */}
-        <View style={styles.sectionWrap}>
-          <SectionHeader
-            icon="people"
-            title={t('debts.contactsSection')}
-            actionLabel={hasActiveQuery || sort ? t('debts.seeAll') : undefined}
-            actionIcon="chevron-forward"
-            onAction={hasActiveQuery || sort ? handleShowAll : undefined}
-          />
-        </View>
       </EntranceView>
 
       {/* Ro'yxat virtualizatsiyalangan (FlatList) — faqat ko'rinadigan qatorlar
