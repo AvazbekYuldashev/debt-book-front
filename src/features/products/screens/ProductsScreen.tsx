@@ -465,14 +465,25 @@ const createStyles = ({ colors, spacing, radius, glass }: ThemeValue) =>
       borderBottomRightRadius: radius.xxl,
       overflow: 'hidden',
     },
+    /**
+     * Yon chekinish SHART: ro'yxat konteynerida gorizontal chekinish
+     * yo'q (uni har qator o'zi beradi), shuning uchun chekinishsiz
+     * karta ekranning ikki chetiga yopishib qolardi. Qarzlar, Gap va
+     * Ijara ekranlarida bu allaqachon shunday edi — faqat shu yer
+     * qolib ketgan.
+     */
     emptyCard: {
       ...glass.surface,
       borderRadius: radius.xxl,
+      marginHorizontal: spacing.md,
+      overflow: 'hidden',
     },
     // Faqat joylashuv: shrift va rangni SurfaceLabel beradi.
+    // Yon chekinish qo'shnilari bilan bir xil: 4px da u qatorlardan va
+    // qidiruv maydonidan 12px chapga chiqib turardi.
     count: {
       marginBottom: spacing.xs,
-      marginLeft: spacing.xxs,
+      marginHorizontal: spacing.md,
     },
     listCard: {
       padding: spacing.xxs,
