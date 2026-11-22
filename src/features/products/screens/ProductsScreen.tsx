@@ -4,7 +4,6 @@ import {
   type ListRenderItem,
   RefreshControl,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -269,13 +268,9 @@ const ProductsScreen: React.FC<Props> = () => {
    */
   const listHeader = (
     <View>
-      <View style={styles.headerRow}>
-        <View style={styles.titleWrap}>
-          <Text style={styles.title} numberOfLines={1}>
-            {t('products.title')}
-          </Text>
-        </View>
-      </View>
+      {/* Ekran nomi ALMASHTIRGICH QATORIDA — Qarzlar, Gap va Xarajatlar
+          bilan bir xil. Alohida blok ekranda bir qator egallab turar va
+          ro'yxat shuncha pastga surilardi. */}
       {error ? (
         <View style={styles.banner}>
           <StatusBanner
@@ -286,6 +281,10 @@ const ProductsScreen: React.FC<Props> = () => {
           />
         </View>
       ) : null}
+      {/* Bo'lim tabletkasi ATAYIN yo'q: tepa qatordagi ekran nomi
+          allaqachon "Mahsulotlar" deydi va tabletka o'sha so'zni
+          takrorlardi. Qarzlarda u ma'noli, chunki ro'yxat boshqa narsa
+          — "Kontaktlar". */}
       {isBusiness && products.length > 0 ? (
         <View style={styles.searchWrap}>
           <SearchField
@@ -379,7 +378,7 @@ const ProductsScreen: React.FC<Props> = () => {
       {/* FAQAT shu qator qotib turadi: hisob almashtirgich va
           bildirishnoma ilovaning doimiy qismi. */}
       <EntranceView style={styles.header} duration={300} fromY={12}>
-        <ScreenTopBar />
+        <ScreenTopBar title={t('tab.products')} />
       </EntranceView>
 
       <FlatList
@@ -425,7 +424,7 @@ const ProductsScreen: React.FC<Props> = () => {
   );
 };
 
-const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
+const createStyles = ({ colors, spacing, radius, glass }: ThemeValue) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -434,32 +433,13 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     header: {
       backgroundColor: 'transparent',
     },
-    headerRow: {
-      marginBottom: spacing.sm,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.xxs,
-    },
-    // Sarlavha o'z sirtida (DebtListScreen bilan bir xil): kontur to'q
-    // rasmda yorug' mavzudagi to'q matnni qutqarmaydi, sirt esa kafolat.
-    titleWrap: {
-      alignSelf: 'flex-start',
-      paddingVertical: spacing.xxs,
-      paddingHorizontal: spacing.sm,
-      borderRadius: radius.lg,
-      ...glass.surface,
-      flexShrink: 1,
-      minWidth: 0,
-    },
-    title: {
-      ...typography.display,
-      color: colors.textPrimary,
-    },
     banner: {
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.xs,
     },
     searchWrap: {
       paddingHorizontal: spacing.md,
+      paddingTop: spacing.xxs,
       paddingBottom: spacing.xs,
     },
     scroll: {

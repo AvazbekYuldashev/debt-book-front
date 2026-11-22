@@ -560,14 +560,9 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
    */
   const listHeader = (
     <View>
-      <View style={styles.titleRow}>
-        <View style={styles.titleWrap}>
-          <Text style={styles.title} numberOfLines={1}>
-            {t('rentals.title')}
-          </Text>
-        </View>
-      </View>
-
+      {/* Ekran nomi ALMASHTIRGICH QATORIDA — boshqa bosh ekranlardagi
+          kabi. Alohida blok ekranda bir qator egallab turar va ro'yxat
+          shuncha pastga surilardi. */}
       <View style={styles.headerBody}>
         {tab === 'stock' ? (
           <RentalSummaryCard
@@ -592,6 +587,10 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
 
         <ChipSelector options={tabOptions} value={tab} onChange={setTab} layout="fluid" />
 
+        {/* Bo'lim tabletkasi ATAYIN yo'q: uning vazifasini yuqoridagi
+            "Ombor / Ijaralar" chiplari bajaradi. Qarzlarda tabletka
+            kerak, chunki u ro'yxatni boshqa so'z bilan nomlaydi
+            ("Kontaktlar"), bu yerda esa u tanlangan chipni takrorlardi. */}
         <SearchField
           value={search}
           onChangeText={setSearch}
@@ -724,7 +723,7 @@ const RentalListScreen: React.FC<RentalsScreenProps<typeof ROUTES.RENTAL_LIST>> 
           bildirishnoma ilovaning doimiy qismi. Qolgan sarlavha
           ro'yxat bilan birga suriladi — izohi `listHeader` da. */}
       <EntranceView style={styles.header} duration={300} fromY={12}>
-        <ScreenTopBar />
+        <ScreenTopBar title={t('tab.rentals')} />
       </EntranceView>
 
       {renderBody()}
@@ -781,34 +780,10 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     header: {
       backgroundColor: 'transparent',
     },
-    titleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.xxs,
-      paddingHorizontal: spacing.md,
-      paddingTop: spacing.xxs,
-    },
-    /**
-     * Sarlavha O'Z SIRTIDA — fon rasmi qo'yilganda matn o'qilishi uchun
-     * (gap kassadagi bilan bir xil yechim). Kenglik mazmunga qarab.
-     */
-    titleWrap: {
-      alignSelf: 'flex-start',
-      paddingVertical: spacing.xxs,
-      paddingHorizontal: spacing.sm,
-      borderRadius: radius.lg,
-      ...glass.surface,
-      flexShrink: 1,
-      minWidth: 0,
-    },
-    title: {
-      ...typography.heading2,
-      color: colors.textPrimary,
-    },
     headerBody: {
       paddingHorizontal: spacing.md,
-      paddingTop: spacing.sm,
-      gap: spacing.sm,
+      paddingTop: spacing.xs,
+      gap: spacing.xs,
     },
     emptyCard: {
       ...glass.pane,

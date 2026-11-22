@@ -143,7 +143,6 @@ const uz: Dict = {
   'tab.products': 'Mahsulotlar',
   'tab.rentals': 'Ijara',
   // gap to'yona
-  'gap.title': "Gap to'yona",
   'gap.empty': "Hozircha gap to'yona yo'q",
   'gap.section': 'Guruhlar',
   'gap.emptyHint': "Pastdagi «+» tugmasi orqali birinchi gap to'yonani oching",
@@ -929,7 +928,6 @@ const ru: Dict = {
   'tab.products': 'Товары',
   'tab.rentals': 'Аренда',
   // gap to'yona
-  'gap.title': 'Гап туёна',
   'gap.empty': 'Пока нет гап туёна',
   'gap.section': 'Группы',
   'gap.emptyHint': 'Создайте первую гап туёна кнопкой «+» внизу',
@@ -1710,7 +1708,6 @@ const en: Dict = {
   'tab.products': 'Products',
   'tab.rentals': 'Rentals',
   // gap to'yona
-  'gap.title': "Gap to'yona",
   'gap.empty': "No gap to'yona yet",
   'gap.section': 'Groups',
   'gap.emptyHint': "Create your first gap to'yona with the “+” button below",

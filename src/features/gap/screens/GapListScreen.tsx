@@ -274,7 +274,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
         {/* Sarlavha ALMASHTIRGICH QATORIDA, alohida blok emas: u ekranda
             o'ziga bir qator egallab turardi va ro'yxat shuncha pastga
             surilardi. */}
-        <ScreenTopBar title={t('gap.title')} />
+        <ScreenTopBar title={t('tab.gap')} />
         {/* BALANS BLOKI: Qarzlar ekranidagi bilan bir xil — tepada yakuniy
             raqam, ostida tafsilot kartasi unga MINIB turadi. */}
         <BalanceHero
