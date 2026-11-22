@@ -601,6 +601,22 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
           />
         </View>
 
+        {/* Saralash qatori QIDIRUV TAGIDA: ikkisi ham ro'yxatni
+            shakllantiradi va yonma-yon turganda bitta boshqaruv guruhi
+            bo'lib o'qiladi. Ilgari u bo'lim sarlavhasidan KEYIN turardi
+            va sarlavha bilan ro'yxat orasiga tushib qolardi. */}
+        {!loading && sortedCategories.length > 0 ? (
+          <View style={styles.sortWrap}>
+            <ExpenseSortBar
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onToggleName={toggleNameSort}
+              onToggleSum={toggleSumSort}
+              onReset={resetSort}
+            />
+          </View>
+        ) : null}
+
         {error ? (
           <View style={styles.banner}>
             <StatusBanner
@@ -616,17 +632,6 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
           <SectionHeader icon="pricetags" iconBadge={false} title={t('expenses.categories')} />
         </View>
 
-        {!loading && sortedCategories.length > 0 ? (
-          <View style={styles.sortWrap}>
-            <ExpenseSortBar
-              sortKey={sortKey}
-              sortDir={sortDir}
-              onToggleName={toggleNameSort}
-              onToggleSum={toggleSumSort}
-              onReset={resetSort}
-            />
-          </View>
-        ) : null}
       </EntranceView>
 
       <ScrollView
@@ -791,6 +796,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass, act
     // Saralash qatori o'z gorizontal chekinishini bermaydi.
     sortWrap: {
       paddingHorizontal: spacing.md,
+      marginTop: spacing.xs,
     },
     scroll: {
       flex: 1,
