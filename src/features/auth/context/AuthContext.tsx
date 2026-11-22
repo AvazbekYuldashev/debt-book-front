@@ -7,6 +7,7 @@ import {
   setTokenRefreshedHandler,
 } from '../../../shared/api/apiClient';
 import { secureStorage } from '../../../shared/lib/secureStorage';
+import { clearPersistedCache } from '../../../shared/lib/queryClient';
 
 interface AuthContextValue {
   profile: ProfileDTO | null;
@@ -58,6 +59,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         secureStorage.set(AUTH_PROFILE_STORAGE_KEY, JSON.stringify(nextProfile));
       } else {
         secureStorage.remove(AUTH_PROFILE_STORAGE_KEY);
+      }
+
+      /*
+       * HISOB ALMASHSA kesh tozalanadi.
+       *
+       * Server javoblari endi qurilmada saqlanadi va ular o'sha
+       * hisobniki. Chiqib, boshqa raqam bilan kirilganda tozalanmasa,
+       * yangi odam bir lahza oldingi hisobning kontaktlari va
+       * balanslarini ko'rib qolardi — ekran keshdan darhol chiziladi,
+       * server javobi esa keyinroq keladi.
+       *
+       * Token yangilanishi hisob almashishi EMAS: u yerda `id` o'sha
+       * bo'lib qoladi, shuning uchun solishtirish aynan `id` bo'yicha.
+       */
+      if (prev?.id !== nextProfile?.id) {
+        void clearPersistedCache();
       }
 
       return nextProfile;

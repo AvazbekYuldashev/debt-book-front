@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { AppState, AppStateStatus, Platform, Text, TextInput } from 'react-native';
-import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import RootNavigator from './src/app/navigation/RootNavigator';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +26,12 @@ import ErrorBoundary from './src/shared/ui/ErrorBoundary';
 import AppFrame from './src/shared/ui/AppFrame';
 import UpdateGate from './src/features/app-update/UpdateGate';
 import { WEB_FONT_STACK } from './src/shared/theme/fonts';
+import {
+  CACHE_MAX_AGE,
+  connectOnlineManager,
+  queryClient,
+  queryPersister,
+} from './src/shared/lib/queryClient';
 
 // Web'da Inter'ni BARCHA matnga global qo'llaymiz (ekranlar fontFamily belgilamaydi).
 // Modul yuklanishida — birinchi render'dan oldin bajariladi.
@@ -36,12 +43,14 @@ if (Platform.OS === 'web') {
   InputWithDefaults.defaultProps = { ...(InputWithDefaults.defaultProps || {}), style: webFontStyle };
 }
 
-// Server-state uchun yagona QueryClient (cache + retry + dedup). Modul darajasida — bitta nusxa.
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 30_000 },
-  },
-});
+// Server-state uchun yagona QueryClient `shared/lib/queryClient` da: uni
+// autentifikatsiya qatlami ham ko'rishi kerak (hisob almashganda kesh
+// tozalanadi), u esa provayderlar daraxtida boshqa joyda turadi.
+//
+// Tarmoq holati kutubxonaga MODUL YUKLANISHIDA ulanadi: birinchi
+// render'dan oldin ulanmasa, o'sha render'dagi so'rovlar oflaynda
+// to'xtash o'rniga yiqilardi.
+connectOnlineManager();
 
 /**
  * Native'da React Query "fokus" tushunchasini AppState'ga bog'laymiz:
@@ -164,7 +173,14 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+      {/* Kesh QURILMAGA saqlanadi: ilova tarmoqsiz ochilganda ham oxirgi
+          ko'rilgan ro'yxatlar, balanslar va kategoriyalar chiqadi.
+          `buster` yo'q — hisob almashganda keshni AuthContext tozalaydi,
+          chunki profil bu daraxtdan pastda turadi. */}
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister: queryPersister, maxAge: CACHE_MAX_AGE }}
+      >
         <SafeAreaProvider>
           <LanguageProvider>
             {/* Fon rasmi va asosiy rang mavzudan TASHQARIDA: mavzu
@@ -182,7 +198,7 @@ export default function App() {
             </BackgroundProvider>
           </LanguageProvider>
         </SafeAreaProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </ErrorBoundary>
   );
 }
