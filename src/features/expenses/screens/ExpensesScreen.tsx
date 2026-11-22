@@ -7,6 +7,7 @@ import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import SectionHeader from '../../../shared/ui/SectionHeader';
+import SearchField from '../../../shared/ui/SearchField';
 import StatusBanner from '../../../shared/ui/StatusBanner';
 import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
@@ -63,6 +64,7 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
   const { workspace } = useContext(WorkspaceContext);
 
   const [categories, setCategories] = useState<CategoryResponseDTO[]>([]);
+  const [query, setQuery] = useState('');
   const [categorySums, setCategorySums] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -486,12 +488,26 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
     setSortDir('asc');
   }, []);
 
+  /**
+   * Qidiruv QURILMADA filtrlaydi: kategoriyalar sanoqli va ro'yxat
+   * allaqachon to'liq yuklangan, shuning uchun serverga so'rov ham,
+   * eng kam harf sharti ham kerak emas — filtr darhol ishlaydi.
+   *
+   * Filtr SARALASHDAN OLDIN qo'llanadi: aks holda "pin" li kategoriya
+   * qidiruvga tushmasa ham tepada qolib ketardi.
+   */
+  const visibleCategories = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return categories;
+    return categories.filter((c) => c.name.toLowerCase().includes(needle));
+  }, [categories, query]);
+
   // Odatiy holatda pin === true yuqorida (asl tartibda), qolganlari o'z o'rnida.
   // Nom/summa tanlansa — butun ro'yxat o'sha kalit bo'yicha sof saralanadi.
   const sortedCategories = useMemo(() => {
     if (sortKey === 'default') {
-      const pinned = categories.filter((c) => c.pin === true);
-      const others = categories.filter((c) => c.pin !== true);
+      const pinned = visibleCategories.filter((c) => c.pin === true);
+      const others = visibleCategories.filter((c) => c.pin !== true);
       return [...pinned, ...others];
     }
     const cmp = (a: CategoryResponseDTO, b: CategoryResponseDTO): number => {
@@ -501,8 +517,8 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
           : (categorySums[a.id] ?? 0) - (categorySums[b.id] ?? 0);
       return sortDir === 'asc' ? r : -r;
     };
-    return [...categories].sort(cmp);
-  }, [categories, categorySums, sortKey, sortDir]);
+    return [...visibleCategories].sort(cmp);
+  }, [visibleCategories, categorySums, sortKey, sortDir]);
 
   const totalExpenseAmount = useMemo(
     () => Object.values(categorySums).reduce((acc, value) => acc + (Number.isFinite(value) ? value : 0), 0),
@@ -595,6 +611,17 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
           </View>
         ) : null}
 
+        {/* QIDIRUV: Qarzlar va Gap ekranlaridagi bilan bir xil maydon va
+            bir xil joyda — bo'lim sarlavhasidan oldin. */}
+        <View style={styles.searchRow}>
+          <SearchField
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('expenses.searchPlaceholder')}
+            accessibilityLabel={t('expenses.searchPlaceholder')}
+          />
+        </View>
+
         <View style={styles.sectionWrap}>
           <SectionHeader icon="pricetags" iconBadge={false} title={t('expenses.categories')} />
         </View>
@@ -615,6 +642,14 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
                 yangilanishida kulrang chiziqlarga almashmaydi. */}
             {loading && sortedCategories.length === 0 ? (
               <SkeletonContactList count={5} />
+            ) : sortedCategories.length === 0 && query.trim() ? (
+              // Qidiruvning bo'sh natijasi — "hali kategoriya yo'q" dan
+              // BOSHQA holat: bu yerda "+" ga undash noo'rin bo'lardi.
+              <EmptyState
+                icon="search-outline"
+                title={t('expenses.noSearchResults')}
+                description={t('expenses.noSearchHint')}
+              />
             ) : sortedCategories.length === 0 ? (
               <EmptyState
                 icon="pricetags-outline"
@@ -647,12 +682,14 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
 
       {/* Bo'sh ro'yxat matni «+» ga ishora qiladi — tugma Gap ekranidagi
           kabi bir xil qoida bilan "nafas oladi". Yuklanayotganda emas:
-          skeleton paytida bo'sh deb hisoblanmaydi. */}
+          skeleton paytida bo'sh deb hisoblanmaydi.
+          Qidiruv bo'sh natija bergan holat ham undov emas: kategoriya bor,
+          shunchaki so'rovga mos kelmadi — u yerda "+" ni chaqirish xato. */}
       {allowCategoryManage ? (
         <FloatingActionButton
           onPress={openCreateCategory}
           accessibilityLabel={t('expenses.addCategory')}
-          pulse={!loading && sortedCategories.length === 0}
+          pulse={!loading && categories.length === 0}
         />
       ) : null}
 
@@ -761,6 +798,11 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass, act
     },
     banner: {
       marginBottom: spacing.sm,
+    },
+    // Qarzlar va Gap ekranlaridagi qidiruv qatori bilan bir xil chekinishlar.
+    searchRow: {
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.xs,
     },
     sectionWrap: {
       // SectionHeader o'z gorizontal chekinishini beradi; bu yerda faqat
