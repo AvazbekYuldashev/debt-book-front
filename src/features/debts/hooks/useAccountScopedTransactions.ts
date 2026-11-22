@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getProfileByPhone } from '../../profile/services/profileService';
 import { createCredit, createDebt, getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
+import { newIdempotencyKey } from '../../../shared/lib/idempotency';
 import {
   Currency,
   MoneyActionType,
@@ -154,6 +155,19 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
           throw new Error("Foydalanuvchi ID topilmadi");
         }
 
+        /*
+         * "Bir amal — bitta yozuv" kaliti SHU YERDA, bir marta.
+         *
+         * Pastda `createCredit`/`createDebt` dan bittasi chaqiriladi va
+         * ikkalasi ham ayni shu kalitni oladi. Server o'sha kalit bilan
+         * kelgan ikkinchi so'rovni BAJARMAYDI — javob yo'lda yo'qolib,
+         * so'rov qayta yuborilsa ham pul ikki marta yozilmaydi.
+         *
+         * Kalit servis ichida yaratilmaydi: u yerda har urinishda
+         * yangisi chiqib, himoya ishlamay qolardi.
+         */
+        const idemKey = newIdempotencyKey();
+
         const isGive = type === 'GIVE';
         const fromPartyType = isGive ? ownerPartyType : payload.targetPartyType;
         const toPartyType = isGive ? payload.targetPartyType : ownerPartyType;
@@ -188,7 +202,8 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
                   ...commonPayload,
                   debtorId: resolvedCounterpartyId,
                 },
-            token
+            token,
+            idemKey
           );
         } else {
           await createDebt(
@@ -203,7 +218,8 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
                   ...commonPayload,
                   creditorId: resolvedCounterpartyId,
                 },
-            token
+            token,
+            idemKey
           );
         }
 

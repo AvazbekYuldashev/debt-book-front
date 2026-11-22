@@ -10,15 +10,24 @@ import {
   PageResponse,
 } from '../../../shared/types/money';
 import { normalizeMoney, normalizeMoneyPage } from '../../../shared/lib/money';
+import { withIdempotencyKey } from '../../../shared/lib/idempotency';
 
 const BASE_PATHS = ['/core/debt'] as const;
 
-async function postWithFallback<T>(path: string, data: unknown): Promise<T> {
+/**
+ * `idemKey` — "bir amal, bitta yozuv" kaliti.
+ *
+ * Server shu kalit bilan takroriy so'rovni taniydi va pulni ikki marta
+ * yozmaydi. Kalit CHAQIRUVCHIDAN keladi, shu yerda yaratilmaydi: u
+ * foydalanuvchi amaliga bittadan bo'lishi va barcha urinishlarda
+ * o'zgarmasligi kerak.
+ */
+async function postWithFallback<T>(path: string, data: unknown, idemKey?: string): Promise<T> {
   let lastError: unknown;
 
   for (const base of BASE_PATHS) {
     try {
-      const response = await apiClient.post<T>(`${base}${path}`, data);
+      const response = await apiClient.post<T>(`${base}${path}`, data, withIdempotencyKey(undefined, idemKey));
       return response.data;
     } catch (e) {
       lastError = e;
@@ -80,24 +89,28 @@ export interface GetMoneyHistoryParams {
 
 export const createCredit = async (
   dto: MoneyCreditorCreatedDTO,
-  token?: string
+  token?: string,
+  idemKey?: string
 ): Promise<MoneyResponseDTO> => {
   setApiAuthToken(token);
   const response = await postWithFallback<Omit<MoneyResponseDTO, 'amount'> & { amount: number | string }>(
     '/take',
-    dto
+    dto,
+    idemKey
   );
   return normalizeMoney(response);
 };
 
 export const createDebt = async (
   dto: MoneyDebtorCreatedDTO,
-  token?: string
+  token?: string,
+  idemKey?: string
 ): Promise<MoneyResponseDTO> => {
   setApiAuthToken(token);
   const response = await postWithFallback<Omit<MoneyResponseDTO, 'amount'> & { amount: number | string }>(
     '/give',
-    dto
+    dto,
+    idemKey
   );
   return normalizeMoney(response);
 };
