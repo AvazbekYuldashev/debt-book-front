@@ -795,7 +795,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass, activeTheme 
       alignItems: 'center',
       gap: spacing.xs,
       paddingHorizontal: spacing.md,
-      marginTop: spacing.xs,
+      marginTop: spacing.xxs,
       // Pastdagi bo'shliq SHART: ilgari bu o'rinda bo'lim sarlavhasi
       // turardi va bo'shliqni uning o'z `marginBottom` i berardi.
       // Sarlavha tepaga ko'chgach maydon ro'yxatga yopishib qolgandi.

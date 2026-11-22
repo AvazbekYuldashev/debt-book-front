@@ -416,15 +416,15 @@ const createStyles = ({ colors, spacing, radius, glass, activeTheme }: ThemeValu
     // Qarzlar ekranidagi qidiruv qatori bilan bir xil chekinishlar.
     searchRow: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.xs,
+      marginTop: spacing.xxs,
       // Pastdagi bo'shliq SHART: ilgari bu o'rinda bo'lim sarlavhasi
       // turardi va bo'shliqni uning o'z `marginBottom` i berardi.
       // Sarlavha tepaga ko'chgach maydon ro'yxatga yopishib qolgandi.
       marginBottom: spacing.xs,
     },
-    sectionWrap: {
-      marginTop: spacing.xs,
-    },
+    // Tepa bo'shliqni ustidagi tafsilot kartasi beradi (`marginBottom`),
+    // shuning uchun bu yerda qo'shimcha chekinish yo'q.
+    sectionWrap: {},
     list: {
       flex: 1,
     },

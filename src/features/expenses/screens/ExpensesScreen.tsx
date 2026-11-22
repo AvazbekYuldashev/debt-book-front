@@ -793,7 +793,7 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass, act
     // Qarzlar va Gap ekranlaridagi qidiruv qatori bilan bir xil chekinishlar.
     searchRow: {
       paddingHorizontal: spacing.md,
-      marginTop: spacing.xs,
+      marginTop: spacing.xxs,
       // Pastdagi bo'shliq SHART: ilgari bu o'rinda bo'lim sarlavhasi
       // turardi va bo'shliqni uning o'z `marginBottom` i berardi.
       // Sarlavha tepaga ko'chgach maydon ro'yxatga yopishib qolgandi.
@@ -803,9 +803,8 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass, act
     // vertikal ritm. Manfiy chekinish OLIB TASHLANDI: u `ScrollView`
     // kontentining 16px ini qaytarish uchun edi, blok esa endi undan
     // tashqarida va qaytaradigan narsa yo'q.
-    sectionWrap: {
-      marginTop: spacing.xs,
-    },
+    // Tepa bo'shliqni ustidagi sana paneli beradi (`marginBottom`).
+    sectionWrap: {},
     // Saralash qatori o'z gorizontal chekinishini bermaydi.
     scroll: {
       flex: 1,

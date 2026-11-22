@@ -108,7 +108,11 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       // tabletkasidan olinardi.
       gap: spacing.xxs,
       paddingHorizontal: spacing.md,
-      marginBottom: spacing.xs,
+      // Pastki bo'shliq tor: ostidagi element (qidiruv maydoni) o'z
+      // tepa chekinishini beradi va ikkisi QO'SHILADI — RN da
+      // chekinishlar birlashmaydi. Ikkalasi 8px bo'lganda tabletka
+      // atrofida 16px ochilib, u yolg'iz osilib qolgandek ko'rinardi.
+      marginBottom: spacing.xxs,
     },
     /**
      * Yorliq tabletkasi: matnga O'Z foni.
