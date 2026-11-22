@@ -304,10 +304,10 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       ...glass.raised,
       borderRadius: radius.xxl,
       // Ichki bo'shliq ham Qarzlardagi karta bilan bir xil.
-      paddingVertical: spacing.sm,
+      paddingVertical: spacing.xs,
       paddingHorizontal: spacing.md,
       marginHorizontal: spacing.md,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.xs,
     },
     // Kataklardan 8px (avvalgi qator pastki xxs + xxs bilan bir xil).
     toggle: {
@@ -315,7 +315,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
       alignItems: 'center',
       justifyContent: 'center',
       gap: spacing.xxs,
-      paddingTop: spacing.xs,
+      paddingTop: spacing.xxs,
     },
     togglePressed: {
       opacity: 0.6,
@@ -328,7 +328,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     // Kataklardan 12px (avvalgi qator pastki xxs + xs bilan bir xil).
     filterScroll: {
-      marginTop: spacing.sm,
+      marginTop: spacing.xs,
       flexGrow: 0,
       borderRadius: radius.pill,
       backgroundColor: colors.surfaceMuted,
@@ -336,7 +336,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     filterBar: {
       flexDirection: 'row',
       gap: spacing.xxs,
-      padding: spacing.xxs,
+      padding: 2,
     },
     chip: {
       alignItems: 'center',

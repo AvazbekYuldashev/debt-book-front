@@ -76,7 +76,11 @@ const createStyles = ({ spacing, radius, colors, typography, glass }: ThemeValue
       gap: spacing.xxs,
       // Chapdagi gorizontal chekinishni WorkspaceSwitcher o'zi beradi.
       paddingRight: spacing.sm,
-      paddingTop: spacing.xxs + 2,
+      // Yuqoridan bo'shliq ham o'sha komponentdan: uning o'ramchasida
+      // allaqachon 8px bor va bu yerda yana 6px qo'shilib, qator ikki
+      // marta chekinardi. Qolgan elementlar `alignItems: center` bilan
+      // o'sha balandlik ichida markazlashadi, ya'ni ular ham chetga
+      // qadalmaydi.
     },
     /**
      * Sarlavha O'Z SIRTIDA — yonidagi ikki element bilan bir xil qoida.

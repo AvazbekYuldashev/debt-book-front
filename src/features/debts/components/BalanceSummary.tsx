@@ -203,7 +203,7 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     card: {
       ...glass.raised,
       borderRadius: radius.xxl,
-      paddingVertical: spacing.sm,
+      paddingVertical: spacing.xs,
       paddingHorizontal: spacing.md,
       marginHorizontal: spacing.md,
     },

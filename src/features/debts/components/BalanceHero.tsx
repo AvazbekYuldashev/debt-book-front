@@ -139,8 +139,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
       borderRadius: radius.xxl,
       paddingHorizontal: spacing.md,
       paddingTop: spacing.sm,
-      // Ostidagi karta minadigan joy + bir oz nafas.
-      paddingBottom: HERO_OVERLAP + spacing.xs,
+      // Ostidagi karta minadigan joy + bir oz nafas. Nafas ATAYIN tor:
+      // kartadan pastda hero rangining ingichka chizig'i ko'rinsa
+      // yetarli, undan ortig'i ro'yxatdan joy yeydi.
+      paddingBottom: HERO_OVERLAP + spacing.xxs,
       marginHorizontal: spacing.md,
       ...shadows.card,
     },
@@ -166,6 +168,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows }: ThemeVal
     amount: {
       ...typography.heading1,
       fontSize: 27,
+      // Qator balandligi SHRIFTGA moslandi: `heading1` dan kelgan 40px
+      // 27px li raqam uchun ortiqcha edi va har ekranda 6px bekorga
+      // ketardi.
+      lineHeight: 34,
       fontWeight: '800',
       color: colors.textOnPrimary,
       marginTop: spacing.xxs,

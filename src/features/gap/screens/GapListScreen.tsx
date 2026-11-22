@@ -423,7 +423,7 @@ const createStyles = ({ colors, spacing, radius, glass, activeTheme }: ThemeValu
       marginBottom: spacing.xs,
     },
     sectionWrap: {
-      marginTop: spacing.sm,
+      marginTop: spacing.xs,
     },
     list: {
       flex: 1,
