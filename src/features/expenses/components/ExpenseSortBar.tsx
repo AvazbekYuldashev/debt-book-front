@@ -14,7 +14,6 @@ interface ExpenseSortBarProps {
   sortDir: SortDir;
   onToggleName: () => void;
   onToggleSum: () => void;
-  onReset: () => void;
 }
 
 /**
@@ -29,7 +28,6 @@ const ExpenseSortBar: React.FC<ExpenseSortBarProps> = ({
   sortDir,
   onToggleName,
   onToggleSum,
-  onReset,
 }) => {
   const theme = useAppTheme();
   const { colors } = theme;
@@ -53,15 +51,17 @@ const ExpenseSortBar: React.FC<ExpenseSortBarProps> = ({
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
     >
-      <Ionicons name={iconName} size={14} color={active ? colors.primary : colors.textSecondary} />
+      {/* Faol holatda yo'nalish o'qi BEZAK IKONKANING O'RNIGA chiqadi,
+          yoniga emas: aks holda chip faollashganda kengayib ketar va
+          qatordagi "Kategoriyalar" tabletkasini kesardi. Bezak ikonka
+          qaysi ustun ekanini bildiradi, lekin buni yozuvning o'zi ham
+          aytadi — o'q esa faqat faol holatda ma'noli. */}
+      <Ionicons
+        name={active ? (sortDir === 'asc' ? 'arrow-up' : 'arrow-down') : iconName}
+        size={14}
+        color={active ? colors.primary : colors.textSecondary}
+      />
       <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-      {active ? (
-        <Ionicons
-          name={sortDir === 'asc' ? 'arrow-up' : 'arrow-down'}
-          size={12}
-          color={colors.primary}
-        />
-      ) : null}
     </Pressable>
   );
 
@@ -70,34 +70,28 @@ const ExpenseSortBar: React.FC<ExpenseSortBarProps> = ({
       {renderChip(sortKey === 'name', 'text', t('expenses.sortName'), onToggleName)}
       {renderChip(sortKey === 'sum', 'cash-outline', t('expenses.sortSum'), onToggleSum)}
 
-      {sortKey !== 'default' ? (
-        <Pressable
-          onPress={onReset}
-          style={({ pressed }) => [styles.resetChip, pressed && styles.chipPressed]}
-          accessibilityRole="button"
-          accessibilityLabel={t('expenses.sortReset')}
-        >
-          <Ionicons name="refresh" size={12} color={colors.textSecondary} />
-          <Text style={styles.resetText}>{t('expenses.sortReset')}</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 };
 
 const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
+    // Pastki chekinish YO'Q: qator endi bo'lim sarlavhasining ichida,
+    // uning o'ng tomonida turadi va vertikal ritmni sarlavha belgilaydi.
     bar: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
-      marginBottom: spacing.xs,
+      gap: spacing.xxs,
+      flexShrink: 1,
+      minWidth: 0,
     },
+    // Chekinish tor: chiplar endi sarlavha tabletkasi bilan BITTA
+    // qatorda va 375px li ekranda ikkalasiga joy yetishi kerak.
     chip: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      paddingHorizontal: spacing.sm,
+      gap: 3,
+      paddingHorizontal: spacing.xxs + 2,
       paddingVertical: spacing.xxs + 2,
       borderRadius: radius.sm,
       ...glass.pane,
@@ -116,24 +110,6 @@ const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue
     },
     chipTextActive: {
       color: colors.primary,
-    },
-    resetChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      marginLeft: 'auto',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xxs + 2,
-      borderRadius: radius.pill,
-      // Qo'shni chiplar kabi shisha: surfaceMuted deyarli shaffof va
-      // to'g'ridan-to'g'ri fon rasmida yozuv rasmga qo'shilib ketardi.
-      ...glass.pane,
-    },
-    resetText: {
-      ...typography.caption,
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.textSecondary,
     },
   });
 

@@ -24,6 +24,15 @@ interface SectionHeaderProps {
    * bitta bo'lsa doiracha ortiqcha bezak bo'lib qoladi.
    */
   iconBadge?: boolean;
+  /**
+   * Qatorning O'NG tomoniga qo'yiladigan ixtiyoriy blok — masalan
+   * saralash chiplari.
+   *
+   * `actionLabel` dan farqi: u bitta qotirilgan "pill" tugma, bu esa
+   * istalgan element. Ikkalasi bir vaqtda berilsa, avval shu blok,
+   * keyin harakat tugmasi chiqadi.
+   */
+  right?: React.ReactNode;
 }
 
 /**
@@ -38,6 +47,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   onAction,
   actionVariant = 'soft',
   iconBadge = true,
+  right,
 }) => {
   const theme = useAppTheme();
   const { colors, iconSize } = theme;
@@ -68,6 +78,8 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
         </Text>
       </View>
 
+      {right}
+
       {actionLabel && onAction ? (
         <PressableScale
           style={[styles.action, isSolid && styles.actionSolid]}
@@ -91,7 +103,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass }: T
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: spacing.xs,
+      // Oraliq tor: o'ng tomonda bitta tugma emas, saralash chiplari
+      // ham turishi mumkin va 375px li ekranda har piksel sarlavha
+      // tabletkasidan olinardi.
+      gap: spacing.xxs,
       paddingHorizontal: spacing.md,
       marginBottom: spacing.xs,
     },

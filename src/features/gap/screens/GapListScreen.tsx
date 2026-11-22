@@ -417,6 +417,10 @@ const createStyles = ({ colors, spacing, radius, glass, activeTheme }: ThemeValu
     searchRow: {
       paddingHorizontal: spacing.md,
       marginTop: spacing.xs,
+      // Pastdagi bo'shliq SHART: ilgari bu o'rinda bo'lim sarlavhasi
+      // turardi va bo'shliqni uning o'z `marginBottom` i berardi.
+      // Sarlavha tepaga ko'chgach maydon ro'yxatga yopishib qolgandi.
+      marginBottom: spacing.xs,
     },
     sectionWrap: {
       marginTop: spacing.sm,

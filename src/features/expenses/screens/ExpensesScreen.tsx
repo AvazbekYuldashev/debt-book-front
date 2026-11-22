@@ -464,29 +464,36 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
   }, []);
 
   // Nom chipini bosish: boshqa kalitdan kelsa nom + A-Z, aks holda yo'nalishni almashtiradi.
-  const toggleNameSort = useCallback(() => {
-    if (sortKey === 'name') {
-      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey('name');
+  /**
+   * Chip UCH HOLATLI: birinchi bosish saralaydi, ikkinchisi yo'nalishni
+   * teskari qiladi, uchinchisi odatiy tartibga qaytaradi.
+   *
+   * Ilgari qaytarish uchun alohida "Standart" tugmasi bor edi. Saralash
+   * chiplari bo'lim sarlavhasi bilan bitta qatorga ko'chgach, o'sha
+   * tugmaga joy qolmadi: u bilan birga "Kategoriyalar" tabletkasi
+   * 375px li ekranda kesilardi (o'lchab ko'rilgan). Uchinchi bosish
+   * o'sha amalni qo'shimcha tugmasiz beradi.
+   */
+  const cycleSort = useCallback(
+    (key: Exclude<ExpenseSortKey, 'default'>, firstDir: SortDir) => {
+      if (sortKey !== key) {
+        setSortKey(key);
+        setSortDir(firstDir);
+        return;
+      }
+      if (sortDir === firstDir) {
+        setSortDir(firstDir === 'asc' ? 'desc' : 'asc');
+        return;
+      }
+      setSortKey('default');
       setSortDir('asc');
-    }
-  }, [sortKey]);
+    },
+    [sortKey, sortDir],
+  );
 
+  const toggleNameSort = useCallback(() => cycleSort('name', 'asc'), [cycleSort]);
   // Summa chipini bosish: standart yo'nalish — kattadan kichikka (desc).
-  const toggleSumSort = useCallback(() => {
-    if (sortKey === 'sum') {
-      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey('sum');
-      setSortDir('desc');
-    }
-  }, [sortKey]);
-
-  const resetSort = useCallback(() => {
-    setSortKey('default');
-    setSortDir('asc');
-  }, []);
+  const toggleSumSort = useCallback(() => cycleSort('sum', 'desc'), [cycleSort]);
 
   /**
    * Qidiruv QURILMADA filtrlaydi: kategoriyalar sanoqli va ro'yxat
@@ -582,8 +589,26 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
           onShowEndPicker={setShowEndPicker}
           onApply={handleApplyFilter}
         />
+        {/* Saralash chiplari SARLAVHA QATORINING o'ng tomonida: tabletka
+            yonida bo'sh joy qolar va chiplar alohida qator egallab
+            turardi. Ro'yxat bo'sh bo'lsa saralash ham ma'nosiz — u
+            holda qator faqat tabletkadan iborat bo'ladi. */}
         <View style={styles.sectionWrap}>
-          <SectionHeader icon="pricetags" iconBadge={false} title={t('expenses.categories')} />
+          <SectionHeader
+            icon="pricetags"
+            iconBadge={false}
+            title={t('expenses.categories')}
+            right={
+              !loading && sortedCategories.length > 0 ? (
+                <ExpenseSortBar
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggleName={toggleNameSort}
+                  onToggleSum={toggleSumSort}
+                />
+              ) : undefined
+            }
+          />
         </View>
 
         {/* QIDIRUV, holat banneri, bo'lim sarlavhasi va saralash qatori
@@ -604,22 +629,6 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
             accessibilityLabel={t('expenses.searchPlaceholder')}
           />
         </View>
-
-        {/* Saralash qatori QIDIRUV TAGIDA: ikkisi ham ro'yxatni
-            shakllantiradi va yonma-yon turganda bitta boshqaruv guruhi
-            bo'lib o'qiladi. Ilgari u bo'lim sarlavhasidan KEYIN turardi
-            va sarlavha bilan ro'yxat orasiga tushib qolardi. */}
-        {!loading && sortedCategories.length > 0 ? (
-          <View style={styles.sortWrap}>
-            <ExpenseSortBar
-              sortKey={sortKey}
-              sortDir={sortDir}
-              onToggleName={toggleNameSort}
-              onToggleSum={toggleSumSort}
-              onReset={resetSort}
-            />
-          </View>
-        ) : null}
 
         {error ? (
           <View style={styles.banner}>
@@ -785,6 +794,10 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass, act
     searchRow: {
       paddingHorizontal: spacing.md,
       marginTop: spacing.xs,
+      // Pastdagi bo'shliq SHART: ilgari bu o'rinda bo'lim sarlavhasi
+      // turardi va bo'shliqni uning o'z `marginBottom` i berardi.
+      // Sarlavha tepaga ko'chgach maydon ro'yxatga yopishib qolgandi.
+      marginBottom: spacing.xs,
     },
     // SectionHeader o'z gorizontal chekinishini beradi; bu yerda faqat
     // vertikal ritm. Manfiy chekinish OLIB TASHLANDI: u `ScrollView`
@@ -794,10 +807,6 @@ const createStyles = ({ colors, spacing, radius, typography, shadows, glass, act
       marginTop: spacing.xs,
     },
     // Saralash qatori o'z gorizontal chekinishini bermaydi.
-    sortWrap: {
-      paddingHorizontal: spacing.md,
-      marginTop: spacing.xs,
-    },
     scroll: {
       flex: 1,
     },
