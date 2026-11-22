@@ -15,6 +15,7 @@ import { FAB_CLEARANCE } from '../../../shared/ui/fabLayout';
 import EmptyState from '../../../shared/ui/EmptyState';
 import EntranceView from '../../../shared/ui/EntranceView';
 import SectionHeader from '../../../shared/ui/SectionHeader';
+import SearchField from '../../../shared/ui/SearchField';
 import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import { useRegisterVoiceAction } from '../../voice/model/VoiceActionProvider';
 import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
@@ -62,6 +63,7 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [unitCode, setUnitCode] = useState<GapUnitFilter>('ALL');
+  const [query, setQuery] = useState('');
   const [sort, setSort] = useState<GapSort | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [createVisible, setCreateVisible] = useState(false);
@@ -97,8 +99,23 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
    * eng kattadan saralanadi — Qarzlar ekranidagi bilan bir xil xatti-harakat.
    * Saralash yo'q bo'lsa odatiy tartib (yangi guruh birinchi) saqlanadi.
    */
+  /**
+   * Qidiruv QURILMADA filtrlaydi, serverga so'rov yubormaydi.
+   *
+   * Qarzlar ekranida kontaktlar minglab bo'lishi mumkin va u yerda
+   * qidiruvni backend bajaradi. Guruhlar esa sanoqli va ro'yxat allaqachon
+   * to'liq yuklangan: shu sababli filtr darhol ishlaydi, eng kam harf
+   * sharti ham, kutish ham kerak emas.
+   *
+   * Faqat NOM bo'yicha: boshqa ustunlar (a'zo soni, summa) yozib
+   * qidiriladigan narsa emas.
+   */
   const items = useMemo(() => {
-    const list = listQuery.data?.content ?? [];
+    const all = listQuery.data?.content ?? [];
+    const needle = query.trim().toLowerCase();
+    const list = needle
+      ? all.filter((item) => item.name.toLowerCase().includes(needle))
+      : all;
     if (!sort) return list;
     // Bosilgan raqam bitta birlikka tegishli — solishtirish ham faqat
     // o'sha birlik bo'yicha. So'm bilan dollarni taqqoslab bo'lmaydi.
@@ -108,7 +125,17 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
       return match ? toAmount(match.amount) : 0;
     };
     return [...list].sort((a, b) => value(b) - value(a));
-  }, [listQuery.data, sort]);
+  }, [listQuery.data, query, sort]);
+
+  /** Ro'yxatni qisqartirib turgan biror narsa bormi. */
+  const hasActiveFilter = query.trim().length > 0 || unitCode !== 'ALL' || sort !== null;
+
+  /** Uchala filtrni birdan tozalaydi — to'liq ro'yxatga qaytish yo'li. */
+  const handleShowAll = useCallback(() => {
+    setQuery('');
+    setUnitCode('ALL');
+    setSort(null);
+  }, []);
 
   /** Bir xil raqam qayta bosilsa saralash bekor bo'ladi. */
   const handleAmountPress = useCallback(
@@ -273,8 +300,31 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
           />
         </View>
 
+        {/* QIDIRUV: Qarzlar ekranidagi bilan bir xil maydon va bir xil
+            joyda — balans blokidan keyin, bo'lim sarlavhasidan oldin.
+            Rejim almashtirgichi YO'Q: u yerda ism/telefon tanlovi uchun
+            kerak, guruhda esa telefon degan narsa yo'q. */}
+        <View style={styles.searchRow}>
+          <SearchField
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('gap.searchPlaceholder')}
+            accessibilityLabel={t('gap.searchPlaceholder')}
+          />
+        </View>
+
+        {/* "Barchasi" — qidiruv, birlik filtri va saralashni tozalaydi:
+            filtr qolib ketgani sezilmay, odam "guruhlarim qani" deb
+            o'ylardi. */}
         <View style={styles.sectionWrap}>
-          <SectionHeader icon="people" iconBadge={false} title={t('gap.section')} />
+          <SectionHeader
+            icon="people"
+            iconBadge={false}
+            title={t('gap.section')}
+            actionLabel={hasActiveFilter ? t('gap.seeAll') : undefined}
+            actionIcon="chevron-forward"
+            onAction={hasActiveFilter ? handleShowAll : undefined}
+          />
         </View>
       </EntranceView>
 
@@ -301,6 +351,14 @@ const GapListScreen: React.FC<{ navigation: GapNavigation }> = ({ navigation }) 
                 yangilanishida kulrang chiziqlarga almashmaydi. */}
             {isBusy ? (
               <SkeletonContactList count={4} />
+            ) : hasActiveFilter ? (
+              // Qidiruvning bo'sh natijasi — "hali guruh yo'q" dan BOSHQA
+              // holat: bu yerda "+" tugmasiga undash noo'rin bo'lardi.
+              <EmptyState
+                icon="search-outline"
+                title={t('gap.noSearchResults')}
+                description={t('gap.noSearchHint')}
+              />
             ) : (
               <EmptyState
                 icon="people-outline"
@@ -354,6 +412,11 @@ const createStyles = ({ colors, spacing, radius, glass, activeTheme }: ThemeValu
        Qarzlar ekranidagi bilan bitta manbadan. */
     summaryOverlap: {
       marginTop: -HERO_OVERLAP,
+    },
+    // Qarzlar ekranidagi qidiruv qatori bilan bir xil chekinishlar.
+    searchRow: {
+      paddingHorizontal: spacing.md,
+      marginTop: spacing.xs,
     },
     sectionWrap: {
       marginTop: spacing.sm,
