@@ -1,11 +1,12 @@
 import React, { memo, useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../theme';
 import type { ThemeValue } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n';
 import { useOnlineStatus } from '../lib/networkStatus';
 import { useOutboxCount } from '../lib/useOutbox';
+import OutboxModal from './OutboxModal';
 
 /**
  * Tarmoq va yuborilmagan amallar haqidagi YAGONA xabar qatori.
@@ -19,6 +20,7 @@ import { useOutboxCount } from '../lib/useOutbox';
  * holatda ekrandan bitta piksel ham olmaydi.
  */
 const SyncStatusBar: React.FC = () => {
+  const [listOpen, setListOpen] = React.useState(false);
   const theme = useAppTheme();
   const { colors } = theme;
   const { t } = useI18n();
@@ -46,13 +48,40 @@ const SyncStatusBar: React.FC = () => {
       ? t('sync.pending', { count: String(pending) })
       : t('sync.offline');
 
+  /*
+   * Navbat bo'sh bo'lmasa qator BOSILADI va ro'yxat ochiladi.
+   *
+   * Oflaynda qo'shilgan yozuv ro'yxatlarda hali ko'rinmaydi (balanslar
+   * serverda hisoblanadi va ularni qurilmada taxmin qilish noto'g'ri
+   * raqam berardi). Shuning uchun odamda "amalim qayerga ketdi"
+   * savoliga javob bo'lishi kerak — u shu ro'yxat.
+   */
+  const openable = pending > 0;
+
   return (
-    <View style={[styles.bar, { backgroundColor: tone }]} accessibilityRole="alert">
-      <Ionicons name={icon} size={14} color={colors.textOnPrimary} />
-      <Text style={styles.text} numberOfLines={1}>
-        {message}
-      </Text>
-    </View>
+    <>
+      <Pressable
+        onPress={openable ? () => setListOpen(true) : undefined}
+        disabled={!openable}
+        style={({ pressed }) => [
+          styles.bar,
+          { backgroundColor: tone },
+          pressed && openable && styles.pressed,
+        ]}
+        accessibilityRole={openable ? 'button' : 'alert'}
+        accessibilityLabel={message}
+      >
+        <Ionicons name={icon} size={14} color={colors.textOnPrimary} />
+        <Text style={styles.text} numberOfLines={1}>
+          {message}
+        </Text>
+        {openable ? (
+          <Ionicons name="chevron-forward" size={14} color={colors.textOnPrimary} />
+        ) : null}
+      </Pressable>
+
+      <OutboxModal visible={listOpen} onClose={() => setListOpen(false)} />
+    </>
   );
 };
 
@@ -65,6 +94,9 @@ const createStyles = ({ colors, spacing, typography }: ThemeValue) =>
       gap: spacing.xs,
       paddingVertical: spacing.xxs + 2,
       paddingHorizontal: spacing.md,
+    },
+    pressed: {
+      opacity: 0.75,
     },
     text: {
       ...typography.caption,
