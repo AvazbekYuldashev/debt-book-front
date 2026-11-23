@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getProfileByPhone } from '../../profile/services/profileService';
-import { createCredit, createDebt, getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
+import { createCredit, createDebt } from '../services/moneyService';
 import { newIdempotencyKey } from '../../../shared/lib/idempotency';
+import { loadMoneyDetail, moneyDetailKey, type MoneyDetailCache } from '../model/moneyDetailCache';
 import { isQueuedOffline } from '../../../shared/api/apiClient';
 import {
   Currency,
@@ -78,63 +79,66 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
       return;
     }
 
-    const resolvedCounterpartyId = await resolveCounterpartyId(input);
+    /*
+     * Kontakt id'si odatda ro'yxatdan keladi va tarmoq talab qilmaydi.
+     * Faqat telefon bo'yicha qidirishda so'rov ketadi — oflaynda u
+     * yiqilar va butun ekran bo'sh qolardi. Endi bunday holatda ham
+     * keshga yetib boramiz.
+     */
+    let resolvedCounterpartyId = '';
+    try {
+      resolvedCounterpartyId = await resolveCounterpartyId(input);
+    } catch {
+      resolvedCounterpartyId = input.partyId?.trim() ?? '';
+    }
     if (!resolvedCounterpartyId) {
       setHistory([]);
       setTotalPrice(null);
       return;
     }
 
+    /*
+     * TARIX KESHDAN DARHOL CHIQADI.
+     *
+     * Kesh diskka saqlanadi, ya'ni ilova tarmoqsiz ochilganda ham
+     * kontaktning oldi-berdi tarixi va summalari ko'rinadi. Ilgari bu
+     * ekran hech narsa saqlamasdi: oflaynda kontakt ochilganda u bo'sh
+     * qolar, tafsilotni ko'rishning iloji yo'q edi.
+     */
+    const cacheKey = moneyDetailKey(input.partyType, resolvedCounterpartyId, accountType);
+    const cached = queryClient.getQueryData<MoneyDetailCache>(cacheKey);
+    if (cached) {
+      setHistory(cached.content);
+      setTotalPrice(cached.totals);
+    }
+
     setLoading(true);
     setError('');
     setSelectedCounterparty({ id: resolvedCounterpartyId, partyType: input.partyType });
     try {
-      const baseParams = {
-        id: resolvedCounterpartyId,
+      const detail = await loadMoneyDetail({
+        partyId: resolvedCounterpartyId,
         partyType: input.partyType,
-        page: 0,
-        size: 50,
         token,
         accountType,
-      };
-
-      const [historyPage, totals] = await Promise.all([
-        getMoneyHistory(baseParams),
-        getTotalPriceByPartyId(resolvedCounterpartyId, input.partyType, token, accountType),
-      ]);
-
-      let content = historyPage.content ?? [];
-
-      // Backend ba'zan accountType=business bilan faqat biznes CREDITOR bo'lgan
-      // tranzaksiyalarni qaytaradi — mijoz bergan (biznes debtor) yo'nalishini o'tkazib
-      // yuboradi. accountType ko'rsatmasdan yana bir so'rov yuborib, ikki tomonni merge
-      // qilamiz va id bo'yicha dedup qilamiz.
-      if (accountType) {
-        try {
-          const reverseHistoryPage = await getMoneyHistory({ ...baseParams, accountType: undefined });
-          const reverseContent = reverseHistoryPage.content ?? [];
-          if (reverseContent.length > 0) {
-            const seen = new Set(content.map((item) => item.id));
-            const extra = reverseContent.filter((item) => !seen.has(item.id));
-            if (extra.length > 0) {
-              content = [...content, ...extra].sort(
-                (a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
-              );
-            }
-          }
-        } catch {
-          // Reverse so'rov muvaffaqiyatsiz bo'lsa asosiy natija saqlanadi.
-        }
-      }
-
-      setHistory(content);
-      setTotalPrice(totals ?? null);
+      });
+      setHistory(detail.content);
+      setTotalPrice(detail.totals);
+      queryClient.setQueryData<MoneyDetailCache>(cacheKey, detail);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Ma'lumotlarni yuklab bo'lmadi");
+      /*
+       * Keshdan ko'rsatilayotgan bo'lsa XATO CHIQARMAYMIZ: ekranda
+       * ma'lumot turibdi va ustiga qizil xabar qo'yish "hech narsa
+       * yo'q" degan taassurot berardi. Oflayn ekani tepadagi umumiy
+       * qatorda allaqachon aytilgan.
+       */
+      if (!cached) {
+        setError(e instanceof Error ? e.message : "Ma'lumotlarni yuklab bo'lmadi");
+      }
     } finally {
       setLoading(false);
     }
-  }, [accountType, resolveCounterpartyId, token]);
+  }, [accountType, queryClient, resolveCounterpartyId, token]);
 
   const createMoney = useCallback(
     async (type: MoneyActionType, payload: CreateMoneyInput): Promise<boolean> => {

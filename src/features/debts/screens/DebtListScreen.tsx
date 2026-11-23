@@ -40,9 +40,12 @@ import { primeNotificationAudio } from '../../../shared/lib/webNotify';
 import { requestNotificationPermission } from '../../../shared/lib/deviceNotifications';
 import type { DeviceContact } from '../../../shared/lib/deviceContacts';
 import { useI18n } from '../../../shared/i18n';
+import { AuthContext } from '../../auth/context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 import SectionHeader from '../../../shared/ui/SectionHeader';
 import BalanceSummary from '../components/BalanceSummary';
 import BalanceHero, { HERO_OVERLAP } from '../components/BalanceHero';
+import { prefetchMoneyDetails } from '../model/moneyDetailCache';
 import ContactRow from '../components/ContactRow';
 import ContactFormModal from '../components/ContactFormModal';
 import ProfilePhotoModal from '../../profile/components/ProfilePhotoModal';
@@ -70,6 +73,8 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   const { colors } = theme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  const { profile } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const { workspace } = useContext(WorkspaceContext);
   const {
     contacts,
@@ -163,6 +168,34 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   }, []);
 
   const handleResetSort = useCallback(() => setSort(null), []);
+
+  /*
+   * KONTAKT TAFSILOTLARINI FONDA OLDINDAN YUKLAB QO'YAMIZ.
+   *
+   * Kesh faqat odam KIRIB KO'RGAN ekranni saqlaydi. Shunda internet
+   * uzilganda u faqat o'zi ochgan kontaktlarni ko'rardi, qolganlari
+   * bo'sh chiqardi — "oflaynda ishlaydi" degani bu emas.
+   *
+   * Shuning uchun ro'yxat kelgach ilova har kontaktning oldi-berdi
+   * tarixini jimgina yuklab, diskka yozib qo'yadi. Navbat bilan va
+   * cheklangan sonda: ekrandagi ish birinchi bo'lishi kerak.
+   *
+   * `sortedContacts` emas, `contacts`: saralash va qidiruv o'zgarganda
+   * bu ish qaytadan boshlanmasligi kerak.
+   */
+  useEffect(() => {
+    const token = profile?.jwt;
+    if (!token || contacts.length === 0) return;
+    const timer = setTimeout(() => {
+      void prefetchMoneyDetails(
+        queryClient,
+        contacts.map((contact) => ({ id: contact.id, partyType: contact.partyType })),
+        token,
+        workspace.mode === 'business' ? 'business' : 'personal',
+      );
+    }, 1_500);
+    return () => clearTimeout(timer);
+  }, [contacts, profile?.jwt, queryClient, workspace.mode]);
 
   // Odatiy holatda oxirgi amal birinchi; valyuta tanlansa o'sha valyutaning sof
   // balansi (credit - debt) bo'yicha. 'debt' = eng katta qarzdan (eng manfiy) haqgacha,

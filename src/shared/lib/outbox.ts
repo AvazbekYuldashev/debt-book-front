@@ -50,12 +50,15 @@ export type OutboxSender = (item: OutboxItem) => Promise<void>;
 export type OutboxOutcome = 'sent' | 'retry' | 'dropped';
 
 type Listener = () => void;
+/** Amal serverga YETIB BORGANDA chaqiriladi — ekranlar yangilanishi uchun. */
+type SentListener = (item: OutboxItem) => void;
 
 let items: OutboxItem[] = [];
 let loaded = false;
 let flushing = false;
 let sender: OutboxSender | null = null;
 const listeners = new Set<Listener>();
+const sentListeners = new Set<SentListener>();
 
 const emit = (): void => listeners.forEach((listener) => listener());
 
@@ -104,6 +107,20 @@ export const outbox = {
     listeners.add(listener);
     return () => {
       listeners.delete(listener);
+    };
+  },
+
+  /**
+   * Amal serverga yetib borganda xabar beradi.
+   *
+   * Ekranlarda oflaynda qo'shilgan yozuv VAQTINCHALIK ko'rinishda
+   * turadi (soat belgisi bilan). U haqiqiy, server bergan yozuvga
+   * almashishi uchun o'sha paytda ma'lumot qayta so'ralishi kerak.
+   */
+  subscribeSent(listener: SentListener): () => void {
+    sentListeners.add(listener);
+    return () => {
+      sentListeners.delete(listener);
     };
   },
 
@@ -159,8 +176,12 @@ export const outbox = {
         items = items.slice(1);
         await persist();
         emit();
-        if (outcome === 'sent') sent += 1;
-        else dropped += 1;
+        if (outcome === 'sent') {
+          sent += 1;
+          sentListeners.forEach((listener) => listener(head));
+        } else {
+          dropped += 1;
+        }
       }
     } finally {
       flushing = false;
