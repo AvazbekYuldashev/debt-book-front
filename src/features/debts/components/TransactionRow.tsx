@@ -37,7 +37,12 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, onPress }) 
   return (
     <Pressable
       onPress={handlePress}
-      style={({ pressed }) => [styles.row, !isLast && styles.rowBorder, pressed && styles.rowPressed]}
+      style={({ pressed }) => [
+        styles.row,
+        !isLast && styles.rowBorder,
+        tx.pending && styles.rowPending,
+        pressed && styles.rowPressed,
+      ]}
       accessibilityRole="button"
       accessibilityLabel={`${tx.label}: ${formatMoney(tx.amount, currency)}`}
       // To'liq enli qator yumaloq karta ichida - halqa ichkariga chiziladi.
@@ -58,7 +63,14 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, onPress }) 
         >
           {formatMoney(tx.amount, currency)}
         </Text>
-        <Text style={styles.date}>{formatDateShort(tx.createdDate)}</Text>
+        <View style={styles.dateRow}>
+          {/* Soat belgisi — yozuv hali serverga yetmagani. Yuborilgach
+              server bergan yozuv keladi va belgi o'zi yo'qoladi. */}
+          {tx.pending ? (
+            <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
+          ) : null}
+          <Text style={styles.date}>{formatDateShort(tx.createdDate)}</Text>
+        </View>
       </View>
 
       {description ? (
@@ -70,6 +82,15 @@ const TransactionRow: React.FC<TransactionRowProps> = ({ tx, isLast, onPress }) 
 
 const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
+    /** Yuborilmagan yozuv biroz so'nik: u hali "yo'lda". */
+    rowPending: {
+      opacity: 0.7,
+    },
+    dateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
     row: {
       flexDirection: 'row',
       alignItems: 'center',

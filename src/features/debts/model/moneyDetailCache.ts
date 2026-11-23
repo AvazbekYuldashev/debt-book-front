@@ -1,6 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
-import type { AccountType, MoneyPriceDTO, MoneyResponseDTO, PartyType } from '../../../shared/types/money';
+import type {
+  AccountType,
+  Currency,
+  MoneyPriceDTO,
+  MoneyResponseDTO,
+  PartyType,
+} from '../../../shared/types/money';
 
 // ============================================================
 //  KONTAKT TAFSILOTI — yuklash va keshlash.
@@ -123,4 +129,137 @@ export const prefetchMoneyDetails = async (
       break;
     }
   }
+};
+
+
+// ============================================================
+//  OFLAYNDA KIRITILGAN YOZUV — DARHOL KO'RINADI.
+//
+//  Odam qarz yozdi, internet yo'q. Amal navbatga tushadi, lekin ekranda
+//  hech narsa o'zgarmasa, u "yozilmadi shekilli" deb o'ylab qayta
+//  kiritardi. Shuning uchun yozuv ro'yxatga DARHOL qo'shiladi va soat
+//  belgisi bilan turadi — xuddi yuborilmagan xabar kabi.
+//
+//  Summalar ham shu yerda to'g'rilanadi: aks holda tarixda yozuv turib,
+//  tepadagi balans eski qolar va ikkisi bir-biriga zid ko'rinardi.
+//  Server yuborilgandan keyin baribir aniq raqamni qaytaradi.
+// ============================================================
+
+export interface PendingMoneyInput {
+  partyType: PartyType;
+  partyId: string;
+  accountType?: AccountType;
+  /** `true` — men berdim (haq), `false` — men oldim (qarz). */
+  isGive: boolean;
+  amount: number;
+  currency?: Currency;
+  description?: string;
+  calcNote?: string;
+  /** Navbatdagi amalning kaliti — yozuv o'sha amalga tegishli ekani bilinadi. */
+  key: string;
+}
+
+/** Oflayn yozuv uchun vaqtinchalik id — server bergani bilan adashmasin. */
+export const pendingMoneyId = (key: string): string => `pending:${key}`;
+
+/**
+ * Oflayn yozuvdan vaqtinchalik tranzaksiya yasaydi.
+ *
+ * Yo'nalish QARAMA-QARSHI TOMON orqali beriladi: `mapTransaction` aynan
+ * shu bo'yicha ham aniqlay oladi va bu yerda o'z hisobimizning id'si
+ * kerak emas.
+ */
+export const buildPendingMoney = (input: PendingMoneyInput): MoneyResponseDTO => {
+  const isBusiness = input.partyType === 'BUSINESS_ACCOUNT';
+  const side = input.isGive
+    ? // Men berdim: qarama-qarshi tomon QARZDOR.
+      isBusiness
+      ? { debtorBusinessId: input.partyId, debtorType: 'BUSINESS_ACCOUNT' as PartyType }
+      : { debtorId: input.partyId, debtorType: 'PROFILE' as PartyType }
+    : // Men oldim: qarama-qarshi tomon HAQDOR.
+      isBusiness
+      ? { creditorBusinessId: input.partyId, creditorType: 'BUSINESS_ACCOUNT' as PartyType }
+      : { creditorId: input.partyId, creditorType: 'PROFILE' as PartyType };
+
+  return {
+    id: pendingMoneyId(input.key),
+    amount: input.amount,
+    currency: input.currency,
+    visible: true,
+    createdDate: new Date().toISOString(),
+    description: input.description ?? '',
+    calcNote: input.calcNote,
+    pending: true,
+    ...side,
+  };
+};
+
+/** Valyuta bo'yicha yig'indiga qo'shadi (satr bo'lsa ham songa aylantiradi). */
+const addTo = (
+  map: Record<string, number | string> | undefined,
+  currency: string,
+  amount: number,
+): Record<string, number | string> => {
+  const next = { ...(map ?? {}) };
+  const current = Number(next[currency] ?? 0);
+  next[currency] = (Number.isFinite(current) ? current : 0) + amount;
+  return next;
+};
+
+/** Summalarni oflayn yozuv hisobiga to'g'rilaydi. */
+export const applyPendingToTotals = (
+  totals: MoneyPriceDTO | null,
+  input: PendingMoneyInput,
+): MoneyPriceDTO => {
+  const currency = input.currency ?? 'UZS';
+  const base: MoneyPriceDTO = { ...(totals ?? {}) };
+  if (input.isGive) {
+    base.creditByCurrency = addTo(base.creditByCurrency, currency, input.amount);
+    base.totalCredit = Number(base.totalCredit ?? 0) + input.amount;
+  } else {
+    base.debtByCurrency = addTo(base.debtByCurrency, currency, input.amount);
+    base.totalDebt = Number(base.totalDebt ?? 0) + input.amount;
+  }
+  return base;
+};
+
+/**
+ * Oflayn yozuvni keshga qo'shadi.
+ *
+ * Keshga ham yoziladi, faqat ekran holatiga emas: odam boshqa ekranga
+ * o'tib qaytsa yoki ilovani yopib ochsa ham yozuv joyida turishi kerak.
+ */
+export const addPendingToCache = (
+  queryClient: QueryClient,
+  input: PendingMoneyInput,
+): MoneyResponseDTO => {
+  const record = buildPendingMoney(input);
+  const key = moneyDetailKey(input.partyType, input.partyId, input.accountType);
+  const current = queryClient.getQueryData<MoneyDetailCache>(key);
+  queryClient.setQueryData<MoneyDetailCache>(key, {
+    content: [record, ...(current?.content ?? [])],
+    totals: applyPendingToTotals(current?.totals ?? null, input),
+  });
+  return record;
+};
+
+/**
+ * Yuborilgan oflayn yozuvni keshdan olib tashlaydi.
+ *
+ * Server o'z yozuvini qaytaradi va ikkisi yonma-yon turib qolmasligi
+ * kerak — odam bitta qarzni ikkita bo'lib ko'rardi.
+ */
+export const dropPendingFromCache = (queryClient: QueryClient, key: string): void => {
+  const id = pendingMoneyId(key);
+  queryClient
+    .getQueryCache()
+    .findAll({ queryKey: ['money-detail'] })
+    .forEach((query) => {
+      const data = query.state.data as MoneyDetailCache | undefined;
+      if (!data?.content?.some((item) => item.id === id)) return;
+      queryClient.setQueryData<MoneyDetailCache>(query.queryKey, {
+        ...data,
+        content: data.content.filter((item) => item.id !== id),
+      });
+    });
 };

@@ -87,6 +87,14 @@ export interface MoneyResponseDTO {
   calcNote?: string;
   /** Oldi-berdi mahsulot buyurtmasidan tuzilgan bo'lsa — chek satrlari. */
   items?: MoneyItemDTO[];
+  /**
+   * Yozuv HALI SERVERGA YETMAGAN (oflaynda kiritilgan).
+   *
+   * Faqat qurilmada bo'ladi: server bunday maydon qaytarmaydi. Qatorda
+   * soat belgisi bilan ko'rsatiladi va navbat yuborilgach haqiqiy
+   * yozuvga almashadi.
+   */
+  pending?: boolean;
 }
 
 export interface MoneyCreditorProfileCreatedDTO {

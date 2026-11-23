@@ -3,7 +3,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { getProfileByPhone } from '../../profile/services/profileService';
 import { createCredit, createDebt } from '../services/moneyService';
 import { newIdempotencyKey } from '../../../shared/lib/idempotency';
-import { loadMoneyDetail, moneyDetailKey, type MoneyDetailCache } from '../model/moneyDetailCache';
+import {
+  addPendingToCache,
+  applyPendingToTotals,
+  loadMoneyDetail,
+  moneyDetailKey,
+  type MoneyDetailCache,
+  type PendingMoneyInput,
+} from '../model/moneyDetailCache';
 import { isQueuedOffline } from '../../../shared/api/apiClient';
 import {
   Currency,
@@ -149,8 +156,15 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
 
       setCreating(true);
       setError('');
+      /*
+       * Bu uchtasi `try` dan TASHQARIDA: oflayn yozuvni darhol
+       * ko'rsatish uchun ular `catch` da ham kerak.
+       */
+      let resolvedCounterpartyId = '';
+      let isGive = false;
+      let idemKey = '';
       try {
-        const resolvedCounterpartyId = payload.targetPartyId?.trim()
+        resolvedCounterpartyId = payload.targetPartyId?.trim()
           ? payload.targetPartyId.trim()
           : payload.targetPartyType === 'PROFILE' && payload.targetPhone
             ? (await getProfileByPhone(payload.targetPhone, token)).id
@@ -171,9 +185,9 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
          * Kalit servis ichida yaratilmaydi: u yerda har urinishda
          * yangisi chiqib, himoya ishlamay qolardi.
          */
-        const idemKey = newIdempotencyKey();
+        idemKey = newIdempotencyKey();
 
-        const isGive = type === 'GIVE';
+        isGive = type === 'GIVE';
         const fromPartyType = isGive ? ownerPartyType : payload.targetPartyType;
         const toPartyType = isGive ? payload.targetPartyType : ownerPartyType;
         const fromAccountType = accountTypeFromParty(fromPartyType);
@@ -253,6 +267,36 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
          * turadi.
          */
         if (isQueuedOffline(e)) {
+          /*
+           * OFLAYN YOZUV DARHOL KO'RINADI.
+           *
+           * Amal navbatga tushdi, lekin ekranda hech narsa o'zgarmasa
+           * odam "yozilmadi shekilli" deb qayta kiritardi — internet
+           * qaytganda ikkita yozuv paydo bo'lardi. Shuning uchun yozuv
+           * ro'yxatga shu zahoti qo'shiladi va soat belgisi bilan
+           * turadi; navbat yuborilgach haqiqiysi bilan almashadi.
+           */
+          const pendingInput: PendingMoneyInput = {
+            partyType: payload.targetPartyType,
+            partyId: resolvedCounterpartyId,
+            accountType,
+            isGive,
+            amount: payload.amount,
+            currency: payload.currency,
+            description: payload.description,
+            calcNote: payload.calcNote || undefined,
+            /*
+             * Chek satrlari vaqtinchalik yozuvga KIRMAYDI: formadagi
+             * satrlar server qaytaradigan ko'rinishdan boshqa (narx va
+             * yakuniy summa serverda hisoblanadi). Ularni taxmin qilib
+             * ko'rsatish noto'g'ri raqam berardi — yuborilgach aniq
+             * ko'rinishda keladi.
+             */
+            key: idemKey,
+          };
+          const record = addPendingToCache(queryClient, pendingInput);
+          setHistory((prev) => [record, ...prev]);
+          setTotalPrice((prev) => applyPendingToTotals(prev, pendingInput));
           return true;
         }
         setError(e instanceof Error ? e.message : 'Amaliyot bajarilmadi');

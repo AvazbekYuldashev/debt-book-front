@@ -1,6 +1,8 @@
 import apiClient from './apiClient';
 import { withIdempotencyKey } from '../lib/idempotency';
 import { outbox, startOutboxAutoFlush } from '../lib/outbox';
+import { queryClient } from '../lib/queryClient';
+import { dropPendingFromCache } from '../../features/debts/model/moneyDetailCache';
 
 /**
  * Oflayn navbatni API klientiga ulaydi.
@@ -21,6 +23,23 @@ export const connectOutbox = (): (() => void) => {
       ...withIdempotencyKey(undefined, item.key),
     });
   });
+  /*
+   * Amal serverga yetgach VAQTINCHALIK yozuv olib tashlanadi va
+   * ma'lumot qayta so'raladi.
+   *
+   * Aks holda server bergan haqiqiy yozuv keshdagi vaqtinchalik yozuv
+   * YONIDA turib qolar va odam bitta qarzni ikkita bo'lib ko'rardi.
+   */
+  const stopSentWatch = outbox.subscribeSent((item) => {
+    dropPendingFromCache(queryClient, item.key);
+    void queryClient.invalidateQueries({ queryKey: ['money-detail'] });
+    void queryClient.invalidateQueries({ queryKey: ['contact-balances'] });
+  });
+
   void outbox.init();
-  return startOutboxAutoFlush();
+  const stopAutoFlush = startOutboxAutoFlush();
+  return () => {
+    stopSentWatch();
+    stopAutoFlush();
+  };
 };
