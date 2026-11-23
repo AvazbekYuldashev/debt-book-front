@@ -35,6 +35,7 @@ import { buildProductPayload } from '../model/productPayload';
 import type { ProductResponseDTO } from '../types/product';
 import { createCategory, deleteCategory, getCategories } from '../../expenses/services/categoryService';
 import type { CategoryResponseDTO } from '../../expenses/types/category';
+import { isQueuedOffline } from '../../../shared/api/apiClient';
 
 type Props = ProductsScreenProps<typeof ROUTES.PRODUCT_LIST>;
 type FormMode = 'create' | 'edit';
@@ -176,6 +177,8 @@ const ProductsScreen: React.FC<Props> = () => {
         await loadProducts(false);
         return true;
       } catch (e) {
+        // Oflaynda amal navbatga tushdi — yo'qolmadi, xato ham emas.
+        if (isQueuedOffline(e)) return true;
         setError(e instanceof Error ? e.message : t('products.saveFailed'));
         return false;
       } finally {
@@ -218,6 +221,7 @@ const ProductsScreen: React.FC<Props> = () => {
           // "kategoriyasiz" bo'lib qoladi (server ON DELETE SET NULL).
           await loadProducts(false);
         } catch (e) {
+          if (isQueuedOffline(e)) return;
           setError(e instanceof Error ? e.message : t('products.saveFailed'));
         }
       });
@@ -235,6 +239,7 @@ const ProductsScreen: React.FC<Props> = () => {
           await deleteProduct(product.id, profile.jwt);
           await loadProducts(false);
         } catch (e) {
+          if (isQueuedOffline(e)) return;
           setError(e instanceof Error ? e.message : t('products.deleteFailed'));
         } finally {
           setDeletingId('');

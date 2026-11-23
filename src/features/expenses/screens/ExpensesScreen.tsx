@@ -44,6 +44,7 @@ import { resolveExpenseCommand } from '../../voice/model/resolveExpenseCommand';
 import type { ExpenseCommand } from '../../voice/model/resolveExpenseCommand';
 import ExpenseVoiceResultModal from '../../voice/components/ExpenseVoiceResultModal';
 import type { VoiceIntent } from '../../voice/api/voice';
+import { isQueuedOffline } from '../../../shared/api/apiClient';
 
 /** Formaga tushadigan qism - buyruqning qaysi turi bo'lishidan qat'i nazar. */
 type ExpenseSpoken = {
@@ -214,6 +215,8 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         await loadCategories(true);
         return true;
       } catch (e) {
+        // Oflaynda amal navbatga tushdi — yo'qolmadi, xato ham emas.
+        if (isQueuedOffline(e)) return true;
         setError(e instanceof Error ? e.message : t('expenses.saveFailed'));
         return false;
       } finally {
@@ -235,6 +238,7 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         await deleteCategory(id, profile.jwt);
         await loadCategories(true);
       } catch (e) {
+        if (isQueuedOffline(e)) return;
         setError(e instanceof Error ? e.message : t('expenses.deleteFailed'));
       } finally {
         setDeletingCategory('');
@@ -291,6 +295,7 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         await pinCategory({ id: category.id, pin: nextPin }, profile.jwt);
         setCategories((prev) => prev.map((item) => (item.id === category.id ? { ...item, pin: nextPin } : item)));
       } catch (e) {
+        if (isQueuedOffline(e)) return;
         setError(e instanceof Error ? e.message : t('expenses.pinFailed'));
       } finally {
         setPinningCategoryId('');

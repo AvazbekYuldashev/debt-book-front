@@ -7,6 +7,7 @@ import { ACCOUNT_TYPE, PartyType } from '../../../shared/types/money';
 import { useAccountContext } from '../../../shared/hooks/useAccountContext';
 import { useRealtimeConnected } from '../../notifications/realtime/realtimeStatus';
 import { getPhoneValidationError, normalizePhone } from '../../../shared/lib/phone';
+import { isQueuedOffline } from '../../../shared/api/apiClient';
 
 export interface Contact {
   id: string;
@@ -330,6 +331,8 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         );
         return true;
       } catch (e) {
+        // Oflaynda amal navbatga tushdi — yo'qolmadi, xato ham emas.
+        if (isQueuedOffline(e)) return true;
         setMutationError(e instanceof Error ? e.message : "Kontakt qo'shilmadi");
         return false;
       } finally {
@@ -373,6 +376,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         );
         return true;
       } catch (e) {
+        if (isQueuedOffline(e)) return true;
         setMutationError(e instanceof Error ? e.message : "Kontakt o'zgartirilmadi");
         return false;
       } finally {
@@ -402,6 +406,7 @@ export const ContactsProvider: React.FC<{ children: ReactNode }> = ({ children }
         );
         return true;
       } catch (e) {
+        if (isQueuedOffline(e)) return true;
         setMutationError(e instanceof Error ? e.message : "Kontakt o'chirilmadi");
         return false;
       } finally {

@@ -1,5 +1,6 @@
 import { useContext } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { offlineTolerant } from '../../../shared/lib/offlineTolerant';
 import { AuthContext } from '../../auth/context/AuthContext';
 import { useAccountContext } from '../../../shared/hooks/useAccountContext';
 import {
@@ -202,7 +203,7 @@ export const useRequestRental = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: (dto: RentalRequestDTO) => requestRental(dto, token),
+    mutationFn: offlineTolerant((dto: RentalRequestDTO) => requestRental(dto, token)),
     onSuccess: invalidate,
   });
 };
@@ -214,7 +215,7 @@ export const useConfirmRental = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: (id: string) => confirmRental(id, token),
+    mutationFn: offlineTolerant((id: string) => confirmRental(id, token)),
     onSuccess: invalidate,
   });
 };
@@ -225,7 +226,7 @@ export const useCreateRentalBatch = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: (dto: RentalBatchCreateDTO) => createRentalBatch(dto, token),
+    mutationFn: offlineTolerant((dto: RentalBatchCreateDTO) => createRentalBatch(dto, token)),
     onSuccess: invalidate,
   });
 };
@@ -236,7 +237,7 @@ export const useUpdateRental = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: (dto: RentalUpdateDTO) => updateRental(dto, token),
+    mutationFn: offlineTolerant((dto: RentalUpdateDTO) => updateRental(dto, token)),
     onSuccess: invalidate,
   });
 };
@@ -248,8 +249,8 @@ export const useReturnRental = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto?: RentalReturnDTO }) =>
-      returnRental(id, dto ?? {}, token),
+    mutationFn: offlineTolerant(({ id, dto }: { id: string; dto?: RentalReturnDTO }) =>
+      returnRental(id, dto ?? {}, token)),
     onSuccess: invalidate,
   });
 };
@@ -261,7 +262,7 @@ export const usePayRental = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: RentalPaymentDTO }) => payRental(id, dto, token),
+    mutationFn: offlineTolerant(({ id, dto }: { id: string; dto: RentalPaymentDTO }) => payRental(id, dto, token)),
     onSuccess: invalidate,
   });
 };
@@ -273,8 +274,8 @@ export const useRequestRentalPayment = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: RentalPaymentDTO }) =>
-      requestRentalPayment(id, dto, token),
+    mutationFn: offlineTolerant(({ id, dto }: { id: string; dto: RentalPaymentDTO }) =>
+      requestRentalPayment(id, dto, token)),
     onSuccess: invalidate,
   });
 };
@@ -286,8 +287,8 @@ export const useResolveRentalPayment = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: ({ id, accept }: { id: string; accept: boolean }) =>
-      accept ? confirmRentalPayment(id, token) : rejectRentalPayment(id, token),
+    mutationFn: offlineTolerant(({ id, accept }: { id: string; accept: boolean }) =>
+      accept ? confirmRentalPayment(id, token) : rejectRentalPayment(id, token)),
     onSuccess: invalidate,
   });
 };
@@ -298,7 +299,7 @@ export const useDeleteRental = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: (id: string) => deleteRental(id, token),
+    mutationFn: offlineTolerant((id: string) => deleteRental(id, token)),
     onSuccess: invalidate,
   });
 };
@@ -327,7 +328,7 @@ export const useCreateRentalItem = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: (dto: RentalItemCreateDTO) => createRentalItem(dto, token),
+    mutationFn: offlineTolerant((dto: RentalItemCreateDTO) => createRentalItem(dto, token)),
     onSuccess: invalidate,
   });
 };
@@ -338,7 +339,7 @@ export const useUpdateRentalItem = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: (dto: RentalItemUpdateDTO) => updateRentalItem(dto, token),
+    mutationFn: offlineTolerant((dto: RentalItemUpdateDTO) => updateRentalItem(dto, token)),
     onSuccess: invalidate,
   });
 };
@@ -349,7 +350,7 @@ export const useDeleteRentalItem = () => {
   const invalidate = useRentalInvalidate();
 
   return useMutation({
-    mutationFn: (id: string) => deleteRentalItem(id, token),
+    mutationFn: offlineTolerant((id: string) => deleteRentalItem(id, token)),
     onSuccess: invalidate,
   });
 };

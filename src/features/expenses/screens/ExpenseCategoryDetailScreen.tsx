@@ -25,6 +25,7 @@ import ExpenseFormModal from '../components/ExpenseFormModal';
 import { markVoiceTarget } from '../../voice/api/voice';
 import type { VoiceIntent } from '../../voice/api/voice';
 import { useRegisterVoiceAction } from '../../voice/model/VoiceActionProvider';
+import { isQueuedOffline } from '../../../shared/api/apiClient';
 
 type Props = ExpensesScreenProps<typeof ROUTES.EXPENSE_CATEGORY_DETAIL>;
 
@@ -177,6 +178,8 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
         await loadExpenses(true);
         return true;
       } catch (e) {
+        // Oflaynda amal navbatga tushdi — yo'qolmadi, xato ham emas.
+        if (isQueuedOffline(e)) return true;
         setError(e instanceof Error ? e.message : t('expenses.saveFailed'));
         return false;
       } finally {
@@ -198,6 +201,7 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
         await deleteExpense(id, profile.jwt);
         setExpenses((prev) => prev.filter((item) => item.id !== id));
       } catch (e) {
+        if (isQueuedOffline(e)) return;
         setError(e instanceof Error ? e.message : t('expenses.deleteFailed'));
       } finally {
         setDeletingExpense('');

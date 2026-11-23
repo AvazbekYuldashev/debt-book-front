@@ -1,5 +1,6 @@
 import { useContext } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { offlineTolerant } from '../../../shared/lib/offlineTolerant';
 import { AuthContext } from '../../auth/context/AuthContext';
 import {
   addGapMember,
@@ -122,7 +123,7 @@ export const useCreateGap = () => {
   const invalidate = useGapInvalidate();
 
   return useMutation({
-    mutationFn: (dto: GapGroupCreateDTO) => createGap(dto, token),
+    mutationFn: offlineTolerant((dto: GapGroupCreateDTO) => createGap(dto, token)),
     onSuccess: invalidate,
   });
 };
@@ -133,7 +134,7 @@ export const useAddGapMember = (groupId: string) => {
   const invalidate = useGapInvalidate();
 
   return useMutation({
-    mutationFn: (dto: GapMemberCreateDTO) => addGapMember(groupId, dto, token),
+    mutationFn: offlineTolerant((dto: GapMemberCreateDTO) => addGapMember(groupId, dto, token)),
     onSuccess: invalidate,
   });
 };
@@ -145,7 +146,7 @@ export const useCreateGapTransfer = (groupId: string) => {
   const invalidate = useGapInvalidate();
 
   return useMutation({
-    mutationFn: (dto: GapTransferCreateDTO) => createGapTransfer(groupId, dto, token),
+    mutationFn: offlineTolerant((dto: GapTransferCreateDTO) => createGapTransfer(groupId, dto, token)),
     onSuccess: invalidate,
   });
 };
@@ -157,7 +158,7 @@ export const useConfirmGapTransfer = () => {
   const invalidate = useGapInvalidate();
 
   return useMutation({
-    mutationFn: (transferId: string) => confirmGapTransfer(transferId, token),
+    mutationFn: offlineTolerant((transferId: string) => confirmGapTransfer(transferId, token)),
     onSuccess: invalidate,
   });
 };
