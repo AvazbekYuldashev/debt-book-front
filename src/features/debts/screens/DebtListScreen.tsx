@@ -18,7 +18,6 @@ import FloatingActionButton from '../../../shared/ui/FloatingActionButton';
 import SearchField from '../../../shared/ui/SearchField';
 import StatusBanner from '../../../shared/ui/StatusBanner';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
-import { useOnlineStatus } from '../../../shared/lib/networkStatus';
 import ScreenTopBar from '../../../app/components/ScreenTopBar';
 import { useRegisterVoiceAction } from '../../voice/model/VoiceActionProvider';
 import DeviceContactsPickerModal from '../components/DeviceContactsPickerModal';
@@ -97,7 +96,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   } = useContactBalances(contacts);
 
   const canEdit = canWrite(workspace.activeBusinessRole);
-  const isOnline = useOnlineStatus();
 
   // Telegram uslubida: har kontaktning o'zida o'qilmagan xabarlar soni.
   // Inbox query'si keshdan ulashiladi (watcher baribir yangilab turadi).
@@ -563,7 +561,10 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   // Endi mavjud ma'lumot joyida turadi, yangilanish esa RefreshControl
   // aylanasi orqali ko'rinadi.
   const showSkeleton = isBusy && sortedContacts.length === 0;
-  const hasBanner = Boolean(!isOnline || error || searchError);
+  // Oflayn holati global `SyncStatusBar` da ko'rsatiladi, shuning uchun
+  // bu yerda faqat XATO bannerlari qoladi — aks holda bitta ekranda
+  // ikkita bir xil xabar turardi.
+  const hasBanner = Boolean(error || searchError);
 
   // FAB pulsatsiyasi — faqat ro'yxat bo'sh bo'lganda (birinchi mijozga undov) va
   // CHEKLI takror bilan. Avval cheksiz loop edi: web'da bu har frame'da style
@@ -656,7 +657,6 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
         {/* Holat bannerlari — bo'lmasa konteyner ham chizilmaydi. */}
         {hasBanner ? (
           <View style={styles.banners}>
-            {!isOnline ? <StatusBanner tone="warning" message={t('common.offline')} /> : null}
             {error ? (
               <StatusBanner
                 tone="error"

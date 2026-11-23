@@ -8,6 +8,7 @@ import {
 } from '../../../shared/api/apiClient';
 import { secureStorage } from '../../../shared/lib/secureStorage';
 import { clearPersistedCache } from '../../../shared/lib/queryClient';
+import { outbox } from '../../../shared/lib/outbox';
 
 interface AuthContextValue {
   profile: ProfileDTO | null;
@@ -75,6 +76,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
        */
       if (prev?.id !== nextProfile?.id) {
         void clearPersistedCache();
+        /*
+         * Navbat ham tozalanadi: u o'sha hisobning amallari va
+         * boshqa hisob ostida yuborilsa, pul BEGONA odamning
+         * daftariga yozilib ketardi.
+         */
+        void outbox.clear();
       }
 
       return nextProfile;

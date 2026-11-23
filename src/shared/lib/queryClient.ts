@@ -44,19 +44,17 @@ export const queryClient = new QueryClient({
       cacheTime: CACHE_MAX_AGE,
     },
     /**
-     * YOZUV amallari hozircha AVVALGIDEK: oflaynda to'xtamaydi, darhol
-     * xato beradi.
+     * YOZUV amallari oflaynda ham YUBORILADI — va aynan shu kerak.
      *
-     * Odatiy `networkMode: 'online'` bilan ular to'xtagan holatda
-     * osilib qolardi — odam "saqlash" bosib, cheksiz aylanani ko'rib
-     * turardi va amal qayerga ketganini bilmasdi. To'xtash FOYDALI
-     * bo'lishi uchun avval navbat kerak: saqlangan mutatsiyalar,
-     * "yuborilmagan" belgisi va takrorlanishdan himoya (server
-     * tomonda idempotency kaliti).
+     * Odatiy `networkMode: 'online'` bilan ular so'rov yubormasdan
+     * TO'XTAB turardi. Bizda esa navbat API qatlamida: so'rov haqiqatan
+     * urinib ko'rilishi, tarmoq yo'qligi aniqlanishi va `apiClient`
+     * uni navbatga qo'yishi kerak. To'xtagan mutatsiya hech qachon
+     * navbatga tushmasdi — ya'ni amal umuman saqlanmay qolardi.
      *
-     * Shu qism tayyor bo'lganda bu qator olib tashlanadi — o'shanda
-     * oflayn amal to'xtaydi, saqlanadi va tarmoq qaytganda o'zi
-     * yuboriladi.
+     * Oflayn xatti-harakat shu sababli bu yerda emas, `apiClient`
+     * ichida: u yerda amal navbatga tushadi va `OfflineQueuedError`
+     * qaytadi.
      */
     mutations: {
       networkMode: 'always',

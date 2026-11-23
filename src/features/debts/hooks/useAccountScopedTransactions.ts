@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { getProfileByPhone } from '../../profile/services/profileService';
 import { createCredit, createDebt, getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import { newIdempotencyKey } from '../../../shared/lib/idempotency';
+import { isQueuedOffline } from '../../../shared/api/apiClient';
 import {
   Currency,
   MoneyActionType,
@@ -238,6 +239,18 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
 
         return true;
       } catch (e) {
+        /*
+         * OFLAYNDA AMAL YO'QOLMADI — navbatga tushdi.
+         *
+         * Buni xato deb ko'rsatish noto'g'ri bo'lardi: odam qayta
+         * kiritishga urinar va internet qaytganda ikkita yozuv paydo
+         * bo'lardi. Shuning uchun muvaffaqiyat deb qaytaramiz — modal
+         * yopiladi, yuborilmagani esa tepadagi umumiy qatorda sanalib
+         * turadi.
+         */
+        if (isQueuedOffline(e)) {
+          return true;
+        }
         setError(e instanceof Error ? e.message : 'Amaliyot bajarilmadi');
         return false;
       } finally {

@@ -24,6 +24,7 @@ import {
 import { LanguageProvider } from './src/shared/i18n';
 import ErrorBoundary from './src/shared/ui/ErrorBoundary';
 import AppFrame from './src/shared/ui/AppFrame';
+import SyncStatusBar from './src/shared/ui/SyncStatusBar';
 import UpdateGate from './src/features/app-update/UpdateGate';
 import { WEB_FONT_STACK } from './src/shared/theme/fonts';
 import {
@@ -32,6 +33,7 @@ import {
   queryClient,
   queryPersister,
 } from './src/shared/lib/queryClient';
+import { connectOutbox } from './src/shared/api/outboxSender';
 
 // Web'da Inter'ni BARCHA matnga global qo'llaymiz (ekranlar fontFamily belgilamaydi).
 // Modul yuklanishida — birinchi render'dan oldin bajariladi.
@@ -51,6 +53,9 @@ if (Platform.OS === 'web') {
 // render'dan oldin ulanmasa, o'sha render'dagi so'rovlar oflaynda
 // to'xtash o'rniga yiqilardi.
 connectOnlineManager();
+// Oflayn navbat: diskdagi amallar tiklanadi va tarmoq qaytganda
+// o'zidan-o'zi yuboriladi.
+connectOutbox();
 
 /**
  * Native'da React Query "fokus" tushunchasini AppState'ga bog'laymiz:
@@ -125,6 +130,10 @@ const AppShell: React.FC = () => {
                     kirmasligi uchun yuqoridan xavfsiz-zona (top inset) qo'llaymiz.
                     Pastki inset tab bar ichida alohida boshqariladi. */}
                 <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+                  {/* Tarmoq va yuborilmagan amallar haqidagi yagona xabar
+                      qatori — barcha ekranlar ustida. Hech narsa bo'lmasa
+                      chizilmaydi ham. */}
+                  <SyncStatusBar />
                   {/* Keng brauzer oynasida ilova markazga yig'iladi — telefonda
                       va tor oynada hech narsa o'zgarmaydi. */}
                   <AppFrame>
