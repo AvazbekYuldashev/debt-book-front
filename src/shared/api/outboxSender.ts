@@ -2,7 +2,7 @@ import apiClient from './apiClient';
 import { withIdempotencyKey } from '../lib/idempotency';
 import { outbox, startOutboxAutoFlush } from '../lib/outbox';
 import { queryClient } from '../lib/queryClient';
-import { dropPendingFromCache } from '../../features/debts/model/moneyDetailCache';
+import { dropPendingEverywhere } from '../lib/pendingWrites';
 
 /**
  * Oflayn navbatni API klientiga ulaydi.
@@ -23,23 +23,49 @@ export const connectOutbox = (): (() => void) => {
       ...withIdempotencyKey(undefined, item.key),
     });
   });
+
   /*
-   * Amal serverga yetgach VAQTINCHALIK yozuv olib tashlanadi va
-   * ma'lumot qayta so'raladi.
+   * Amal navbatdan chiqqach vaqtinchalik yozuv olib tashlanadi.
    *
-   * Aks holda server bergan haqiqiy yozuv keshdagi vaqtinchalik yozuv
-   * YONIDA turib qolar va odam bitta qarzni ikkita bo'lib ko'rardi.
+   * Yuborilgan bo'lsa — server bergan haqiqiy yozuv keladi va ikkisi
+   * yonma-yon turib qolmasligi kerak (odam bitta amalni ikkita bo'lib
+   * ko'rardi). Rad etilgan bo'lsa ham olib tashlanadi: aks holda yozuv
+   * ekranda abadiy soat belgisi bilan qolib, yuborilishini bir umr
+   * kutib turardi.
    */
-  const stopSentWatch = outbox.subscribeSent((item) => {
-    dropPendingFromCache(queryClient, item.key);
-    void queryClient.invalidateQueries({ queryKey: ['money-detail'] });
-    void queryClient.invalidateQueries({ queryKey: ['contact-balances'] });
+  const stopSettledWatch = outbox.subscribeSettled((item, outcome) => {
+    dropPendingEverywhere(queryClient, item.key);
+    if (outcome === 'sent') scheduleRefresh();
   });
 
   void outbox.init();
   const stopAutoFlush = startOutboxAutoFlush();
   return () => {
-    stopSentWatch();
+    stopSettledWatch();
     stopAutoFlush();
   };
+};
+
+/**
+ * Navbat bo'shagandan keyin ma'lumotni BIR MARTA qayta so'raydi.
+ *
+ * Har amal uchun alohida so'rash navbatda yigirmata amal turgan paytda
+ * yigirma to'lqin so'rov yasardi — aniq internet qaytgan, ya'ni eng
+ * nozik payt. Shuning uchun yangilash keyingi navbatga suriladi va
+ * barcha amallar uchun bittaga birlashadi.
+ *
+ * Nima uchun HAMMASI yangilanadi: oflaynda qarz ham, xarajat ham,
+ * mahsulot ham, kontakt ham kiritilgan bo'lishi mumkin. Ro'yxatni
+ * qo'lda sanab chiqish esa yangi bo'lim qo'shilganda jimgina
+ * eskirardi.
+ */
+let refreshScheduled = false;
+
+const scheduleRefresh = (): void => {
+  if (refreshScheduled) return;
+  refreshScheduled = true;
+  setTimeout(() => {
+    refreshScheduled = false;
+    void queryClient.invalidateQueries();
+  }, 0);
 };

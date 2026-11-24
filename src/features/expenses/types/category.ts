@@ -17,6 +17,14 @@ export interface CategoryResponseDTO {
   creatorId?: string;
   /** Eski yozuvlarda bo'lmasligi mumkin — o'sha holatda xarajat. */
   type?: CategoryType;
+  /**
+   * Yozuv HALI SERVERGA YETMAGAN (oflaynda kiritilgan).
+   *
+   * Faqat qurilmada bo'ladi: server bunday maydon qaytarmaydi. Qatorda
+   * soat belgisi bilan ko'rsatiladi va navbat yuborilgach haqiqiy
+   * yozuvga almashadi.
+   */
+  pending?: boolean;
 }
 
 export interface CategoryCreatedDTO {

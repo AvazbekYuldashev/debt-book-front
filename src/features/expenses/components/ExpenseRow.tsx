@@ -29,8 +29,12 @@ const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, allowDelete, deleting,
   const { note, expression } = resolveCalcNote(expense.description, expense.calcNote);
   const handleDelete = useCallback(() => onDelete(expense.id), [onDelete, expense.id]);
 
+  /* Oflaynda kiritilgan xarajat: hali serverda yo'q, o'chirib ham
+     bo'lmaydi (id vaqtinchalik). Soat belgisi shuni ko'rsatadi. */
+  const pending = Boolean(expense.pending);
+
   return (
-    <Card style={styles.card}>
+    <Card style={[styles.card, pending && styles.cardPending]}>
       <View style={styles.main}>
         <Text style={styles.amount}>{formatMoney(amountValue || 0)}</Text>
         <Text style={styles.description}>{note || t('expenses.noComment')}</Text>
@@ -44,7 +48,12 @@ const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, allowDelete, deleting,
           </View>
         ) : null}
         {expense.createdDate ? (
-          <Text style={styles.date}>{new Date(expense.createdDate).toLocaleString()}</Text>
+          <View style={styles.dateRow}>
+            {pending ? (
+              <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
+            ) : null}
+            <Text style={styles.date}>{new Date(expense.createdDate).toLocaleString()}</Text>
+          </View>
         ) : null}
         {expense.creatorPhone ? (
           <Text style={styles.creator}>
@@ -52,7 +61,7 @@ const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, allowDelete, deleting,
           </Text>
         ) : null}
       </View>
-      {allowDelete ? (
+      {allowDelete && !pending ? (
         <Pressable
           style={({ pressed }) => [styles.iconBtn, pressed && styles.iconBtnPressed]}
           onPress={handleDelete}
@@ -74,6 +83,15 @@ const ExpenseRow: React.FC<ExpenseRowProps> = ({ expense, allowDelete, deleting,
 
 const createStyles = ({ colors, spacing, radius, typography, glass }: ThemeValue) =>
   StyleSheet.create({
+    /** Yuborilmagan yozuv biroz so'nik: u hali "yo'lda". */
+    cardPending: {
+      opacity: 0.7,
+    },
+    dateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
     card: {
       flexDirection: 'row',
       alignItems: 'center',

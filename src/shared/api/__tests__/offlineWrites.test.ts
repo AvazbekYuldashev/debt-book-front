@@ -52,6 +52,28 @@ describe('oflayn yozuvlar', () => {
     expect(outbox.list()[0].key).toBeTruthy();
   });
 
+  it('xato NAVBATDAGI KALITNI aytib yuboradi', async () => {
+    const { apiClient, isQueuedOffline } = require('../apiClient');
+    const { outbox } = require('../../lib/outbox');
+    const mock = new MockAdapter(apiClient);
+    mock.onPost('/expense').networkError();
+
+    let tutilgan: unknown;
+    try {
+      await apiClient.post('/expense', { amount: 5000 });
+    } catch (e) {
+      tutilgan = e;
+    }
+
+    /*
+     * Ekran shu kalit bo'yicha vaqtinchalik yozuv yasaydi va amal
+     * serverga yetgach aynan o'shani keshdan topib olib tashlaydi.
+     * Kalit mos kelmasa yozuv ekranda abadiy qolib ketardi.
+     */
+    expect(isQueuedOffline(tutilgan)).toBe(true);
+    expect((tutilgan as { key: string }).key).toBe(outbox.list()[0].key);
+  });
+
   it('internet qaytganda AYNI kalit bilan yuboradi', async () => {
     const { apiClient } = require('../apiClient');
     const { outbox } = require('../../lib/outbox');

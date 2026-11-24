@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useIsRestoring, useQueryClient } from '@tanstack/react-query';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -26,6 +27,9 @@ import { markVoiceTarget } from '../../voice/api/voice';
 import type { VoiceIntent } from '../../voice/api/voice';
 import { useRegisterVoiceAction } from '../../voice/model/VoiceActionProvider';
 import { isQueuedOffline } from '../../../shared/api/apiClient';
+import { useAccountContext } from '../../../shared/hooks/useAccountContext';
+import { prependToCache, removeFromCache } from '../../../shared/lib/listCache';
+import { buildPendingExpense, expenseListKey } from '../model/expenseCache';
 
 type Props = ExpensesScreenProps<typeof ROUTES.EXPENSE_CATEGORY_DETAIL>;
 
@@ -98,6 +102,10 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
     setVoicePrefill(null);
   }, []);
 
+  const queryClient = useQueryClient();
+  const isRestoring = useIsRestoring();
+  const { accountKey } = useAccountContext();
+
   const [expenses, setExpenses] = useState<ExpenseResponseDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -109,6 +117,20 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
 
   const loadExpenses = useCallback(
     async (showSpinner = true) => {
+      /*
+       * KESH DISKDAN TIKLANMAGUNCHA kutamiz.
+       *
+       * Tiklash asinxron: ilova ochilgan zahoti kesh hali bo'sh
+       * bo'ladi. Shu paytda o'qilsa "keshda hech narsa yo'q" degan
+       * xulosa chiqar va oflaynda ekran bo'sh qolib, ustiga xato
+       * yozilardi — aynan ma'lumot qurilmada YOTGAN holda. Tiklash
+       * tugagach bu funksiya o'zi qayta chaqiriladi.
+       */
+      if (isRestoring) {
+        if (showSpinner) setLoading(true);
+        return;
+      }
+
       if (!profile?.jwt || !categoryId) {
         setExpenses([]);
         return;
@@ -118,7 +140,21 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
         setError(dateRange.error);
         return;
       }
-      if (showSpinner) setLoading(true);
+      /*
+       * XARAJATLAR KESHDAN DARHOL CHIQADI — kesh diskka saqlanadi,
+       * ya'ni kategoriya tarmoqsiz ochilganda ham to'ldirilgan holda
+       * ko'rinadi.
+       */
+      const cacheKey = expenseListKey(
+        accountKey,
+        categoryId,
+        dateRange.fromDate,
+        dateRange.endDate,
+      );
+      const cached = queryClient.getQueryData<ExpenseResponseDTO[]>(cacheKey);
+      if (cached) setExpenses(cached);
+
+      if (showSpinner && !cached) setLoading(true);
       setError('');
       try {
         const page = await getExpensesByCategory({
@@ -129,14 +165,28 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
           endDate: dateRange.endDate,
           token: profile.jwt,
         });
-        setExpenses(page.content ?? []);
+        const next = page.content ?? [];
+        setExpenses(next);
+        queryClient.setQueryData(cacheKey, next);
       } catch (e) {
-        setError(e instanceof Error ? e.message : t('expenses.loadExpensesFailed'));
+        // Keshdan ko'rsatilayotgan bo'lsa qizil xabar qo'yilmaydi.
+        if (!cached) setError(e instanceof Error ? e.message : t('expenses.loadExpensesFailed'));
       } finally {
         if (showSpinner) setLoading(false);
       }
     },
-    [categoryId, profile?.jwt, fromDate, endDate, workspace.activeBusinessId, workspace.mode, t]
+    [
+      accountKey,
+      categoryId,
+      isRestoring,
+      profile?.jwt,
+      queryClient,
+      fromDate,
+      endDate,
+      workspace.activeBusinessId,
+      workspace.mode,
+      t,
+    ]
   );
 
   useEffect(() => {
@@ -178,15 +228,48 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
         await loadExpenses(true);
         return true;
       } catch (e) {
-        // Oflaynda amal navbatga tushdi — yo'qolmadi, xato ham emas.
-        if (isQueuedOffline(e)) return true;
+        /*
+         * Oflaynda amal navbatga tushdi — yo'qolmadi, xato ham emas.
+         * Xarajat ro'yxatga DARHOL qo'shiladi: aks holda odam
+         * "yozilmadi" deb o'ylab qayta kiritar va internet qaytganda
+         * bitta xarajat ikkita bo'lib qolardi.
+         */
+        if (isQueuedOffline(e)) {
+          const range = resolveDateRange(fromDate, endDate);
+          const row = buildPendingExpense(e.key, {
+            amount,
+            categoryId,
+            description,
+            calcNote: calcNote ?? undefined,
+          });
+          setExpenses((prev) => [row, ...prev]);
+          if (range.ok) {
+            prependToCache(
+              queryClient,
+              expenseListKey(accountKey, categoryId, range.fromDate, range.endDate),
+              row,
+            );
+          }
+          return true;
+        }
         setError(e instanceof Error ? e.message : t('expenses.saveFailed'));
         return false;
       } finally {
         setSavingExpense(false);
       }
     },
-    [profile?.jwt, categoryId, categoryName, voicePrefill?.commandId, loadExpenses, t]
+    [
+      accountKey,
+      profile?.jwt,
+      categoryId,
+      categoryName,
+      voicePrefill?.commandId,
+      loadExpenses,
+      queryClient,
+      fromDate,
+      endDate,
+      t,
+    ]
   );
 
   const handleDeleteExpense = useCallback(
@@ -201,13 +284,26 @@ const ExpenseCategoryDetailScreen: React.FC<Props> = ({ route, navigation }) => 
         await deleteExpense(id, profile.jwt);
         setExpenses((prev) => prev.filter((item) => item.id !== id));
       } catch (e) {
-        if (isQueuedOffline(e)) return;
+        // Oflaynda ham qator darhol yo'qoladi — qolib tursa odam yana
+        // bosar va amal ikki marta navbatga tushardi.
+        if (isQueuedOffline(e)) {
+          setExpenses((prev) => prev.filter((item) => item.id !== id));
+          const range = resolveDateRange(fromDate, endDate);
+          if (range.ok) {
+            removeFromCache(
+              queryClient,
+              expenseListKey(accountKey, categoryId, range.fromDate, range.endDate),
+              id,
+            );
+          }
+          return;
+        }
         setError(e instanceof Error ? e.message : t('expenses.deleteFailed'));
       } finally {
         setDeletingExpense('');
       }
     },
-    [profile?.jwt, t]
+    [accountKey, categoryId, profile?.jwt, queryClient, fromDate, endDate, t]
   );
 
   const requestDeleteExpense = useCallback(

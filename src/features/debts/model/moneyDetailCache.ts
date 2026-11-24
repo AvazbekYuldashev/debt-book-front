@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
+import { pendingId } from '../../../shared/lib/pendingWrites';
 import { getMoneyHistory, getTotalPriceByPartyId } from '../services/moneyService';
 import type {
   AccountType,
@@ -133,14 +134,10 @@ export const prefetchMoneyDetails = async (
 
 
 // ============================================================
-//  OFLAYNDA KIRITILGAN YOZUV — DARHOL KO'RINADI.
+//  OFLAYNDA KIRITILGAN QARZ — DARHOL KO'RINADI.
 //
-//  Odam qarz yozdi, internet yo'q. Amal navbatga tushadi, lekin ekranda
-//  hech narsa o'zgarmasa, u "yozilmadi shekilli" deb o'ylab qayta
-//  kiritardi. Shuning uchun yozuv ro'yxatga DARHOL qo'shiladi va soat
-//  belgisi bilan turadi — xuddi yuborilmagan xabar kabi.
-//
-//  Summalar ham shu yerda to'g'rilanadi: aks holda tarixda yozuv turib,
+//  Umumiy qoidalar `shared/lib/pendingWrites` da. Pulga xos qismi shu
+//  yerda: SUMMALAR ham to'g'rilanadi, aks holda tarixda yozuv turib,
 //  tepadagi balans eski qolar va ikkisi bir-biriga zid ko'rinardi.
 //  Server yuborilgandan keyin baribir aniq raqamni qaytaradi.
 // ============================================================
@@ -158,9 +155,6 @@ export interface PendingMoneyInput {
   /** Navbatdagi amalning kaliti — yozuv o'sha amalga tegishli ekani bilinadi. */
   key: string;
 }
-
-/** Oflayn yozuv uchun vaqtinchalik id — server bergani bilan adashmasin. */
-export const pendingMoneyId = (key: string): string => `pending:${key}`;
 
 /**
  * Oflayn yozuvdan vaqtinchalik tranzaksiya yasaydi.
@@ -182,7 +176,7 @@ export const buildPendingMoney = (input: PendingMoneyInput): MoneyResponseDTO =>
       : { creditorId: input.partyId, creditorType: 'PROFILE' as PartyType };
 
   return {
-    id: pendingMoneyId(input.key),
+    id: pendingId(input.key),
     amount: input.amount,
     currency: input.currency,
     visible: true,
@@ -241,25 +235,4 @@ export const addPendingToCache = (
     totals: applyPendingToTotals(current?.totals ?? null, input),
   });
   return record;
-};
-
-/**
- * Yuborilgan oflayn yozuvni keshdan olib tashlaydi.
- *
- * Server o'z yozuvini qaytaradi va ikkisi yonma-yon turib qolmasligi
- * kerak — odam bitta qarzni ikkita bo'lib ko'rardi.
- */
-export const dropPendingFromCache = (queryClient: QueryClient, key: string): void => {
-  const id = pendingMoneyId(key);
-  queryClient
-    .getQueryCache()
-    .findAll({ queryKey: ['money-detail'] })
-    .forEach((query) => {
-      const data = query.state.data as MoneyDetailCache | undefined;
-      if (!data?.content?.some((item) => item.id === id)) return;
-      queryClient.setQueryData<MoneyDetailCache>(query.queryKey, {
-        ...data,
-        content: data.content.filter((item) => item.id !== id),
-      });
-    });
 };

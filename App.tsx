@@ -34,6 +34,7 @@ import {
   queryPersister,
 } from './src/shared/lib/queryClient';
 import { connectOutbox } from './src/shared/api/outboxSender';
+import { ensureServiceWorker } from './src/shared/lib/serviceWorker';
 
 // Web'da Inter'ni BARCHA matnga global qo'llaymiz (ekranlar fontFamily belgilamaydi).
 // Modul yuklanishida — birinchi render'dan oldin bajariladi.
@@ -56,6 +57,11 @@ connectOnlineManager();
 // Oflayn navbat: diskdagi amallar tiklanadi va tarmoq qaytganda
 // o'zidan-o'zi yuboriladi.
 connectOutbox();
+// Brauzerda ilovaning O'ZI ham serverdan keladi. Xizmat ishchisi uni
+// keshlab qo'yadi, aks holda oflaynda sahifa yangilansa brauzerning
+// "internet yo'q" sahifasi chiqar va qurilmadagi kesh behuda yotardi.
+// Native'da bu chaqiruv hech narsa qilmaydi.
+void ensureServiceWorker();
 
 /**
  * Native'da React Query "fokus" tushunchasini AppState'ga bog'laymiz:

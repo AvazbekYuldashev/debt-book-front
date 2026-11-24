@@ -1,10 +1,10 @@
 import {
   getNotificationPermission,
-  initNotificationServiceWorker,
   requestNotificationPermission as requestWebPermission,
   showBrowserNotification,
   type NotifyPermission,
 } from './webNotify';
+import { ensureServiceWorker } from './serviceWorker';
 
 // ============================================================
 //  Qurilma bildirishnomalari — WEB implementatsiya (brauzer Notification API
@@ -12,7 +12,7 @@ import {
 // ============================================================
 
 export function initDeviceNotifications(): void {
-  initNotificationServiceWorker();
+  void ensureServiceWorker();
 }
 
 export async function getNotificationPermissionAsync(): Promise<NotifyPermission> {

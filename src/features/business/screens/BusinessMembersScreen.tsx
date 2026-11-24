@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
+import { useIsRestoring, useQueryClient } from '@tanstack/react-query';
 import AmbientBackground from '../../../shared/ui/AmbientBackground';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -40,6 +41,9 @@ const BusinessMembersScreen: React.FC<Props> = ({ route, navigation }) => {
   const businessId = route.params?.businessId || workspace.activeBusinessId || '';
   const businessName = route.params?.businessName || workspace.activeBusinessName || 'Business';
 
+  const queryClient = useQueryClient();
+  const isRestoring = useIsRestoring();
+
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -52,22 +56,43 @@ const BusinessMembersScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const loadMembers = useCallback(
     async (showSpinner = true) => {
+      /*
+       * KESH DISKDAN TIKLANMAGUNCHA kutamiz.
+       *
+       * Tiklash asinxron: ilova ochilgan zahoti kesh hali bo'sh
+       * bo'ladi. Shu paytda o'qilsa "keshda hech narsa yo'q" degan
+       * xulosa chiqar va oflaynda ekran bo'sh qolib, ustiga xato
+       * yozilardi — aynan ma'lumot qurilmada YOTGAN holda. Tiklash
+       * tugagach bu funksiya o'zi qayta chaqiriladi.
+       */
+      if (isRestoring) {
+        if (showSpinner) setLoading(true);
+        return;
+      }
+
       if (!profile?.jwt || !businessId) {
         setMembers([]);
         return;
       }
-      if (showSpinner) setLoading(true);
+      // A'zolar ro'yxati ham keshdan chiqadi: kim qanday huquqda
+      // ekanini bilish tarmoqsiz paytda ham kerak bo'ladi.
+      const cacheKey = ['business-members', businessId];
+      const cached = queryClient.getQueryData<BusinessProfileDTO[]>(cacheKey);
+      if (cached) setMembers(cached);
+
+      if (showSpinner && !cached) setLoading(true);
       setError('');
       try {
         const result = await getBusinessMembers(businessId, profile.jwt);
         setMembers(result);
+        queryClient.setQueryData(cacheKey, result);
       } catch (e) {
-        setError(e instanceof Error ? e.message : t('members.loadFailed'));
+        if (!cached) setError(e instanceof Error ? e.message : t('members.loadFailed'));
       } finally {
         if (showSpinner) setLoading(false);
       }
     },
-    [businessId, profile?.jwt, t]
+    [businessId, isRestoring, profile?.jwt, queryClient, t]
   );
 
   useFocusEffect(

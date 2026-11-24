@@ -116,6 +116,47 @@ describe('oflayn navbat', () => {
     expect(outbox.size()).toBe(0);
   });
 
+  it('RAD ETILGAN amal haqida ham XABAR beradi', async () => {
+    const { outbox } = loadOutbox();
+    outbox.setSender(async (item: OutboxItem) => {
+      if (item.url === '/buzuq') throw xato(400);
+    });
+
+    const xabarlar: Array<[string, string]> = [];
+    outbox.subscribeSettled((item, outcome) => xabarlar.push([item.url, outcome]));
+
+    await outbox.enqueue({ method: 'POST', url: '/buzuq' });
+    await outbox.enqueue({ method: 'POST', url: '/yaxshi' });
+    await outbox.flush();
+
+    /*
+     * Rad etilgani aytilmasa, ekrandagi vaqtinchalik yozuv soat
+     * belgisi bilan ABADIY turib qolar va odam yuborilishini bir umr
+     * kutardi.
+     */
+    expect(xabarlar).toEqual([
+      ['/buzuq', 'dropped'],
+      ['/yaxshi', 'sent'],
+    ]);
+  });
+
+  it('navbatda QOLGAN amal haqida xabar bermaydi', async () => {
+    const { outbox } = loadOutbox();
+    outbox.setSender(async () => {
+      throw xato(undefined, "tarmoq yo'q");
+    });
+
+    const xabarlar: string[] = [];
+    outbox.subscribeSettled((item) => xabarlar.push(item.url));
+
+    await outbox.enqueue({ method: 'POST', url: '/keyinroq' });
+    await outbox.flush();
+
+    // Amal hali navbatda — yozuv ekranda qolishi kerak.
+    expect(xabarlar).toEqual([]);
+    expect(outbox.size()).toBe(1);
+  });
+
   it('"keyinroq urin" javoblari (408, 429, 5xx) navbatda qoladi', async () => {
     for (const status of [408, 429, 500, 503]) {
       jest.resetModules();

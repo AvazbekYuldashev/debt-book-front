@@ -3,12 +3,11 @@ import {
   addPendingToCache,
   applyPendingToTotals,
   buildPendingMoney,
-  dropPendingFromCache,
   moneyDetailKey,
-  pendingMoneyId,
   type MoneyDetailCache,
   type PendingMoneyInput,
 } from '../moneyDetailCache';
+import { dropPendingEverywhere, pendingId } from '../../../../shared/lib/pendingWrites';
 import { mapTransaction } from '../transactionMapping';
 
 /**
@@ -69,7 +68,7 @@ describe('oflayn pul yozuvi', () => {
     addPendingToCache(qc, input());
 
     const data = qc.getQueryData<MoneyDetailCache>(key)!;
-    expect(data.content[0].id).toBe(pendingMoneyId('kalit-1'));
+    expect(data.content[0].id).toBe(pendingId('kalit-1'));
     expect(data.content[1].id).toBe('eski');
   });
 
@@ -80,7 +79,7 @@ describe('oflayn pul yozuvi', () => {
       moneyDetailKey('PROFILE', 'kontakt-1', 'personal'),
     )!.content).toHaveLength(1);
 
-    dropPendingFromCache(qc, 'kalit-1');
+    dropPendingEverywhere(qc, 'kalit-1');
 
     // Aks holda server bergan haqiqiy yozuv yonida turib qolar va odam
     // bitta qarzni ikkita bo'lib ko'rardi.
@@ -93,7 +92,7 @@ describe('oflayn pul yozuvi', () => {
     const qc = new QueryClient();
     addPendingToCache(qc, input());
 
-    dropPendingFromCache(qc, 'boshqa-kalit');
+    dropPendingEverywhere(qc, 'boshqa-kalit');
 
     expect(qc.getQueryData<MoneyDetailCache>(
       moneyDetailKey('PROFILE', 'kontakt-1', 'personal'),

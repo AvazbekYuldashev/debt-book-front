@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { ensureServiceWorker } from './serviceWorker';
 
 // Faqat web'da (brauzer) ishlaydi; native'da barcha funksiyalar noop.
 const isWeb = (): boolean => Platform.OS === 'web' && typeof window !== 'undefined';
@@ -17,26 +18,11 @@ const getAudioContext = (): AudioContext | null => {
   return audioCtx;
 };
 
-// Bildirishnoma uchun service worker (bir marta ro'yxatdan o'tkaziladi).
-// Mobil Chromium'da (Android Chrome/Edge) `new Notification()` ishlamaydi —
-// faqat registration.showNotification orqali chiqadi.
-let swRegistrationPromise: Promise<ServiceWorkerRegistration | null> | null = null;
-
-function getNotificationSw(): Promise<ServiceWorkerRegistration | null> {
-  if (!isWeb() || !('serviceWorker' in navigator)) return Promise.resolve(null);
-  if (!swRegistrationPromise) {
-    swRegistrationPromise = navigator.serviceWorker
-      .register('/service-worker.js')
-      .then(() => navigator.serviceWorker.ready)
-      .catch(() => null);
-  }
-  return swRegistrationPromise;
-}
-
-/** SW'ni oldindan ro'yxatdan o'tkazadi — birinchi bildirishnoma kechikmasligi uchun. */
-export function initNotificationServiceWorker(): void {
-  void getNotificationSw();
-}
+// Bildirishnoma service worker orqali chiqariladi: mobil Chromium'da
+// (Android Chrome/Edge) sahifadan `new Notification()` ishlamaydi.
+// Ishchi dastur ochilishida `./serviceWorker` da ulanadi — u yerda
+// qobiqni keshlash ham bor va ro'yxatga olish YAGONA joyda turishi kerak.
+const getNotificationSw = ensureServiceWorker;
 
 export type NotifyPermission = 'granted' | 'denied' | 'default' | 'unsupported';
 

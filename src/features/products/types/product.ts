@@ -38,6 +38,14 @@ export interface ProductResponseDTO {
   createdDate?: string;
   updatedDate?: string;
   creatorId?: string;
+  /**
+   * Yozuv HALI SERVERGA YETMAGAN (oflaynda kiritilgan).
+   *
+   * Faqat qurilmada bo'ladi: server bunday maydon qaytarmaydi. Qatorda
+   * soat belgisi bilan ko'rsatiladi va navbat yuborilgach haqiqiy
+   * yozuvga almashadi.
+   */
+  pending?: boolean;
 }
 
 /**

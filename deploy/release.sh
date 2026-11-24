@@ -59,6 +59,13 @@ echo "Commit: $LOCAL"
 npm run --silent build:web
 [ -f dist/index.html ] || die "dist qurilmadi"
 
+# Xizmat ishchisi `expo export` natijasiga KIRMAYDI, lekin ilovaning
+# qobig'ini (index.html + o'sha build'ning JS to'plamini) keshlaydi —
+# ya'ni u aynan shu build bilan birga chiqishi kerak. Alohida skriptga
+# qoldirilsa, bir kun esdan chiqar va oflayn rejim jimgina o'lardi.
+cp web/service-worker.js dist/service-worker.js
+[ -f dist/service-worker.js ] || die "service-worker.js ko'chmadi"
+
 echo "$LOCAL" > dist/version.txt
 
 # ---------- 3. Chiqarish ----------

@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react';
+import { useIsRestoring, useQueryClient } from '@tanstack/react-query';
 import {
   FlatList,
   type ListRenderItem,
@@ -36,6 +37,10 @@ import type { ProductResponseDTO } from '../types/product';
 import { createCategory, deleteCategory, getCategories } from '../../expenses/services/categoryService';
 import type { CategoryResponseDTO } from '../../expenses/types/category';
 import { isQueuedOffline } from '../../../shared/api/apiClient';
+import { useAccountContext } from '../../../shared/hooks/useAccountContext';
+import { prependToCache, removeFromCache } from '../../../shared/lib/listCache';
+import { categoriesKey } from '../../expenses/model/expenseCache';
+import { buildPendingProduct, productsKey } from '../model/productCache';
 
 type Props = ProductsScreenProps<typeof ROUTES.PRODUCT_LIST>;
 type FormMode = 'create' | 'edit';
@@ -62,6 +67,10 @@ const ProductsScreen: React.FC<Props> = () => {
   const allowWrite = isBusiness && canWrite(role);
   const allowDelete = isBusiness && canDelete(role);
 
+  const queryClient = useQueryClient();
+  const isRestoring = useIsRestoring();
+  const { accountKey } = useAccountContext();
+
   const [products, setProducts] = useState<ProductResponseDTO[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,22 +88,50 @@ const ProductsScreen: React.FC<Props> = () => {
 
   const loadProducts = useCallback(
     async (showSpinner = true) => {
+      /*
+       * KESH DISKDAN TIKLANMAGUNCHA kutamiz.
+       *
+       * Tiklash asinxron: ilova ochilgan zahoti kesh hali bo'sh
+       * bo'ladi. Shu paytda o'qilsa "keshda hech narsa yo'q" degan
+       * xulosa chiqar va oflaynda ekran bo'sh qolib, ustiga xato
+       * yozilardi — aynan ma'lumot qurilmada YOTGAN holda. Tiklash
+       * tugagach bu funksiya o'zi qayta chaqiriladi.
+       */
+      if (isRestoring) {
+        if (showSpinner) setLoading(true);
+        return;
+      }
+
       if (!profile?.jwt || !isBusiness) {
         setProducts([]);
         return;
       }
-      if (showSpinner) setLoading(true);
+      /*
+       * NARXNOMA KESHDAN DARHOL CHIQADI.
+       *
+       * Kesh diskka saqlanadi: ilova tarmoqsiz ochilganda ham
+       * narxnoma to'ldirilgan holda ko'rinadi. Bu bo'lim ayniqsa
+       * oflaynda kerak — narx savdo paytida, do'kon ichida so'raladi.
+       */
+      const cacheKey = productsKey(accountKey);
+      const cached = queryClient.getQueryData<ProductResponseDTO[]>(cacheKey);
+      if (cached) setProducts(cached);
+
+      if (showSpinner && !cached) setLoading(true);
       setError('');
       try {
         const page = await getProducts({ page: 1, size: PAGE_SIZE, token: profile.jwt });
         setProducts(page.content);
+        queryClient.setQueryData(cacheKey, page.content);
       } catch (e) {
-        setError(e instanceof Error ? e.message : t('products.loadFailed'));
+        // Keshdan ko'rsatilayotgan bo'lsa qizil xabar qo'yilmaydi —
+        // ekranda ma'lumot turibdi, oflayn ekani tepada aytilgan.
+        if (!cached) setError(e instanceof Error ? e.message : t('products.loadFailed'));
       } finally {
         if (showSpinner) setLoading(false);
       }
     },
-    [profile?.jwt, isBusiness, t]
+    [accountKey, isRestoring, profile?.jwt, isBusiness, queryClient, t]
   );
 
   /**
@@ -104,18 +141,26 @@ const ProductsScreen: React.FC<Props> = () => {
    * kategoriyalarini qaytaradi va ular narxnomada paydo bo'lib qolardi.
    */
   const loadCategories = useCallback(async () => {
+    // Kesh tiklanmaguncha kutamiz — yuqoridagi `loadProducts` kabi.
+    if (isRestoring) return;
     if (!profile?.jwt || !isBusiness) {
       setCategories([]);
       return;
     }
+    const cacheKey = categoriesKey(accountKey, 'PRODUCT');
+    const cached = queryClient.getQueryData<CategoryResponseDTO[]>(cacheKey);
+    if (cached) setCategories(cached);
     try {
       const page = await getCategories({ page: 1, size: 100, type: 'PRODUCT', token: profile.jwt });
-      setCategories(page.content ?? []);
+      const next = page.content ?? [];
+      setCategories(next);
+      queryClient.setQueryData(cacheKey, next);
     } catch {
-      // Kategoriyalar kelmasa ro'yxat baribir ishlaydi — filtr chiqmaydi, xolos.
-      setCategories([]);
+      // Kategoriyalar kelmasa ro'yxat baribir ishlaydi — filtr chiqmaydi,
+      // xolos. Keshdagisi bor bo'lsa u o'rnida qoladi.
+      if (!cached) setCategories([]);
     }
-  }, [profile?.jwt, isBusiness]);
+  }, [accountKey, isRestoring, profile?.jwt, isBusiness, queryClient]);
 
   // Ish maydoni almashsa ham qayta yuklanadi: loadProducts activeBusinessId ga
   // bog'liq emas, lekin ekran har fokusda yangilanadi va WorkspaceSwitcher
@@ -177,15 +222,29 @@ const ProductsScreen: React.FC<Props> = () => {
         await loadProducts(false);
         return true;
       } catch (e) {
-        // Oflaynda amal navbatga tushdi — yo'qolmadi, xato ham emas.
-        if (isQueuedOffline(e)) return true;
+        /*
+         * Oflaynda amal navbatga tushdi — yo'qolmadi, xato ham emas.
+         * Yangi mahsulot ro'yxatga DARHOL qo'shiladi: aks holda odam
+         * "saqlanmadi" deb o'ylab qayta kiritar va internet qaytganda
+         * narxnomada ikkita bir xil qator paydo bo'lardi.
+         */
+        if (isQueuedOffline(e)) {
+          if (mode !== 'edit') {
+            const payload = buildProductPayload(values);
+            const categoryName = categories.find((c) => c.id === payload.categoryId)?.name;
+            const row = buildPendingProduct(e.key, payload, categoryName);
+            setProducts((prev) => [row, ...prev]);
+            prependToCache(queryClient, productsKey(accountKey), row);
+          }
+          return true;
+        }
         setError(e instanceof Error ? e.message : t('products.saveFailed'));
         return false;
       } finally {
         setSaving(false);
       }
     },
-    [profile?.jwt, mode, editing, loadProducts, t]
+    [accountKey, categories, profile?.jwt, mode, editing, loadProducts, queryClient, t]
   );
 
   const createProductCategory = useCallback(
@@ -221,12 +280,19 @@ const ProductsScreen: React.FC<Props> = () => {
           // "kategoriyasiz" bo'lib qoladi (server ON DELETE SET NULL).
           await loadProducts(false);
         } catch (e) {
-          if (isQueuedOffline(e)) return;
+          // Oflaynda kategoriya ro'yxatdan DARHOL yo'qoladi — qolib
+          // tursa odam yana bosar va amal ikki marta navbatga tushardi.
+          if (isQueuedOffline(e)) {
+            setActiveCategory((current) => (current === category.id ? '' : current));
+            setCategories((prev) => prev.filter((item) => item.id !== category.id));
+            removeFromCache(queryClient, categoriesKey(accountKey, 'PRODUCT'), category.id);
+            return;
+          }
           setError(e instanceof Error ? e.message : t('products.saveFailed'));
         }
       });
     },
-    [profile?.jwt, loadCategories, loadProducts, t]
+    [accountKey, profile?.jwt, loadCategories, loadProducts, queryClient, t]
   );
 
   const requestDelete = useCallback(
@@ -239,14 +305,18 @@ const ProductsScreen: React.FC<Props> = () => {
           await deleteProduct(product.id, profile.jwt);
           await loadProducts(false);
         } catch (e) {
-          if (isQueuedOffline(e)) return;
+          if (isQueuedOffline(e)) {
+            setProducts((prev) => prev.filter((item) => item.id !== product.id));
+            removeFromCache(queryClient, productsKey(accountKey), product.id);
+            return;
+          }
           setError(e instanceof Error ? e.message : t('products.deleteFailed'));
         } finally {
           setDeletingId('');
         }
       });
     },
-    [profile?.jwt, loadProducts, t]
+    [accountKey, profile?.jwt, loadProducts, queryClient, t]
   );
 
   // Bo'sh holat o'z kartasida: aks holda sarlavha va izoh to'g'ridan-to'g'ri

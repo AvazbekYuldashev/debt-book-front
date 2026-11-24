@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useIsRestoring, useQueryClient } from '@tanstack/react-query';
 import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { SkeletonContactList } from '../../../shared/ui/SkeletonShimmer';
@@ -45,6 +46,13 @@ import type { ExpenseCommand } from '../../voice/model/resolveExpenseCommand';
 import ExpenseVoiceResultModal from '../../voice/components/ExpenseVoiceResultModal';
 import type { VoiceIntent } from '../../voice/api/voice';
 import { isQueuedOffline } from '../../../shared/api/apiClient';
+import { useAccountContext } from '../../../shared/hooks/useAccountContext';
+import { prependToCache, removeFromCache } from '../../../shared/lib/listCache';
+import {
+  buildPendingCategory,
+  categoriesKey,
+  categorySumsKey,
+} from '../model/expenseCache';
 
 /** Formaga tushadigan qism - buyruqning qaysi turi bo'lishidan qat'i nazar. */
 type ExpenseSpoken = {
@@ -63,6 +71,9 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { profile } = useContext(AuthContext);
   const { workspace } = useContext(WorkspaceContext);
+  const queryClient = useQueryClient();
+  const isRestoring = useIsRestoring();
+  const { accountKey } = useAccountContext();
 
   const [categories, setCategories] = useState<CategoryResponseDTO[]>([]);
   const [query, setQuery] = useState('');
@@ -118,38 +129,98 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
       );
 
       const nextSums: Record<string, number> = {};
+      let anyOk = false;
       results.forEach((result, index) => {
         const categoryId = nextCategories[index]?.id;
         if (!categoryId) return;
+        if (result.status === 'fulfilled') anyOk = true;
         nextSums[categoryId] = result.status === 'fulfilled' ? toAmount(result.value.amount) : 0;
       });
+
+      /*
+       * Tarmoqsiz paytda HAMMA so'rov yiqiladi va yuqoridagi halqa
+       * barcha summani nolga aylantirardi — ekranda "xarajat yo'q"
+       * degan yolg'on manzara. Shuning uchun bitta ham javob
+       * kelmasa keshdagi oxirgi summalar qoldiriladi.
+       */
+      const sumsKey = categorySumsKey(accountKey, nextFromDate, nextEndDate);
+      if (!anyOk) {
+        const saved = queryClient.getQueryData<Record<string, number>>(sumsKey);
+        if (saved) {
+          setCategorySums(saved);
+          return;
+        }
+      }
       setCategorySums(nextSums);
+      if (anyOk) queryClient.setQueryData(sumsKey, nextSums);
     },
-    [profile?.jwt]
+    [accountKey, profile?.jwt, queryClient]
   );
 
   const loadCategories = useCallback(async (showSpinner = true) => {
+    /*
+     * KESH DISKDAN TIKLANMAGUNCHA kutamiz.
+     *
+     * Tiklash asinxron: ilova ochilgan zahoti kesh hali bo'sh
+     * bo'ladi. Shu paytda o'qilsa "keshda hech narsa yo'q" degan
+     * xulosa chiqar va oflaynda ekran bo'sh qolib, ustiga xato
+     * yozilardi — aynan ma'lumot qurilmada YOTGAN holda. Tiklash
+     * tugagach bu funksiya o'zi qayta chaqiriladi.
+     */
+    if (isRestoring) {
+      if (showSpinner) setLoading(true);
+      return;
+    }
+
     if (!profile?.jwt) {
       setCategories([]);
       setCategorySums({});
       return;
     }
-    if (showSpinner) setLoading(true);
+    /*
+     * KATEGORIYALAR KESHDAN DARHOL CHIQADI.
+     *
+     * Kesh diskka saqlanadi, ya'ni ilova tarmoqsiz ochilganda ham
+     * xarajat bo'limi to'ldirilgan holda ko'rinadi. Ilgari bu ekran
+     * hech narsa saqlamasdi: oflaynda bo'sh qolar va ustiga "yuklab
+     * bo'lmadi" degan xabar chiqardi.
+     */
+    const cacheKey = categoriesKey(accountKey, 'EXPENSE');
+    const cached = queryClient.getQueryData<CategoryResponseDTO[]>(cacheKey);
+    if (cached) {
+      setCategories(cached);
+      const cachedRange = resolveDateRange(fromDate, endDate);
+      const savedSums = cachedRange.ok
+        ? queryClient.getQueryData<Record<string, number>>(
+            categorySumsKey(accountKey, cachedRange.fromDate, cachedRange.endDate),
+          )
+        : undefined;
+      if (savedSums) setCategorySums(savedSums);
+    }
+
+    if (showSpinner && !cached) setLoading(true);
     setError('');
     try {
       const page = await getCategories({ page: 1, size: 50, token: profile.jwt });
       const next = page.content ?? [];
       setCategories(next);
+      queryClient.setQueryData(cacheKey, next);
       const dateRange = resolveDateRange(fromDate, endDate);
       if (dateRange.ok) {
         await loadCategorySums(next, dateRange.fromDate, dateRange.endDate);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('expenses.loadFailed'));
+      /*
+       * Keshdan ko'rsatilayotgan bo'lsa XATO CHIQARMAYMIZ: ekranda
+       * ma'lumot turibdi va ustiga qizil xabar qo'yish "hech narsa
+       * yo'q" degan taassurot berardi. Oflayn ekani tepadagi umumiy
+       * qatorda allaqachon aytilgan.
+       */
+      if (!cached) setError(e instanceof Error ? e.message : t('expenses.loadFailed'));
     } finally {
       if (showSpinner) setLoading(false);
     }
-  }, [profile?.jwt, fromDate, endDate, loadCategorySums, t]);
+  }, [accountKey, isRestoring, profile?.jwt, queryClient, fromDate, endDate, loadCategorySums, t]);
 
   useEffect(() => {
     loadCategories(true);
@@ -215,15 +286,29 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         await loadCategories(true);
         return true;
       } catch (e) {
-        // Oflaynda amal navbatga tushdi — yo'qolmadi, xato ham emas.
-        if (isQueuedOffline(e)) return true;
+        /*
+         * Oflaynda amal navbatga tushdi — yo'qolmadi, xato ham emas.
+         * YANGI kategoriya ro'yxatga darhol qo'shiladi: ekranda hech
+         * narsa o'zgarmasa odam "qo'shilmadi" deb o'ylab qayta
+         * kiritar va internet qaytganda ikkita bir xil kategoriya
+         * paydo bo'lardi. Tahrirlash bundan tashqari: unda qator
+         * allaqachon ro'yxatda turgan.
+         */
+        if (isQueuedOffline(e)) {
+          if (categoryMode === 'create') {
+            const row = buildPendingCategory(e.key, name, 'EXPENSE');
+            setCategories((prev) => [row, ...prev]);
+            prependToCache(queryClient, categoriesKey(accountKey, 'EXPENSE'), row);
+          }
+          return true;
+        }
         setError(e instanceof Error ? e.message : t('expenses.saveFailed'));
         return false;
       } finally {
         setSavingCategory(false);
       }
     },
-    [profile?.jwt, categoryMode, editingCategoryId, loadCategories, t]
+    [accountKey, profile?.jwt, categoryMode, editingCategoryId, loadCategories, queryClient, t]
   );
 
   const handleDeleteCategory = useCallback(
@@ -238,13 +323,22 @@ const ExpensesScreen: React.FC<{ navigation: ExpensesNavigation }> = ({ navigati
         await deleteCategory(id, profile.jwt);
         await loadCategories(true);
       } catch (e) {
-        if (isQueuedOffline(e)) return;
+        /*
+         * Oflaynda o'chirish ham DARHOL ko'rinadi: qator ro'yxatda
+         * qolib tursa odam amal bajarilmadi deb o'ylab yana bosar va
+         * navbatga ikkinchi marta tushardi.
+         */
+        if (isQueuedOffline(e)) {
+          setCategories((prev) => prev.filter((category) => category.id !== id));
+          removeFromCache(queryClient, categoriesKey(accountKey, 'EXPENSE'), id);
+          return;
+        }
         setError(e instanceof Error ? e.message : t('expenses.deleteFailed'));
       } finally {
         setDeletingCategory('');
       }
     },
-    [profile?.jwt, loadCategories, t]
+    [accountKey, profile?.jwt, loadCategories, queryClient, t]
   );
 
   // Tahrirlash modalidan: galereyadan rasm tanlab yuklaydi va backendда saqlaydi.

@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppTheme } from '../../../shared/theme';
 import type { ThemeValue } from '../../../shared/theme/ThemeProvider';
 import IconButton from '../../../shared/ui/IconButton';
@@ -16,7 +17,17 @@ interface ProductRowProps {
    * `ProductResponseDTO` uning ustiga qurilgani uchun ikkalasi ham tushadi:
    * qator begona do'kon katalogida ham, o'z ro'yxatida ham bir xil chiziladi.
    */
-  product: ProductPublicDTO;
+  product: ProductPublicDTO & {
+    /**
+     * Yozuv oflaynda kiritilgan va hali serverga yetmagan.
+     *
+     * `ProductPublicDTO` ning o'zida bu maydon YO'Q va bo'lmasligi ham
+     * kerak: u begona do'kon katalogi uchun, u yerda yuborilmagan
+     * yozuv paydo bo'lmaydi. O'z narxnomasidagi `ProductResponseDTO`
+     * esa shu belgini olib keladi.
+     */
+    pending?: boolean;
+  };
   isLast: boolean;
   /**
    * Tahrirlash/o'chirish tugmalari ko'rinadimi. Begona biznes katalogida va
@@ -62,13 +73,18 @@ const ProductRow: React.FC<ProductRowProps> = ({
   // Ikkilamchi qator: artikul va izoh bitta joyda, "·" bilan ajratilgan.
   const meta = [product.code, product.description].filter(Boolean).join(' · ');
 
+  /* Oflaynda kiritilgan mahsulot hali serverda yo'q: id vaqtinchalik,
+     ya'ni tahrirlash ham, o'chirish ham xatoga uchrardi. */
+  const pending = Boolean(product.pending);
+  const manageable = allowManage && !pending;
+
   return (
-    <View style={[styles.row, !isLast && styles.rowBorder]}>
+    <View style={[styles.row, !isLast && styles.rowBorder, pending && styles.rowPending]}>
       <Pressable
-        style={({ pressed }) => [styles.main, pressed && allowManage && styles.pressed]}
-        onPress={allowManage ? handleEdit : undefined}
-        disabled={!allowManage}
-        accessibilityRole={allowManage ? 'button' : 'text'}
+        style={({ pressed }) => [styles.main, pressed && manageable && styles.pressed]}
+        onPress={manageable ? handleEdit : undefined}
+        disabled={!manageable}
+        accessibilityRole={manageable ? 'button' : 'text'}
         accessibilityLabel={`${product.name}, ${priceText}`}
       >
         <View style={[styles.avatar, { backgroundColor: avatarColor.bg }]}>
@@ -76,9 +92,15 @@ const ProductRow: React.FC<ProductRowProps> = ({
         </View>
 
         <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>
-            {product.name}
-          </Text>
+          <View style={styles.nameRow}>
+            {/* Soat belgisi — yozuv hali serverga yetmagani. */}
+            {pending ? (
+              <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
+            ) : null}
+            <Text style={styles.name} numberOfLines={1}>
+              {product.name}
+            </Text>
+          </View>
           {meta ? (
             <Text style={styles.meta} numberOfLines={1}>
               {meta}
@@ -96,7 +118,7 @@ const ProductRow: React.FC<ProductRowProps> = ({
         </View>
       </Pressable>
 
-      {allowManage ? (
+      {manageable ? (
         <View style={styles.actions}>
           <IconButton name="pencil" onPress={handleEdit} accessibilityLabel={t('common.edit')} />
           {allowDelete ? (
@@ -116,6 +138,15 @@ const ProductRow: React.FC<ProductRowProps> = ({
 
 const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
+    /** Yuborilmagan yozuv biroz so'nik: u hali "yo'lda". */
+    rowPending: {
+      opacity: 0.7,
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
     row: {
       flexDirection: 'row',
       alignItems: 'center',

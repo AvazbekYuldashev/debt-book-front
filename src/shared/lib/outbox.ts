@@ -50,15 +50,15 @@ export type OutboxSender = (item: OutboxItem) => Promise<void>;
 export type OutboxOutcome = 'sent' | 'retry' | 'dropped';
 
 type Listener = () => void;
-/** Amal serverga YETIB BORGANDA chaqiriladi — ekranlar yangilanishi uchun. */
-type SentListener = (item: OutboxItem) => void;
+/** Amal navbatdan CHIQQANDA chaqiriladi — yuborilgani ham, rad etilgani ham. */
+type SettledListener = (item: OutboxItem, outcome: Exclude<OutboxOutcome, 'retry'>) => void;
 
 let items: OutboxItem[] = [];
 let loaded = false;
 let flushing = false;
 let sender: OutboxSender | null = null;
 const listeners = new Set<Listener>();
-const sentListeners = new Set<SentListener>();
+const settledListeners = new Set<SettledListener>();
 
 const emit = (): void => listeners.forEach((listener) => listener());
 
@@ -111,16 +111,20 @@ export const outbox = {
   },
 
   /**
-   * Amal serverga yetib borganda xabar beradi.
+   * Amal navbatdan chiqqanda xabar beradi.
    *
    * Ekranlarda oflaynda qo'shilgan yozuv VAQTINCHALIK ko'rinishda
    * turadi (soat belgisi bilan). U haqiqiy, server bergan yozuvga
    * almashishi uchun o'sha paytda ma'lumot qayta so'ralishi kerak.
+   *
+   * RAD ETILGAN amal haqida ham xabar beriladi: aks holda uning
+   * vaqtinchalik yozuvi ekranda abadiy soat belgisi bilan turib qolar
+   * va odam yuborilishini bir umr kutardi.
    */
-  subscribeSent(listener: SentListener): () => void {
-    sentListeners.add(listener);
+  subscribeSettled(listener: SettledListener): () => void {
+    settledListeners.add(listener);
     return () => {
-      sentListeners.delete(listener);
+      settledListeners.delete(listener);
     };
   },
 
@@ -176,12 +180,9 @@ export const outbox = {
         items = items.slice(1);
         await persist();
         emit();
-        if (outcome === 'sent') {
-          sent += 1;
-          sentListeners.forEach((listener) => listener(head));
-        } else {
-          dropped += 1;
-        }
+        if (outcome === 'sent') sent += 1;
+        else dropped += 1;
+        settledListeners.forEach((listener) => listener(head, outcome));
       }
     } finally {
       flushing = false;

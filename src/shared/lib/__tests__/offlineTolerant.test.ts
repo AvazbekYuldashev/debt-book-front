@@ -15,7 +15,7 @@ describe('offlineTolerant', () => {
 
   it('navbatga tushgan amalni MUVAFFAQIYAT deb qaytaradi', async () => {
     const fn = offlineTolerant(async () => {
-      throw new OfflineQueuedError('saqlandi');
+      throw new OfflineQueuedError('saqlandi', 'kalit-1');
     });
     await expect(fn(undefined)).resolves.toBeUndefined();
   });

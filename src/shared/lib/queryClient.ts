@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryClient, onlineManager } from '@tanstack/react-query';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import { removeOldestQuery } from '@tanstack/react-query-persist-client';
 import { networkStatus } from './networkStatus';
 
 // ============================================================
@@ -68,6 +69,16 @@ export const queryPersister = createAsyncStoragePersister({
   // Har o'zgarishda diskka yozmaydi: ro'yxat suriladigan paytda bu
   // sezilarli ish bo'lardi.
   throttleTime: 2_000,
+  /**
+   * JOY TUGAGANDA eng eski yozuvni tashlab, qaytadan urinadi.
+   *
+   * Brauzerda kesh `localStorage` ga tushadi, u esa ~5 MB bilan
+   * cheklangan. Kontaktlari ko'p odamda chegara oshib ketardi va
+   * saqlash BUTUNLAY yiqilardi: ilova oflaynda ochilganda hech narsa
+   * ko'rinmasdi — eng kerakli paytda eng bo'sh ekran. Eski yozuvni
+   * yo'qotish esa sezilmaydi, u baribir qayta so'raladi.
+   */
+  retry: removeOldestQuery,
 });
 
 /**

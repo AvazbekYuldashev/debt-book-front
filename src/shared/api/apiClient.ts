@@ -27,9 +27,21 @@ export class ApiClientError extends Error {
  * qaytishi bilan o'zi yuboriladi.
  */
 export class OfflineQueuedError extends ApiClientError {
-  constructor(message: string) {
+  /**
+   * Navbatdagi amalning kaliti.
+   *
+   * Ekran shu kalit bo'yicha vaqtinchalik yozuv yasaydi va amal
+   * serverga yetgach aynan o'shani keshdan topib olib tashlaydi.
+   * Kalitni xato bilan qaytarish — har bir servis imzosiga
+   * `Idempotency-Key` ni qo'lda uzatishdan ko'ra ishonchli: unutilgan
+   * joyda yozuv ekranda abadiy qolib ketardi.
+   */
+  readonly key: string;
+
+  constructor(message: string, key: string) {
     super(message);
     this.name = 'OfflineQueuedError';
+    this.key = key;
   }
 }
 
@@ -196,16 +208,17 @@ function notifyUnauthorized() {
 }
 
 /** Tarmoqsiz qolgan yozuv amalini navbatga qo'yadi. Qo'yilsa `true`. */
-async function maybeQueueOffline(error: AxiosError): Promise<boolean> {
-  if (error.response) return false;
+/** Amalni navbatga qo'yadi va kalitini qaytaradi (qo'yilmasa `null`). */
+async function maybeQueueOffline(error: AxiosError): Promise<string | null> {
+  if (error.response) return null;
   const config = error.config;
-  if (!config?.url || !config.method) return false;
-  if (!isPersistingWrite(config.method, config.url, config.data)) return false;
+  if (!config?.url || !config.method) return null;
+  if (!isPersistingWrite(config.method, config.url, config.data)) return null;
   const method = config.method.toLowerCase();
 
   const headers = (config.headers ?? {}) as Record<string, unknown>;
   const key = headers[IDEMPOTENCY_HEADER];
-  if (typeof key !== 'string' || !key) return false;
+  if (typeof key !== 'string' || !key) return null;
 
   await outbox.enqueue({
     method: method.toUpperCase() as OutboxMethod,
@@ -213,7 +226,7 @@ async function maybeQueueOffline(error: AxiosError): Promise<boolean> {
     body: parseBody(config.data),
     key,
   });
-  return true;
+  return key;
 }
 
 /** Axios tanani satrga aylantirib yuborgan bo'lishi mumkin. */
@@ -299,10 +312,13 @@ apiClient.interceptors.response.use(
      *     qayta yuborish xavfli: server uni yangi amal deb qabul qilib,
      *     masalan pulni ikki marta yozib qo'yishi mumkin.
      */
-    const queued = await maybeQueueOffline(error);
-    if (queued) {
+    const queuedKey = await maybeQueueOffline(error);
+    if (queuedKey) {
       return Promise.reject(
-        new OfflineQueuedError("Internet yo'q — amal saqlandi va aloqa tiklanganda yuboriladi")
+        new OfflineQueuedError(
+          "Internet yo'q — amal saqlandi va aloqa tiklanganda yuboriladi",
+          queuedKey
+        )
       );
     }
 

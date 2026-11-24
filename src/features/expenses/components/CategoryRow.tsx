@@ -72,11 +72,21 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
     </View>
   );
 
+  /*
+   * Oflaynda kiritilgan kategoriya HALI SERVERDA YO'Q.
+   *
+   * Shuning uchun u ochilmaydi va boshqarilmaydi: id'si vaqtinchalik,
+   * ya'ni ichidagi xarajatlarni so'rash ham, tahrirlash ham serverda
+   * xatoga uchrardi. Soat belgisi aynan shuni aytadi — "hali yo'lda".
+   */
+  const pending = Boolean(category.pending);
+
   return (
-    <View style={[styles.row, !isLast && styles.rowBorder]}>
+    <View style={[styles.row, !isLast && styles.rowBorder, pending && styles.rowPending]}>
       <Pressable
-        style={({ pressed }) => [styles.main, pressed && styles.pressed]}
-        onPress={handleOpen}
+        style={({ pressed }) => [styles.main, !pending && pressed && styles.pressed]}
+        onPress={pending ? undefined : handleOpen}
+        disabled={pending}
         accessibilityRole="button"
         accessibilityLabel={category.name}
       >
@@ -101,10 +111,14 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
           </Text>
           <Text style={styles.sum}>{formatMoney(sum)}</Text>
         </View>
-        {category.pin ? <Ionicons name="bookmark" size={14} color={colors.primary} /> : null}
+        {pending ? (
+          <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+        ) : category.pin ? (
+          <Ionicons name="bookmark" size={14} color={colors.primary} />
+        ) : null}
       </Pressable>
 
-      {allowManage ? (
+      {allowManage && !pending ? (
         expanded ? (
           <View style={styles.actions}>
             <IconButton
@@ -141,6 +155,10 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
 
 const createStyles = ({ colors, spacing, radius, typography }: ThemeValue) =>
   StyleSheet.create({
+    /** Yuborilmagan yozuv biroz so'nik: u hali "yo'lda". */
+    rowPending: {
+      opacity: 0.7,
+    },
     row: {
       flexDirection: 'row',
       alignItems: 'center',

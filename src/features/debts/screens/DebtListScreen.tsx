@@ -41,7 +41,7 @@ import { requestNotificationPermission } from '../../../shared/lib/deviceNotific
 import type { DeviceContact } from '../../../shared/lib/deviceContacts';
 import { useI18n } from '../../../shared/i18n';
 import { AuthContext } from '../../auth/context/AuthContext';
-import { useQueryClient } from '@tanstack/react-query';
+import { useIsRestoring, useQueryClient } from '@tanstack/react-query';
 import SectionHeader from '../../../shared/ui/SectionHeader';
 import BalanceSummary from '../components/BalanceSummary';
 import BalanceHero, { HERO_OVERLAP } from '../components/BalanceHero';
@@ -75,6 +75,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
 
   const { profile } = useContext(AuthContext);
   const queryClient = useQueryClient();
+  const isRestoring = useIsRestoring();
   const { workspace } = useContext(WorkspaceContext);
   const {
     contacts,
@@ -186,6 +187,12 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
   useEffect(() => {
     const token = profile?.jwt;
     if (!token || contacts.length === 0) return;
+    /*
+     * Kesh tiklanmaguncha boshlanmaydi: aks holda diskda allaqachon
+     * yotgan tafsilotlar "yo'q" deb hisoblanar va hammasi qaytadan
+     * so'ralardi — yuzta behuda so'rov.
+     */
+    if (isRestoring) return;
     const timer = setTimeout(() => {
       void prefetchMoneyDetails(
         queryClient,
@@ -195,7 +202,7 @@ const DebtListScreen: React.FC<{ navigation: DebtsNavigation }> = ({ navigation 
       );
     }, 1_500);
     return () => clearTimeout(timer);
-  }, [contacts, profile?.jwt, queryClient, workspace.mode]);
+  }, [contacts, isRestoring, profile?.jwt, queryClient, workspace.mode]);
 
   // Odatiy holatda oxirgi amal birinchi; valyuta tanlansa o'sha valyutaning sof
   // balansi (credit - debt) bo'yicha. 'debt' = eng katta qarzdan (eng manfiy) haqgacha,

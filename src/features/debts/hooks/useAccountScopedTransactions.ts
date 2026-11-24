@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useIsRestoring, useQueryClient } from '@tanstack/react-query';
 import { getProfileByPhone } from '../../profile/services/profileService';
 import { createCredit, createDebt } from '../services/moneyService';
 import { newIdempotencyKey } from '../../../shared/lib/idempotency';
@@ -51,6 +51,7 @@ interface UseAccountScopedTransactionsParams {
 
 export function useAccountScopedTransactions({ token }: UseAccountScopedTransactionsParams) {
   const queryClient = useQueryClient();
+  const isRestoring = useIsRestoring();
   const { accountKey, accountType, partyType: ownerPartyType } = useAccountContext();
   const [history, setHistory] = useState<MoneyResponseDTO[]>([]);
   const [totalPrice, setTotalPrice] = useState<MoneyPriceDTO | null>(null);
@@ -92,6 +93,19 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
      * yiqilar va butun ekran bo'sh qolardi. Endi bunday holatda ham
      * keshga yetib boramiz.
      */
+    /*
+     * KESH DISKDAN TIKLANMAGUNCHA kutamiz.
+     *
+     * Tiklash asinxron: ilova ochilgan zahoti kesh bo'sh bo'ladi va
+     * shu paytda o'qilsa "keshda yo'q" degan xulosa chiqar, oflaynda
+     * esa tarix bo'sh qolardi — aynan ma'lumot qurilmada yotgan
+     * holda. Tiklash tugagach bu funksiya o'zi qayta chaqiriladi.
+     */
+    if (isRestoring) {
+      setLoading(true);
+      return;
+    }
+
     let resolvedCounterpartyId = '';
     try {
       resolvedCounterpartyId = await resolveCounterpartyId(input);
@@ -145,7 +159,7 @@ export function useAccountScopedTransactions({ token }: UseAccountScopedTransact
     } finally {
       setLoading(false);
     }
-  }, [accountType, queryClient, resolveCounterpartyId, token]);
+  }, [accountType, isRestoring, queryClient, resolveCounterpartyId, token]);
 
   const createMoney = useCallback(
     async (type: MoneyActionType, payload: CreateMoneyInput): Promise<boolean> => {
